@@ -1,0 +1,28 @@
+{
+  "name": "@adi/common",
+  "version": "0.0.1",
+  "description": "Another DI system for TS/JS (@common)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/magicmatatjahu/adi"
+  },
+  "author": "Maciej Urbańczyk",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "tsc --watch"
+  },
+  "dependencies": {
+    "@adi/core": "0.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.3"
+  }
+}

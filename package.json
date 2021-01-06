@@ -1,0 +1,53 @@
+{
+  "name": "@adi/core",
+  "version": "0.0.1",
+  "description": "Another DI system for TS/JS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/magicmatatjahu/adi"
+  },
+  "author": "Maciej Urbańczyk",
+  "license": "MIT",
+  "scripts": {
+    "bootstrap": "lerna bootstrap",
+    "clean": "lerna clean",
+    "start": "lerna exec --parallel -- npm run start",
+    "test": "nyc mocha packages/**/*.spec.ts --reporter spec --clear --exit"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.8",
+    "@types/mocha": "^7.0.1",
+    "@types/node": "^13.7.0",
+    "chai": "^4.2.0",
+    "mocha": "^7.0.1",
+    "nyc": "^15.0.0",
+    "reflect-metadata": "^0.1.13",
+    "ts-node": "^8.6.2",
+    "lerna": "^3.22.1",
+    "typescript": "^4.0.3"
+  },
+  "nyc": {
+    "include": [
+      "packages/**/*.ts"
+    ],
+    "exclude": [
+      "node_modules/",
+      "packages/**/test/**",
+      "packages/**/*.spec.ts",
+      "packages/**/test/**/*.ts"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "require": [
+      "ts-node/register",
+      "reflect-metadata/Reflect"
+    ],
+    "reporter": [
+      "text-summary",
+      "html"
+    ],
+    "sourceMap": true,
+    "instrument": true
+  }
+}
