@@ -20,7 +20,6 @@ export {
   ConstructorProvider,
   StaticClassProvider,
   FactoryProvider,
-  FactoryConfigProvider,
   ExistingProvider,
   ValueProvider,
   Type,

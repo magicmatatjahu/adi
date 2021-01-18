@@ -9,7 +9,7 @@ export class NilInjector {
     options: InjectionOptions,
   ): never | undefined {
     if (options.flags & InjectionFlags.OPTIONAL) {
-      return options.default;
+      return undefined;
     }
     throw new Error(`Undefined token: ${token as string}`);
   }

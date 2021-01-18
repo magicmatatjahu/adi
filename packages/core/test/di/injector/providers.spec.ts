@@ -176,57 +176,57 @@ describe('Providers', () => {
     expect(instance).to.be.equal("bar");
   });
 
-  it('FactoryConfigProvider', async () => {
-    const token = "token";
+  // it('FactoryConfigProvider', async () => {
+  //   const token = "token";
 
-    @Injectable()
-    class Service {
-      config() {
-        return "ConfigValue";
-      }
-    }
+  //   @Injectable()
+  //   class Service {
+  //     config() {
+  //       return "ConfigValue";
+  //     }
+  //   }
 
-    class FactoryService {
-      @Injectable(token)
-      static getFoo(service: Service): string {
-        return service.config();
-      }
-    }
+  //   class FactoryService {
+  //     @Injectable(token)
+  //     static getFoo(service: Service): string {
+  //       return service.config();
+  //     }
+  //   }
 
-    const injector = createInjector([
-      {
-        useFactory: FactoryService,
-      },
-      Service
-    ]);
+  //   const injector = createInjector([
+  //     {
+  //       useFactory: FactoryService,
+  //     },
+  //     Service
+  //   ]);
     
-    const instance = await injector.resolve(token);
-    expect(instance).to.be.equal("ConfigValue");
-  });
+  //   const instance = await injector.resolve(token);
+  //   expect(instance).to.be.equal("ConfigValue");
+  // });
 
-  it('FactoryConfigProvider with override', async () => {
-    const token = "token";
+  // it('FactoryConfigProvider with override', async () => {
+  //   const token = "token";
 
-    class FactoryService {
-      @Injectable(token)
-      static getFoo(@Inject("config") config: string): string {
-        return config;
-      }
-    }
+  //   class FactoryService {
+  //     @Injectable(token)
+  //     static getFoo(@Inject("config") config: string): string {
+  //       return config;
+  //     }
+  //   }
 
-    const injector = createInjector([
-      {
-        useFactory: FactoryService,
-      },
-      {
-        provide: token,
-        useValue: "OverrideValue",
-      }
-    ]);
+  //   const injector = createInjector([
+  //     {
+  //       useFactory: FactoryService,
+  //     },
+  //     {
+  //       provide: token,
+  //       useValue: "OverrideValue",
+  //     }
+  //   ]);
     
-    const instance = await injector.resolve(token);
-    expect(instance).to.be.equal("OverrideValue");
-  });
+  //   const instance = await injector.resolve(token);
+  //   expect(instance).to.be.equal("OverrideValue");
+  // });
 
   it('ValueProvider', async () => {
     const token = "token";
@@ -240,58 +240,58 @@ describe('Providers', () => {
     expect(instance).to.be.equal("foo");
   });
 
-  it('ValueProvider - context', async () => {
-    const token = "token";
-    const ctx = new Context();
+  // it('ValueProvider - context', async () => {
+  //   const token = "token";
+  //   const ctx = new Context();
 
-    const injector = createInjector([
-      {
-        provide: token,
-        useValue: "foo",
-      },
-      {
-        provide: token,
-        useValue: "bar",
-        ctx,
-      }
-    ]);
+  //   const injector = createInjector([
+  //     {
+  //       provide: token,
+  //       useValue: "foo",
+  //     },
+  //     {
+  //       provide: token,
+  //       useValue: "bar",
+  //       ctx,
+  //     }
+  //   ]);
     
-    const foo = await injector.resolve(token);
-    const bar = await injector.resolve(token, { ctx });
-    expect(foo).to.be.equal("foo");
-    expect(bar).to.be.equal("bar");
-  });
+  //   const foo = await injector.resolve(token);
+  //   const bar = await injector.resolve(token, { ctx });
+  //   expect(foo).to.be.equal("foo");
+  //   expect(bar).to.be.equal("bar");
+  // });
 
-  it('ValueProvider - override', async () => {
-    const token = "token";
-    const ctx = new Context();
+  // it('ValueProvider - override', async () => {
+  //   const token = "token";
+  //   const ctx = new Context();
 
-    const injector = createInjector([
-      {
-        provide: token,
-        useValue: "foo",
-      },
-      {
-        provide: token,
-        useValue: "bar",
-        ctx,
-      },
-      {
-        provide: token,
-        useValue: "foo",
-        ctx,
-      },
-      {
-        provide: token,
-        useValue: "bar",
-      },
-    ]);
+  //   const injector = createInjector([
+  //     {
+  //       provide: token,
+  //       useValue: "foo",
+  //     },
+  //     {
+  //       provide: token,
+  //       useValue: "bar",
+  //       ctx,
+  //     },
+  //     {
+  //       provide: token,
+  //       useValue: "foo",
+  //       ctx,
+  //     },
+  //     {
+  //       provide: token,
+  //       useValue: "bar",
+  //     },
+  //   ]);
     
-    const foo = await injector.resolve(token);
-    const bar = await injector.resolve(token, { ctx });
-    expect(foo).to.be.equal("bar");
-    expect(bar).to.be.equal("foo");
-  });
+  //   const foo = await injector.resolve(token);
+  //   const bar = await injector.resolve(token, { ctx });
+  //   expect(foo).to.be.equal("bar");
+  //   expect(bar).to.be.equal("foo");
+  // });
 
   it('ExistingProvider', async () => {
     class ServiceA {
@@ -317,97 +317,25 @@ describe('Providers', () => {
     expect(instance.getFoo()).to.be.equal("foo");
   });
 
-  it('ExistingProvider - context', async () => {
-    const token = "token";
-    const ctx = new Context();
+  // it('MultiProvider', async () => {
+  //   const token = new InjectionToken<string>({ multi: true });
 
-    const injector = createInjector([
-      {
-        provide: token,
-        useValue: "foo",
-      },
-      {
-        provide: token,
-        useValue: "bar",
-        ctx,
-      },
-      {
-        provide: "useExisting",
-        useExisting: token,
-      },
-      {
-        provide: "useExistingCtx",
-        useExisting: token,
-        ctx,
-      }
-    ]);
+  //   const injector = createInjector([
+  //     {
+  //       provide: token,
+  //       useValue: "foo",
+  //     },
+  //     {
+  //       provide: token,
+  //       useValue: "bar",
+  //     },
+  //     {
+  //       provide: token,
+  //       useFactory: async () => "asyncFoo",
+  //     },
+  //   ]);
     
-    const foo = await injector.resolve("useExisting");
-    const bar = await injector.resolve("useExistingCtx");
-    expect(foo).to.be.equal("foo");
-    expect(bar).to.be.equal("bar");
-  });
-
-  it('ExistingProvider - default value', async () => {
-    const injector = createInjector([
-      {
-        provide: "useExisting",
-        useExisting: "token",
-        default: "defaultValue"
-      }
-    ]);
-    
-    const value = await injector.resolve("useExisting");
-    expect(value).to.be.equal("defaultValue");
-  });
-
-  it('ExistingProvider - array of providers', async () => {
-    const token = "token";
-    const ctx = new Context();
-
-    const injector = createInjector([
-      {
-        provide: token,
-        useValue: "foo",
-      },
-      {
-        provide: token,
-        useValue: "bar",
-        ctx,
-      },
-      {
-        provide: "token2",
-        useFactory: async () => "asyncFoo",
-      },
-      {
-        provide: "useExisting",
-        useExisting: ["token", { token, ctx }, "token2", { token: "foobar", default: "defaultValue" }],
-      },
-    ]);
-    
-    const array = await injector.resolve("useExisting");
-    expect(array).to.be.deep.equal(["foo", "bar", "asyncFoo", "defaultValue"]);
-  });
-
-  it('MultiProvider', async () => {
-    const token = new InjectionToken<string>({ multi: true });
-
-    const injector = createInjector([
-      {
-        provide: token,
-        useValue: "foo",
-      },
-      {
-        provide: token,
-        useValue: "bar",
-      },
-      {
-        provide: token,
-        useFactory: async () => "asyncFoo",
-      },
-    ]);
-    
-    const foo = await injector.resolve(token);
-    expect(foo).to.be.deep.equal(["foo", "bar", "asyncFoo"]);
-  });
+  //   const foo = await injector.resolve(token);
+  //   expect(foo).to.be.deep.equal(["foo", "bar", "asyncFoo"]);
+  // });
 });

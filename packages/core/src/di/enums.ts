@@ -47,9 +47,8 @@ export enum ProviderType {
   STATIC_CLASS = 8,
   FACTORY = 16,
   EXISTING = 32,
-  EXISTING_MULTI = 64,
-  VALUE = 128,
-  MULTI = 256,
+  VALUE = 64,
+  MULTI = 128,
 }
 
 export enum ProviderDefFlags {

@@ -1,3 +1,4 @@
+import { When } from "./definitions.interface";
 import { Type } from "./type.interface";
 import { ScopeOptions } from "./scope-options.interface";
 import { Context } from "../tokens";
@@ -9,9 +10,15 @@ export type Provider<T = any> =
   | ConstructorProvider<T>
   | StaticClassProvider<T>
   | FactoryProvider<T>
-  | FactoryConfigProvider
   | ExistingProvider<T>
-  | ExistingMultiProvider<T>
+  | ValueProvider<T>;
+
+export type CustomProvider<T = any> =
+  | ClassProvider<T>
+  | ConstructorProvider<T>
+  | StaticClassProvider<T>
+  | FactoryProvider<T>
+  | ExistingProvider<T>
   | ValueProvider<T>;
 
 export type ProviderBody<T = any> = 
@@ -20,7 +27,6 @@ export type ProviderBody<T = any> =
   | StaticClassProviderBody<T>
   | FactoryProviderBody<T>
   | ExistingProviderBody
-  | ExistingMultiProviderBody
   | ValueProviderBody<T>;
 
 export interface TypeProvider<T = any> extends Type<T> {}
@@ -30,6 +36,7 @@ export interface ClassProvider<T = any> extends ClassProviderBody<T> {
 }
 
 export interface ClassProviderBody<T = any> extends ScopeOptions {
+  when?: When;
   useClass: Type<T>;
 }
 
@@ -38,6 +45,7 @@ export interface ConstructorProvider<T = any> extends ConstructorProviderBody {
 }
 
 export interface ConstructorProviderBody extends ScopeOptions {
+  when?: When;
   inject?: Array<Token | Array<ParameterDecorator>>;
 }
 
@@ -46,6 +54,7 @@ export interface StaticClassProvider<T = any> extends StaticClassProviderBody<T>
 }
 
 export interface StaticClassProviderBody<T = any> extends ScopeOptions {
+  when?: When;
   useClass: Type<T>;
   inject?: Array<Token | Array<ParameterDecorator>>;
 }
@@ -55,12 +64,9 @@ export interface FactoryProvider<T = any> extends FactoryProviderBody<T> {
 }
 
 export interface FactoryProviderBody<T = any> extends ScopeOptions {
+  when?: When;
   useFactory: (...args: any[]) => T | Promise<T>;
   inject?: Array<Token | Array<ParameterDecorator>>;
-}
-
-export interface FactoryConfigProvider {
-  useFactory: Type;
 }
 
 export interface ExistingProvider<T = any> extends ExistingProviderBody {
@@ -68,21 +74,8 @@ export interface ExistingProvider<T = any> extends ExistingProviderBody {
 }
 
 export interface ExistingProviderBody {
+  when?: When;
   useExisting: Token;
-  ctx?: Context;
-  default?: any;
-}
-
-export interface ExistingMultiProvider<T = any> extends ExistingMultiProviderBody {
-  provide: Token<T>;
-}
-
-export interface ExistingMultiProviderBody {
-  useExisting: Array<Token | {
-    token: Token,
-    ctx?: Context;
-    default?: any;
-  }>;
 }
 
 export interface ValueProvider<T = any> extends ValueProviderBody<T> {
@@ -90,6 +83,6 @@ export interface ValueProvider<T = any> extends ValueProviderBody<T> {
 }
 
 export interface ValueProviderBody<T = any> {
+  when?: When;
   useValue: T;
-  ctx?: Context;
 }

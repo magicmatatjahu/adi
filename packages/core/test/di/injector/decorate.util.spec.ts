@@ -58,11 +58,11 @@ describe('decorate', () => {
 
     class Service {
       constructor(
-        public token: string,
+        public token: string = value,
       ) {}
     }
     decorate(Injectable(), Service);
-    decorate([Inject(token), Optional(value)], Service, 0);
+    decorate([Inject(token), Optional()], Service, 0);
 
     const injector = createInjector([
       Service,

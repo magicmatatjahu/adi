@@ -1,9 +1,9 @@
 import { Injector } from "./injector";
 import { InjectionStatus, InjectionFlags } from "../enums";
 import { 
-  InjectionRecord, ContextRecord, InjectionArgument, InjectionOptions, InjectionDependency,
+  InjectionRecord, ContextRecord, InjectionArgument, InjectionOptions,
   ProviderDef, FactoryDef, InquirerDef, Type, 
-  ConstructorArguments, PropertiesArguments, MethodsArguments,
+  ConstructorArguments, PropertiesArguments, MethodsArguments, RecordDefinition,
 } from "../interfaces";
 import { resolveForwardRef, hasOnInitHook } from "../utils";
 import { CONTEXT, INQUIRER, INQUIRER_PROTO } from "../constants";
@@ -46,7 +46,7 @@ export const CIRCULAR_DATA = {
 }
 
 export class Resolver {
-  inject<T>(token: Token<T>, injector: Injector, options?: InjectionOptions, inquirer?: InquirerDef, sync?: boolean): Promise<T | undefined> | T | undefined {
+  inject<T>(token: Token<T>, options: InjectionOptions, injector: Injector, inquirer?: InquirerDef, sync?: boolean): Promise<T | undefined> | T | undefined {
     return injector.resolve(token, options, inquirer, sync);
   }
 
@@ -171,16 +171,16 @@ export class Resolver {
     
     return (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
       if (sync === true) {
-        return this.injectProviderSync(injector, inquirer, provider, deps, props, methods);
+        return this.injectProviderSync(provider, deps, props, methods, injector, inquirer);
       } else {
-        return this.injectProviderAsync(injector, inquirer, provider, deps, props, methods);
+        return this.injectProviderAsync(provider, deps, props, methods, injector, inquirer);
       }
     }
   }
 
   async injectProviderAsync<T>(
-    injector: Injector, inquirer: InquirerDef, provider: Type<T>, 
-    ctorDeps: ConstructorArguments, props: PropertiesArguments, methods: MethodsArguments
+    provider: Type<T>, ctorDeps: ConstructorArguments, props: PropertiesArguments, methods: MethodsArguments,
+    injector: Injector, inquirer: InquirerDef, 
   ): Promise<T> {
     const instance = new provider(...await this.injectDepsAsync(ctorDeps, injector, inquirer));
     await this.injectProps(instance, props, injector, inquirer);
@@ -189,8 +189,8 @@ export class Resolver {
   }
 
   injectProviderSync<T>(
-    injector: Injector, inquirer: InquirerDef, provider: Type<T>, 
-    ctorDeps: ConstructorArguments, props: PropertiesArguments, methods: MethodsArguments
+    provider: Type<T>, ctorDeps: ConstructorArguments, props: PropertiesArguments, methods: MethodsArguments,
+    injector: Injector, inquirer: InquirerDef, 
   ): T {
     const instance = new provider(...this.injectDepsSync(ctorDeps, injector, inquirer));
     this.injectPropsSync(instance, props, injector, inquirer);
@@ -212,7 +212,7 @@ export class Resolver {
       return resolver.handleSelfFlags(injector, token, options, inquirer, sync);
     } else {
       // NO_INJECT case
-      return options.default || undefined;
+      return undefined;
     }
   }
 
@@ -261,14 +261,11 @@ export class Resolver {
       case INQUIRER: {
         const inq = inquirer.inquirer;
         // TODO: check also with transient scope and @New decorator
-        return inq && this.handleCircularDeps(
-          inq.record,
-          inq.ctxRecord,
-        );
+        return inq  && this.handleCircularDeps(inq .ctxRecord);
       }
       case INQUIRER_PROTO: {
         const inq = inquirer.inquirer;
-        return inq && inq.record.prototype;
+        return inq && inq.ctxRecord.def.prototype;
       }
       default: return undefined;
     }
@@ -293,14 +290,15 @@ export class Resolver {
     })
   }
 
-  handleCircularDeps<T>(record: InjectionRecord<T>, ctx: ContextRecord<T>): T {
+  handleCircularDeps<T>(ctx: ContextRecord<T>): T {
     if (!(ctx.status & InjectionStatus.CIRCULAR)) {
       // make placeholder instance by prototype for circular deps
       // circular deps between useFactory provider and class isn't support - it cannot be resolved
-      if (!record.prototype) {
+      const proto = ctx && ctx.def.prototype;
+      if (!proto) {
         throw new Error("Circular Dependency");
       }
-      ctx.value = Object.create(record.prototype);
+      ctx.value = Object.create(proto);
       ctx.status |= InjectionStatus.CIRCULAR;
     }
     CIRCULAR_DATA.is = true;

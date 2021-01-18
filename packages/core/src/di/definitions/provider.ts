@@ -38,10 +38,6 @@ export function applyFactoryDef<T>(method: Object, token: Token, params: Array<a
   return def as ProviderDef<T>;
 }
 
-export function applyExtension<T>(extension: any, target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor): void {
-  const arg = getInjectionArg(target, key, indexOrDescriptor);
-}
-
 function ensureProviderDef<T>(provider: T): ProviderDef<T> {
   if (!provider.hasOwnProperty(DEFINITIONS.PROVIDER)) {
     Object.defineProperty(provider, DEFINITIONS.PROVIDER, { value: defineProviderDef(provider), enumerable: true });
@@ -53,10 +49,9 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
   return {
     token: provider,
     factory: undefined,
-    flags: ProviderDefFlags.NONE,
     scope: Scope.DEFAULT,
-    labels: {},
     providedIn: undefined,
+    flags: ProviderDefFlags.NONE,
     args: {
       ctor: [],
       props: {},
@@ -162,11 +157,10 @@ export function createInjectionArg(type: InjectionFlags, target: Object, propert
     token: undefined,
     options: {
       flags: type,
-      def: undefined,
       ctx: undefined,
       scope: undefined,
       scopeParams: undefined,
-      default: undefined,
+      metadata: {},
       target,
       propertyKey,
       index,

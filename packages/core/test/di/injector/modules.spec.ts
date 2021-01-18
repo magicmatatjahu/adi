@@ -674,64 +674,64 @@ describe('Modules', () => {
     expect(numberOfInits).to.be.equal(1);
   });
 
-  it(`should works with MODULE_INITIALIZERS`, async () => {
-    const order: string[] = [];
+  // it(`should works with MODULE_INITIALIZERS`, async () => {
+  //   const order: string[] = [];
     
-    @Injectable()
-    class Service {}
+  //   @Injectable()
+  //   class Service {}
 
-    @Module({
-      providers: [
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: async () => {
-            return () => order.push("ChildModule async factory");
-          },
-        },
-        {
-          provide: "service",
-          useFactory: (service: Service) => {
-            order.push("ChildModule Service");
-          },
-          inject: [Service],
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useExisting: "service",
-        },
-        Service,
-      ],
-    })
-    class ChildModule {}
+  //   @Module({
+  //     providers: [
+  //       {
+  //         provide: MODULE_INITIALIZERS,
+  //         useFactory: async () => {
+  //           return () => order.push("ChildModule async factory");
+  //         },
+  //       },
+  //       {
+  //         provide: "service",
+  //         useFactory: (service: Service) => {
+  //           order.push("ChildModule Service");
+  //         },
+  //         inject: [Service],
+  //       },
+  //       {
+  //         provide: MODULE_INITIALIZERS,
+  //         useExisting: "service",
+  //       },
+  //       Service,
+  //     ],
+  //   })
+  //   class ChildModule {}
 
-    @Module({
-      imports: [
-        ChildModule
-      ],
-      providers: [
-        {
-          provide: "value",
-          useValue: "AppModule useValue",
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: (value: string) => {
-            return () => order.push(value);
-          },
-          inject: ["value"],
-        },
-      ],
-    })
-    class AppModule {}
+  //   @Module({
+  //     imports: [
+  //       ChildModule
+  //     ],
+  //     providers: [
+  //       {
+  //         provide: "value",
+  //         useValue: "AppModule useValue",
+  //       },
+  //       {
+  //         provide: MODULE_INITIALIZERS,
+  //         useFactory: (value: string) => {
+  //           return () => order.push(value);
+  //         },
+  //         inject: ["value"],
+  //       },
+  //     ],
+  //   })
+  //   class AppModule {}
 
-    const injector = createInjector(AppModule);
-    await injector.compile();
-    // ChildModule Service is executed first, because ADI first initializes MODULE_INITIALIZERS provider
-    // then runs returned functions from providers
-    expect(order).to.be.deep.equal([
-      'ChildModule Service',
-      'ChildModule async factory',
-      'AppModule useValue'
-    ]);
-  });
+  //   const injector = createInjector(AppModule);
+  //   await injector.compile();
+  //   // ChildModule Service is executed first, because ADI first initializes MODULE_INITIALIZERS provider
+  //   // then runs returned functions from providers
+  //   expect(order).to.be.deep.equal([
+  //     'ChildModule Service',
+  //     'ChildModule async factory',
+  //     'AppModule useValue'
+  //   ]);
+  // });
 });

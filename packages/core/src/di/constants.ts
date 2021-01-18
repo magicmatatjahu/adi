@@ -14,6 +14,10 @@ export const CONTEXT = new InjectionToken<Context>();
 export const INQUIRER = new InjectionToken<any>();
 export const INQUIRER_PROTO = new InjectionToken<any>();
 
+export const CONSTRAINTS = {
+  NAMED: "named",
+}
+
 // PRIVATE
 
 export const MODULE = new InjectionToken<Type>();

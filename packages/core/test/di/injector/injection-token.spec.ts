@@ -74,7 +74,10 @@ describe('InjectionToken', () => {
 
     const token = new InjectionToken({
       providedIn: "any",
-      useExisting: [Service, ServiceToInject],
+      useFactory() {
+        return [...arguments];
+      },
+      inject: [Service, ServiceToInject],
     });
 
     const injector = createInjector([
@@ -110,7 +113,10 @@ describe('InjectionToken', () => {
 
     const token = new InjectionToken({
       providedIn: "any",
-      useExisting: [Service, ServiceToInject, valueProvider],
+      useFactory() {
+        return [...arguments];
+      },
+      inject: [Service, ServiceToInject, valueProvider],
     });
 
     const injector = createInjector([]);

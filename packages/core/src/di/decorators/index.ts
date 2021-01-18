@@ -1,4 +1,4 @@
-export * from "./def.decorator";
+export * from "./constraints.decorator";
 export * from "./inject.decorator";
 export * from "./injectable.decorator";
 export * from "./lazy.decorator";

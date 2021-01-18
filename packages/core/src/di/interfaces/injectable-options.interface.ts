@@ -1,9 +1,9 @@
+import { Token } from "di/types"
 import { ScopeOptions } from "./scope-options.interface"
 import { Type } from "./type.interface"
-import { BindingLabels } from "../types"
 
 export interface InjectableOptions extends ScopeOptions {
-  labels?: BindingLabels,
+  def?: Token;
   providedIn?: string | symbol | Type;
   export?: boolean;
 }

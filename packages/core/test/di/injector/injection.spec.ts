@@ -155,28 +155,28 @@ describe('Injection flags', () => {
     expect(instance.serviceACtx1).to.not.be.equal(instance.serviceACtx2);
   });
 
-  it('@Inject() inject flag - token & context injection', async () => {
-    const token = "token";
-    const ctx = new Context();
+  // it('@Inject() inject flag - token & context injection', async () => {
+  //   const token = "token";
+  //   const ctx = new Context();
 
-    @Injectable()
-    class TokenAndContextInjection {
-      constructor(
-        @Inject(token) public readonly foobar: string,
-        @Inject(token, ctx) public readonly foobarCtx: string,
-      ) {}
-    }
+  //   @Injectable()
+  //   class TokenAndContextInjection {
+  //     constructor(
+  //       @Inject(token) public readonly foobar: string,
+  //       @Inject(token, ctx) public readonly foobarCtx: string,
+  //     ) {}
+  //   }
 
-    const injector = createInjector([
-      TokenAndContextInjection, 
-      { provide: token, useValue: "foobar" },
-      { provide: token, useValue: "barfoo", ctx },
-    ]);
+  //   const injector = createInjector([
+  //     TokenAndContextInjection, 
+  //     { provide: token, useValue: "foobar" },
+  //     { provide: token, useValue: "barfoo" },
+  //   ]);
     
-    const instance = await injector.resolve(TokenAndContextInjection);
-    expect(instance.foobar).to.be.equal("foobar");
-    expect(instance.foobarCtx).to.be.equal("barfoo");
-  });
+  //   const instance = await injector.resolve(TokenAndContextInjection);
+  //   expect(instance.foobar).to.be.equal("foobar");
+  //   expect(instance.foobarCtx).to.be.equal("barfoo");
+  // });
 
   it('@Inject() inject flag - skip injection', async () => {
     @Injectable()
@@ -253,7 +253,7 @@ describe('Injection flags', () => {
     class OptionalService {
       constructor(
         @Optional() public readonly undefinedValue: string,
-        @Optional("foobar") public readonly fallbackValue: string,
+        @Optional() public readonly fallbackValue: string = "foobar",
       ) {}
     }
     
@@ -358,7 +358,7 @@ describe('Injection flags', () => {
     class OptionalService {
       constructor(
         @Optional() @Self() @Inject(rootToken) public readonly rootToken: string,
-        @Optional("defaultValue") @SkipSelf() @Inject(childToken) public readonly childToken: string,
+        @Optional() @SkipSelf() @Inject(childToken) public readonly childToken: string = "defaultValue",
         @SkipSelf() public readonly rootService: Service,
         public readonly childService: Service,
       ) {}

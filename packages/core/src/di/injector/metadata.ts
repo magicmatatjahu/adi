@@ -1,4 +1,5 @@
 import { Injector } from "./injector";
+import { constraintNoop } from "../constraints";
 import { injectableMixin } from "../decorators";
 import { getProviderDef, createInjectionArg } from "../definitions";
 import { 
@@ -6,191 +7,249 @@ import {
   ProviderType, ModuleType,
 } from "../enums";
 import { 
-  Type, Provider, TypeProvider, StaticClassProvider,
+  Type, Provider, CustomProvider, TypeProvider, StaticClassProvider,
   InjectionRecord, RecordDefinition, ContextRecord, InjectorRecord, InjectorContextRecord,
   InjectionArgument,
-  ProviderDef, InquirerDef, FactoryDef, InjectionOptions,
+  ProviderDef, InquirerDef, FactoryDef, InjectionOptions, WhenFunction,
 } from "../interfaces";
-import { Context } from "../tokens";
+import { InjectionToken, Context } from "../tokens";
 import { Token } from "../types";
 import { Scope } from "../scopes";
 import { 
   isFactoryProvider, isValueProvider, isExistingProvider,
   resolveForwardRef, decorate
 } from "../utils";
-import { STATIC_CONTEXT, EMPTY_OBJ, SPECIAL_TOKENS } from "../constants";
+import { STATIC_CONTEXT, SPECIAL_TOKENS } from "../constants";
 
 import { resolver } from "./resolver";
 
 export class InjectionMetadata {
   typeProviderToRecord<T>(
-    token: Token<T>,
     provider: TypeProvider<T>,
     hostInjector: Injector,
   ): InjectionRecord<T> {
-    const resolvedRef = resolveForwardRef(provider);
-    const def = this.getProviderDef(provider);
-    return this.makeRecord(
-      token,
-      hostInjector,
-      def.factory,
-      ProviderType.TYPE,
-      def.scope,
-      resolvedRef.prototype,
-    );
+    const classRef = resolveForwardRef(provider);
+    const provDef = this.getProviderDef(classRef);
+    const record = this.getRecord(classRef, hostInjector);
+    record.defs[0] = this.makeDefinition(classRef, provDef.factory, undefined, ProviderType.TYPE, record, provDef.scope, classRef.prototype);
+    return record;
   }
+
+  // customProviderToRecord<T>(
+  //   token: Token<T>,
+  //   provider: Provider<T>,
+  //   hostInjector: Injector,
+  // ): void {
+  //   const records: Map<Token, InjectionRecord> = (hostInjector as any).ownRecords;
+  //   const resolvedRef = resolveForwardRef(token);
+  //   let record = records.get(resolvedRef);
+  //   if (record === undefined) {
+  //     record = this.makeRecord(resolvedRef, hostInjector);
+  //     records.set(resolvedRef, record);
+  //   }
+
+  //   if (isFactoryProvider(provider)) {
+  //     const deps = this.convertFactoryDeps(provider.inject || []);
+  //     const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
+  //       return resolver.injectFactory(provider.useFactory as any, deps, injector, inquirer, sync);
+  //     }
+  //     record.defs.set(provider.def || "", this.makeDefinition(factory, ProviderType.FACTORY, record, provider.scope));
+  //     return;
+  //   }
+    
+  //   if (isValueProvider(provider)) {
+  //     const ctx = provider.ctx || STATIC_CONTEXT;
+  //     const defRecord = this.makeDefinition(undefined, ProviderType.VALUE, record);
+  //     const ctxRecord = this.makeContextRecord(ctx, provider.useValue, InjectionStatus.RESOLVED, defRecord);
+  //     defRecord.values.set(ctx, ctxRecord);
+  //     return;
+  //   } 
+
+  //   if (isExistingProvider(provider)) {
+  //     const existingProvider = resolveForwardRef(provider.useExisting);
+  //     const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
+  //       return resolver.inject(existingProvider, injector, undefined, inquirer, sync) as any;
+  //     }
+  //     record.defs.set(provider.def || "", this.makeDefinition(factory, ProviderType.EXISTING, record));
+  //     return;
+  //   }
+
+  //   const clazz = provider as StaticClassProvider;
+  //   const classRef = resolveForwardRef(clazz.useClass || clazz.provide) as Type;
+  //   if (clazz.inject) {
+  //     const def = this.getProviderDef(classRef, false);
+  //     const type = clazz.useClass ? ProviderType.STATIC_CLASS : ProviderType.CONSTRUCTOR;
+  //     const deps = this.convertCtorDeps(clazz.inject, classRef);
+  //     let factory = undefined;
+  //     if (def === undefined) {
+  //       factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
+  //         return resolver.injectClass(classRef, deps, injector, inquirer, sync);
+  //       }
+  //     } else {
+  //       factory = resolver.providerFactory(classRef, def, deps);
+  //     }
+  //     record.defs.set((provider as any).def || "", this.makeDefinition(factory, type, record, clazz.scope, classRef.prototype));
+  //   }
+  //   record.defs.set((provider as any).def || "", this.makeDefinition(this.getFactoryDef(classRef), ProviderType.CLASS, record, clazz.scope, classRef.prototype));
+  // }
 
   customProviderToRecord<T>(
     token: Token<T>,
-    provider: Provider<T>,
+    provider: CustomProvider<T>,
     hostInjector: Injector,
   ): InjectionRecord<T> {
+    token = resolveForwardRef(token);
+    if (token instanceof InjectionToken && token.isMulti()) {
+      // dodaj tutaj whena jeśli provider go nie ma, w ten sposób unikamy podwójnej definicji dla multi providera
+    }
+    const record = this.getRecord(token, hostInjector);
+
+    const [factory, type, proto] = this.retrieveMetadata(provider),
+      when = provider.when,
+      def = this.makeDefinition(provider, factory as any, when, type, record, (provider as any).scope, proto);
+    if (typeof when === "function") {
+      record.defs.push(def);
+    } else {
+      record.defaultDef = def;
+    }
+
+    return record;
+  }
+
+  // multiProviderToRecord<T>(
+  //   token: Token<T>,
+  //   provider: CustomProvider<T>,
+  //   hostInjector: Injector,
+  // ): InjectionRecord<T> {
+
+  // }
+
+  public retrieveMetadata<T>(
+    provider: CustomProvider<T>,
+  ): [Function, ProviderType, any] {
     if (isFactoryProvider(provider)) {
-      const record = this.makeRecord(token, hostInjector, undefined, ProviderType.FACTORY, provider.scope);
-      record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-        const deps = this.convertFactoryDeps(provider.inject || []);
-        record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-          return resolver.injectFactory(provider.useFactory as any, deps, injector, inquirer, sync);
-        }
+      const deps = this.convertFactoryDeps(provider.inject || []);
+      const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
         return resolver.injectFactory(provider.useFactory as any, deps, injector, inquirer, sync);
       }
-      return record;
-    }
-    
-    if (isValueProvider(provider)) {
-      let record = undefined;
-      if ((record = (hostInjector as any).ownRecords.get(token)) === undefined) {
-        record = this.makeRecord(token, hostInjector, undefined, ProviderType.VALUE);
-      }
-      const ctx = provider.ctx || STATIC_CONTEXT;
-      const ctxRecord = this.makeContextRecord(ctx, provider.useValue, InjectionStatus.RESOLVED, record);
-      record.values.set(ctx, ctxRecord);
-      return record;
-    } 
-
-    // fix any type -> TS has a problem with FactoryDef returnType -> Promise<T> | T
-    if (isExistingProvider(provider)) {
+      return [factory, ProviderType.FACTORY, undefined];
+    } else if (isValueProvider(provider)) {
+      const factory = () => provider.useValue;
+      return [factory, ProviderType.VALUE, undefined];
+    } else if (isExistingProvider(provider)) {
       const existingProvider = resolveForwardRef(provider.useExisting);
-      if (Array.isArray(existingProvider)) {
-        const record = this.makeRecord(token, hostInjector, undefined, ProviderType.EXISTING_MULTI);
-        record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-          let args: Array<InjectionArgument> = [];
-          for (let i = 0, l = existingProvider.length; i < l; i++) {
-            const prov = existingProvider[i];
-            if (prov.token) {
-              const flags = prov.hasOwnProperty('default') ? InjectionFlags.OPTIONAL : InjectionFlags.DEFAULT;
-              args.push({ token: prov.token, options: { ctx: prov.ctx, flags, default: prov.default } });
-            } else {
-              args.push({ token: prov, options: EMPTY_OBJ });
-            }
-          }
-          record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-            return resolver.injectDeps(args, injector, inquirer, sync) as any;
-          }
-          return resolver.injectDeps(args, injector, inquirer, sync) as any;
-        }
-        return record;
-      } else {
-        const record = this.makeRecord(token, hostInjector, undefined, ProviderType.EXISTING);
-        record.factory =  (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-          const flags = provider.hasOwnProperty('default') ? InjectionFlags.OPTIONAL : InjectionFlags.DEFAULT;
-          return resolver.inject(existingProvider, injector, { ctx: provider.ctx, flags, default: provider.default }, inquirer, sync) as any;
-        }
-        return record;
+      const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
+        return resolver.inject(existingProvider, inquirer.options, injector, inquirer, sync) as any;
       }
+      return [factory, ProviderType.EXISTING, undefined];
     }
-
-    // useClass case
     const clazz = provider as StaticClassProvider;
     const classRef = resolveForwardRef(clazz.useClass || clazz.provide) as Type;
     if (clazz.inject) {
       const def = this.getProviderDef(classRef, false);
-      const type = clazz.useClass ? ProviderType.STATIC_CLASS : ProviderType.CONSTRUCTOR;
-      const record = this.makeRecord(token, hostInjector, undefined, type, clazz.scope, classRef.prototype);
+      const deps = this.convertCtorDeps(clazz.inject, classRef);
+      let factory = undefined, type = undefined;
       if (def === undefined) {
-        record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-          const deps = this.convertCtorDeps(clazz.inject, classRef);
-          record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-            return resolver.injectClass(classRef, deps, injector, inquirer, sync);
-          }
+        factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
           return resolver.injectClass(classRef, deps, injector, inquirer, sync);
-        }
+        };
+        type = ProviderType.STATIC_CLASS;
       } else {
-        // fix passing deps
-        const deps = this.convertCtorDeps(clazz.inject, classRef);
-        record.factory = resolver.providerFactory(classRef, def, deps);
+        factory = resolver.providerFactory(classRef, def, deps);
+        type = ProviderType.CONSTRUCTOR;
       }
-      return record;
+      return [factory, type, classRef.prototype];
     }
-    return this.makeRecord(token, hostInjector, this.getFactoryDef(classRef), ProviderType.CLASS, clazz.scope, classRef.prototype);
+    return [this.getFactoryDef(classRef), ProviderType.CLASS, classRef.prototype];
   }
 
-  public factoryToRecord<T>(
+  private getRecord<T>(
     token: Token<T>,
-    method: Function,
-    def: ProviderDef<T>,
     hostInjector: Injector,
-  ): InjectionRecord<T> {
-    const record = this.makeRecord(token, hostInjector, undefined, ProviderType.FACTORY, def.scope);
-    record.factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-      return resolver.injectFactory(method as any, def.args.ctor, injector, inquirer, sync);
+  ): InjectionRecord {
+    const records: Map<Token, InjectionRecord> = (hostInjector as any).ownRecords;
+    let record = records.get(token);
+    if (record === undefined) {
+      record = this.makeRecord(token, hostInjector);
+      records.set(token, record);
     }
     return record;
   }
 
-  private makeRecord<T>(
+  public makeRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
-    factory: FactoryDef<T>| undefined, 
-    type: ProviderType = ProviderType.TYPE,
-    scope: Scope = Scope.DEFAULT,
-    prototype: Type<T> | undefined =  undefined,
   ): InjectionRecord<T> {
     return {
       token,
       hostInjector,
-      defs: new Map<Token, RecordDefinition>(),
+      defaultDef: undefined,
+      defs: [],
+    }
+  }
+
+  private makeDefinition(
+    provider: Provider,
+    factory: FactoryDef,
+    when: WhenFunction, 
+    type: ProviderType,
+    record: InjectionRecord,
+    scope?: Scope,
+    prototype?: Type,
+  ): RecordDefinition {
+    return {
       factory,
+      when: when || constraintNoop,
       values: new Map<Context, ContextRecord>(),
       weakValues: new WeakMap<Context, ContextRecord>(),
       type,
-      scope,
-      prototype,
-      multi: undefined,
+      record,
+      scope: scope || Scope.DEFAULT,
+      prototype: prototype || undefined,
       flags: 0,
+      original: provider,
     };
   }
 
-  public makeMultiRecord<T>(
-    token: Token<T>,
-    hostInjector: Injector,
-    scope: Scope = undefined,
-  ): InjectionRecord<T> {
-    const record = this.makeRecord(token, hostInjector, undefined, ProviderType.MULTI, scope);
-    // inject multi provider arrays by reference for future processing
-    // cast to any, because single provider in `multi` array is treated as a token in `inject` method   
-    record.multi = [];
-    record.factory = (injector: Injector, inquirer: InquirerDef, sync?: boolean) => {
-      return resolver.injectDeps(this.convertFactoryDeps(record.multi as any), injector, inquirer, sync) as any;
-    }
-    return record;
-  }
+  // public makeMultiRecord<T>(
+  //   token: Token<T>,
+  //   hostInjector: Injector,
+  //   scope: Scope = undefined,
+  // ): InjectionRecord<T> {
+  //   const records: Map<Token, InjectionRecord> = (hostInjector as any).ownRecords;
+  //   const resolvedRef = resolveForwardRef(token);
+  //   let record = records.get(resolvedRef);
+  //   if (record === undefined) {
+  //     record = this.makeRecord(resolvedRef, hostInjector);
+  //     records.set(resolvedRef, record);
+  //   }
+
+  //   // TODO: Fix multi providers
+  //   const def = this.makeDefinition(undefined, undefined, undefined, ProviderType.MULTI, record, scope);
+  //   // inject multi provider arrays by reference for future processing
+  //   // cast to any, because single provider in `multi` array is treated as a token in `inject` method   
+  //   def.multi = [];
+  //   def.factory = (injector: Injector, inquirer: InquirerDef, sync?: boolean) => {
+  //     return resolver.injectDeps(this.convertFactoryDeps(def.multi as any), injector, inquirer, sync) as any;
+  //   }
+  //   return record;
+  // }
 
   public getContextRecord<T>(
-    record: InjectionRecord<T>, 
+    def: RecordDefinition<T>, 
     options: InjectionOptions,
     scope: Scope,
     inquirer?: InquirerDef,
   ): ContextRecord<T> {
-    const ctx = scope.getContext(options, record, inquirer);
-    let ctxRecord = record.values.get(ctx);
+    const ctx = scope.getContext(options, def, inquirer);
+    let ctxRecord = def.values.get(ctx);
     if (ctxRecord === undefined) {
-      ctxRecord = this.makeContextRecord(ctx, undefined, InjectionStatus.UNKNOWN, record);
-      if (scope.toCache(options, record, inquirer)) {
+      ctxRecord = this.makeContextRecord(ctx, undefined, InjectionStatus.UNKNOWN, def);
+      if (scope.toCache(options, def, inquirer)) {
         ctxRecord.status |= InjectionStatus.CACHED;
-        record.values.set(ctx, ctxRecord);
+        def.values.set(ctx, ctxRecord);
       } else {
-        record.weakValues.set(ctx, ctxRecord);
+        def.weakValues.set(ctx, ctxRecord);
       }
     }
     return ctxRecord;
@@ -200,13 +259,13 @@ export class InjectionMetadata {
     ctx: Context,
     value: T | undefined,
     status?: InjectionStatus,
-    record?: InjectionRecord<T>,
+    def?: RecordDefinition<T>,
   ): ContextRecord<T> {
     return {
       ctx,
       value,
       status: status || InjectionStatus.UNKNOWN,
-      record,
+      def,
     };
   }
 

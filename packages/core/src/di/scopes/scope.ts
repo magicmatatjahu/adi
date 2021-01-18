@@ -1,4 +1,4 @@
-import { InjectionOptions, InjectionRecord, FactoryDef, Inquirer } from "../interfaces";
+import { InjectionOptions, RecordDefinition, Inquirer } from "../interfaces";
 import { Context } from "../tokens";
 import { STATIC_CONTEXT } from "../constants";
 import { ScopeFlags } from "../enums";
@@ -15,25 +15,15 @@ export class Scope {
 
   public getContext<T = any>(
     options: InjectionOptions,
-    record: InjectionRecord<T>, 
+    def: RecordDefinition<T>, 
     inquirer?: Inquirer,
   ): Context {
     return options.ctx || STATIC_CONTEXT;
   }
 
-  public resolve<T>(
-    factory: () => Promise<T> | T,
-    options: InjectionOptions,
-    record: InjectionRecord<T>, 
-    inquirer?: Inquirer,
-    sync?: boolean,
-  ): Promise<T | undefined> | T | undefined {
-    return factory();
-  }
-
   public toCache<T = any>(
     options: InjectionOptions,
-    record: InjectionRecord<T>, 
+    def: RecordDefinition<T>, 
     inquirer?: Inquirer,
   ): boolean {
     return true;

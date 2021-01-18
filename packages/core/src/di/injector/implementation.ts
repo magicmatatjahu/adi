@@ -1,6 +1,6 @@
 import { getModuleDef, getProviderDef } from "../definitions";
 import { InjectionStatus, ModuleType, ProviderDefFlags, RESOLUTION_CHECK } from "../enums";
-import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef } from "../interfaces";
+import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, DefinitionRef, RecordDefinition } from "../interfaces";
 import { Context, InjectionToken } from "../tokens";
 import { assign, hasOnInitHook, resolveForwardRef } from "../utils";
 import { STATIC_CONTEXT, MODULE, SHARED_MODULE, INLINE_MODULE, INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJ, EMPTY_ARR } from "../constants";
@@ -30,15 +30,16 @@ export class InjectorImpl implements Injector {
     if (typeof injector !== "function") {
       this.addProviders(injector.providers);
     } else {
-      this.components.set(MODULE as any, metadata.typeProviderToRecord(injector, injector, this));
+      this.components.set(MODULE as any, metadata.typeProviderToRecord(injector, this));
     }
 
     if (setupProviders) {
       this.addProviders(setupProviders);
     }
 
-    const record = this.ownRecords.get(INJECTOR_SCOPE);
-    this.scope = record && record.values.get(STATIC_CONTEXT).value;
+    if (this.hasSelfProvider(INJECTOR_SCOPE)) {
+      this.scope = this.resolveSync(INJECTOR_SCOPE);
+    }
   }
 
   resolveSync<T>(token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef): T | undefined  {
@@ -52,13 +53,15 @@ export class InjectorImpl implements Injector {
     const resolutionCheck = flags & RESOLUTION_CHECK;
     const record = resolutionCheck ? undefined : this.retrieveRecord(token);
     if (record !== undefined) {
+      const def = this.findDefinition(record, options);
+      let scope = def.scope;
+      if (scope.canOverride === true) {
+        scope = options.scope || scope;
+      }
+
       try {
-        let scope = record.scope;
-        if (scope.canOverride === true) {
-          scope = options.scope || scope;
-        }
-        const contextRecord = metadata.getContextRecord(record, options, scope, inquirer);
-        return this.resolveProvider(record, contextRecord, options, scope, inquirer, sync);
+        const contextRecord = metadata.getContextRecord(def, options, scope, inquirer);
+        return this.resolveProvider(record, def, contextRecord, options, scope, inquirer, sync);
       } catch (err) {
         // TODO: improve error
         throw err;
@@ -75,13 +78,13 @@ export class InjectorImpl implements Injector {
 
   async resolveComponent<T>(component: Type<T>): Promise<T | never> {
     const record = this.components.get(component);
+    const def = record.defs[0];
     if (!record) {
       throw new Error(`No given component ${component}`);
     }
 
-    const ctxRecord = metadata.getContextRecord(record, EMPTY_OBJ, record.scope);
-    const value = ctxRecord.value = await record.factory(record.hostInjector, { 
-      record, 
+    const ctxRecord = metadata.getContextRecord(def, EMPTY_OBJ, def.scope);
+    const value = ctxRecord.value = await def.factory(record.hostInjector, { 
       ctxRecord,
       options: undefined,
       inquirer: undefined,
@@ -95,13 +98,13 @@ export class InjectorImpl implements Injector {
 
   resolveComponentSync<T>(component: Type<T>): T | never {
     const record = this.components.get(component);
+    const def = record.defs[0];
     if (!record) {
       throw new Error(`No given component ${component}`);
     }
 
-    const ctxRecord = metadata.getContextRecord(record, EMPTY_OBJ, record.scope);
-    const value = ctxRecord.value = record.factory(record.hostInjector, { 
-      record, 
+    const ctxRecord = metadata.getContextRecord(def, EMPTY_OBJ, def.scope);
+    const value = ctxRecord.value = def.factory(record.hostInjector, { 
       ctxRecord,
       options: undefined,
       inquirer: undefined,
@@ -125,6 +128,7 @@ export class InjectorImpl implements Injector {
 
   private resolveProvider<T>(
     record: InjectionRecord<T>,
+    def: RecordDefinition<T>,
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
     scope: Scope,
@@ -141,24 +145,24 @@ export class InjectorImpl implements Injector {
       ctxRecord.status |= InjectionStatus.PENDING;
 
       if (sync === true) {
-        return this.resolveProviderSync(record, ctxRecord, options, scope, inquirer);
+        return this.resolveProviderSync(record, def, ctxRecord, options, scope, inquirer);
       } else {
-        return this.resolveProviderAsync(record, ctxRecord, options, scope, inquirer);
+        return this.resolveProviderAsync(record, def, ctxRecord, options, scope, inquirer);
       }
     }
 
-    return resolver.handleCircularDeps(record, ctxRecord);
+    return resolver.handleCircularDeps(ctxRecord);
   }
 
   private async resolveProviderAsync<T>(
     record: InjectionRecord<T>,
+    def: RecordDefinition<T>,
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
     scope: Scope,
     inquirer?: InquirerDef,
   ): Promise<T> {
-    const value = await record.factory(record.hostInjector, { 
-      record, 
+    const value = await def.factory(record.hostInjector, { 
       ctxRecord,
       options,
       inquirer,
@@ -187,13 +191,13 @@ export class InjectorImpl implements Injector {
 
   private resolveProviderSync<T>(
     record: InjectionRecord<T>,
+    def: RecordDefinition<T>,
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
     scope: Scope,
     inquirer?: InquirerDef,
   ): T {
-    const value = record.factory(record.hostInjector, { 
-      record, 
+    const value = def.factory(record.hostInjector, { 
       ctxRecord,
       options,
       inquirer,
@@ -233,7 +237,7 @@ export class InjectorImpl implements Injector {
           // def is for case when InjectionToken has useClass, useValue etc 
           record = metadata.customProviderToRecord(token, def as any, this);
         } else {
-          record = metadata.typeProviderToRecord(token, token as Type<T>, this);
+          record = metadata.typeProviderToRecord(token as Type<T>, this);
         }
 
         if (def.flags & ProviderDefFlags.EXPORT) {
@@ -257,6 +261,20 @@ export class InjectorImpl implements Injector {
     return record;
   }
 
+  findDefinition(
+    record: InjectionRecord,
+    options: InjectionOptions,
+  ): RecordDefinition {
+    const defs = record.defs;
+    for (let i = defs.length - 1; i > -1; i--) {
+      const d = defs[i];
+      if (d.when(options)) {
+        return d;
+      }
+    }
+    return record.defaultDef;
+  }
+
   getRecord<T>(
     token: Token<T>,
   ): InjectionRecord {
@@ -273,47 +291,48 @@ export class InjectorImpl implements Injector {
     provider: Provider<T>,
   ): void {
     if (typeof provider === "function") {
-      this.ownRecords.set(provider, metadata.typeProviderToRecord(provider, provider, this));
+      metadata.typeProviderToRecord(provider, this);
     } else {
-      if (provider.hasOwnProperty("provide")) {
-        let token: any = (provider as any).provide;
-        if (token instanceof InjectionToken && token.isMulti()) {
-          token = this.addMultiProvider(token, provider);
-        }
-        this.ownRecords.set(token, metadata.customProviderToRecord(token, provider, this));
-      } else {
-        // FactoryConfigProvider case
-        this.addFactoryProviders((provider as any).useFactory);
-      }
+      metadata.customProviderToRecord(provider.provide, provider, this);
+      // let token: any = provider.provide;
+      // if (token instanceof InjectionToken && token.isMulti()) {
+      //   token = this.addMultiProvider(token, provider);
+      // }
+      // metadata.customProviderToRecord(provider, this)
+      // this.ownRecords.set(token, metadata.customProviderToRecord(token, provider, this));
+      // else {
+      //   // FactoryConfigProvider case
+      //   this.addFactoryProviders((provider as any).useFactory);
+      // }
     }
   }
 
-  private addFactoryProviders(type: Type) {
-    const props = Object.getOwnPropertyNames(type);
-    for (let i = 0, l = props.length; i < l; i++) {
-      const method = type[props[i]], def = getProviderDef(method);
-      if (def !== undefined) {
-        const token = def.token as any;
-        this.ownRecords.set(token, metadata.factoryToRecord(token, method, def, this));
-      }
-    }
-  }
+  // private addFactoryProviders(type: Type) {
+  //   const props = Object.getOwnPropertyNames(type);
+  //   for (let i = 0, l = props.length; i < l; i++) {
+  //     const method = type[props[i]], def = getProviderDef(method);
+  //     if (def !== undefined) {
+  //       const token = def.token as any;
+  //       this.ownRecords.set(token, metadata.factoryToRecord(token, method, def, this));
+  //     }
+  //   }
+  // }
 
-  private addMultiProvider<T>(
-    token: Token<T>,
-    provider: Provider<T>, 
-  ): Provider<T> {
-    let multiRecord = this.ownRecords.get(token);
+  // private addMultiProvider<T>(
+  //   token: Token<T>,
+  //   provider: Provider<T>, 
+  // ): Provider<T> {
+  //   let multiRecord = this.ownRecords.get(token);
 
-    if (multiRecord === undefined) {
-      // TODO: add scope
-      multiRecord = metadata.makeMultiRecord(token, this);
-      this.ownRecords.set(token, multiRecord);
-    }
+  //   if (multiRecord === undefined) {
+  //     // TODO: add scope
+  //     multiRecord = metadata.makeMultiRecord(token, this);
+  //     this.ownRecords.set(token, multiRecord);
+  //   }
 
-    multiRecord.multi.push(provider);
-    return provider;
-  }
+  //   multiRecord.multi.push(provider);
+  //   return provider;
+  // }
 
   addComponents(components: Type[]): void {
     for (let i = 0, l = components.length; i < l; i++) {
@@ -322,7 +341,7 @@ export class InjectorImpl implements Injector {
   }
 
   addComponent(component: Type): void {
-    this.components.set(component, metadata.typeProviderToRecord(component, component, this));
+    this.components.set(component, metadata.typeProviderToRecord(component, this));
   }
 
   import(): Injector {
@@ -427,7 +446,7 @@ export class InjectorImpl implements Injector {
           processOwnMetadata = true;
 
           // save module as component
-          hostInjector.components.set(mod, metadata.typeProviderToRecord(mod, mod, hostInjector));
+          hostInjector.components.set(mod, metadata.typeProviderToRecord(mod, hostInjector));
           hostInjector.inlineModules.push(mod);
         }
       }
@@ -472,7 +491,7 @@ export class InjectorImpl implements Injector {
   async initModule(): Promise<void> {
     // first init all providers for MODULE_INITIALIZERS multi token
     // and if returned value (one of returned) is a function, call this function
-    if (this.ownRecords.has(MODULE_INITIALIZERS) === true) {
+    if (this.hasSelfProvider(MODULE_INITIALIZERS)) {
       const initializers = await this.resolve(MODULE_INITIALIZERS);
       let initializer = undefined;
       for (let i = 0, l = initializers.length; i < l; i++) {
@@ -510,5 +529,9 @@ export class InjectorImpl implements Injector {
 
   getScope(): string | symbol | Type {
     return this.scope;
+  }
+
+  hasSelfProvider<T>(token: Token<T>): boolean {
+    return this.ownRecords.has(token);
   }
 }
