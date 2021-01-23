@@ -13,11 +13,10 @@ export enum InjectionFlags {
   SKIP_SELF = 4,
   LAZY = 8,
   NO_INJECT = 16,
-  SPECIAL_TOKEN = 32,
-  CONSTRUCTOR_PARAMETER = 64,
-  PROPERTY = 128,
-  METHOD_PARAMETER = 256,
-  FACTORY = 512,
+  CONSTRUCTOR_PARAMETER = 32,
+  PROPERTY = 64,
+  METHOD_PARAMETER = 128,
+  FACTORY = 256,
 }
 
 export enum ModuleType {
@@ -86,6 +85,5 @@ export enum DecoratorType {
   STATIC = STATIC_PROPERTY | STATIC_PARAMETER | STATIC_METHOD | STATIC_GETTER_ACCESSOR | STATIC_SETTER_ACCESSOR,
 }
 
-// SPECIAL_TOKEN is e.g. INQUIRER, CONTEXT etc.
 // RESOLUTION_CHECK is a flag for first check in resolve() function. It's using only for optimization
-export const RESOLUTION_CHECK = InjectionFlags.SPECIAL_TOKEN | InjectionFlags.SELF | InjectionFlags.SKIP_SELF | InjectionFlags.NO_INJECT;
+export const RESOLUTION_CHECK = InjectionFlags.SELF | InjectionFlags.SKIP_SELF | InjectionFlags.NO_INJECT;

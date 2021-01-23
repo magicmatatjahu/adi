@@ -36,12 +36,7 @@ export {
 } from "./utils";
 export {
   STATIC_CONTEXT,
-  INJECTOR_SCOPE,
   INJECTOR_ID,
-  MODULE_INITIALIZERS,
-  CONTEXT,
-  INQUIRER,
-  INQUIRER_PROTO,
 } from "./constants"
 export { 
   ContextAccessModifier, 
@@ -51,5 +46,6 @@ export {
   InjectionStatus,
   ProviderType,
 } from "./enums";
-export { Token } from "./types";
+export * from "./providers";
 export { Scope } from "./scopes";
+export { Token } from "./types";

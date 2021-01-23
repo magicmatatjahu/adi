@@ -3,9 +3,10 @@ import { InjectionStatus, ModuleType, ProviderDefFlags, RESOLUTION_CHECK, ScopeF
 import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, RecordDefinition } from "../interfaces";
 import { Context, InjectionToken } from "../tokens";
 import { assign, hasOnInitHook, resolveForwardRef } from "../utils";
-import { MODULE, SHARED_MODULE, INLINE_MODULE, INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJ, EMPTY_ARR } from "../constants";
-import { Token } from "../types";
+import { MODULE, SHARED_MODULE, INLINE_MODULE, EMPTY_OBJ, EMPTY_ARR } from "../constants";
+import { INJECTOR_SCOPE, MODULE_INITIALIZERS } from "../providers";
 import { Scope } from "../scopes";
+import { Token } from "../types";
 
 import { createInjector } from "./factories";
 import { Injector } from "./injector";
@@ -36,10 +37,7 @@ export class InjectorImpl implements Injector {
     if (setupProviders) {
       this.addProviders(setupProviders);
     }
-
-    if (this.hasSelfProvider(INJECTOR_SCOPE)) {
-      this.scope = this.resolveSync(INJECTOR_SCOPE);
-    }
+    this.scope = this.resolveSync(INJECTOR_SCOPE);
   }
 
   resolveSync<T>(token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef): T | undefined  {
@@ -298,16 +296,6 @@ export class InjectorImpl implements Injector {
       metadata.typeProviderToRecord(provider, this);
     } else {
       metadata.customProviderToRecord(provider.provide, provider, this);
-      // let token: any = provider.provide;
-      // if (token instanceof InjectionToken && token.isMulti()) {
-      //   token = this.addMultiProvider(token, provider);
-      // }
-      // metadata.customProviderToRecord(provider, this)
-      // this.ownRecords.set(token, metadata.customProviderToRecord(token, provider, this));
-      // else {
-      //   // FactoryConfigProvider case
-      //   this.addFactoryProviders((provider as any).useFactory);
-      // }
     }
   }
 
@@ -320,22 +308,6 @@ export class InjectorImpl implements Injector {
   //       this.ownRecords.set(token, metadata.factoryToRecord(token, method, def, this));
   //     }
   //   }
-  // }
-
-  // private addMultiProvider<T>(
-  //   token: Token<T>,
-  //   provider: Provider<T>, 
-  // ): Provider<T> {
-  //   let multiRecord = this.ownRecords.get(token);
-
-  //   if (multiRecord === undefined) {
-  //     // TODO: add scope
-  //     multiRecord = metadata.makeMultiRecord(token, this);
-  //     this.ownRecords.set(token, multiRecord);
-  //   }
-
-  //   multiRecord.multi.push(provider);
-  //   return provider;
   // }
 
   addComponents(components: Type[]): void {
@@ -495,13 +467,11 @@ export class InjectorImpl implements Injector {
   async initModule(): Promise<void> {
     // first init all providers for MODULE_INITIALIZERS multi token
     // and if returned value (one of returned) is a function, call this function
-    if (this.hasSelfProvider(MODULE_INITIALIZERS)) {
-      const initializers = await this.resolve(MODULE_INITIALIZERS);
-      let initializer = undefined;
-      for (let i = 0, l = initializers.length; i < l; i++) {
-        if (typeof (initializer = initializers[i]) === "function") {
-          await initializer();
-        }
+    const initializers = await this.resolve(MODULE_INITIALIZERS);
+    let initializer = undefined;
+    for (let i = 0, l = initializers.length; i < l; i++) {
+      if (typeof (initializer = initializers[i]) === "function") {
+        await initializer();
       }
     }
     // then init all inlined modules for given module
@@ -529,13 +499,5 @@ export class InjectorImpl implements Injector {
     const record = this.imports.get(def.providedIn);
     const inlineModule = record && record.values.get(INLINE_MODULE);
     return inlineModule && inlineModule.injector === this;
-  }
-
-  getScope(): string | symbol | Type {
-    return this.scope;
-  }
-
-  hasSelfProvider<T>(token: Token<T>): boolean {
-    return this.ownRecords.has(token);
   }
 }

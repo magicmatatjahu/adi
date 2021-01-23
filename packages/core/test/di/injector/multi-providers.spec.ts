@@ -2,6 +2,7 @@ import { createInjector } from "../../../src/di/injector";
 import { Inject, Injectable, Named } from "../../../src/di/decorators";
 import { InjectionToken } from "../../../src/di/tokens";
 import { named } from "../../../src/di/constraints";
+import { Scope } from "../../../src/di/scopes";
 import { expect } from 'chai';
 
 describe('MultiProvider', () => {
@@ -55,7 +56,7 @@ describe('MultiProvider', () => {
     expect(values).to.be.deep.equal(["foo", "bar", typeClass, "asyncFoo", constructorClass, "useClassValue"]);
   });
 
-  it('constaints case', async () => {
+  it('constraints case', async () => {
     const PROVIDERS = new InjectionToken<string>({ multi: true });
 
     @Injectable()
@@ -93,7 +94,7 @@ describe('MultiProvider', () => {
     expect(service.constraintValues).to.be.deep.equal(["foo", "bar", "fooCtx", "barCtx"]);
   });
 
-  it('on every injection new value (array) is created', async () => {
+  it('on every injection new value (array) is created when scope is PROTOTPE (default scope)', async () => {
     const PROVIDERS = new InjectionToken<string>({ multi: true });
 
     const injector = createInjector([
@@ -112,5 +113,63 @@ describe('MultiProvider', () => {
     expect(values1).to.be.deep.equal(["foo", "bar"]);
     expect(values1).to.be.deep.equal(values2);
     expect(values1).to.be.not.equal(values2);
+  });
+
+  it('scope overiding works', async () => {
+    const PROVIDERS = new InjectionToken<string>({ multi: true, scope: Scope.SINGLETON });
+
+    const injector = createInjector([
+      {
+        provide: PROVIDERS,
+        useValue: "foo",
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "bar",
+      },
+    ]);
+    
+    const values1 = await injector.resolve(PROVIDERS);
+    const values2 = await injector.resolve(PROVIDERS);
+    expect(values1).to.be.deep.equal(["foo", "bar"]);
+    expect(values1).to.be.deep.equal(values2);
+    expect(values1).to.be.equal(values2);
+  });
+
+  it('scope in items works', async () => {
+    const PROVIDERS = new InjectionToken<any>({ multi: true });
+
+    const injector = createInjector([
+      {
+        provide: PROVIDERS,
+        useFactory: () => {
+          return {}
+        },
+        scope: Scope.TRANSIENT,
+      },
+    ]);
+    
+    const values1 = await injector.resolve(PROVIDERS);
+    const values2 = await injector.resolve(PROVIDERS);
+    expect(values1).to.not.be.equal(values2);
+    expect(values1[0]).to.not.be.equal(values2[0]);
+  });
+
+  it('item without scope has persistence', async () => {
+    const PROVIDERS = new InjectionToken<any>({ multi: true });
+
+    const injector = createInjector([
+      {
+        provide: PROVIDERS,
+        useFactory: () => {
+          return {}
+        }
+      },
+    ]);
+    
+    const values1 = await injector.resolve(PROVIDERS);
+    const values2 = await injector.resolve(PROVIDERS);
+    expect(values1).to.not.be.equal(values2);
+    expect(values1[0]).to.be.equal(values2[0]);
   });
 });

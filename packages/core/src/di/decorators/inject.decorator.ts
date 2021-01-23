@@ -3,7 +3,6 @@ import { getInjectionArg, mergeMethodParams } from "../definitions";
 import { ForwardRef } from "../interfaces";
 import { Context } from "../tokens";
 import { Token } from "../types";
-import { SPECIAL_TOKENS } from "../constants";
 import { Reflection, getDecoratorType } from "../utils";
 
 export function Inject<T = any>(token?: Token<T> | ForwardRef<T>);
@@ -15,8 +14,6 @@ export function Inject<T = any>(token?: Token<T> | Context | ForwardRef<T> | fal
   if (token instanceof Context) {
     ctx = token;
     token = undefined;
-  } else if (SPECIAL_TOKENS.includes(token as any)) {
-    flags = InjectionFlags.SPECIAL_TOKEN;
   } else if (token === false) {
     flags = InjectionFlags.NO_INJECT;
   }

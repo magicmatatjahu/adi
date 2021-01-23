@@ -9,7 +9,7 @@ export class Scope {
   public static REQUEST: Scope;
   public static SINGLETON: Scope;
   public static TRANSIENT: Scope;
-  public static STRICT_TRANSIENT: Scope;
+  public static PROTOTYPE: Scope;
   
   public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE;
 

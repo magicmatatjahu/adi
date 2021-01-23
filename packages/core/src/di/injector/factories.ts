@@ -2,7 +2,7 @@ import { Injector } from "./injector";
 import { NilInjector } from "./nil-injector";
 import { InjectorImpl } from "./implementation";
 
-import { INJECTOR_SCOPE } from "../constants";
+import { INJECTOR_SCOPE } from "../providers";
 import { Type, Provider, ModuleMeta } from "../interfaces";
 
 let nilInjector: NilInjector = new NilInjector();

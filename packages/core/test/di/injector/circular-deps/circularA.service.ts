@@ -1,6 +1,7 @@
 import { Injectable, Inject } from "../../../../src/di/decorators";
 import { OnInit } from "../../../../src/di/interfaces";
-import { STATIC_CONTEXT, CONTEXT } from "../../../../src/di/constants";
+import { STATIC_CONTEXT } from "../../../../src/di/constants";
+import { CONTEXT } from "../../../../src/di/providers";
 import { Context } from "../../../../src/di/tokens";
 import { forwardRef } from "../../../../src/di/utils";
 import { CircularBService } from "./circularB.service";

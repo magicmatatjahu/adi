@@ -1,12 +1,11 @@
 import { Injector } from "./injector";
 import { InjectionStatus, InjectionFlags } from "../enums";
 import { 
-  InjectionRecord, ContextRecord, InjectionArgument, InjectionOptions,
+  ContextRecord, InjectionArgument, InjectionOptions,
   ProviderDef, FactoryDef, InquirerDef, Type, 
-  ConstructorArguments, PropertiesArguments, MethodsArguments, RecordDefinition,
+  ConstructorArguments, PropertiesArguments, MethodsArguments,
 } from "../interfaces";
 import { resolveForwardRef, hasOnInitHook } from "../utils";
-import { CONTEXT, INQUIRER, INQUIRER_PROTO } from "../constants";
 import { Token } from "../types";
 
 import { getNilInjector } from "./factories";
@@ -206,9 +205,7 @@ export class Resolver {
     sync?: boolean
   ): Promise<T | undefined> | T | undefined {
     const flags = options.flags;
-    if (flags & InjectionFlags.SPECIAL_TOKEN) {
-      return resolver.handleSpecialProvider(token, inquirer);
-    } else if (flags & InjectionFlags.SELF || flags & InjectionFlags.SKIP_SELF) {
+    if (flags & InjectionFlags.SELF || flags & InjectionFlags.SKIP_SELF) {
       return resolver.handleSelfFlags(injector, token, options, inquirer, sync);
     } else {
       // NO_INJECT case
@@ -251,24 +248,6 @@ export class Resolver {
       return injector.resolve(token, { ...options, flags }, inquirer, sync);
     }
     return nilInjector.resolve(token, options);
-  }
-
-  handleSpecialProvider<T>(token: Token<T>, inquirer: InquirerDef): T | any {
-    switch (token as any) {
-      case CONTEXT: {
-        return inquirer.ctxRecord.ctx;
-      }
-      case INQUIRER: {
-        const inq = inquirer.inquirer;
-        // TODO: check also with transient scope and @New decorator
-        return inq  && this.handleCircularDeps(inq .ctxRecord);
-      }
-      case INQUIRER_PROTO: {
-        const inq = inquirer.inquirer;
-        return inq && inq.ctxRecord.def.prototype;
-      }
-      default: return undefined;
-    }
   }
 
   injectLazy<T>(instance: T, name: string | symbol, prop: InjectionArgument, injector: Injector, inquirer?: InquirerDef): void {

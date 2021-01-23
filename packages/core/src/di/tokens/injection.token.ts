@@ -3,7 +3,6 @@ import { Scope } from "../scopes";
 
 export class InjectionToken<T = any> {
   private multi: boolean = false;
-
   private readonly _$prov: ProviderDef<T> = undefined;
 
   constructor(
@@ -13,12 +12,13 @@ export class InjectionToken<T = any> {
     // TODO: Check why TS throws error that scope is not in the InjectionTokenOptions type...
     if (options) {
       this.multi = options.multi || false;
+      const scope = (options as any).scope || (this.multi === true ? Scope.PROTOTYPE : Scope.DEFAULT);
       this._$prov = {
         ...options,
         token: this,
-        factory: undefined,
         providedIn: options.providedIn,
-        scope: (options as any).scope || Scope.DEFAULT,
+        scope,
+        factory: undefined,
       } as any;
     }
   }

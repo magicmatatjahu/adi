@@ -16,5 +16,4 @@ export abstract class Injector {
   abstract addComponents(components: Type[]): void;
   abstract addComponent<T>(component: Type<T>): void;
   abstract import(): Injector;
-  abstract getScope(): string | symbol | Type;
 }

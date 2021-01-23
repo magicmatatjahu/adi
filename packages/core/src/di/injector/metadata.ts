@@ -19,7 +19,7 @@ import {
   isFactoryProvider, isValueProvider, isExistingProvider,
   resolveForwardRef, decorate
 } from "../utils";
-import { STATIC_CONTEXT, SPECIAL_TOKENS } from "../constants";
+import { STATIC_CONTEXT } from "../constants";
 
 import { resolver } from "./resolver";
 
@@ -34,64 +34,6 @@ export class InjectionMetadata {
     record.defaultDef = this.makeDefinition(classRef, record, provDef.factory, undefined, ProviderType.TYPE, provDef.scope, classRef.prototype);
     return record;
   }
-
-  // customProviderToRecord<T>(
-  //   token: Token<T>,
-  //   provider: Provider<T>,
-  //   hostInjector: Injector,
-  // ): void {
-  //   const records: Map<Token, InjectionRecord> = (hostInjector as any).ownRecords;
-  //   const resolvedRef = resolveForwardRef(token);
-  //   let record = records.get(resolvedRef);
-  //   if (record === undefined) {
-  //     record = this.makeRecord(resolvedRef, hostInjector);
-  //     records.set(resolvedRef, record);
-  //   }
-
-  //   if (isFactoryProvider(provider)) {
-  //     const deps = this.convertFactoryDeps(provider.inject || []);
-  //     const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-  //       return resolver.injectFactory(provider.useFactory as any, deps, injector, inquirer, sync);
-  //     }
-  //     record.defs.set(provider.def || "", this.makeDefinition(factory, ProviderType.FACTORY, record, provider.scope));
-  //     return;
-  //   }
-    
-  //   if (isValueProvider(provider)) {
-  //     const ctx = provider.ctx || STATIC_CONTEXT;
-  //     const defRecord = this.makeDefinition(undefined, ProviderType.VALUE, record);
-  //     const ctxRecord = this.makeContextRecord(ctx, provider.useValue, InjectionStatus.RESOLVED, defRecord);
-  //     defRecord.values.set(ctx, ctxRecord);
-  //     return;
-  //   } 
-
-  //   if (isExistingProvider(provider)) {
-  //     const existingProvider = resolveForwardRef(provider.useExisting);
-  //     const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-  //       return resolver.inject(existingProvider, injector, undefined, inquirer, sync) as any;
-  //     }
-  //     record.defs.set(provider.def || "", this.makeDefinition(factory, ProviderType.EXISTING, record));
-  //     return;
-  //   }
-
-  //   const clazz = provider as StaticClassProvider;
-  //   const classRef = resolveForwardRef(clazz.useClass || clazz.provide) as Type;
-  //   if (clazz.inject) {
-  //     const def = this.getProviderDef(classRef, false);
-  //     const type = clazz.useClass ? ProviderType.STATIC_CLASS : ProviderType.CONSTRUCTOR;
-  //     const deps = this.convertCtorDeps(clazz.inject, classRef);
-  //     let factory = undefined;
-  //     if (def === undefined) {
-  //       factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-  //         return resolver.injectClass(classRef, deps, injector, inquirer, sync);
-  //       }
-  //     } else {
-  //       factory = resolver.providerFactory(classRef, def, deps);
-  //     }
-  //     record.defs.set((provider as any).def || "", this.makeDefinition(factory, type, record, clazz.scope, classRef.prototype));
-  //   }
-  //   record.defs.set((provider as any).def || "", this.makeDefinition(this.getFactoryDef(classRef), ProviderType.CLASS, record, clazz.scope, classRef.prototype));
-  // }
 
   customProviderToRecord<T>(
     token: Token<T>,
@@ -192,16 +134,17 @@ export class InjectionMetadata {
   }
 
   public makeMultiRecord<T>(
-    token: Token<T>,
+    token: InjectionToken,
     provider: Provider,
     hostInjector: Injector,
   ): InjectionRecord<T> {
+    const def = this.getProviderDef(token);
     const record = this.makeRecord(token, hostInjector, true);
     const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
       const items = record.defs.filter(def => def.constraint(inquirer.options)).map(def => def.record.token);
       return resolver.injectDeps(this.convertFactoryDeps(items), injector, inquirer, sync) as any;
     }
-    record.defaultDef = this.makeDefinition(provider, record, factory as any, undefined, ProviderType.MULTI, Scope.STRICT_TRANSIENT);
+    record.defaultDef = this.makeDefinition(provider, record, factory as any, undefined, ProviderType.MULTI, def.scope);
     return record;
   }
 
@@ -227,30 +170,6 @@ export class InjectionMetadata {
       original: provider,
     };
   }
-
-  // public makeMultiRecord<T>(
-  //   token: Token<T>,
-  //   hostInjector: Injector,
-  //   scope: Scope = undefined,
-  // ): InjectionRecord<T> {
-  //   const records: Map<Token, InjectionRecord> = (hostInjector as any).ownRecords;
-  //   const resolvedRef = resolveForwardRef(token);
-  //   let record = records.get(resolvedRef);
-  //   if (record === undefined) {
-  //     record = this.makeRecord(resolvedRef, hostInjector);
-  //     records.set(resolvedRef, record);
-  //   }
-
-  //   // TODO: Fix multi providers
-  //   const def = this.makeDefinition(undefined, undefined, undefined, ProviderType.MULTI, record, scope);
-  //   // inject multi provider arrays by reference for future processing
-  //   // cast to any, because single provider in `multi` array is treated as a token in `inject` method   
-  //   def.multi = [];
-  //   def.factory = (injector: Injector, inquirer: InquirerDef, sync?: boolean) => {
-  //     return resolver.injectDeps(this.convertFactoryDeps(def.multi as any), injector, inquirer, sync) as any;
-  //   }
-  //   return record;
-  // }
 
   public getContextRecord<T>(
     def: RecordDefinition<T>, 
@@ -322,9 +241,6 @@ export class InjectionMetadata {
         args.push(c);
       } else {
         const a = createInjectionArg(InjectionFlags.CONSTRUCTOR_PARAMETER, target, undefined, i);
-        if (SPECIAL_TOKENS.includes(arg as any)) {
-          a.options.flags |= InjectionFlags.SPECIAL_TOKEN;
-        }
         a.token = arg;
         args.push(a);
       }
@@ -347,9 +263,6 @@ export class InjectionMetadata {
         args.push(c);
       } else {
         const a = createInjectionArg(InjectionFlags.FACTORY, undefined, undefined, i);
-        if (SPECIAL_TOKENS.includes(arg as any)) {
-          a.options.flags |= InjectionFlags.SPECIAL_TOKEN;
-        }
         a.token = arg;
         args.push(a);
       }
