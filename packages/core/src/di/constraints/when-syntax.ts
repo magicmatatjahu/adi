@@ -1,12 +1,12 @@
-import { WhenFunction, InjectionContext } from "../interfaces";
+import { ConstraintFunction, InjectionContext } from "../interfaces";
 import { CONSTRAINTS } from "../constants";
 import { Token } from "../types";
 
-export function named(named: Token): WhenFunction {
+export function named(named: Token): ConstraintFunction {
   return (ctx: InjectionContext) => ctx.metadata[CONSTRAINTS.NAMED] === named;
 }
 
-export function tagged(tags: Record<string | symbol | number, any>): WhenFunction {
+export function tagged(tags: Record<string | symbol | number, any>): ConstraintFunction {
   const tagsKeysLength = Object.keys(tags || {}).length;
   return (ctx: InjectionContext) => {
     const metadata = ctx.metadata;
@@ -18,7 +18,7 @@ export function tagged(tags: Record<string | symbol | number, any>): WhenFunctio
   }
 }
 
-export function concatConstraints(...fns: Array<WhenFunction>): WhenFunction {
+export function concatConstraints(...fns: Array<ConstraintFunction>): ConstraintFunction {
   return (ctx: InjectionContext) => {
     for (let i = 0, l = fns.length; i < l; i++) {
       if (fns[i](ctx) === false) return false;

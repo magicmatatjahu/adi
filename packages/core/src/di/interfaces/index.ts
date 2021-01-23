@@ -8,7 +8,6 @@ export * from "./injection-argument.interface";
 export * from "./injection-context.interface";
 export * from "./injection-options.interface";
 export * from "./injection-token-options.interface";
-export * from "./labels-options.interface";
 export * from "./module.interface";
 export * from "./provider.interface";
 export * from "./records.interface";

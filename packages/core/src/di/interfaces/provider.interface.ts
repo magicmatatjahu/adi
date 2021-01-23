@@ -1,7 +1,6 @@
-import { When } from "./definitions.interface";
+import { ConstraintFunction } from "./definitions.interface";
 import { Type } from "./type.interface";
 import { ScopeOptions } from "./scope-options.interface";
-import { Context } from "../tokens";
 import { Token } from "../types";
 
 export type Provider<T = any> =
@@ -36,7 +35,7 @@ export interface ClassProvider<T = any> extends ClassProviderBody<T> {
 }
 
 export interface ClassProviderBody<T = any> extends ScopeOptions {
-  when?: When;
+  when?: ConstraintFunction;
   useClass: Type<T>;
 }
 
@@ -45,7 +44,7 @@ export interface ConstructorProvider<T = any> extends ConstructorProviderBody {
 }
 
 export interface ConstructorProviderBody extends ScopeOptions {
-  when?: When;
+  when?: ConstraintFunction;
   inject?: Array<Token | Array<ParameterDecorator>>;
 }
 
@@ -54,7 +53,7 @@ export interface StaticClassProvider<T = any> extends StaticClassProviderBody<T>
 }
 
 export interface StaticClassProviderBody<T = any> extends ScopeOptions {
-  when?: When;
+  when?: ConstraintFunction;
   useClass: Type<T>;
   inject?: Array<Token | Array<ParameterDecorator>>;
 }
@@ -64,7 +63,7 @@ export interface FactoryProvider<T = any> extends FactoryProviderBody<T> {
 }
 
 export interface FactoryProviderBody<T = any> extends ScopeOptions {
-  when?: When;
+  when?: ConstraintFunction;
   useFactory: (...args: any[]) => T | Promise<T>;
   inject?: Array<Token | Array<ParameterDecorator>>;
 }
@@ -74,7 +73,7 @@ export interface ExistingProvider<T = any> extends ExistingProviderBody {
 }
 
 export interface ExistingProviderBody {
-  when?: When;
+  when?: ConstraintFunction;
   useExisting: Token;
 }
 
@@ -83,6 +82,6 @@ export interface ValueProvider<T = any> extends ValueProviderBody<T> {
 }
 
 export interface ValueProviderBody<T = any> {
-  when?: When;
+  when?: ConstraintFunction;
   useValue: T;
 }

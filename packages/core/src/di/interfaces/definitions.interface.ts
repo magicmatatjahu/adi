@@ -49,4 +49,4 @@ export interface InquirerDef<T = any> {
 
 export type Inquirer<T = any> = InquirerDef<T>;
 
-export type WhenFunction = (context: InjectionContext) => boolean;
+export type ConstraintFunction = (context: InjectionContext) => boolean;

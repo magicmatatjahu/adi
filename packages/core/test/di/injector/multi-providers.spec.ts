@@ -1,54 +1,116 @@
-// import { createInjector } from "../../../src/di/injector";
-// import { Injectable } from "../../../src/di/decorators";
-// import { Context, InjectionToken } from "../../../src/di/tokens";
-// import { expect } from 'chai';
+import { createInjector } from "../../../src/di/injector";
+import { Inject, Injectable, Named } from "../../../src/di/decorators";
+import { InjectionToken } from "../../../src/di/tokens";
+import { named } from "../../../src/di/constraints";
+import { expect } from 'chai';
 
-// describe('MultiProvider', () => {
-//   it('basic case', async () => {
-//     @Injectable()
-//     class TypeClass {}
-//     @Injectable()
-//     class ConstructorClass {}
+describe('MultiProvider', () => {
+  it('basic case', async () => {
+    @Injectable()
+    class TypeClass {}
+    @Injectable()
+    class ConstructorClass {}
 
-//     const token = new InjectionToken<string>({ multi: true });
-//     const ctx = new Context();
+    const PROVIDERS = new InjectionToken<string>({ multi: true });
 
-//     const injector = createInjector([
-//       TypeClass,
-//       {
-//         provide: "useClass",
-//         useValue: "useClassCtx",
-//         ctx,
-//       },
-//       {
-//         provide: ConstructorClass,
-//         inject: [],
-//       },
-//       {
-//         provide: token,
-//         useValue: "foo",
-//       },
-//       {
-//         provide: token,
-//         useValue: "bar",
-//       },
-//       {
-//         provide: token,
-//         useExisting: TypeClass,
-//       },
-//       {
-//         provide: token,
-//         useFactory: async () => "asyncFoo",
-//       },
-//       {
-//         provide: token,
-//         useExisting: ConstructorClass,
-//       },
-//     ]);
+    const injector = createInjector([
+      TypeClass,
+      {
+        provide: "useClass",
+        useValue: "useClassValue",
+      },
+      {
+        provide: ConstructorClass,
+        inject: [],
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "foo",
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "bar",
+      },
+      {
+        provide: PROVIDERS,
+        useExisting: TypeClass,
+      },
+      {
+        provide: PROVIDERS,
+        useFactory: async () => "asyncFoo",
+      },
+      {
+        provide: PROVIDERS,
+        useExisting: ConstructorClass,
+      },
+      {
+        provide: PROVIDERS,
+        useExisting: "useClass",
+      },
+    ]);
     
-//     const values = await injector.resolve(token);
-//     const typeClass = await injector.resolve(TypeClass);
-//     const constructorClass = await injector.resolve(ConstructorClass);
-//     expect(values).to.be.deep.equal(["foo", "bar", typeClass, "asyncFoo", constructorClass]);
-//   });
-// });
+    const values = await injector.resolve(PROVIDERS);
+    const typeClass = await injector.resolve(TypeClass);
+    const constructorClass = await injector.resolve(ConstructorClass);
+    expect(values).to.be.deep.equal(["foo", "bar", typeClass, "asyncFoo", constructorClass, "useClassValue"]);
+  });
+
+  it('constaints case', async () => {
+    const PROVIDERS = new InjectionToken<string>({ multi: true });
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(PROVIDERS) public values: string[],
+        @Inject(PROVIDERS) @Named("ctx") public constraintValues: string[],
+      ) {}
+    }
+
+    const injector = createInjector([
+      Service,
+      {
+        provide: PROVIDERS,
+        useValue: "foo",
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "bar",
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "fooCtx",
+        when: named("ctx"),
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "barCtx",
+        when: named("ctx"),
+      },
+    ]);
+    
+    const service = await injector.resolve(Service);
+    expect(service.values).to.be.deep.equal(["foo", "bar"]);
+    expect(service.constraintValues).to.be.deep.equal(["foo", "bar", "fooCtx", "barCtx"]);
+  });
+
+  it('on every injection new value (array) is created', async () => {
+    const PROVIDERS = new InjectionToken<string>({ multi: true });
+
+    const injector = createInjector([
+      {
+        provide: PROVIDERS,
+        useValue: "foo",
+      },
+      {
+        provide: PROVIDERS,
+        useValue: "bar",
+      },
+    ]);
+    
+    const values1 = await injector.resolve(PROVIDERS);
+    const values2 = await injector.resolve(PROVIDERS);
+    expect(values1).to.be.deep.equal(["foo", "bar"]);
+    expect(values1).to.be.deep.equal(values2);
+    expect(values1).to.be.not.equal(values2);
+  });
+});

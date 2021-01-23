@@ -5,7 +5,6 @@ import { ScopeFlags } from "../enums";
 import { Scope } from "./scope";
 
 export class TransientScope extends Scope {
-  public readonly canOverride: boolean = true;
   public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE;
 
   getContext(options: InjectionOptions, def: RecordDefinition, inquirer: Inquirer): Context {
@@ -20,6 +19,6 @@ export class TransientScope extends Scope {
   }
 
   public getName(): string {
-    return "transient";
+    return "Transient";
   }
 }

@@ -7,7 +7,6 @@ import { Scope } from "./scope";
 const instances = new Map<Object, Context>();
 
 export class InstanceScope extends Scope {
-  public readonly canOverride: boolean = true;
   public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE;
 
   public getContext(options: InjectionOptions): Context {

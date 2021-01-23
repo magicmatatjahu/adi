@@ -1,9 +1,9 @@
 import { getModuleDef, getProviderDef } from "../definitions";
-import { InjectionStatus, ModuleType, ProviderDefFlags, RESOLUTION_CHECK } from "../enums";
-import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, DefinitionRef, RecordDefinition } from "../interfaces";
+import { InjectionStatus, ModuleType, ProviderDefFlags, RESOLUTION_CHECK, ScopeFlags } from "../enums";
+import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, RecordDefinition } from "../interfaces";
 import { Context, InjectionToken } from "../tokens";
 import { assign, hasOnInitHook, resolveForwardRef } from "../utils";
-import { STATIC_CONTEXT, MODULE, SHARED_MODULE, INLINE_MODULE, INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJ, EMPTY_ARR } from "../constants";
+import { MODULE, SHARED_MODULE, INLINE_MODULE, INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJ, EMPTY_ARR } from "../constants";
 import { Token } from "../types";
 import { Scope } from "../scopes";
 
@@ -55,7 +55,7 @@ export class InjectorImpl implements Injector {
     if (record !== undefined) {
       const def = this.findDefinition(record, options);
       let scope = def.scope;
-      if (scope.canOverride === true) {
+      if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
         scope = options.scope || scope;
       }
 
@@ -78,7 +78,7 @@ export class InjectorImpl implements Injector {
 
   async resolveComponent<T>(component: Type<T>): Promise<T | never> {
     const record = this.components.get(component);
-    const def = record.defs[0];
+    const def = record.defaultDef;
     if (!record) {
       throw new Error(`No given component ${component}`);
     }
@@ -98,7 +98,7 @@ export class InjectorImpl implements Injector {
 
   resolveComponentSync<T>(component: Type<T>): T | never {
     const record = this.components.get(component);
-    const def = record.defs[0];
+    const def = record.defaultDef;
     if (!record) {
       throw new Error(`No given component ${component}`);
     }
@@ -266,9 +266,13 @@ export class InjectorImpl implements Injector {
     options: InjectionOptions,
   ): RecordDefinition {
     const defs = record.defs;
+    if (defs.length === 0 || record.isMulti) {
+      return record.defaultDef;
+    }
+
     for (let i = defs.length - 1; i > -1; i--) {
       const d = defs[i];
-      if (d.when(options)) {
+      if (d.constraint(options) === true) {
         return d;
       }
     }

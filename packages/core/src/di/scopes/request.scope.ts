@@ -6,8 +6,7 @@ import { ScopeFlags } from "../enums";
 import { Scope } from "./scope";
 
 export class RequestScope extends Scope {
-  public readonly canOverride: boolean = true;
-  public static readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE & ScopeFlags.PROXY_MODE;
+  public static readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE | ScopeFlags.PROXY_MODE;
 
   public getContext(options: InjectionOptions): Context {
     const ctx = options.ctx || STATIC_CONTEXT;
@@ -18,6 +17,6 @@ export class RequestScope extends Scope {
   }
 
   public getName(): string {
-    return "request";
+    return "Request";
   }
 }

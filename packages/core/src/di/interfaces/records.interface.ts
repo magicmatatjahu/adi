@@ -1,4 +1,4 @@
-import { FactoryDef, WhenFunction } from "./definitions.interface";
+import { FactoryDef, ConstraintFunction } from "./definitions.interface";
 import { Provider } from "./provider.interface";
 import { Type } from "./type.interface";
 import { InjectionStatus, ProviderType, ModuleType, InjectionRecordFlags } from "../enums";
@@ -19,11 +19,12 @@ export interface InjectionRecord<T = any> {
   hostInjector: Injector;
   defaultDef: RecordDefinition;
   defs: Array<RecordDefinition>;
+  isMulti: boolean;
 }
 
 export interface RecordDefinition<T = any> {
   factory: FactoryDef<T> | undefined;
-  when: WhenFunction;
+  constraint: ConstraintFunction;
   values: Map<Context, ContextRecord<T>>;
   weakValues: WeakMap<Context, ContextRecord<T>>;
   type: ProviderType;

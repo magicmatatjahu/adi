@@ -6,7 +6,6 @@ import { ScopeFlags } from "../enums";
 import { Scope } from "./scope";
 
 export class SingletonScope extends Scope {
-  public readonly canOverride: boolean = false;
   public readonly flags: ScopeFlags = ScopeFlags.NONE;
 
   public getContext(options: InjectionOptions): Context {
@@ -18,6 +17,6 @@ export class SingletonScope extends Scope {
   }
 
   public getName(): string {
-    return "singleton";
+    return "Singleton";
   }
 }

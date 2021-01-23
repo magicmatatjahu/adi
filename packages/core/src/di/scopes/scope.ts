@@ -9,9 +9,9 @@ export class Scope {
   public static REQUEST: Scope;
   public static SINGLETON: Scope;
   public static TRANSIENT: Scope;
+  public static STRICT_TRANSIENT: Scope;
   
-  public readonly canOverride: boolean = true;
-  public readonly flags: ScopeFlags = 0;
+  public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE;
 
   public getContext<T = any>(
     options: InjectionOptions,

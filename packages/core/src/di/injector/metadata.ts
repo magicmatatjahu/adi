@@ -10,7 +10,7 @@ import {
   Type, Provider, CustomProvider, TypeProvider, StaticClassProvider,
   InjectionRecord, RecordDefinition, ContextRecord, InjectorRecord, InjectorContextRecord,
   InjectionArgument,
-  ProviderDef, InquirerDef, FactoryDef, InjectionOptions, WhenFunction,
+  ProviderDef, InquirerDef, FactoryDef, InjectionOptions, ConstraintFunction,
 } from "../interfaces";
 import { InjectionToken, Context } from "../tokens";
 import { Token } from "../types";
@@ -30,8 +30,8 @@ export class InjectionMetadata {
   ): InjectionRecord<T> {
     const classRef = resolveForwardRef(provider);
     const provDef = this.getProviderDef(classRef);
-    const record = this.getRecord(classRef, hostInjector);
-    record.defs[0] = this.makeDefinition(classRef, provDef.factory, undefined, ProviderType.TYPE, record, provDef.scope, classRef.prototype);
+    const record = this.getRecord(classRef, classRef, hostInjector);
+    record.defaultDef = this.makeDefinition(classRef, record, provDef.factory, undefined, ProviderType.TYPE, provDef.scope, classRef.prototype);
     return record;
   }
 
@@ -99,15 +99,19 @@ export class InjectionMetadata {
     hostInjector: Injector,
   ): InjectionRecord<T> {
     token = resolveForwardRef(token);
-    if (token instanceof InjectionToken && token.isMulti()) {
-      // dodaj tutaj whena jeśli provider go nie ma, w ten sposób unikamy podwójnej definicji dla multi providera
+    let record = this.getRecord(token, provider, hostInjector);
+    
+    let constraint = provider.when;
+    if (record.isMulti === true) {
+      const itemRecord = this.customProviderToRecord(provider as any, provider, hostInjector);
+      record.defs.push(this.makeDefinition(undefined, itemRecord, undefined, constraint || constraintNoop, undefined));
+      constraint = undefined;
+      record = itemRecord;
     }
-    const record = this.getRecord(token, hostInjector);
-
-    const [factory, type, proto] = this.retrieveMetadata(provider),
-      when = provider.when,
-      def = this.makeDefinition(provider, factory as any, when, type, record, (provider as any).scope, proto);
-    if (typeof when === "function") {
+    const [factory, type, proto] = this.retrieveMetadata(provider);
+    
+    const def = this.makeDefinition(provider, record, factory as any, constraint, type, (provider as any).scope, proto);
+    if (typeof constraint === "function") {
       record.defs.push(def);
     } else {
       record.defaultDef = def;
@@ -115,14 +119,6 @@ export class InjectionMetadata {
 
     return record;
   }
-
-  // multiProviderToRecord<T>(
-  //   token: Token<T>,
-  //   provider: CustomProvider<T>,
-  //   hostInjector: Injector,
-  // ): InjectionRecord<T> {
-
-  // }
 
   public retrieveMetadata<T>(
     provider: CustomProvider<T>,
@@ -165,12 +161,17 @@ export class InjectionMetadata {
 
   private getRecord<T>(
     token: Token<T>,
+    provider: Provider,
     hostInjector: Injector,
   ): InjectionRecord {
     const records: Map<Token, InjectionRecord> = (hostInjector as any).ownRecords;
     let record = records.get(token);
     if (record === undefined) {
-      record = this.makeRecord(token, hostInjector);
+      if (token instanceof InjectionToken && token.isMulti()) {
+        record = this.makeMultiRecord(token, provider, hostInjector);
+      } else {
+        record = this.makeRecord(token, hostInjector, false);
+      }
       records.set(token, record);
     }
     return record;
@@ -179,27 +180,43 @@ export class InjectionMetadata {
   public makeRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
+    isMulti: boolean,
   ): InjectionRecord<T> {
     return {
       token,
       hostInjector,
       defaultDef: undefined,
       defs: [],
+      isMulti,
     }
+  }
+
+  public makeMultiRecord<T>(
+    token: Token<T>,
+    provider: Provider,
+    hostInjector: Injector,
+  ): InjectionRecord<T> {
+    const record = this.makeRecord(token, hostInjector, true);
+    const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
+      const items = record.defs.filter(def => def.constraint(inquirer.options)).map(def => def.record.token);
+      return resolver.injectDeps(this.convertFactoryDeps(items), injector, inquirer, sync) as any;
+    }
+    record.defaultDef = this.makeDefinition(provider, record, factory as any, undefined, ProviderType.MULTI, Scope.STRICT_TRANSIENT);
+    return record;
   }
 
   private makeDefinition(
     provider: Provider,
-    factory: FactoryDef,
-    when: WhenFunction, 
-    type: ProviderType,
     record: InjectionRecord,
+    factory: FactoryDef,
+    constraint: ConstraintFunction, 
+    type: ProviderType,
     scope?: Scope,
     prototype?: Type,
   ): RecordDefinition {
     return {
       factory,
-      when: when || constraintNoop,
+      constraint,
       values: new Map<Context, ContextRecord>(),
       weakValues: new WeakMap<Context, ContextRecord>(),
       type,
