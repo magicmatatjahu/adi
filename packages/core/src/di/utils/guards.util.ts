@@ -1,3 +1,4 @@
+import { ProviderType } from "../enums";
 import { 
   FactoryProvider,
   ExistingProvider,
@@ -18,8 +19,9 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
   return provider.hasOwnProperty("useExisting");
 }
 
-export function hasOnInitHook(instance: unknown): instance is OnInit {
-  return instance !== undefined && typeof (instance as OnInit).onInit === "function";
+const classType = ProviderType.TYPE | ProviderType.CLASS;
+export function hasOnInitHook(instance: unknown, type: ProviderType): instance is OnInit {
+  return classType & type && instance !== undefined && typeof (instance as OnInit).onInit === "function";
 }
 
 export function hasOnDestroyHook(instance: unknown): instance is OnDestroy {

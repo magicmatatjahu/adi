@@ -4,4 +4,4 @@ import { InjectionToken } from "../tokens";
 export const INJECTOR_SCOPE = new InjectionToken<string | symbol | Type>({
   providedIn: "any",
   useValue: "any",
-});
+}, "INJECTOR_SCOPE");

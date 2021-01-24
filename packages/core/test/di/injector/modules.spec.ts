@@ -678,7 +678,11 @@ describe('Modules', () => {
     const order: string[] = [];
     
     @Injectable()
-    class Service {}
+    class Service {
+      onInit() {
+        order.push("Service onInit")
+      }
+    }
 
     @Module({
       providers: [
@@ -687,6 +691,10 @@ describe('Modules', () => {
           useFactory: async () => {
             return () => order.push("ChildModule async factory");
           },
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useExisting: Service,
         },
         {
           provide: "service",
@@ -701,6 +709,9 @@ describe('Modules', () => {
         },
         Service,
       ],
+      exports: [
+        Service,
+      ]
     })
     class ChildModule {}
 
@@ -712,6 +723,10 @@ describe('Modules', () => {
         {
           provide: "value",
           useValue: "AppModule useValue",
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useExisting: Service,
         },
         {
           provide: MODULE_INITIALIZERS,
@@ -729,6 +744,7 @@ describe('Modules', () => {
     // ChildModule Service is executed first, because ADI first initializes MODULE_INITIALIZERS provider
     // then runs returned functions from providers
     expect(order).to.be.deep.equal([
+      'Service onInit',
       'ChildModule Service',
       'ChildModule async factory',
       'AppModule useValue'
@@ -736,10 +752,16 @@ describe('Modules', () => {
   });
 
   it(`should works with non defined MODULE_INITIALIZERS`, async () => {
-    @Module()
-    class AppModule {}
-
-    const injector = createInjector(AppModule);
-    await injector.compile();
+    let error = undefined;
+    try {
+      @Module()
+      class AppModule {}
+  
+      const injector = createInjector(AppModule);
+      await injector.compile();
+    } catch(err) {
+      error = err;
+    }
+    expect(error).to.be.undefined;
   });
 });

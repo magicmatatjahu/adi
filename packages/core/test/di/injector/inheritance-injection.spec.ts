@@ -288,7 +288,7 @@ describe('Inheritance', () => {
     expect(await service.method2("foo")).to.be.equal("foo");
   });
 
-  it('override case with empty constructor in extended class', async () => {
+  it('override case with empty constructor in child class', async () => {
     @Injectable()
     class NormalBaseClass {
       constructor(

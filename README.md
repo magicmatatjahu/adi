@@ -57,3 +57,4 @@ class SomeModule {
 - [ ] support resolution hooks like `onPending`, `onActivation` like in autoFac. `onPending` should be static. User should be able to create this function in provider definition.
 - [ ] call provider def for static methods - create something like `@Bean` annotation in Spring
 - [ ] handle in proper way Inquirer provider in normal injection and in method
+- [ ] Remove inject from useClass provider

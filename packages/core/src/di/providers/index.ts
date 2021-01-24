@@ -1,5 +1,5 @@
 export * from "./context";
-export * from "./injection-scope";
+export * from "./injector-scope";
 export * from "./inquirer";
-export * from "./inquirer-proto";
 export * from "./module-initializers";
+export * from "./service-locator.service";

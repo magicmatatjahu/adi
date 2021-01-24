@@ -205,11 +205,11 @@ export class Resolver {
     sync?: boolean
   ): Promise<T | undefined> | T | undefined {
     const flags = options.flags;
-    if (flags & InjectionFlags.SELF || flags & InjectionFlags.SKIP_SELF) {
-      return resolver.handleSelfFlags(injector, token, options, inquirer, sync);
-    } else {
-      // NO_INJECT case
+    if (flags & InjectionFlags.NO_INJECT) {
       return undefined;
+    } else {
+      // SELF and SKIP_SELF case
+      return resolver.handleSelfFlags(injector, token, options, inquirer, sync);
     }
   }
 
@@ -288,7 +288,8 @@ export class Resolver {
   async handleCircularOnInit(): Promise<void> {
     for (const ctx of CIRCULAR_DATA.onInit) {
       const value = ctx.value;
-      hasOnInitHook(value) && await value.onInit();
+      // TODO: think how to handle in different way onInit - it also fires on factory providers etc 
+      hasOnInitHook(value, ctx.def.type) && await value.onInit();
     }
     CIRCULAR_DATA.onInit.clear();
   }
@@ -296,7 +297,8 @@ export class Resolver {
   handleCircularOnInitSync(): void {
     for (const ctx of CIRCULAR_DATA.onInit) {
       const value = ctx.value;
-      hasOnInitHook(value) && value.onInit();
+      // TODO: think how to handle in different way onInit - it also fires on factory providers etc 
+      hasOnInitHook(value, ctx.def.type) && value.onInit();
     }
     CIRCULAR_DATA.onInit.clear();
   }

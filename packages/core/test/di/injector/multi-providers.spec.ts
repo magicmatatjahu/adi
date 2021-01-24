@@ -1,7 +1,7 @@
 import { createInjector } from "../../../src/di/injector";
 import { Inject, Injectable, Named } from "../../../src/di/decorators";
 import { InjectionToken } from "../../../src/di/tokens";
-import { named } from "../../../src/di/constraints";
+import { withoutAttrs, named } from "../../../src/di/constraints";
 import { Scope } from "../../../src/di/scopes";
 import { expect } from 'chai';
 
@@ -76,6 +76,7 @@ describe('MultiProvider', () => {
       {
         provide: PROVIDERS,
         useValue: "bar",
+        when: withoutAttrs(),
       },
       {
         provide: PROVIDERS,
@@ -91,7 +92,7 @@ describe('MultiProvider', () => {
     
     const service = await injector.resolve(Service);
     expect(service.values).to.be.deep.equal(["foo", "bar"]);
-    expect(service.constraintValues).to.be.deep.equal(["foo", "bar", "fooCtx", "barCtx"]);
+    expect(service.constraintValues).to.be.deep.equal(["foo", "fooCtx", "barCtx"]);
   });
 
   it('on every injection new value (array) is created when scope is PROTOTPE (default scope)', async () => {

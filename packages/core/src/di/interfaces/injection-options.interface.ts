@@ -7,7 +7,7 @@ export interface InjectionOptions {
   ctx?: Context;
   scope?: Scope;
   scopeParams?: any;
-  metadata?: Record<string | symbol | number, any>;
+  attrs?: Record<string | symbol | number, any>;
   target?: Object;
   propertyKey?: string | symbol;
   index?: number;

@@ -2,7 +2,7 @@ import { createInjector } from "../../../src/di/injector";
 import { Injectable, Inject, Lazy, New, Optional, Self, SkipSelf, Module } from "../../../src/di/decorators";
 import { ModuleType } from "../../../src/di/enums";
 import { Context } from "../../../src/di/tokens";
-import { INQUIRER, INQUIRER_PROTO, CONTEXT, INJECTOR_SCOPE } from "../../../src/di/providers";
+import { INQUIRER, CONTEXT, INJECTOR_SCOPE } from "../../../src/di/providers";
 import { STATIC_CONTEXT } from "../../../src/di/constants";
 import { Scope } from "../../../src/di/scopes";
 import { expect } from 'chai';
@@ -596,8 +596,7 @@ describe('Injection flags', () => {
     ]);
   });
 
-  // TODO: Fix it - sometimes (in Circular Deps) it creates second instance of Inquirered type
-  it.skip('INQUIRER injection as a props/parameter type', async () => {
+  it('INQUIRER injection as a props/parameter type', async () => {
     const order: string[] = [];
     const ctx = new Context();
 
@@ -615,7 +614,6 @@ describe('Injection flags', () => {
     @Injectable()
     class InquireredService {
       constructor(
-        @Inject(INQUIRER_PROTO) public readonly inquirerPrototype: any,
         @Inject(INQUIRER) public readonly inquirer: any,
         public readonly childInquirer: ChildInquireredService,
       ) {}
@@ -639,7 +637,6 @@ describe('Injection flags', () => {
     const injector = createInjector([InquirerService, InquireredService, ChildInquireredService]);
     const instance = await injector.resolve(InquirerService);
 
-    expect(instance.service.inquirerPrototype).to.be.equal(InquirerService.prototype);
     expect(instance.service.inquirer).to.be.equal(instance);
     expect(instance.service.childInquirer.inquirer).to.be.equal(instance.service);
     expect(order).to.be.deep.equal(['ChildInquireredService', 'InquireredService', 'InquirerService']);
@@ -663,7 +660,8 @@ describe('Injection flags', () => {
   //   console.log(await instance.method())
   // });
 
-  it('SPECIAL_TOKENS injection in useFactory', async () => {
+  it('CONTEXT and INQUIRER tokens injection in useFactory', async () => {
+    const order = [];
     const ctx = new Context();
 
     @Injectable()
@@ -671,27 +669,24 @@ describe('Injection flags', () => {
       constructor(
         @Inject("token", ctx) public values: any[],
       ) {}
-    }
 
-    // const injector = createInjector([InquirerService, {
-    //   provide: "token",
-    //   useFactory: (inquirer, inquirer_proto, ctx) => {
-    //     return [inquirer, inquirer_proto, ctx];
-    //   },
-    //   inject: [INQUIRER, INQUIRER_PROTO, CONTEXT],
-    // }]);
+      onInit() {
+        order.push("InquirerService");
+      }
+    }
+    
     const injector = createInjector([InquirerService, {
       provide: "token",
-      useFactory: (_ctx) => {
-        return [_ctx];
+      useFactory: (_ctx, _service) => {
+        return [_ctx, _service];
       },
-      inject: [CONTEXT],
+      inject: [CONTEXT, INQUIRER],
     }]);
 
     const instance = await injector.resolve(InquirerService);
-    // expect(instance.values[0]).to.be.equal(instance);
-    // expect(instance.values[1]).to.be.equal(InquirerService.prototype);
     expect(instance.values[0]).to.be.equal(ctx);
+    expect(instance.values[1]).to.be.equal(instance);
+    expect(order).to.be.deep.equal(['InquirerService']);
   });
 
   it('ProvidedIn injection - ANY case', async () => {

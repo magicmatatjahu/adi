@@ -261,8 +261,7 @@ describe('Static Injector - circular dependency', () => {
     expect(await serviceA.method()).to.be.equal("PropFromServiceZero");
   });
 
-  // TODO: Fix it - sometimes (in Circular Deps) it creates second instance of Inquirered type
-  it.skip('should fire onInit in a proper order with deep circular deps and inquirer token', async () => {
+  it('should fire onInit in a proper order with deep circular deps and inquirer token', async () => {
     let order = [];
 
     @Injectable()

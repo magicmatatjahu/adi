@@ -6,4 +6,4 @@ export const MODULE_INITIALIZERS = new InjectionToken<(...args: any[]) => Promis
   useValue: [],
   scope: Scope.SINGLETON,
   providedIn: "any",
-});
+}, "MODULE_INITIALIZERS");

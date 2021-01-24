@@ -9,7 +9,7 @@ export function forwardRef<T>(fn: () => T): ForwardRef<T> {
 }
 
 export function isForwardRef(type: unknown): type is ForwardRef {
-  return (type as ForwardRef)._$ref === forwardRef;
+  return type && (type as ForwardRef)._$ref === forwardRef;
 }
 
 export function resolveForwardRef<T>(type: T): T {

@@ -1,13 +1,13 @@
 import { Scope } from "../scopes";
 import { InjectionToken } from "../tokens";
-import { InquirerInfo } from "./inquirer-info";
+import { InjectionSession } from "./injection-session";
 
 export const CONTEXT = new InjectionToken<never>({
-  useFactory: (inquirer: InquirerInfo) => {
-    const inq = inquirer.getInquirer();
-    return inq && inq.ctxRecord.ctx;
+  useFactory: (session: InjectionSession) => {
+    const s = session.getCurrentSession();
+    return s && s.ctxRecord.ctx;
   },
-  inject: [InquirerInfo],
+  inject: [InjectionSession],
   scope: Scope.PROTOTYPE,
   providedIn: "any",
-});
+}, "CONTEXT");

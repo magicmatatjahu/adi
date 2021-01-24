@@ -160,7 +160,7 @@ export function createInjectionArg(type: InjectionFlags, target: Object, propert
       ctx: undefined,
       scope: undefined,
       scopeParams: undefined,
-      metadata: {},
+      attrs: {},
       target,
       propertyKey,
       index,

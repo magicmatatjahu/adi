@@ -1,17 +1,14 @@
 import { resolver } from "../injector/resolver";
 import { Scope } from "../scopes";
 import { InjectionToken } from "../tokens";
-import { InquirerInfo } from "./inquirer-info";
+import { InjectionSession } from "./injection-session";
 
 export const INQUIRER = new InjectionToken<never>({
-  useFactory: (inquirer: InquirerInfo) => {
-    return undefined;
-    let inq = inquirer.getInquirer();
-    inq = inq && inq.inquirer;
-    // sometimes (in Circular Deps) it creates second instance of Inquirered type
-    return inq && resolver.handleCircularDeps(inq.ctxRecord);
+  useFactory: (session: InjectionSession) => {
+    let s = session.getCurrentSession();
+    return s && s.inquirer && resolver.handleCircularDeps(s.inquirer.ctxRecord);
   },
-  inject: [InquirerInfo],
+  inject: [InjectionSession],
   scope: Scope.PROTOTYPE,
   providedIn: "any",
-});
+}, "INQUIRER");

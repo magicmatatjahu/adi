@@ -1,5 +1,5 @@
 import { getModuleDef, getProviderDef } from "../definitions";
-import { InjectionStatus, ModuleType, ProviderDefFlags, RESOLUTION_CHECK, ScopeFlags } from "../enums";
+import { InjectionStatus, ModuleType, ProviderDefFlags, ProviderType, RESOLUTION_CHECK, ScopeFlags } from "../enums";
 import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, RecordDefinition } from "../interfaces";
 import { Context, InjectionToken } from "../tokens";
 import { assign, hasOnInitHook, resolveForwardRef } from "../utils";
@@ -88,7 +88,7 @@ export class InjectorImpl implements Injector {
       inquirer: undefined,
     });
 
-    if (hasOnInitHook(value)) {
+    if (hasOnInitHook(value, ProviderType.CLASS)) {
       await value.onInit();
     }
     return value;
@@ -108,7 +108,7 @@ export class InjectorImpl implements Injector {
       inquirer: undefined,
     });
 
-    if (hasOnInitHook(value)) {
+    if (hasOnInitHook(value, ProviderType.CLASS)) {
       value.onInit();
     }
     return value;
@@ -180,7 +180,8 @@ export class InjectorImpl implements Injector {
     if (CIRCULAR_DATA.is) {
       CIRCULAR_DATA.onInit.add(ctxRecord);
     } else {
-      hasOnInitHook(value) && await value.onInit();
+      // TODO: think how to handle in different way onInit - it also fires on factory providers etc 
+      hasOnInitHook(value, def.type) && await value.onInit();
     }
 
     ctxRecord.status = InjectionStatus.RESOLVED;
@@ -215,7 +216,8 @@ export class InjectorImpl implements Injector {
     if (CIRCULAR_DATA.is) {
       CIRCULAR_DATA.onInit.add(ctxRecord);
     } else {
-      hasOnInitHook(value) && value.onInit();
+      // TODO: think how to handle in different way onInit - it also fires on factory providers etc 
+      hasOnInitHook(value, def.type) && value.onInit();
     }
 
     ctxRecord.status = InjectionStatus.RESOLVED;

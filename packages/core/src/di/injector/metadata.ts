@@ -178,7 +178,7 @@ export class InjectionMetadata {
     inquirer?: InquirerDef,
   ): ContextRecord<T> {
     const ctx = scope.getContext(options, def, inquirer);
-    let ctxRecord = def.values.get(ctx);
+    let ctxRecord = def.values.get(ctx) || def.weakValues.get(ctx);
     if (ctxRecord === undefined) {
       ctxRecord = this.makeContextRecord(ctx, undefined, InjectionStatus.UNKNOWN, def);
       if (scope.toCache(options, def, inquirer)) {
