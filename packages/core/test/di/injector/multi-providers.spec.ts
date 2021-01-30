@@ -1,7 +1,7 @@
 import { createInjector } from "../../../src/di/injector";
 import { Inject, Injectable, Named } from "../../../src/di/decorators";
 import { InjectionToken } from "../../../src/di/tokens";
-import { withoutAttrs, named } from "../../../src/di/constraints";
+import { withoutAttrs, named } from "../../../src/di/bindings";
 import { Scope } from "../../../src/di/scopes";
 import { expect } from 'chai';
 

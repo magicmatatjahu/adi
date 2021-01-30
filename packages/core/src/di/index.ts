@@ -9,10 +9,10 @@ export {
   InjectableOptions,
   InjectionArgument,
   InjectionOptions,
+  InjectionSession,
   InjectionTokenOptions,
   InjectionRecord,
   ContextRecord,
-  Inquirer,
   ModuleMeta,
   DynamicModule,
   TypeProvider,
@@ -24,7 +24,6 @@ export {
   ValueProvider,
   Type,
   Provider,
-  Extension,
 } from "./interfaces";
 export {
   Context,

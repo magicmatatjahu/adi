@@ -1,7 +1,7 @@
 import { Scope } from "../scopes";
 import { InjectionToken } from "../tokens";
 
-export const MODULE_INITIALIZERS = new InjectionToken<(...args: any[]) => Promise<any> | any>({
+export const MODULE_INITIALIZERS = new InjectionToken<any>({
   multi: true,
   useValue: [],
   scope: Scope.SINGLETON,

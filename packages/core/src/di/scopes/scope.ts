@@ -1,4 +1,4 @@
-import { InjectionOptions, RecordDefinition, Inquirer } from "../interfaces";
+import { InjectionOptions, InjectionSession, RecordDefinition } from "../interfaces";
 import { Context } from "../tokens";
 import { STATIC_CONTEXT } from "../constants";
 import { ScopeFlags } from "../enums";
@@ -16,7 +16,7 @@ export class Scope {
   public getContext<T = any>(
     options: InjectionOptions,
     def: RecordDefinition<T>, 
-    inquirer?: Inquirer,
+    session?: InjectionSession,
   ): Context {
     return options.ctx || STATIC_CONTEXT;
   }
@@ -24,7 +24,7 @@ export class Scope {
   public toCache<T = any>(
     options: InjectionOptions,
     def: RecordDefinition<T>, 
-    inquirer?: Inquirer,
+    session?: InjectionSession,
   ): boolean {
     return true;
   }

@@ -19,6 +19,11 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
   return provider.hasOwnProperty("useExisting");
 }
 
+// TODO: Change to Custom
+export function isCustomProvider(provider: unknown): provider is ExistingProvider {
+  return provider.hasOwnProperty("useExisting");
+}
+
 const classType = ProviderType.TYPE | ProviderType.CLASS;
 export function hasOnInitHook(instance: unknown, type: ProviderType): instance is OnInit {
   return classType & type && instance !== undefined && typeof (instance as OnInit).onInit === "function";

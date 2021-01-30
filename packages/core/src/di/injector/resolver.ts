@@ -2,11 +2,12 @@ import { Injector } from "./injector";
 import { InjectionStatus, InjectionFlags } from "../enums";
 import { 
   ContextRecord, InjectionArgument, InjectionOptions,
-  ProviderDef, FactoryDef, InquirerDef, Type, 
+  ProviderDef, FactoryDef, InjectionSession, Type, 
   ConstructorArguments, PropertiesArguments, MethodsArguments,
 } from "../interfaces";
-import { resolveForwardRef, hasOnInitHook } from "../utils";
+import { InjectionToken } from "../tokens";
 import { Token } from "../types";
+import { resolveForwardRef, hasOnInitHook } from "../utils";
 
 import { getNilInjector } from "./factories";
 import { InjectorImpl } from "./implementation";
@@ -45,108 +46,108 @@ export const CIRCULAR_DATA = {
 }
 
 export class Resolver {
-  inject<T>(token: Token<T>, options: InjectionOptions, injector: Injector, inquirer?: InquirerDef, sync?: boolean): Promise<T | undefined> | T | undefined {
-    return injector.resolve(token, options, inquirer, sync);
+  inject<T>(token: Token<T>, options: InjectionOptions, injector: Injector, session?: InjectionSession, sync?: boolean): Promise<T | undefined> | T | undefined {
+    return injector.resolve(token, options, session, sync);
   }
 
-  async injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, inquirer: InquirerDef): Promise<Array<[]>> {
+  async injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: InjectionSession): Promise<Array<[]>> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(await injector.resolve(resolveForwardRef(arg.token), arg.options, inquirer));
+      args.push(await injector.resolve(resolveForwardRef(arg.token), arg.options, session));
     };
     return args;
   }
 
-  injectDepsSync(deps: Array<InjectionArgument>, injector: Injector, inquirer: InquirerDef): Array<any> {
+  injectDepsSync(deps: Array<InjectionArgument>, injector: Injector, session: InjectionSession): Array<any> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(injector.resolveSync(resolveForwardRef(arg.token), arg.options, inquirer));
+      args.push(injector.resolveSync(resolveForwardRef(arg.token), arg.options, session));
     };
     return args;
   }
 
-  injectDeps(deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef, sync?: boolean): Promise<Array<any>> | Array<any> {
+  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession, sync?: boolean): Promise<Array<any>> | Array<any> {
     if (sync === true) {
-      return this.injectDepsSync(deps, injector, inquirer);
+      return this.injectDepsSync(deps, injector, session);
     } else {
-      return this.injectDepsAsync(deps, injector, inquirer);
+      return this.injectDepsAsync(deps, injector, session);
     }
   }
 
-  async injectClassAsync<T>(classRef: Type<T>, deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef): Promise<T> {
-    return new (classRef)(...await resolver.injectDeps(deps, injector, inquirer));
+  async injectClassAsync<T>(classRef: Type<T>, deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession): Promise<T> {
+    return new (classRef)(...await resolver.injectDeps(deps, injector, session));
   }
 
-  injectClassSync<T>(classRef: Type<T>, deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef): T {
-    return new (classRef)(...resolver.injectDepsSync(deps, injector, inquirer));
+  injectClassSync<T>(classRef: Type<T>, deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession): T {
+    return new (classRef)(...resolver.injectDepsSync(deps, injector, session));
   }
 
-  injectClass<T>(classRef: Type<T>, deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef, sync?: boolean): Promise<T> | T {
+  injectClass<T>(classRef: Type<T>, deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession, sync?: boolean): Promise<T> | T {
     if (sync === true) {
-      return this.injectClassSync(classRef, deps, injector, inquirer);
+      return this.injectClassSync(classRef, deps, injector, session);
     } else {
-      return this.injectClassAsync(classRef, deps, injector, inquirer);
+      return this.injectClassAsync(classRef, deps, injector, session);
     }
   }
 
-  async injectFactoryAsync<T>(factory: (...args: any) => T, deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef): Promise<T> {
-    return factory(...await resolver.injectDeps(deps, injector, inquirer));
+  async injectFactoryAsync<T>(factory: (...args: any) => T, deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession): Promise<T> {
+    return factory(...await resolver.injectDeps(deps, injector, session));
   }
 
-  injectFactorySync<T>(factory: (...args: any) => T, deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef): T {
-    return factory(...resolver.injectDepsSync(deps, injector, inquirer));
+  injectFactorySync<T>(factory: (...args: any) => T, deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession): T {
+    return factory(...resolver.injectDepsSync(deps, injector, session));
   }
 
-  injectFactory<T>(factory: (...args: any) => T, deps: Array<InjectionArgument>, injector: Injector, inquirer?: InquirerDef, sync?: boolean): Promise<T> | T {
+  injectFactory<T>(factory: (...args: any) => T, deps: Array<InjectionArgument>, injector: Injector, session?: InjectionSession, sync?: boolean): Promise<T> | T {
     if (sync === true) {
-      return this.injectFactorySync(factory, deps, injector, inquirer);
+      return this.injectFactorySync(factory, deps, injector, session);
     } else {
-      return this.injectFactoryAsync(factory, deps, injector, inquirer);
+      return this.injectFactoryAsync(factory, deps, injector, session);
     }
   }
 
-  async injectProps<T>(instance: T, props: PropertiesArguments, injector: Injector, inquirer?: InquirerDef): Promise<void> {
+  async injectProps<T>(instance: T, props: PropertiesArguments, injector: Injector, session?: InjectionSession): Promise<void> {
     for (const name in props) {
       const prop = props[name];
       if (prop.options.flags & InjectionFlags.LAZY) {
-        this.injectLazy(instance, name, prop, injector, inquirer);
+        this.injectLazy(instance, name, prop, injector, session);
       } else {
-        instance[name] = await injector.resolve(prop.token, { ...prop.options, instance }, inquirer); 
+        instance[name] = await injector.resolve(prop.token, { ...prop.options, instance }, session); 
       }
     }
     for (const s of Object.getOwnPropertySymbols(props)) {
       const prop = props[s as any as string];
       if (prop.options.flags & InjectionFlags.LAZY) {
-        this.injectLazy(instance, s, prop, injector, inquirer);
+        this.injectLazy(instance, s, prop, injector, session);
       } else {
-        instance[s] = await injector.resolve(prop.token, { ...prop.options, instance }, inquirer); 
+        instance[s] = await injector.resolve(prop.token, { ...prop.options, instance }, session); 
       }
     }
   }
 
-  injectPropsSync<T>(instance: T, props: PropertiesArguments, injector: Injector, inquirer?: InquirerDef): void {
+  injectPropsSync<T>(instance: T, props: PropertiesArguments, injector: Injector, session?: InjectionSession): void {
     for (const name in props) {
       const prop = props[name];
       if (prop.options.flags & InjectionFlags.LAZY) {
-        this.injectLazy(instance, name, prop, injector, inquirer);
+        this.injectLazy(instance, name, prop, injector, session);
       } else {
-        instance[name] = injector.resolveSync(prop.token, { ...prop.options, instance }, inquirer);
+        instance[name] = injector.resolveSync(prop.token, { ...prop.options, instance }, session);
       }
     }
     for (const s of Object.getOwnPropertySymbols(props)) {
       const prop = props[s as any as string];
       if (prop.options.flags & InjectionFlags.LAZY) {
-        this.injectLazy(instance, s, prop, injector, inquirer);
+        this.injectLazy(instance, s, prop, injector, session);
       } else {
-        instance[s] = injector.resolveSync(prop.token, { ...prop.options, instance }, inquirer);
+        instance[s] = injector.resolveSync(prop.token, { ...prop.options, instance }, session);
       }
     }
   }
 
   // TODO: optimize it
-  injectMethods<T>(instance: T, methods: MethodsArguments, injector: Injector, inquirer?: InquirerDef): void {
+  injectMethods<T>(instance: T, methods: MethodsArguments, injector: Injector, session?: InjectionSession): void {
     for (const name in methods) {
       const method = methods[name], methodDeps = method.deps;
       const originalMethod = instance[name];
@@ -155,7 +156,7 @@ export class Resolver {
         let methodProp = undefined;
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i])) {
-            args[i] = await injector.resolve(methodProp.token, { ...methodProp.options, instance, }, inquirer);
+            args[i] = await injector.resolve(methodProp.token, { ...methodProp.options, instance, }, session);
           }
         }
         return originalMethod.apply(instance, args);
@@ -168,32 +169,32 @@ export class Resolver {
       props = def.args.props,
       methods = def.args.methods;
     
-    return (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
+    return (injector: Injector, session?: InjectionSession, sync?: boolean) => {
       if (sync === true) {
-        return this.injectProviderSync(provider, deps, props, methods, injector, inquirer);
+        return this.injectProviderSync(provider, deps, props, methods, injector, session);
       } else {
-        return this.injectProviderAsync(provider, deps, props, methods, injector, inquirer);
+        return this.injectProviderAsync(provider, deps, props, methods, injector, session);
       }
     }
   }
 
   async injectProviderAsync<T>(
     provider: Type<T>, ctorDeps: ConstructorArguments, props: PropertiesArguments, methods: MethodsArguments,
-    injector: Injector, inquirer: InquirerDef, 
+    injector: Injector, session: InjectionSession, 
   ): Promise<T> {
-    const instance = new provider(...await this.injectDepsAsync(ctorDeps, injector, inquirer));
-    await this.injectProps(instance, props, injector, inquirer);
-    this.injectMethods(instance, methods, injector, inquirer);
+    const instance = new provider(...await this.injectDepsAsync(ctorDeps, injector, session));
+    await this.injectProps(instance, props, injector, session);
+    this.injectMethods(instance, methods, injector, session);
     return instance;
   }
 
   injectProviderSync<T>(
     provider: Type<T>, ctorDeps: ConstructorArguments, props: PropertiesArguments, methods: MethodsArguments,
-    injector: Injector, inquirer: InquirerDef, 
+    injector: Injector, session: InjectionSession, 
   ): T {
-    const instance = new provider(...this.injectDepsSync(ctorDeps, injector, inquirer));
-    this.injectPropsSync(instance, props, injector, inquirer);
-    this.injectMethods(instance, methods, injector, inquirer);
+    const instance = new provider(...this.injectDepsSync(ctorDeps, injector, session));
+    this.injectPropsSync(instance, props, injector, session);
+    this.injectMethods(instance, methods, injector, session);
     return instance;
   }
 
@@ -201,19 +202,17 @@ export class Resolver {
     injector: InjectorImpl,
     token: Token<T>,
     options?: InjectionOptions,
-    inquirer?: InquirerDef,
+    session?: InjectionSession,
     sync?: boolean
   ): Promise<T | undefined> | T | undefined {
     const flags = options.flags;
     if (flags & InjectionFlags.NO_INJECT) {
       return undefined;
-    } else {
-      // SELF and SKIP_SELF case
-      return resolver.handleSelfFlags(injector, token, options, inquirer, sync);
-    }
+    } 
+    return resolver.handleSelfFlags(injector, token, options, session, sync);
   }
 
-  handleSelfFlags<T>(injector: InjectorImpl, token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef, sync?: boolean): Promise<T | undefined> | T | undefined {
+  handleSelfFlags<T>(injector: InjectorImpl, token: Token<T>, options?: InjectionOptions, session?: InjectionSession, sync?: boolean): Promise<T | undefined> | T | undefined {
     // first load record if token has tree-shakable definition
     injector.retrieveRecord(token);
     let flags = options.flags;
@@ -234,7 +233,7 @@ export class Resolver {
           parentInjector.ownRecords.get(token) ||
           parentInjector.importedRecords.get(token) !== ownRecord
         ) {
-          return parentInjector.resolve(token, { ...options, flags }, inquirer, sync);
+          return parentInjector.resolve(token, { ...options, flags }, session, sync);
         }
         parentInjector = parentInjector.getParentInjector() as InjectorImpl;
       }
@@ -245,12 +244,12 @@ export class Resolver {
     // if ownRecords has given token, then ADI has 100% sure that Self will be resolved in proper way, otherwise run NilInjector
     if (injector.ownRecords.get(token)) {
       flags &= ~InjectionFlags.SELF;
-      return injector.resolve(token, { ...options, flags }, inquirer, sync);
+      return injector.resolve(token, { ...options, flags }, session, sync);
     }
     return nilInjector.resolve(token, options);
   }
 
-  injectLazy<T>(instance: T, name: string | symbol, prop: InjectionArgument, injector: Injector, inquirer?: InquirerDef): void {
+  injectLazy<T>(instance: T, name: string | symbol, prop: InjectionArgument, injector: Injector, session?: InjectionSession): void {
     let value = undefined, isSet = false;
     Object.defineProperty(instance, name, {
       configurable: true,
@@ -260,7 +259,7 @@ export class Resolver {
           return value;
         }
         isSet = true;
-        return value = injector.resolveSync(prop.token, { ...prop.options, instance }, inquirer);
+        return value = injector.resolveSync(prop.token, { ...prop.options, instance }, session);
       },
       set(newValue: any) {
         isSet === true;

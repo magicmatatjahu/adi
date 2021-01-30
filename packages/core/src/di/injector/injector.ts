@@ -1,9 +1,9 @@
 import { Token } from "../types";
-import { InquirerDef, InjectionOptions, Type, Provider } from "../interfaces";
+import { InjectionOptions, InjectionSession, Type, Provider } from "../interfaces";
 
 export abstract class Injector {
-  abstract resolve<T>(token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef, sync?: boolean): Promise<T | undefined> | T | undefined;
-  abstract resolveSync<T>(token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef, sync?: boolean): T | undefined;
+  abstract resolve<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession, sync?: boolean): Promise<T | undefined> | T | undefined;
+  abstract resolveSync<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession, sync?: boolean): T | undefined;
 
   abstract resolveComponent<T>(component: Type<T>): Promise<T | never>;
   abstract resolveComponentSync<T>(component: Type<T>): T | never;

@@ -85,3 +85,6 @@ export interface ValueProviderBody<T = any> {
   when?: ConstraintFunction;
   useValue: T;
 }
+
+export interface ExtraProvider<T = any> {
+}

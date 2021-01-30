@@ -1,6 +1,6 @@
 import { getModuleDef, getProviderDef } from "../definitions";
 import { InjectionStatus, ModuleType, ProviderDefFlags, ProviderType, RESOLUTION_CHECK, ScopeFlags } from "../enums";
-import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InquirerDef, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, RecordDefinition } from "../interfaces";
+import { Type, Provider, ModuleMeta, InjectionRecord, ContextRecord, InjectorRecord, InjectionSession, InjectionOptions, DynamicModule, ForwardRef, ProviderDef, RecordDefinition } from "../interfaces";
 import { Context, InjectionToken } from "../tokens";
 import { assign, hasOnInitHook, resolveForwardRef } from "../utils";
 import { MODULE, SHARED_MODULE, INLINE_MODULE, EMPTY_OBJ, EMPTY_ARR } from "../constants";
@@ -21,7 +21,7 @@ export class InjectorImpl implements Injector {
   readonly ownRecords = new Map<Token, InjectionRecord>();
   readonly importedRecords = new Map<Token, InjectionRecord>();
   private readonly inlineModules: Array<Type> = [];
-  private scope: string | symbol | Type | undefined;
+  private injectorScope: Array<string | symbol | Type>;
 
   constructor(
     private readonly injector: Type<any> | ModuleMeta,
@@ -37,41 +37,62 @@ export class InjectorImpl implements Injector {
     if (setupProviders) {
       this.addProviders(setupProviders);
     }
-    this.scope = this.resolveSync(INJECTOR_SCOPE);
+    this.configureScope();
   }
 
-  resolveSync<T>(token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef): T | undefined  {
-    return this.resolve(token, options, inquirer, true) as T | undefined;
+  resolveSync<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): T | undefined  {
+    return this.resolve(token, options, session, true) as T | undefined;
   }
 
-  resolve<T>(token: Token<T>, options?: InjectionOptions, inquirer?: InquirerDef, sync?: boolean): Promise<T | undefined> | T | undefined {
+  resolve<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession, sync?: boolean): Promise<T | undefined> | T | undefined {
     options = options || EMPTY_OBJ;
     let flags = options.flags;
     // RESOLUTION_CHECK is a group of Self, SkipSelf, NoInject and SpecialToken flags -> they're a rare cases so they're handled in else condition (for optimization)
     const resolutionCheck = flags & RESOLUTION_CHECK;
     const record = resolutionCheck ? undefined : this.retrieveRecord(token);
     if (record !== undefined) {
-      const def = this.findDefinition(record, options);
-      let scope = def.scope;
-      if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
-        scope = options.scope || scope;
-      }
-
       try {
-        const contextRecord = metadata.getContextRecord(def, options, scope, inquirer);
-        return this.resolveProvider(record, def, contextRecord, options, scope, inquirer, sync);
-      } catch (err) {
+        const def = this.findDefinition(record, options, session);
+        return this.resolveDef(def, record, options, session, sync);
+      } catch(err) {
         // TODO: improve error
         throw err;
       }
+      // let scope = def.scope;
+      // if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
+      //   scope = options.scope || scope;
+      // }
+
+      // try {
+      //   const contextRecord = metadata.getContextRecord(def, options, scope, session);
+      //   return this.resolveProvider(record, def, contextRecord, options, scope, session, sync);
+      // } catch (err) {
+      //   // TODO: improve error
+      //   throw err;
+      // }
     } else {
       // check RESOLUTION_CHECK to avoid unnecessary operations
       if (resolutionCheck > 0) {
-        return resolver.handleResolutionCheck(this, token, options, inquirer, sync);
+        return resolver.handleResolutionCheck(this, token, options, session, sync);
       } else {
-        return this.parentInjector.resolve(token, options, inquirer, sync); 
+        return this.parentInjector.resolve(token, options, session, sync); 
       }
     }
+  }
+
+  resolveDef<T>(
+    def: RecordDefinition<T>,
+    record: InjectionRecord<T>,
+    options: InjectionOptions, 
+    session?: InjectionSession, 
+    sync?: boolean,
+  ): Promise<T | undefined> | T | undefined {
+    let scope = def.scope;
+    if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
+      scope = options.scope || scope;
+    }
+    const contextRecord = metadata.getContextRecord(def, options, scope, session);
+    return this.resolveProvider(record, def, contextRecord, options, scope, session, sync);
   }
 
   async resolveComponent<T>(component: Type<T>): Promise<T | never> {
@@ -85,7 +106,7 @@ export class InjectorImpl implements Injector {
     const value = ctxRecord.value = await def.factory(record.hostInjector, { 
       ctxRecord,
       options: undefined,
-      inquirer: undefined,
+      parent: undefined,
     });
 
     if (hasOnInitHook(value, ProviderType.CLASS)) {
@@ -105,7 +126,7 @@ export class InjectorImpl implements Injector {
     const value = ctxRecord.value = def.factory(record.hostInjector, { 
       ctxRecord,
       options: undefined,
-      inquirer: undefined,
+      parent: undefined,
     });
 
     if (hasOnInitHook(value, ProviderType.CLASS)) {
@@ -130,7 +151,7 @@ export class InjectorImpl implements Injector {
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
     scope: Scope,
-    inquirer?: InquirerDef,
+    session?: InjectionSession,
     sync?: boolean,
   ): Promise<T> | T {
     if (ctxRecord.status & InjectionStatus.RESOLVED) {
@@ -143,9 +164,9 @@ export class InjectorImpl implements Injector {
       ctxRecord.status |= InjectionStatus.PENDING;
 
       if (sync === true) {
-        return this.resolveProviderSync(record, def, ctxRecord, options, scope, inquirer);
+        return this.resolveProviderSync(record, def, ctxRecord, options, scope, session);
       } else {
-        return this.resolveProviderAsync(record, def, ctxRecord, options, scope, inquirer);
+        return this.resolveProviderAsync(record, def, ctxRecord, options, scope, session);
       }
     }
 
@@ -158,12 +179,12 @@ export class InjectorImpl implements Injector {
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
     scope: Scope,
-    inquirer?: InquirerDef,
+    session?: InjectionSession,
   ): Promise<T> {
     const value = await def.factory(record.hostInjector, { 
       ctxRecord,
       options,
-      inquirer,
+      parent: session,
     }, false);
 
     if (ctxRecord.status & InjectionStatus.CIRCULAR) {
@@ -194,12 +215,12 @@ export class InjectorImpl implements Injector {
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
     scope: Scope,
-    inquirer?: InquirerDef,
+    session?: InjectionSession,
   ): T {
     const value = def.factory(record.hostInjector, { 
       ctxRecord,
       options,
-      inquirer,
+      parent: session,
     }, true) as T;
 
     if (ctxRecord.status & InjectionStatus.CIRCULAR) {
@@ -233,11 +254,10 @@ export class InjectorImpl implements Injector {
     if (record === undefined) {
       const def = getProviderDef(token);
       if (this.isProviderDefInScope(def)) {
-        if (token instanceof InjectionToken) {
-          // def is for case when InjectionToken has useClass, useValue etc 
-          record = metadata.customProviderToRecord(token, def as any, this);
-        } else {
+        if (typeof token === "function") {
           record = metadata.typeProviderToRecord(token as Type<T>, this);
+        } else {
+          record = metadata.customProviderToRecord(token, def as any, this);
         }
 
         if (def.flags & ProviderDefFlags.EXPORT) {
@@ -264,6 +284,7 @@ export class InjectorImpl implements Injector {
   findDefinition(
     record: InjectionRecord,
     options: InjectionOptions,
+    session?: InjectionSession
   ): RecordDefinition {
     const defs = record.defs;
     if (defs.length === 0 || record.isMulti) {
@@ -272,7 +293,7 @@ export class InjectorImpl implements Injector {
 
     for (let i = defs.length - 1; i > -1; i--) {
       const d = defs[i];
-      if (d.constraint(options) === true) {
+      if (d.constraint(options, session) === true) {
         return d;
       }
     }
@@ -369,9 +390,9 @@ export class InjectorImpl implements Injector {
       return;
     }
 
-    let moduleDef = getModuleDef(_module);
-    let dynamicModuleDef: DynamicModule<T> = undefined;
-    let dynamicModuleExists = false;
+    let moduleDef = getModuleDef(_module), 
+      dynamicModuleDef: DynamicModule<T> = undefined, 
+      dynamicModuleExists = false;
     if (moduleDef === undefined) {
       dynamicModuleDef = await (_module as Promise<DynamicModule>);
       _module = dynamicModuleDef.module;
@@ -467,6 +488,8 @@ export class InjectorImpl implements Injector {
   }
 
   async initModule(): Promise<void> {
+    // resolve INJECTOR_SCOPE provider
+    this.configureScope();
     // first init all providers for MODULE_INITIALIZERS multi token
     // and if returned value (one of returned) is a function, call this function
     const initializers = await this.resolve(MODULE_INITIALIZERS);
@@ -487,19 +510,27 @@ export class InjectorImpl implements Injector {
   private isProviderDefInScope(def: ProviderDef): boolean {
     if (def === undefined || def.providedIn === undefined) {
       return false;
-    } if (typeof def.providedIn === 'string' || typeof def.providedIn === 'symbol') {
-      // case with internal scope
-      return def.providedIn === "any" || def.providedIn === this.scope;
-    } else if (this.injector === def.providedIn) {
-      // case with providedIn: SomeModule
+    } else if (this.injectorScope.includes(def.providedIn)) {
       return true;
     } else if (def.flags & ProviderDefFlags.EXPORT) {
       // case with providedIn: SomeModule and export: true
-      return this.imports.has(def.providedIn);
+      return this.imports.has(def.providedIn as Type);
     }
     // case with inlined module
-    const record = this.imports.get(def.providedIn);
+    const record = this.imports.get(def.providedIn as Type);
     const inlineModule = record && record.values.get(INLINE_MODULE);
     return inlineModule && inlineModule.injector === this;
+  }
+
+  private configureScope(): void {
+    this.injectorScope = ["any", this.injector as any];
+    const scopes = this.resolveSync(INJECTOR_SCOPE);
+    if (Array.isArray(scopes)) {
+      for (let i = 0, l = scopes.length; i < l; i++) {
+        this.injectorScope.push(scopes[i]);
+      }  
+    } else {
+      this.injectorScope.push(scopes);
+    }
   }
 }

@@ -1,7 +1,7 @@
-import { named, tagged, concatConstraints } from "../../../src/di/constraints";
+import { c } from "../../../src/di/bindings";
 import { Injectable, Inject, Named, Tagged } from "../../../src/di/decorators";
 import { createInjector } from "../../../src/di/injector";
-import { InjectionContext } from "../../../src/di/interfaces";
+import { InjectionOptions } from "../../../src/di/interfaces";
 import { Context } from "../../../src/di/tokens";
 import { expect } from 'chai';
 
@@ -17,7 +17,7 @@ describe('Constaints bindings', () => {
       {
         provide: Service,
         useValue: "useClassCtx",
-        when: (ctxInjection: InjectionContext) => ctxInjection.ctx === ctx,
+        when: (opts: InjectionOptions) => opts.ctx === ctx,
       },
     ]);
     
@@ -63,12 +63,12 @@ describe('Constaints bindings', () => {
       {
         provide: token,
         useValue: "1",
-        when: named("name1"),
+        when: c.named("name1"),
       },
       {
         provide: token,
         useValue: "2",
-        when: named("name2"),
+        when: c.named("name2"),
       },
     ]);
     
@@ -93,12 +93,12 @@ describe('Constaints bindings', () => {
       {
         provide: token,
         useValue: "1",
-        when: tagged({ tag: false }),
+        when: c.tagged({ tag: false }),
       },
       {
         provide: token,
         useValue: "2",
-        when: tagged({ tag: true }),
+        when: c.tagged({ tag: true }),
       },
     ]);
     
@@ -129,12 +129,12 @@ describe('Constaints bindings', () => {
       {
         provide: token,
         useValue: "1",
-        when: concatConstraints(named("name1"), tagged({ tag: false })),
+        when: c.concat(c.named("name1"), c.tagged({ tag: false })),
       },
       {
         provide: token,
         useValue: "2",
-        when: concatConstraints(named("name2"), tagged({ tag: true })),
+        when: c.concat(c.named("name2"), c.tagged({ tag: true })),
       },
     ]);
     

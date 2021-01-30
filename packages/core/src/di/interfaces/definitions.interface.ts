@@ -1,13 +1,11 @@
 import { ModuleMeta } from "./module.interface";
-import { InjectableOptions } from "./injectable-options.interface";
 import { InjectionArgument, MethodArgument } from "./injection-argument.interface";
-import { InjectionContext } from "./injection-context.interface";
 import { ContextRecord } from "./records.interface";
 import { Type } from "./type.interface";
 import { Injector } from "../injector";
 import { Scope } from "../scopes";
 import { ProviderDefFlags } from "../enums";
-import { Token } from "../types";
+import { InjectionOptions } from "./injection-options.interface";
 
 export type ModuleDef<T = any> = ModuleMeta<T>;
 
@@ -39,14 +37,12 @@ export type MethodsArguments = {
   [key: string]: MethodArgument;
 }
 
-export type FactoryDef<T = any> = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => Promise<T | undefined> | T | undefined;  
+export type FactoryDef<T = any> = (injector: Injector, session?: InjectionSession, sync?: boolean) => Promise<T | undefined> | T | undefined;  
 
-export interface InquirerDef<T = any> {
+export interface InjectionSession<T = any> {
+  options: InjectionOptions;
   ctxRecord: ContextRecord<T>;
-  options: InjectableOptions;
-  inquirer?: InquirerDef;
+  parent?: InjectionSession;
 }
 
-export type Inquirer<T = any> = InquirerDef<T>;
-
-export type ConstraintFunction = (context: InjectionContext) => boolean;
+export type ConstraintFunction = (options: InjectionOptions, session?: InjectionSession) => boolean;

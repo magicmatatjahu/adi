@@ -1,14 +1,14 @@
 import { resolver } from "../injector/resolver";
+import { InjectionSessionService } from "../services";
 import { Scope } from "../scopes";
 import { InjectionToken } from "../tokens";
-import { InjectionSession } from "./injection-session";
 
 export const INQUIRER = new InjectionToken<never>({
-  useFactory: (session: InjectionSession) => {
-    let s = session.getCurrentSession();
-    return s && s.inquirer && resolver.handleCircularDeps(s.inquirer.ctxRecord);
+  useFactory: (session: InjectionSessionService) => {
+    const s = session.parentSession();
+    return s && resolver.handleCircularDeps(s.ctxRecord);
   },
-  inject: [InjectionSession],
+  inject: [InjectionSessionService],
   scope: Scope.PROTOTYPE,
   providedIn: "any",
 }, "INQUIRER");

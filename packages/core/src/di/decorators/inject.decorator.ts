@@ -14,7 +14,11 @@ export function Inject<T = any>(token?: Token<T> | Context | ForwardRef<T> | fal
   if (token instanceof Context) {
     ctx = token;
     token = undefined;
-  } else if (token === false) {
+  } 
+  // else if ((token as any) === CONTEXT || (token as any) === INJECTION_SESSION) {
+  //   flags = InjectionFlags.INTERNAL_TOKEN;
+  // } 
+  else if (token === false) {
     flags = InjectionFlags.NO_INJECT;
   }
 

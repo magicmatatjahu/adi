@@ -1,4 +1,4 @@
-import { Type } from "./interfaces";
+import { InjectionSession, Type } from "./interfaces";
 import { Scope } from "./scopes";
 import { InjectionToken, Context } from "./tokens";
 
@@ -8,6 +8,7 @@ export const CUSTOM_SCOPES = new InjectionToken<Scope>({ multi: true });
 
 export const STATIC_CONTEXT = new Context(undefined, 0, "STATIC");
 export const INJECTOR_ID = new InjectionToken<string>();
+export const CUSTOM_PROVIDER = new InjectionToken();
 
 export const CONSTRAINTS = {
   NAMED: "named",

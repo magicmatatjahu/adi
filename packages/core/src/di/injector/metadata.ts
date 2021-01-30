@@ -1,5 +1,5 @@
 import { Injector } from "./injector";
-import { constraintNoop } from "../constraints";
+import { constraintNoop } from "../bindings";
 import { injectableMixin } from "../decorators";
 import { getProviderDef, createInjectionArg } from "../definitions";
 import { 
@@ -10,7 +10,7 @@ import {
   Type, Provider, CustomProvider, TypeProvider, StaticClassProvider,
   InjectionRecord, RecordDefinition, ContextRecord, InjectorRecord, InjectorContextRecord,
   InjectionArgument,
-  ProviderDef, InquirerDef, FactoryDef, InjectionOptions, ConstraintFunction,
+  ProviderDef, InjectionSession, FactoryDef, InjectionOptions, ConstraintFunction,
 } from "../interfaces";
 import { InjectionToken, Context } from "../tokens";
 import { Token } from "../types";
@@ -31,7 +31,7 @@ export class InjectionMetadata {
     const classRef = resolveForwardRef(provider);
     const provDef = this.getProviderDef(classRef);
     const record = this.getRecord(classRef, classRef, hostInjector);
-    record.defaultDef = this.makeDefinition(classRef, record, provDef.factory, undefined, ProviderType.TYPE, provDef.scope, classRef.prototype);
+    record.defaultDef = this.makeDefinition(classRef, record, provDef.factory, undefined, ProviderType.TYPE, provDef.scope, classRef.prototype, record.defaultDef);
     return record;
   }
 
@@ -56,6 +56,7 @@ export class InjectionMetadata {
     if (typeof constraint === "function") {
       record.defs.push(def);
     } else {
+      def.previousDef = record.defaultDef;
       record.defaultDef = def;
     }
 
@@ -67,8 +68,8 @@ export class InjectionMetadata {
   ): [Function, ProviderType, any] {
     if (isFactoryProvider(provider)) {
       const deps = this.convertFactoryDeps(provider.inject || []);
-      const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-        return resolver.injectFactory(provider.useFactory as any, deps, injector, inquirer, sync);
+      const factory = (injector: Injector, session?: InjectionSession, sync?: boolean) => {
+        return resolver.injectFactory(provider.useFactory as any, deps, injector, session, sync);
       }
       return [factory, ProviderType.FACTORY, undefined];
     } else if (isValueProvider(provider)) {
@@ -76,8 +77,8 @@ export class InjectionMetadata {
       return [factory, ProviderType.VALUE, undefined];
     } else if (isExistingProvider(provider)) {
       const existingProvider = resolveForwardRef(provider.useExisting);
-      const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-        return resolver.inject(existingProvider, inquirer.options, injector, inquirer, sync) as any;
+      const factory = (injector: Injector, session?: InjectionSession, sync?: boolean) => {
+        return resolver.inject(existingProvider, session.options, injector, session, sync) as any;
       }
       return [factory, ProviderType.EXISTING, undefined];
     }
@@ -88,8 +89,8 @@ export class InjectionMetadata {
       const deps = this.convertCtorDeps(clazz.inject, classRef);
       let factory = undefined, type = undefined;
       if (def === undefined) {
-        factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-          return resolver.injectClass(classRef, deps, injector, inquirer, sync);
+        factory = (injector: Injector, session?: InjectionSession, sync?: boolean) => {
+          return resolver.injectClass(classRef, deps, injector, session, sync);
         };
         type = ProviderType.STATIC_CLASS;
       } else {
@@ -140,9 +141,9 @@ export class InjectionMetadata {
   ): InjectionRecord<T> {
     const def = this.getProviderDef(token);
     const record = this.makeRecord(token, hostInjector, true);
-    const factory = (injector: Injector, inquirer?: InquirerDef, sync?: boolean) => {
-      const items = record.defs.filter(def => def.constraint(inquirer.options)).map(def => def.record.token);
-      return resolver.injectDeps(this.convertFactoryDeps(items), injector, inquirer, sync) as any;
+    const factory = (injector: Injector, session?: InjectionSession, sync?: boolean) => {
+      const items = record.defs.filter(def => def.constraint(session.options)).map(def => def.record.token);
+      return resolver.injectDeps(this.convertFactoryDeps(items), injector, session, sync) as any;
     }
     record.defaultDef = this.makeDefinition(provider, record, factory as any, undefined, ProviderType.MULTI, def.scope);
     return record;
@@ -156,6 +157,7 @@ export class InjectionMetadata {
     type: ProviderType,
     scope?: Scope,
     prototype?: Type,
+    previousDef?: RecordDefinition,
   ): RecordDefinition {
     return {
       factory,
@@ -168,6 +170,7 @@ export class InjectionMetadata {
       prototype: prototype || undefined,
       flags: 0,
       original: provider,
+      previousDef: previousDef || undefined,
     };
   }
 
@@ -175,13 +178,13 @@ export class InjectionMetadata {
     def: RecordDefinition<T>, 
     options: InjectionOptions,
     scope: Scope,
-    inquirer?: InquirerDef,
+    session?: InjectionSession,
   ): ContextRecord<T> {
-    const ctx = scope.getContext(options, def, inquirer);
+    const ctx = scope.getContext(options, def, session);
     let ctxRecord = def.values.get(ctx) || def.weakValues.get(ctx);
     if (ctxRecord === undefined) {
       ctxRecord = this.makeContextRecord(ctx, undefined, InjectionStatus.UNKNOWN, def);
-      if (scope.toCache(options, def, inquirer)) {
+      if (scope.toCache(options, def, session) === true) {
         ctxRecord.status |= InjectionStatus.CACHED;
         def.values.set(ctx, ctxRecord);
       } else {

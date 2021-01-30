@@ -1,13 +1,17 @@
+import { InjectionSessionService } from "../services";
 import { Scope } from "../scopes";
 import { InjectionToken } from "../tokens";
-import { InjectionSession } from "./injection-session";
+
+const provider = new InjectionToken<never>({
+
+}, "CONTEXT");
 
 export const CONTEXT = new InjectionToken<never>({
-  useFactory: (session: InjectionSession) => {
-    const s = session.getCurrentSession();
+  useFactory: (session: InjectionSessionService) => {
+    const s = session.currentSession();
     return s && s.ctxRecord.ctx;
   },
-  inject: [InjectionSession],
+  inject: [InjectionSessionService],
   scope: Scope.PROTOTYPE,
   providedIn: "any",
 }, "CONTEXT");
