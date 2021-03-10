@@ -2,6 +2,7 @@ import { ConstraintFunction } from "./definitions.interface";
 import { Type } from "./type.interface";
 import { ScopeOptions } from "./scope-options.interface";
 import { Token } from "../types";
+import { PRIMITIVE_PROVIDER } from "../constants";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -84,7 +85,4 @@ export interface ValueProvider<T = any> extends ValueProviderBody<T> {
 export interface ValueProviderBody<T = any> {
   when?: ConstraintFunction;
   useValue: T;
-}
-
-export interface ExtraProvider<T = any> {
 }

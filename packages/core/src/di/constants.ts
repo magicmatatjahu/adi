@@ -8,7 +8,7 @@ export const CUSTOM_SCOPES = new InjectionToken<Scope>({ multi: true });
 
 export const STATIC_CONTEXT = new Context(undefined, 0, "STATIC");
 export const INJECTOR_ID = new InjectionToken<string>();
-export const CUSTOM_PROVIDER = new InjectionToken();
+export const PRIMITIVE_PROVIDER = new InjectionToken(undefined, "PRIMITIVE_PROVIDER");
 
 export const CONSTRAINTS = {
   NAMED: "named",

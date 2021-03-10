@@ -205,8 +205,7 @@ export class Resolver {
     session?: InjectionSession,
     sync?: boolean
   ): Promise<T | undefined> | T | undefined {
-    const flags = options.flags;
-    if (flags & InjectionFlags.NO_INJECT) {
+    if (options.flags & InjectionFlags.NO_INJECT) {
       return undefined;
     } 
     return resolver.handleSelfFlags(injector, token, options, session, sync);
