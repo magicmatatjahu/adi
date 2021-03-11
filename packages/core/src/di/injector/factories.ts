@@ -18,7 +18,7 @@ export function getCoreInjector(): Injector {
 }
 
 export function createInjector(
-  injector: Type<any> | ModuleMeta | Array<Provider>,
+  injector: Type<any> | ModuleMeta | Array<Provider> = [],
   parent: Injector | undefined = getCoreInjector(),
   setupProviders?: Array<Provider>,
 ): Injector {

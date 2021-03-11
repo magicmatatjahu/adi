@@ -1,5 +1,6 @@
 import { createInjector } from "../../../src/di/injector";
 import { Injectable, Inject } from "../../../src/di/decorators";
+import { Scope } from "../../../src/di/scopes";
 import { Context, InjectionToken } from "../../../src/di/tokens";
 import { expect } from 'chai';
 
@@ -316,6 +317,52 @@ describe('Providers', () => {
     expect(instance instanceof ServiceB).to.be.true;
     expect(instance.getFoo()).to.be.equal("foo");
   });
+
+  it('ExistingProvider with scope - should inheritance scope from original provider', async () => {
+    class ServiceA {
+      getFoo() {
+        return "bar";
+      }
+    }
+
+    @Injectable()
+    class ServiceB {
+      getFoo() {
+        return "foo";
+      }
+    }
+
+    const injector = createInjector([{
+      provide: ServiceB,
+      useClass: ServiceB,
+      scope: Scope.TRANSIENT,
+    }, {
+      provide: ServiceA,
+      useExisting: ServiceB,
+    }]);
+    
+    const firstInstance = await injector.resolve(ServiceA);
+    expect(firstInstance instanceof ServiceB).to.be.true;
+    expect(firstInstance.getFoo()).to.be.equal("foo");
+    const secondInstance = await injector.resolve(ServiceA);
+    expect(secondInstance instanceof ServiceB).to.be.true;
+    expect(secondInstance.getFoo()).to.be.equal("foo");
+    expect(firstInstance).not.to.be.equal(secondInstance);
+  });
+
+  // TODO: Think if useExisting should resolve circular refs like below
+  it.skip('ExistingProvider with circular aliases should works', async () => {
+    const injector = createInjector([{
+      provide: 'token',
+      useValue: 'aliasValue'
+    }, {
+      provide: 'token',
+      useExisting: 'token',
+    }]);
+    
+    const value = await injector.resolve('token');
+    expect(value).to.be.equal('aliasValue');
+  })
 
   // it('MultiProvider', async () => {
   //   const token = new InjectionToken<string>({ multi: true });

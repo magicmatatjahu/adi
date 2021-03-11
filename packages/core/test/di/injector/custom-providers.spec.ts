@@ -1,12 +1,114 @@
 import { c } from "../../../src/di/bindings";
 import { Injectable } from "../../../src/di/decorators";
 import { createInjector } from "../../../src/di/injector";
-import { useDecorator } from "../../../src/di/custom-providers";
+import { useDecorator, useFallback } from "../../../src/di/custom-providers";
 import { CONSTRAINTS } from "../../../src/di/constants";
 import { Scope } from "../../../src/di/scopes";
 import { expect } from 'chai';
 
 describe('Custom providers', () => {
+  describe('useFallback', () => {
+    it('basic case', async () => {
+      class A {}
+
+      const parentInjector = createInjector([
+        {
+          provide: A,
+          useValue: "existingToken",
+        },
+      ]);
+      const childInjector = createInjector([
+        useFallback(A)
+      ], parentInjector);
+  
+      const value = await childInjector.resolve(A) as string;
+      expect(value).to.be.equal("existingToken");
+    });
+
+    it('case when token does not exist in parent injector', async () => {
+      class A {}
+
+      const childInjector = createInjector([
+        useFallback(A)
+      ], createInjector());
+  
+      const value = await childInjector.resolve(A);
+      expect(value instanceof A).to.be.true;
+    });
+
+    it('custom providers should works', async () => {
+      class A {}
+
+      const childInjector = createInjector([
+        useFallback({
+          provide: A,
+          useValue: "fallbackValue",
+        })
+      ], createInjector());
+  
+      const value = await childInjector.resolve(A);
+      expect(value).to.be.equal('fallbackValue');
+    });
+
+    it('should not override parent provdier by custom provider', async () => {
+      class A {}
+
+      const childInjector = createInjector([
+        useFallback({
+          provide: A,
+          useFactory: () => new A(),
+        })
+      ], createInjector([
+        {
+          provide: A,
+          useValue: "existingToken",
+        },
+      ]));
+  
+      const value = await childInjector.resolve(A);
+      expect(value).to.be.equal('existingToken');
+    });
+
+    it('custom provider should works with scope', async () => {
+      class A {}
+
+      const childInjector = createInjector([
+        useFallback({
+          provide: A,
+          useFactory: () => new A(),
+          scope: Scope.TRANSIENT,
+        })
+      ], createInjector());
+  
+      const firstInstance = await childInjector.resolve(A);
+      expect(firstInstance instanceof A).to.be.true;
+      const secondInstance = await childInjector.resolve(A);
+      expect(secondInstance instanceof A).to.be.true;
+      expect(firstInstance).not.to.be.equal(secondInstance);
+    });
+
+    it('provider should inheritance metadata from parent provider', async () => {
+      class A {}
+
+      const parentInjector = createInjector([
+        {
+          provide: A,
+          useFactory: () => new A(),
+          scope: Scope.TRANSIENT,
+        },
+      ]);
+      const childInjector = createInjector([
+        useFallback(A)
+      ], parentInjector);
+  
+      const firstInstance = await childInjector.resolve(A);
+      expect(firstInstance instanceof A).to.be.true;
+      const secondInstance = await childInjector.resolve(A);
+      expect(secondInstance instanceof A).to.be.true;
+      expect(firstInstance).not.to.be.equal(secondInstance);
+    });
+  });
+
   describe('useDecorator', () => {
     it('basic case', async () => {
       const injector = createInjector([

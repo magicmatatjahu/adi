@@ -92,7 +92,7 @@ export class InjectorImpl implements Injector {
       scope = options.scope || scope;
     }
     const contextRecord = metadata.getContextRecord(def, options, scope, session);
-    return this.resolveProvider(record, def, contextRecord, options, scope, session, sync);
+    return this.resolveProvider(record, def, contextRecord, options, session, sync);
   }
 
   async resolveComponent<T>(component: Type<T>): Promise<T | never> {
@@ -150,7 +150,6 @@ export class InjectorImpl implements Injector {
     def: RecordDefinition<T>,
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
-    scope: Scope,
     session?: InjectionSession,
     sync?: boolean,
   ): Promise<T> | T {
@@ -164,9 +163,9 @@ export class InjectorImpl implements Injector {
       ctxRecord.status |= InjectionStatus.PENDING;
 
       if (sync === true) {
-        return this.resolveProviderSync(record, def, ctxRecord, options, scope, session);
+        return this.resolveProviderSync(record, def, ctxRecord, options, session);
       } else {
-        return this.resolveProviderAsync(record, def, ctxRecord, options, scope, session);
+        return this.resolveProviderAsync(record, def, ctxRecord, options, session);
       }
     }
 
@@ -178,7 +177,6 @@ export class InjectorImpl implements Injector {
     def: RecordDefinition<T>,
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
-    scope: Scope,
     session?: InjectionSession,
   ): Promise<T> {
     const value = await def.factory(record.hostInjector, { 
@@ -214,14 +212,14 @@ export class InjectorImpl implements Injector {
     def: RecordDefinition<T>,
     ctxRecord: ContextRecord<T>,
     options: InjectionOptions,
-    scope: Scope,
     session?: InjectionSession,
   ): T {
-    const value = def.factory(record.hostInjector, { 
+    const newSession: InjectionSession = { 
       ctxRecord,
       options,
       parent: session,
-    }, true) as T;
+    };
+    const value = def.factory(record.hostInjector, newSession, true) as T;
 
     if (ctxRecord.status & InjectionStatus.CIRCULAR) {
       assign(ctxRecord.value, value);
@@ -315,11 +313,7 @@ export class InjectorImpl implements Injector {
   addProvider<T>(
     provider: Provider<T>,
   ): void {
-    if (typeof provider === "function") {
-      metadata.typeProviderToRecord(provider, this);
-    } else {
-      metadata.customProviderToRecord(provider.provide, provider, this);
-    }
+    metadata.toRecord(provider, this);
   }
 
   // private addFactoryProviders(type: Type) {

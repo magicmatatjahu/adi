@@ -1,8 +1,9 @@
-import { ConstraintFunction } from "./definitions.interface";
+import { Injector } from "../injector";
+import { FactoryDef, ConstraintFunction } from "./definitions.interface";
+import { InjectionRecord } from "./records.interface";
 import { Type } from "./type.interface";
 import { ScopeOptions } from "./scope-options.interface";
 import { Token } from "../types";
-import { PRIMITIVE_PROVIDER } from "../constants";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -11,6 +12,7 @@ export type Provider<T = any> =
   | StaticClassProvider<T>
   | FactoryProvider<T>
   | ExistingProvider<T>
+  | ExtensionProvider<T>
   | ValueProvider<T>;
 
 export type CustomProvider<T = any> =
@@ -19,6 +21,7 @@ export type CustomProvider<T = any> =
   | StaticClassProvider<T>
   | FactoryProvider<T>
   | ExistingProvider<T>
+  | ExtensionProvider<T>
   | ValueProvider<T>;
 
 export type ProviderBody<T = any> = 
@@ -27,6 +30,7 @@ export type ProviderBody<T = any> =
   | StaticClassProviderBody<T>
   | FactoryProviderBody<T>
   | ExistingProviderBody
+  | ExtensionProviderBody<T>
   | ValueProviderBody<T>;
 
 export interface TypeProvider<T = any> extends Type<T> {}
@@ -85,4 +89,13 @@ export interface ValueProvider<T = any> extends ValueProviderBody<T> {
 export interface ValueProviderBody<T = any> {
   when?: ConstraintFunction;
   useValue: T;
+}
+
+export interface ExtensionProvider<T = any> extends ExtensionProviderBody<T> {
+  provide: Token<T>;
+}
+
+export interface ExtensionProviderBody<T = any> {
+  when?: ConstraintFunction;
+  useExtension: (record: InjectionRecord) => FactoryDef<T>;
 }

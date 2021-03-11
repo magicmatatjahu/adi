@@ -1,4 +1,3 @@
-import { resolver } from "../injector";
 import { Type, ConstraintFunction } from "../interfaces";
 import { Token } from "../types";
 import { resolveForwardRef } from "../utils";

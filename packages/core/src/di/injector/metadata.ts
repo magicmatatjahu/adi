@@ -16,14 +16,27 @@ import { InjectionToken, Context } from "../tokens";
 import { Token } from "../types";
 import { Scope } from "../scopes";
 import { 
-  isFactoryProvider, isValueProvider, isExistingProvider,
+  isFactoryProvider, isValueProvider, isExistingProvider, isExtensionProvider,
   resolveForwardRef, decorate
 } from "../utils";
 import { STATIC_CONTEXT } from "../constants";
 
 import { resolver } from "./resolver";
+import { getNilInjector } from "./factories";
+import { InjectorImpl } from "./implementation";
 
 export class InjectionMetadata {
+  toRecord<T>(
+    provider: Provider<T>,
+    hostInjector: Injector,
+  ): InjectionRecord<T> {
+    if (typeof provider === "function") {
+      return this.typeProviderToRecord(provider, hostInjector);
+    } else {
+      return this.customProviderToRecord(provider.provide, provider, hostInjector);
+    }
+  }
+
   typeProviderToRecord<T>(
     provider: TypeProvider<T>,
     hostInjector: Injector,
@@ -50,7 +63,7 @@ export class InjectionMetadata {
       constraint = undefined;
       record = itemRecord;
     }
-    const [factory, type, proto] = this.retrieveMetadata(provider);
+    const [factory, type, proto] = this.retrieveMetadata(provider, record);
     
     const def = this.makeDefinition(provider, record, factory as any, constraint, type, (provider as any).scope, proto);
     if (typeof constraint === "function") {
@@ -65,6 +78,7 @@ export class InjectionMetadata {
 
   public retrieveMetadata<T>(
     provider: CustomProvider<T>,
+    record: InjectionRecord,
   ): [Function, ProviderType, any] {
     if (isFactoryProvider(provider)) {
       const deps = this.convertFactoryDeps(provider.inject || []);
@@ -78,9 +92,15 @@ export class InjectionMetadata {
     } else if (isExistingProvider(provider)) {
       const existingProvider = resolveForwardRef(provider.useExisting);
       const factory = (injector: Injector, session?: InjectionSession, sync?: boolean) => {
-        return resolver.inject(existingProvider, session.options, injector, session, sync) as any;
+        const deepRecord = metadata.getDeepRecord(existingProvider, injector, false);
+        if (deepRecord !== undefined) {
+          (injector as any).ownRecords.set(provider.provide, deepRecord);
+        }
+        return resolver.inject(provider.provide, session.options, injector, session.parent, sync);
       }
       return [factory, ProviderType.EXISTING, undefined];
+    } else if (isExtensionProvider(provider)) {
+      return [provider.useExtension(record), ProviderType.EXTENSION, undefined];
     }
     const clazz = provider as StaticClassProvider;
     const classRef = resolveForwardRef(clazz.useClass || clazz.provide) as Type;
@@ -292,6 +312,23 @@ export class InjectionMetadata {
       throw new Error('Cannot get factory def')
     }
     return providerDef.factory;
+  }
+
+  public getDeepRecord(token: Token, injector: Injector, skipSelf: boolean = true): InjectionRecord | undefined {
+    let record: InjectionRecord = skipSelf ? undefined : (injector as any).getRecord(token); 
+    if (record) {
+      return record;
+    }
+
+    const nilInjector = getNilInjector();
+    let parentInjector = injector.getParentInjector();
+    while (parentInjector !== nilInjector) {
+      if (record = (parentInjector as any).getRecord(token)) {
+        return record;
+      }
+      parentInjector = parentInjector.getParentInjector();
+    }
+    return record;
   }
 }
 
