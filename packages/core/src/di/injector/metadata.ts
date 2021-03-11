@@ -16,7 +16,7 @@ import { InjectionToken, Context } from "../tokens";
 import { Token } from "../types";
 import { Scope } from "../scopes";
 import { 
-  isFactoryProvider, isValueProvider, isExistingProvider, isExtensionProvider,
+  isFactoryProvider, isValueProvider, isExistingProvider, isCustomProvider,
   resolveForwardRef, decorate
 } from "../utils";
 import { STATIC_CONTEXT } from "../constants";
@@ -99,8 +99,8 @@ export class InjectionMetadata {
         return resolver.inject(provider.provide, session.options, injector, session.parent, sync);
       }
       return [factory, ProviderType.EXISTING, undefined];
-    } else if (isExtensionProvider(provider)) {
-      return [provider.useExtension(record), ProviderType.EXTENSION, undefined];
+    } else if (isCustomProvider(provider)) {
+      return [provider.useCustom(record), ProviderType.CUSTOM, undefined];
     }
     const clazz = provider as StaticClassProvider;
     const classRef = resolveForwardRef(clazz.useClass || clazz.provide) as Type;

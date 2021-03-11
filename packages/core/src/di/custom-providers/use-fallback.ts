@@ -1,11 +1,11 @@
 import { Injector, resolver, metadata } from "../injector";
-import { Provider, ExtensionProvider, InjectionSession } from "../interfaces";
+import { Provider, _CustomProvider, InjectionSession } from "../interfaces";
 
-export function useFallback(provider: Provider): ExtensionProvider {
+export function useFallback(provider: Provider): _CustomProvider {
   const token = typeof provider === "function" ? provider : provider.provide; 
   return {
     provide: token,
-    useExtension() {
+    useCustom() {
       return (injector: Injector, session?: InjectionSession, sync?: boolean) => {
         const deepRecord = metadata.getDeepRecord(token, injector);
         if (deepRecord !== undefined) {

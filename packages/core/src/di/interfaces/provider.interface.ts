@@ -12,7 +12,7 @@ export type Provider<T = any> =
   | StaticClassProvider<T>
   | FactoryProvider<T>
   | ExistingProvider<T>
-  | ExtensionProvider<T>
+  | _CustomProvider<T>
   | ValueProvider<T>;
 
 export type CustomProvider<T = any> =
@@ -21,7 +21,7 @@ export type CustomProvider<T = any> =
   | StaticClassProvider<T>
   | FactoryProvider<T>
   | ExistingProvider<T>
-  | ExtensionProvider<T>
+  | _CustomProvider<T>
   | ValueProvider<T>;
 
 export type ProviderBody<T = any> = 
@@ -30,7 +30,7 @@ export type ProviderBody<T = any> =
   | StaticClassProviderBody<T>
   | FactoryProviderBody<T>
   | ExistingProviderBody
-  | ExtensionProviderBody<T>
+  | _CustomProviderBody<T>
   | ValueProviderBody<T>;
 
 export interface TypeProvider<T = any> extends Type<T> {}
@@ -91,11 +91,11 @@ export interface ValueProviderBody<T = any> {
   useValue: T;
 }
 
-export interface ExtensionProvider<T = any> extends ExtensionProviderBody<T> {
+export interface _CustomProvider<T = any> extends _CustomProviderBody<T> {
   provide: Token<T>;
 }
 
-export interface ExtensionProviderBody<T = any> {
+export interface _CustomProviderBody<T = any> {
   when?: ConstraintFunction;
-  useExtension: (record: InjectionRecord) => FactoryDef<T>;
+  useCustom: (record: InjectionRecord) => FactoryDef<T>;
 }

@@ -16,7 +16,6 @@ export interface DecoratorClassProvider<T = any, R = any>{
   decorate: Token<T>,
 }
 
-// TODO: Change to also async function
 export function useDecorator<T>(provider: DecoratorProvider<T>): FactoryProvider<T> {
   const provide = provider.decorate;
 

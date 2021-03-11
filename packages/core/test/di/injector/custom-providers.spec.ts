@@ -109,8 +109,8 @@ describe('Custom providers', () => {
     });
   });
 
-  describe('useDecorator', () => {
-    it('basic case', async () => {
+  describe.only('useDecorator', () => {
+    it.only('basic case', async () => {
       const injector = createInjector([
         {
           provide: "token",

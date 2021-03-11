@@ -2,7 +2,7 @@ import { ProviderType } from "../enums";
 import { 
   FactoryProvider,
   ExistingProvider,
-  ExtensionProvider,
+  _CustomProvider,
   ValueProvider,
   OnInit,
   OnDestroy,
@@ -20,8 +20,8 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
   return 'useExisting' in (provider as ExistingProvider);
 }
 
-export function isExtensionProvider(provider: unknown): provider is ExtensionProvider {
-  return 'useExtension' in (provider as ExtensionProvider);
+export function isCustomProvider(provider: unknown): provider is _CustomProvider {
+  return 'useCustom' in (provider as _CustomProvider);
 }
 
 // TODO: change it

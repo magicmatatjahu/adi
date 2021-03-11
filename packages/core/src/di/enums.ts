@@ -48,7 +48,7 @@ export enum ProviderType {
   EXISTING = 32,
   VALUE = 64,
   MULTI = 128,
-  EXTENSION = 256,
+  CUSTOM = 256,
 }
 
 export enum ProviderDefFlags {
