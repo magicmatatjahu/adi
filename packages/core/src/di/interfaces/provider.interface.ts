@@ -1,6 +1,6 @@
 import { Injector } from "../injector";
 import { FactoryDef, ConstraintFunction } from "./definitions.interface";
-import { InjectionRecord } from "./records.interface";
+import { InjectionRecord, RecordDefinition } from "./records.interface";
 import { Type } from "./type.interface";
 import { ScopeOptions } from "./scope-options.interface";
 import { Token } from "../types";
@@ -95,7 +95,7 @@ export interface _CustomProvider<T = any> extends _CustomProviderBody<T> {
   provide: Token<T>;
 }
 
-export interface _CustomProviderBody<T = any> {
+export interface _CustomProviderBody<T = any> extends ScopeOptions {
   when?: ConstraintFunction;
-  useCustom: (record: InjectionRecord) => FactoryDef<T>;
+  useCustom: (record: InjectionRecord, def: RecordDefinition) => FactoryDef<T>;
 }

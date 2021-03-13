@@ -23,7 +23,6 @@ import { STATIC_CONTEXT } from "../constants";
 
 import { resolver } from "./resolver";
 import { getNilInjector } from "./factories";
-import { InjectorImpl } from "./implementation";
 
 export class InjectionMetadata {
   toRecord<T>(
@@ -44,7 +43,7 @@ export class InjectionMetadata {
     const classRef = resolveForwardRef(provider);
     const provDef = this.getProviderDef(classRef);
     const record = this.getRecord(classRef, classRef, hostInjector);
-    record.defaultDef = this.makeDefinition(classRef, record, provDef.factory, undefined, ProviderType.TYPE, provDef.scope, classRef.prototype, record.defaultDef);
+    record.defaultDef = this.makeDefinition(classRef, record, provDef.scope, provDef.factory, undefined, ProviderType.TYPE, classRef.prototype);
     return record;
   }
 
@@ -55,21 +54,26 @@ export class InjectionMetadata {
   ): InjectionRecord<T> {
     token = resolveForwardRef(token);
     let record = this.getRecord(token, provider, hostInjector);
+    const def = this.makeDefinition(provider, record, (provider as any).scope);
     
     let constraint = provider.when;
     if (record.isMulti === true) {
       const itemRecord = this.customProviderToRecord(provider as any, provider, hostInjector);
-      record.defs.push(this.makeDefinition(undefined, itemRecord, undefined, constraint || constraintNoop, undefined));
+      // add scope from provider
+      record.defs.push(this.makeDefinition(undefined, itemRecord, undefined, undefined, constraint || constraintNoop, undefined));
       constraint = undefined;
       record = itemRecord;
     }
-    const [factory, type, proto] = this.retrieveMetadata(provider, record);
-    
-    const def = this.makeDefinition(provider, record, factory as any, constraint, type, (provider as any).scope, proto);
+    const [factory, type, proto] = this.retrieveMetadata(provider, record, def);
+    def.record = record;
+    def.factory = factory as any;
+    def.constraint = constraint;
+    def.type = type;
+    def.prototype = proto;
+
     if (typeof constraint === "function") {
       record.defs.push(def);
     } else {
-      def.previousDef = record.defaultDef;
       record.defaultDef = def;
     }
 
@@ -79,6 +83,7 @@ export class InjectionMetadata {
   public retrieveMetadata<T>(
     provider: CustomProvider<T>,
     record: InjectionRecord,
+    def: RecordDefinition,
   ): [Function, ProviderType, any] {
     if (isFactoryProvider(provider)) {
       const deps = this.convertFactoryDeps(provider.inject || []);
@@ -100,7 +105,7 @@ export class InjectionMetadata {
       }
       return [factory, ProviderType.EXISTING, undefined];
     } else if (isCustomProvider(provider)) {
-      return [provider.useCustom(record), ProviderType.CUSTOM, undefined];
+      return [provider.useCustom(record, def), ProviderType.CUSTOM, undefined];
     }
     const clazz = provider as StaticClassProvider;
     const classRef = resolveForwardRef(clazz.useClass || clazz.provide) as Type;
@@ -161,23 +166,22 @@ export class InjectionMetadata {
   ): InjectionRecord<T> {
     const def = this.getProviderDef(token);
     const record = this.makeRecord(token, hostInjector, true);
-    const factory = (injector: Injector, session?: InjectionSession, sync?: boolean) => {
-      const items = record.defs.filter(def => def.constraint(session.options)).map(def => def.record.token);
+    const factory = (injector: Injector, session: InjectionSession, sync?: boolean) => {
+      const items = record.defs.filter(def => def.constraint(session.options, session)).map(def => def.record.token);
       return resolver.injectDeps(this.convertFactoryDeps(items), injector, session, sync) as any;
     }
-    record.defaultDef = this.makeDefinition(provider, record, factory as any, undefined, ProviderType.MULTI, def.scope);
+    record.defaultDef = this.makeDefinition(provider, record, def.scope, factory as any, undefined, ProviderType.MULTI);
     return record;
   }
 
   private makeDefinition(
     provider: Provider,
     record: InjectionRecord,
-    factory: FactoryDef,
-    constraint: ConstraintFunction, 
-    type: ProviderType,
-    scope?: Scope,
+    scope: Scope | undefined,
+    factory?: FactoryDef,
+    constraint?: ConstraintFunction, 
+    type?: ProviderType,
     prototype?: Type,
-    previousDef?: RecordDefinition,
   ): RecordDefinition {
     return {
       factory,
@@ -190,7 +194,6 @@ export class InjectionMetadata {
       prototype: prototype || undefined,
       flags: 0,
       original: provider,
-      previousDef: previousDef || undefined,
     };
   }
 

@@ -5,7 +5,6 @@ import {
   ProviderDef, FactoryDef, InjectionSession, Type, 
   ConstructorArguments, PropertiesArguments, MethodsArguments,
 } from "../interfaces";
-import { InjectionToken } from "../tokens";
 import { Token } from "../types";
 import { resolveForwardRef, hasOnInitHook } from "../utils";
 

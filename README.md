@@ -34,7 +34,6 @@
 - [ ] Fix onDestroy hook
 - [X] Add tests for useClassFactory in common package.
 - [ ] Fix INQUIRER provider in method injection - make proxy to determine who calls given method - or maybe not? :)
-- [ ] Maybe useExisting group is a bad idea?
 - [ ] user should be able to create providers in module initialization, something like:
 
 ```ts

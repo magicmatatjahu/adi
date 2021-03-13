@@ -1,4 +1,4 @@
-import { ConstraintFunction, InjectionOptions } from "../interfaces";
+import { ConstraintFunction, InjectionOptions, InjectionSession } from "../interfaces";
 import { CONSTRAINTS } from "../constants";
 import { Token } from "../types";
 
@@ -23,9 +23,9 @@ export function tagged(tags: Record<string | symbol | number, any>): ConstraintF
 }
 
 export function concatConstraints(...fns: Array<ConstraintFunction>): ConstraintFunction {
-  return (opts: InjectionOptions) => {
+  return (opts: InjectionOptions, session: InjectionSession) => {
     for (let i = 0, l = fns.length; i < l; i++) {
-      if (fns[i](opts) === false) return false;
+      if (fns[i](opts, session) === false) return false;
     }
     return true;
   }

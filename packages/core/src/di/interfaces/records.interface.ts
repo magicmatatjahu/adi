@@ -33,7 +33,6 @@ export interface RecordDefinition<T = any> {
   flags: InjectionRecordFlags;
   record: InjectionRecord<T>;
   original: Provider;
-  previousDef: RecordDefinition | undefined;
 }
 
 export interface InjectorContextRecord<I = Injector> {

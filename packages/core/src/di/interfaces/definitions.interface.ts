@@ -37,7 +37,7 @@ export type MethodsArguments = {
   [key: string]: MethodArgument;
 }
 
-export type FactoryDef<T = any> = (injector: Injector, session?: InjectionSession, sync?: boolean) => Promise<T | undefined> | T | undefined;  
+export type FactoryDef<T = any> = (injector: Injector, session: InjectionSession, sync?: boolean) => Promise<T | undefined> | T | undefined;  
 
 export interface InjectionSession<T = any> {
   options: InjectionOptions;
@@ -45,4 +45,4 @@ export interface InjectionSession<T = any> {
   parent?: InjectionSession;
 }
 
-export type ConstraintFunction = (options: InjectionOptions, session?: InjectionSession) => boolean;
+export type ConstraintFunction = (options: InjectionOptions, session: InjectionSession) => boolean;
