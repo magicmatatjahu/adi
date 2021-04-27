@@ -3,6 +3,7 @@ import {
   FactoryProvider,
   ExistingProvider,
   _CustomProvider,
+  WrapperProvider,
   ValueProvider,
   OnInit,
   OnDestroy,
@@ -22,6 +23,10 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 
 export function isCustomProvider(provider: unknown): provider is _CustomProvider {
   return 'useCustom' in (provider as _CustomProvider);
+}
+
+export function isWrapperProvider(provider: unknown): provider is WrapperProvider {
+  return typeof (provider as WrapperProvider).useWrapper === "function";
 }
 
 // TODO: change it

@@ -109,7 +109,7 @@ describe('Custom providers', () => {
     });
   });
 
-  describe.only('useDecorator', () => {
+  describe('useDecorator', () => {
     it('basic case', async () => {
       const injector = createInjector([
         {

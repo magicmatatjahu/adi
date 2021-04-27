@@ -46,14 +46,30 @@ export class InjectorImpl implements Injector {
 
   resolve<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession, sync?: boolean): Promise<T | undefined> | T | undefined {
     options = options || EMPTY_OBJ;
+    session = session || {} as InjectionSession;
     let flags = options.flags;
     // RESOLUTION_CHECK is a group of Self, SkipSelf, NoInject and SpecialToken flags -> they're a rare cases so they're handled in else condition (for optimization)
     const resolutionCheck = flags & RESOLUTION_CHECK;
     const record = resolutionCheck ? undefined : this.retrieveRecord(token);
+
     if (record !== undefined) {
       try {
-        const def = this.findDefinition(record, options, session);
-        return this.resolveDef(def, record, options, session, sync);
+        let wrappers = this.findWrappers(record, options, session);
+        if (wrappers.length) {
+          const wrapper = wrappers.reduce((prev, curr) => {
+            return curr(prev);
+          }, this.defaultWrapper.bind(this));
+          return wrapper(record, options, session, sync);
+
+          // for (let i = 0, l = wrappers.length; i < l; i++) {
+          //   wrappers = wrappers.reduce(
+          //     (prev, curr) => curr(prev),
+          //     initial);
+          //   const wrapper = wrappers[0];
+          //   wrapper.useWrapper();
+          // }
+        }
+        return this.defaultWrapper(record, options, session, sync);
       } catch(err) {
         // TODO: improve error
         throw err;
@@ -179,11 +195,9 @@ export class InjectorImpl implements Injector {
     options: InjectionOptions,
     session?: InjectionSession,
   ): Promise<T> {
-    const value = await def.factory(record.hostInjector, { 
-      ctxRecord,
-      options,
-      parent: session,
-    }, false);
+    const newSession = metadata.createSession(options, ctxRecord, session);
+    (session.children || (session.children = [])).push(newSession);
+    const value = await def.factory(record.hostInjector, newSession, false);
 
     if (ctxRecord.status & InjectionStatus.CIRCULAR) {
       assign(ctxRecord.value, value);
@@ -214,11 +228,8 @@ export class InjectorImpl implements Injector {
     options: InjectionOptions,
     session?: InjectionSession,
   ): T {
-    const newSession: InjectionSession = { 
-      ctxRecord,
-      options,
-      parent: session,
-    };
+    const newSession = metadata.createSession(options, ctxRecord, session);
+    (session.children || (session.children = [])).push(newSession);
     const value = def.factory(record.hostInjector, newSession, true) as T;
 
     if (ctxRecord.status & InjectionStatus.CIRCULAR) {
@@ -277,6 +288,32 @@ export class InjectorImpl implements Injector {
     }
 
     return record;
+  }
+
+  defaultWrapper(
+    record: InjectionRecord,
+    options: InjectionOptions,
+    session?: InjectionSession,
+    sync?: boolean,
+  ) {
+    const def = this.findDefinition(record, options, session);
+    return this.resolveDef(def, record, options, session, sync);
+  }
+
+  findWrappers(
+    record: InjectionRecord,
+    options: InjectionOptions,
+    session?: InjectionSession
+  ) {
+    const wrappers = record.wrappers;
+    const wraps = [];
+    for (let i = 0, l = wrappers.length; i < l; i++) {
+      const w = wrappers[i];
+      if (w.when && w.when(options, session) === true) {
+        wraps.push(w.useWrapper)
+      }
+    }
+    return wraps;
   }
 
   findDefinition(

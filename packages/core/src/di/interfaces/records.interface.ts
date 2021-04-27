@@ -1,5 +1,5 @@
 import { FactoryDef, ConstraintFunction } from "./definitions.interface";
-import { Provider } from "./provider.interface";
+import { Provider, WrapperProvider } from "./provider.interface";
 import { Type } from "./type.interface";
 import { InjectionStatus, ProviderType, ModuleType, InjectionRecordFlags } from "../enums";
 import { Injector } from "../injector";
@@ -7,18 +7,12 @@ import { Context } from "../tokens";
 import { Token } from "../types";
 import { Scope } from "../scopes";
 
-export interface ContextRecord<T = any> {
-  ctx: Context,
-  value: T;
-  status: InjectionStatus;
-  def: RecordDefinition;
-}
-
 export interface InjectionRecord<T = any> {
   token: Token<T>;
   hostInjector: Injector;
   defaultDef: RecordDefinition;
   defs: Array<RecordDefinition>;
+  wrappers: Array<WrapperProvider>;
   isMulti: boolean;
 }
 
@@ -33,6 +27,13 @@ export interface RecordDefinition<T = any> {
   flags: InjectionRecordFlags;
   record: InjectionRecord<T>;
   original: Provider;
+}
+
+export interface ContextRecord<T = any> {
+  ctx: Context,
+  value: T;
+  status: InjectionStatus;
+  def: RecordDefinition;
 }
 
 export interface InjectorContextRecord<I = Injector> {

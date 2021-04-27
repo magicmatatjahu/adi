@@ -1,6 +1,6 @@
 import { ModuleMeta } from "./module.interface";
 import { InjectionArgument, MethodArgument } from "./injection-argument.interface";
-import { ContextRecord } from "./records.interface";
+import { ContextRecord, InjectionRecord } from "./records.interface";
 import { Type } from "./type.interface";
 import { Injector } from "../injector";
 import { Scope } from "../scopes";
@@ -43,6 +43,10 @@ export interface InjectionSession<T = any> {
   options: InjectionOptions;
   ctxRecord: ContextRecord<T>;
   parent?: InjectionSession;
+  children?: Array<InjectionSession>;
 }
 
 export type ConstraintFunction = (options: InjectionOptions, session: InjectionSession) => boolean;
+
+export type WrapperFn<T = any> = (record: InjectionRecord, options: InjectionOptions, session?: InjectionSession, sync?: boolean) => T;
+export type WrapperDef<T = any> = (next: WrapperFn<T>) => WrapperFn<T>;

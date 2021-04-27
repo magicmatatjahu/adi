@@ -16,7 +16,7 @@ import { InjectionToken, Context } from "../tokens";
 import { Token } from "../types";
 import { Scope } from "../scopes";
 import { 
-  isFactoryProvider, isValueProvider, isExistingProvider, isCustomProvider,
+  isFactoryProvider, isValueProvider, isExistingProvider, isCustomProvider, isWrapperProvider,
   resolveForwardRef, decorate
 } from "../utils";
 import { STATIC_CONTEXT } from "../constants";
@@ -55,6 +55,11 @@ export class InjectionMetadata {
     token = resolveForwardRef(token);
     let record = this.getRecord(token, provider, hostInjector);
     const def = this.makeDefinition(provider, record, (provider as any).scope);
+
+    if (isWrapperProvider(provider)) {
+      record.wrappers.push(provider);
+      record;
+    }
     
     let constraint = provider.when;
     if (record.isMulti === true) {
@@ -155,6 +160,7 @@ export class InjectionMetadata {
       hostInjector,
       defaultDef: undefined,
       defs: [],
+      wrappers: [],
       isMulti,
     }
   }
@@ -251,6 +257,19 @@ export class InjectionMetadata {
       ctx,
       type,
     };
+  }
+
+  createSession(
+    options: InjectionOptions,
+    ctxRecord: ContextRecord,
+    parent: InjectionSession
+  ): InjectionSession {
+    return {
+      options,
+      ctxRecord,
+      parent,
+      children: [],
+    }
   }
 
   // temporary solution

@@ -1,5 +1,4 @@
-import { Injector } from "../injector";
-import { FactoryDef, ConstraintFunction } from "./definitions.interface";
+import { FactoryDef, ConstraintFunction, WrapperDef } from "./definitions.interface";
 import { InjectionRecord, RecordDefinition } from "./records.interface";
 import { Type } from "./type.interface";
 import { ScopeOptions } from "./scope-options.interface";
@@ -13,6 +12,7 @@ export type Provider<T = any> =
   | FactoryProvider<T>
   | ExistingProvider<T>
   | _CustomProvider<T>
+  | WrapperProvider<T>
   | ValueProvider<T>;
 
 export type CustomProvider<T = any> =
@@ -22,6 +22,7 @@ export type CustomProvider<T = any> =
   | FactoryProvider<T>
   | ExistingProvider<T>
   | _CustomProvider<T>
+  | WrapperProvider<T>
   | ValueProvider<T>;
 
 export type ProviderBody<T = any> = 
@@ -31,6 +32,7 @@ export type ProviderBody<T = any> =
   | FactoryProviderBody<T>
   | ExistingProviderBody
   | _CustomProviderBody<T>
+  | WrapperProviderBody<T>
   | ValueProviderBody<T>;
 
 export interface TypeProvider<T = any> extends Type<T> {}
@@ -98,4 +100,13 @@ export interface _CustomProvider<T = any> extends _CustomProviderBody<T> {
 export interface _CustomProviderBody<T = any> extends ScopeOptions {
   when?: ConstraintFunction;
   useCustom: (record: InjectionRecord, def: RecordDefinition) => FactoryDef<T>;
+}
+
+export interface WrapperProvider<T = any> extends WrapperProviderBody<T> {
+  provide: Token<T>;
+}
+
+export interface WrapperProviderBody<T = any> extends ScopeOptions {
+  useWrapper: WrapperDef<T>,
+  when?: ConstraintFunction;
 }
