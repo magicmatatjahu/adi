@@ -1,0 +1,1 @@
+export class InjectionToken<T = any> {};
