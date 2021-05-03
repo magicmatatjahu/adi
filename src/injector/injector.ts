@@ -1,7 +1,10 @@
 import { 
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
-  Provider, 
+  Provider,
+  WrapperDef,
+  FactoryDef,
+  NextWrapper, 
 } from "../interfaces";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
@@ -15,7 +18,7 @@ export class Injector {
   private readonly importedRecords = new Map<Token, ProviderRecord>();
 
   constructor(
-    private readonly providers: Array<any>,
+    private readonly providers: Array<Provider>,
     // private readonly injector: Type<any>, // | ModuleMeta
     private readonly parent?: Injector,
     // setupProviders?: Array<Provider>,
@@ -54,8 +57,12 @@ export class Injector {
     if (instance.status === 1) {
       instance.status |= InjectionStatus.PENDING;
 
-      const newSession = InjectorMetadata.createSession(instance, options, session);
-      const value = def.factory(record.hostInjector, newSession) as T;
+      const value = this.wrap(record, def, instance, options, session) as T;
+
+      // const newSession = InjectorMetadata.createSession(instance, options, session);
+      // const wrappers = this.getWrappers(record, newSession);
+      // console.log(wrappers)
+      // const value = def.factory(record.hostInjector, newSession) as T;
 
       if (instance.status & InjectionStatus.CIRCULAR) {
         Object.assign(instance.value, value);
@@ -101,7 +108,7 @@ export class Injector {
     for (let i = 0, l = wrappers.length; i < l; i++) {
       const w = wrappers[i];
       if (w.constraint(session) === true) {
-        wraps.push(w.wrapper);
+        wraps.push(w);
       }
     }
     return wraps;
@@ -130,4 +137,24 @@ export class Injector {
       InjectorMetadata.toRecord(providers[i], this);
     }
   }
+
+  private wrap(
+    record: ProviderRecord,
+    def: DefinitionRecord,
+    instance: InstanceRecord,
+    options?: InjectionOptions,
+    session?: InjectionSession,
+  ) {
+    const newSession = InjectorMetadata.createSession(instance, options, session);
+    const wrappers = this.getWrappers(record, newSession);
+
+    const nextFn = (i = 0) => () => {
+      if (i >= wrappers.length) {
+        return def.factory(record.hostInjector, newSession);
+      }
+      const next: NextWrapper = nextFn(i + 1);
+      return wrappers[i].wrapper(record.hostInjector, newSession, next);
+    }
+    return nextFn()();
+  } 
 }

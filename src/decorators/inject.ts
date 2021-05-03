@@ -1,5 +1,5 @@
-import { Context } from "../injector";
-import { ForwardRef } from "../interfaces";
+import { Context, Injector } from "../injector";
+import { ForwardRef, InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { getInjectionArg } from "./injectable"; 
@@ -22,5 +22,19 @@ export function Inject<T = any>(token: Token<T> | Context | ForwardRef<T> | fals
     const arg = getInjectionArg(target, key, indexOrDescriptor as any);
     arg.token = token as any;
     arg.options.ctx = ctx;
+  }
+}
+
+export function createWrapper() {
+
+}
+
+export function Optional(): WrapperDef {
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    try {
+      next(injector, session);
+    } catch(err) {
+      return undefined;
+    }
   }
 }

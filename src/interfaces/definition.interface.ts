@@ -23,6 +23,11 @@ export type FactoryDef<T = any> = (
   session: InjectionSession, 
 ) => Promise<T | undefined> | T | undefined;
 
-export type ConstraintDef = (session?: InjectionSession) => boolean;
+export type ConstraintDef = (session: InjectionSession) => boolean;
 
-export type WrapperDef<T = any> = (injector: Injector, session?: InjectionSession) => Promise<T> | T;
+export type NextWrapper<T = any> = (
+  injector: Injector, 
+  session: InjectionSession
+) => Promise<T | undefined> | T | undefined;
+
+export type WrapperDef<T = any> = (injector: Injector, session: InjectionSession, next: NextWrapper) => Promise<T> | T;

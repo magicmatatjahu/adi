@@ -1,4 +1,4 @@
-import { InjectableOptions, InjectionArgument, ProviderDef, Type } from "../interfaces";
+import { InjectableOptions, InjectionArgument, ProviderDef, WrapperDef, Type } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
 import { Scope } from "../scope";
 import { Reflection } from "../utils";
@@ -93,6 +93,8 @@ function mergeArgs(args: Array<InjectionArgument>, params: Array<any>, target: O
       args[i] = {
         token: param.token || param,
         options: param.options || createInjectionArg(target, key, i).options,
+        meta: param.meta,
+        wrappers: param.wrappers,
       }
     } else {
       arg.token = arg.token || param.token || param; // @Inject() has higher priority
@@ -122,15 +124,25 @@ export function getInjectionArg(
   //   }
   //   return args.props[key as string] || (args.props[key as string] = createInjectionArg(InjectionFlags.PROPERTY, target, key));
   // }
-  return args.ctor[index as number] || (args.ctor[index as number] = createInjectionArg(target, key, index as number));
+  if (key === undefined) {
+    if (typeof index === "number") {
+      return args.methods[index] || (args.methods[index] = createInjectionArg(target, key, index));
+    }
+    return args.props[key as string] || (args.props[key as string] = createInjectionArg(target, key));
+  }
+  return args.ctor[index as number] || (args.ctor[index as number] = createInjectionArg(target, undefined, index as number));
 }
 
 export function createInjectionArg(target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   return {
     token: undefined,
+    wrappers: [],
     options: {
       ctx: undefined,
       scope: Scope.DEFAULT,
+      attrs: {},
+    },
+    meta: {
       target,
       propertyKey,
       index,

@@ -1,27 +1,31 @@
 import { Context } from "../injector";
-import { InstanceRecord } from ".";
+import { InstanceRecord, WrapperDef } from ".";
 import { Token } from "../types";
 import { Scope } from "../scope";
 
 export interface InjectionOptions {
-  // flags?: InjectionFlags;
   ctx?: Context;
   scope?: Scope;
-  // scopeParams?: any;
-  // attrs?: Record<string | symbol | number, any>;
+  attrs?: Record<string | symbol, any>;
+}
+
+export interface InjectionMetadata<T = any> {
   target?: Object;
   propertyKey?: string | symbol;
   index?: number;
-  instance?: any,
+  instance?: T,
 }
 
 export interface InjectionArgument<T = any> {
   token: Token<T>;
+  wrappers: Array<WrapperDef>,
   options: InjectionOptions;
+  meta: InjectionMetadata;
 }
 
 export interface InjectionSession<T = any> {
-  options: InjectionOptions;
   instance: InstanceRecord<T>;
+  options: InjectionOptions;
+  meta: InjectionMetadata;
   parent?: InjectionSession;
 }

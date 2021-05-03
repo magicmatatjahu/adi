@@ -4,7 +4,7 @@ import {
   Provider, TypeProvider, CustomProvider,
   InstanceRecord, DefinitionRecord, ProviderRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionSession, ConstraintDef,
+  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isWrapperProvider } from "../utils";
 import { InjectionStatus } from "../enums";
@@ -43,6 +43,7 @@ export const InjectorMetadata = new class {
   ) {
     const record = this.getRecord(token, hostInjector);
     let factory: FactoryDef = undefined;
+    let prototype = undefined;
 
     if (isFactoryProvider(provider)) {
       factory = () => (injector: Injector, session?: InjectionSession) => {
@@ -54,6 +55,7 @@ export const InjectorMetadata = new class {
       const classRef = provider.useClass;
       const def = this.getProviderDef(classRef, true);
       factory = InjectorResolver.providerFactory(classRef, def);
+      prototype = classRef;
     } else if (isWrapperProvider(provider)) {
       record.wrappers.push({
         wrapper: provider.useWrapper,
@@ -70,7 +72,13 @@ export const InjectorMetadata = new class {
       }
     }
 
-    const def = this.createDefinitionRecord(record, factory, (provider as any).scope);
+    const constraint = provider.when;
+    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, prototype);
+    if (constraint !== undefined) {
+      record.defs.push(def);
+    } else {
+      record.defaultDef = def;
+    }
     return record;
   }
 
@@ -121,11 +129,13 @@ export const InjectorMetadata = new class {
   public createSession<T>(
     instance: InstanceRecord<T>,
     options: InjectionOptions,
-    parent: InjectionSession
+    parent: InjectionSession,
+    meta?: InjectionMetadata<T>,
   ): InjectionSession<T> {
     return {
       instance,
       options,
+      meta,
       parent,
     };
   }
