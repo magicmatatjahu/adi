@@ -3,10 +3,12 @@ import { InstanceRecord, WrapperDef } from ".";
 import { Token } from "../types";
 import { Scope } from "../scope";
 
-export interface InjectionOptions {
+export interface InjectionOptions<T = any> {
+  token: Token<T>;
   ctx?: Context;
   scope?: Scope;
   attrs?: Record<string | symbol, any>;
+  wrapper: WrapperDef,
 }
 
 export interface InjectionMetadata<T = any> {
@@ -17,8 +19,8 @@ export interface InjectionMetadata<T = any> {
 }
 
 export interface InjectionArgument<T = any> {
+  // argument and options have token, it (token) should be only in one place
   token: Token<T>;
-  wrappers: Array<WrapperDef>,
   options: InjectionOptions;
   meta: InjectionMetadata;
 }

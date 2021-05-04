@@ -82,7 +82,7 @@ export const InjectorMetadata = new class {
     return record;
   }
 
-  private createProviderRecord<T>(
+  createProviderRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
   ): ProviderRecord<T> {
@@ -95,7 +95,7 @@ export const InjectorMetadata = new class {
     }
   }
 
-  private createDefinitionRecord(
+  createDefinitionRecord(
     record: ProviderRecord,
     factory?: FactoryDef,
     scope?: Scope,
@@ -112,7 +112,7 @@ export const InjectorMetadata = new class {
     };
   }
 
-  public createInstanceRecord<T>(
+  createInstanceRecord<T>(
     ctx: Context,
     value: T | undefined,
     status?: InjectionStatus,
@@ -126,7 +126,7 @@ export const InjectorMetadata = new class {
     };
   }
 
-  public createSession<T>(
+  createSession<T>(
     instance: InstanceRecord<T>,
     options: InjectionOptions,
     parent: InjectionSession,
@@ -140,7 +140,7 @@ export const InjectorMetadata = new class {
     };
   }
 
-  private getRecord<T>(
+  getRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
   ): ProviderRecord {
@@ -153,7 +153,7 @@ export const InjectorMetadata = new class {
     return record;
   }
 
-  public getInstanceRecord<T>(
+  getInstanceRecord<T>(
     def: DefinitionRecord<T>, 
     scope: Scope,
     session?: InjectionSession,
@@ -168,6 +168,7 @@ export const InjectorMetadata = new class {
       //   def.values.set(ctx, ctxRecord);
       // }
     }
+    session.instance = instance;
     return instance;
   }
 

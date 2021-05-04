@@ -20,13 +20,37 @@ export class Injector {
   constructor(
     private readonly providers: Array<Provider>,
     // private readonly injector: Type<any>, // | ModuleMeta
-    private readonly parent?: Injector,
+    private readonly parent: Injector = NilInjector,
     // setupProviders?: Array<Provider>,
   ) {
     this.addProviders(this.providers);
   }
 
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+    const newSession = InjectorMetadata.createSession(undefined, options, session);
+
+    const wrapper = options && options.wrapper;
+    const nextFn = (nextWrapper: WrapperDef) => (injector: Injector, s: InjectionSession) => {
+      const $$next = nextWrapper['$$next'];
+      if ($$next !== undefined) {
+        const next: NextWrapper = nextFn($$next);
+        return nextWrapper(injector, s, next);
+      }
+      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieve(token, options, s);
+      return nextWrapper(injector, s, next);
+    }
+    if (wrapper) {
+      return nextFn(wrapper)(this, newSession);
+    }
+
+    return this.retrieve(token, options, newSession);
+  }
+
+  getParentInjector(): Injector {
+    return this.parent;
+  }
+
+  private retrieve<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const record = this.getRecord(token);
     if (record !== undefined) {
       const def = this.getDefinition(record, session);
@@ -37,16 +61,15 @@ export class Injector {
       // }
       const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
 
-      return this.resolve(record, def, instance, options, session);
+      return this.resolve(record, def, instance, session);
     }
-    return this.parent ? this.parent.get(token, options, session) : undefined;
+    return this.getParentInjector().get(token, options, session);
   }
 
   private resolve<T>(
     record: ProviderRecord<T>,
     def: DefinitionRecord<T>,
     instance: InstanceRecord<T>,
-    options?: InjectionOptions,
     session?: InjectionSession,
   ): Promise<T> | T {
     if (instance.status & InjectionStatus.RESOLVED) {
@@ -56,8 +79,8 @@ export class Injector {
     // InjectionStatus.UNKNOWN === 1
     if (instance.status === 1) {
       instance.status |= InjectionStatus.PENDING;
-
-      const value = this.wrap(record, def, instance, options, session) as T;
+      
+      const value = this.wrap(record, def, session) as T;
 
       // const newSession = InjectorMetadata.createSession(instance, options, session);
       // const wrappers = this.getWrappers(record, newSession);
@@ -141,20 +164,30 @@ export class Injector {
   private wrap(
     record: ProviderRecord,
     def: DefinitionRecord,
-    instance: InstanceRecord,
-    options?: InjectionOptions,
     session?: InjectionSession,
   ) {
-    const newSession = InjectorMetadata.createSession(instance, options, session);
-    const wrappers = this.getWrappers(record, newSession);
+    const providerWrappers = this.getWrappers(record, session);
+    const length = providerWrappers.length;
 
-    const nextFn = (i = 0) => () => {
-      if (i >= wrappers.length) {
-        return def.factory(record.hostInjector, newSession);
+    const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
+      if (i === length) {
+        return def.factory(injector, s);
       }
-      const next: NextWrapper = nextFn(i + 1);
-      return wrappers[i].wrapper(record.hostInjector, newSession, next);
+      const next: NextWrapper = nextWrapper(i + 1);
+      return providerWrappers[i].wrapper(injector, s, next);
     }
-    return nextFn()();
+    return nextWrapper()(record.hostInjector, session);
   } 
 }
+
+export const NilInjector = new class {
+  get(token: Token): never {
+    const error = new Error(`NilInjector: No provider for ${token as any}!`);
+    error.name = 'NilInjectorError';
+    throw error;
+  }
+
+  getParentInjector() {
+    return null;
+  }
+} as unknown as Injector;

@@ -94,10 +94,11 @@ function mergeArgs(args: Array<InjectionArgument>, params: Array<any>, target: O
         token: param.token || param,
         options: param.options || createInjectionArg(target, key, i).options,
         meta: param.meta,
-        wrappers: param.wrappers,
       }
+      args[i].options.token = args[i];
     } else {
       arg.token = arg.token || param.token || param; // @Inject() has higher priority
+      arg.options.token = arg.token
     }
   }
 }
@@ -124,7 +125,7 @@ export function getInjectionArg(
   //   }
   //   return args.props[key as string] || (args.props[key as string] = createInjectionArg(InjectionFlags.PROPERTY, target, key));
   // }
-  if (key === undefined) {
+  if (key !== undefined) {
     if (typeof index === "number") {
       return args.methods[index] || (args.methods[index] = createInjectionArg(target, key, index));
     }
@@ -136,11 +137,12 @@ export function getInjectionArg(
 export function createInjectionArg(target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   return {
     token: undefined,
-    wrappers: [],
     options: {
+      token: undefined,
       ctx: undefined,
       scope: Scope.DEFAULT,
       attrs: {},
+      wrapper: undefined,
     },
     meta: {
       target,
