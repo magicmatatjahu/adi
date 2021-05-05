@@ -6,7 +6,7 @@ import {
   FactoryDef,
   NextWrapper, 
 } from "../interfaces";
-import { InjectionStatus } from "../enums";
+import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
 
 import { InjectorMetadata } from "./metadata";
@@ -36,7 +36,8 @@ export class Injector {
         const next: NextWrapper = nextFn($$next);
         return nextWrapper(injector, s, next);
       }
-      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieve(token, options, s);
+      // fix passing options
+      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieve(token, s.options, s);
       return nextWrapper(injector, s, next);
     }
     if (wrapper) {
@@ -56,9 +57,9 @@ export class Injector {
       const def = this.getDefinition(record, session);
 
       let scope = def.scope;
-      // if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
-      //   scope = options.scope || scope;
-      // }
+      if (options && scope.flags & ScopeFlags.CAN_OVERRIDE) {
+        scope = options.scope || scope;
+      }
       const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
 
       return this.resolve(record, def, instance, session);

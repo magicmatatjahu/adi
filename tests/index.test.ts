@@ -89,4 +89,31 @@ describe('test', function() {
 
     expect(true).toEqual(true);
   });
+
+  test('New wrapper', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        public test1: TestService,
+        // fix inferring of types
+        @Inject(TestService, New()) public test2: TestService,
+        @Inject(TestService, New()) public test3: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      TestService,
+      Service,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service.test1 === service.test2);
+    console.log(service.test1 === service.test3);
+    console.log(service.test2 === service.test3);
+
+    expect(true).toEqual(true);
+  });
 });

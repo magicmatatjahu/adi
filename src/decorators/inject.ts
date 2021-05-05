@@ -1,13 +1,13 @@
-import { Injector, NilInjector } from "../injector";
+import { Context, Injector, NilInjector } from "../injector";
+import { getInjectionArg } from "./injectable"; 
 import { ForwardRef, InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { Reflection } from "../utils";
-import { getInjectionArg } from "./injectable"; 
 
 export function Inject<T = any>(token: Token<T> | ForwardRef<T>, wrapper?: WrapperDef);
 export function Inject<T = any>(wrapper: WrapperDef);
-export function Inject<T = any>(token: Token<T> | ForwardRef<T>, wrapper?: WrapperDef) {
+export function Inject<T = any>(token: Token<T> | ForwardRef<T> | WrapperDef, wrapper?: WrapperDef) {
   if (token['$$wrapper'] === true) {
     token = undefined;
     wrapper = token as WrapperDef;
@@ -68,7 +68,7 @@ export const Self = createWrapper((_: never): WrapperDef => {
     const ownRecord = (injector as any).records.get(token);
     // if token is not found
     if (ownRecord === undefined) {
-      return NilInjector.get(token);
+      return next(NilInjector, session);
     }
     return next(injector, session);
   }
@@ -91,22 +91,27 @@ export const SkipSelf = createWrapper((_: never): WrapperDef => {
       }
       parentInjector = parentInjector.getParentInjector();
     }
-    return NilInjector.get(token);
+    return next(NilInjector, session);
   }
 });
 
 export const Scoped = createWrapper((scope: Scope): WrapperDef => {
   // console.log('scoped');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside scoped');
+    // console.log('inside scope');
+    session.options.scope = scope;
     return next(injector, session);
   }
 });
 
-export const New = createWrapper((options: never): WrapperDef => {
-  console.log('new');
+export const New = createWrapper((ctxData: any): WrapperDef => {
+  // console.log('new');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    console.log('inside new');
+    // console.log('inside new');
+    if (ctxData !== undefined) {
+      session.options.ctx = new Context(ctxData);
+    }
+    session.options.scope = Scope.TRANSIENT;
     return next(injector, session);
   }
 });
@@ -115,6 +120,7 @@ export const Decorate = createWrapper((options: never): WrapperDef => {
   console.log('decorate');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     console.log('inside decorate');
+    const token = session.options.token;
     return next(injector, session);
   }
 });
