@@ -8,9 +8,9 @@ import { Reflection } from "../utils";
 export function Inject<T = any>(token: Token<T> | ForwardRef<T>, wrapper?: WrapperDef);
 export function Inject<T = any>(wrapper: WrapperDef);
 export function Inject<T = any>(token: Token<T> | ForwardRef<T> | WrapperDef, wrapper?: WrapperDef) {
-  if (token['$$wrapper'] === true) {
-    token = undefined;
+  if (token.hasOwnProperty('$$next')) {
     wrapper = token as WrapperDef;
+    token = undefined;
   }
 
   return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
@@ -52,7 +52,8 @@ export const Optional = createWrapper((_: never): WrapperDef => {
   }
 });
 
-export const NoInject = createWrapper((_: never): WrapperDef => {
+// skip injection
+export const Skip = createWrapper((_: never): WrapperDef => {
   // console.log('noinject');
   return () => {
     // console.log('inside noinject');
@@ -116,12 +117,60 @@ export const New = createWrapper((ctxData: any): WrapperDef => {
   }
 });
 
-export const Decorate = createWrapper((options: never): WrapperDef => {
-  console.log('decorate');
+export const Named = createWrapper((name: string): WrapperDef => {
+  // console.log('named');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    console.log('inside decorate');
-    const token = session.options.token;
+    // console.log('inside named');
+    session.options.attrs['named'] = name;
     return next(injector, session);
+  }
+});
+
+export const Multi = createWrapper((_: never): WrapperDef => {
+  function getDefinitions(
+    record: any,
+    session?: InjectionSession
+  ): Array<any> {
+    const recordDefs = record.defs;
+    const defs = [];
+    for (let i = 0, l = recordDefs.length; i < l; i++) {
+      const d = recordDefs[i];
+      if (d.constraint(session) === true) {
+        defs.push(d);
+      }
+    }
+    return defs;
+  }
+
+  // console.log('multi');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside multi');
+    const options = session.options;
+    const token = options.token;
+    const record = (injector as any).records.get(token);
+    if (!record) {
+      return [];
+    }
+    const defs = getDefinitions(record, session);
+    return defs.map(def => (injector as any).resolveDef(def, options, session))
+  }
+});
+
+interface DecorateOptions {
+  decorator: Token;
+  reuseScope?: true;
+}
+
+export const Decorate = createWrapper((decorator: Token | DecorateOptions): WrapperDef => {
+  const token = (decorator as DecorateOptions).decorator || decorator;
+
+  // console.log('decorate');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside decorate');
+
+    const decoratee = next(injector, session);
+    // only class for POC
+    return new (decorator as any)(decoratee);
   }
 });
 

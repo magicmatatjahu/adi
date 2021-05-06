@@ -37,37 +37,39 @@ export class Injector {
         return nextWrapper(injector, s, next);
       }
       // fix passing options
-      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieve(token, s.options, s);
+      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieveRecord(token, s.options, s);
       return nextWrapper(injector, s, next);
     }
     if (wrapper) {
       return nextFn(wrapper)(this, newSession);
     }
 
-    return this.retrieve(token, options, newSession);
+    return this.retrieveRecord(token, options, newSession);
   }
 
   getParentInjector(): Injector {
     return this.parent;
   }
 
-  private retrieve<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+  private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const record = this.getRecord(token);
     if (record !== undefined) {
       const def = this.getDefinition(record, session);
-
-      let scope = def.scope;
-      if (options && scope.flags & ScopeFlags.CAN_OVERRIDE) {
-        scope = options.scope || scope;
-      }
-      const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
-
-      return this.resolve(record, def, instance, session);
+      return this.resolveDef(def, options, session);
     }
     return this.getParentInjector().get(token, options, session);
   }
 
-  private resolve<T>(
+  private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+    let scope = def.scope;
+    if (options && scope.flags & ScopeFlags.CAN_OVERRIDE) {
+      scope = options.scope || scope;
+    }
+    const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
+    return this.resolveInstance(def.record, def, instance, session);
+  }
+
+  private resolveInstance<T>(
     record: ProviderRecord<T>,
     def: DefinitionRecord<T>,
     instance: InstanceRecord<T>,

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Optional, NoInject, Self, SkipSelf, New } from "../src";
+import { Injector, Injectable, Inject, Optional, Skip, Self, SkipSelf, New, Lazy, Named, Multi, Decorate } from "../src";
 
 describe('test', function() {
   test('test', function() {
@@ -58,7 +58,7 @@ describe('test', function() {
         @Inject('token', SkipSelf()) private token: string,
         @Inject('token2', Self()) private token2: string,
         @Inject('token3', Optional()) private token3: string,
-        @Inject('token', NoInject()) private token4: string,
+        @Inject('token', Skip()) private token4: string,
       ) {}
     }
 
@@ -99,8 +99,8 @@ describe('test', function() {
       constructor(
         public test1: TestService,
         // fix inferring of types
-        @Inject(TestService, New()) public test2: TestService,
-        @Inject(TestService, New()) public test3: TestService,
+        @Inject(New()) public test2: TestService,
+        @Inject(New()) public test3: TestService,
       ) {}
     }
 
@@ -110,9 +110,129 @@ describe('test', function() {
     ]);
 
     const service = injector.get(Service) as Service;
-    console.log(service.test1 === service.test2);
-    console.log(service.test1 === service.test3);
-    console.log(service.test2 === service.test3);
+
+    expect(service.test1 === service.test2).toEqual(false);
+    expect(service.test1 === service.test3).toEqual(false);
+    expect(service.test2 === service.test3).toEqual(false);
+  });
+
+  test('Named wrapper and constraint', function() {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token') public token: string,
+        @Inject('token', Named('named')) public namedToken: string,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: 'foobar'
+      },
+      {
+        provide: 'token',
+        useValue: 'namedFoobar',
+        when: (session) => session.options.attrs['named'] === 'named',
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service);
+
+    expect(true).toEqual(true);
+  });
+
+  test('Multi provider (wrapper)', function() {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token') public noMulti: string,
+        @Inject('token', Named('multi', Multi())) public multi: string[],
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: 'no-multi'
+      },
+      {
+        provide: 'token',
+        useValue: 'multi1',
+        when: (session) => session.options.attrs['named'] === 'multi',
+      },
+      {
+        provide: 'token',
+        useValue: 'multi2',
+        when: (session) => session.options.attrs['named'] === 'multi',
+      },
+      {
+        provide: 'token',
+        useValue: 'multi3',
+        when: (session) => session.options.attrs['named'] === 'multi',
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service);
+
+    expect(true).toEqual(true);
+  });
+
+  test('Lazy wrapper', function() {
+    @Injectable()
+    class LazyService {
+      constructor() {}
+      method() { return 'foobar'; }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Lazy()) public token: LazyService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      LazyService,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service.token.method());
+
+    expect(true).toEqual(true);
+  });
+
+  test('Decorate wrapper', function() {
+    @Injectable()
+    class Service {
+      constructor() {}
+
+      method() {
+        return "foo";
+      }
+    }
+
+    class Decorator {
+      constructor(readonly service: Service) {}
+
+      method() { return this.service.method() + 'bar'; }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: Service,
+        useWrapper: Decorate(Decorator),
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service.method());
 
     expect(true).toEqual(true);
   });
