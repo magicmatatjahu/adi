@@ -2,12 +2,12 @@ import { Context, Injector, NilInjector } from "../injector";
 import { getInjectionArg } from "./injectable"; 
 import { ForwardRef, InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
-import { Token } from "../types";
+import { Token as ProviderToken } from "../types";
 import { Reflection } from "../utils";
 
-export function Inject<T = any>(token: Token<T> | ForwardRef<T>, wrapper?: WrapperDef);
+export function Inject<T = any>(token: ProviderToken<T> | ForwardRef<T>, wrapper?: WrapperDef);
 export function Inject<T = any>(wrapper: WrapperDef);
-export function Inject<T = any>(token: Token<T> | ForwardRef<T> | WrapperDef, wrapper?: WrapperDef) {
+export function Inject<T = any>(token: ProviderToken<T> | ForwardRef<T> | WrapperDef, wrapper?: WrapperDef) {
   if (token.hasOwnProperty('$$next')) {
     wrapper = token as WrapperDef;
     token = undefined;
@@ -38,6 +38,16 @@ export function createWrapper<T = any>(wrapper: (options?: T) => WrapperDef): (o
   (wr as any)['$$wrapper'] = true;
   return wr;
 }
+
+export const Token = createWrapper((token: ProviderToken): WrapperDef => {
+  // console.log('token');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside token');
+    session.options = session.options || {} as any;
+    session.options.token = token;
+    return next(injector, session);
+  }
+});
 
 export const Optional = createWrapper((_: never): WrapperDef => {
   // console.log('optional');
@@ -157,11 +167,11 @@ export const Multi = createWrapper((_: never): WrapperDef => {
 });
 
 interface DecorateOptions {
-  decorator: Token;
+  decorator: ProviderToken;
   reuseScope?: true;
 }
 
-export const Decorate = createWrapper((decorator: Token | DecorateOptions): WrapperDef => {
+export const Decorate = createWrapper((decorator: ProviderToken | DecorateOptions): WrapperDef => {
   const token = (decorator as DecorateOptions).decorator || decorator;
 
   // console.log('decorate');

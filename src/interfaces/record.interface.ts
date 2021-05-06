@@ -19,7 +19,8 @@ export interface DefinitionRecord<T = any> {
   constraint: ConstraintDef;
   values: Map<Context, InstanceRecord<T>>;
   scope: Scope;
-  prototype: Type<T> | undefined;
+  proto: Type<T> | undefined;
+  wrapper: WrapperDef;
   // weakValues: WeakMap<Context, InstanceRecord<T>>;
   // flags: InjectionRecordFlags;
   // original: Provider;

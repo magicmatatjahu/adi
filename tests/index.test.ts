@@ -186,7 +186,7 @@ describe('test', function() {
     @Injectable()
     class LazyService {
       constructor() {}
-      method() { return 'foobar'; }
+      method() { return 'lazy foobar'; }
     }
 
     @Injectable()

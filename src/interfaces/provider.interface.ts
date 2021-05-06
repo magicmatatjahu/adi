@@ -19,26 +19,30 @@ export interface ClassProvider<T = any> {
   provide: Token<T>;
   useClass: Type<T>;
   scope?: Scope;
+  useWrapper?: WrapperDef;
   when?: ConstraintDef;
 }
 
 export interface FactoryProvider<T = any> {
   provide: Token<T>;
   useFactory: (...args: any[]) => T | Promise<T>;
-  inject?: Array<Token>; // Array<Token | Array<ParameterDecorator>>;
+  inject?: Array<Token | WrapperDef>; // Array<Token | Array<ParameterDecorator>>;
   scope?: Scope;
+  useWrapper?: WrapperDef;
   when?: ConstraintDef;
 }
 
 export interface ExistingProvider<T = any> {
   provide: Token<T>;
   useExisting: Token;
+  useWrapper?: WrapperDef;
   when?: ConstraintDef;
 }
 
 export interface ValueProvider<T = any> {
   provide: Token<T>;
   useValue: T;
+  useWrapper?: WrapperDef;
   when?: ConstraintDef;
 }
 

@@ -1,12 +1,12 @@
 import { Context, Injector } from ".";
-import { getProviderDef } from "../decorators";
+import { getProviderDef, injectableMixin } from "../decorators";
 import { 
   Provider, TypeProvider, CustomProvider,
   InstanceRecord, DefinitionRecord, ProviderRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata,
+  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isWrapperProvider } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider } from "../utils";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
@@ -18,22 +18,21 @@ export const InjectorMetadata = new class {
   toRecord<T>(
     provider: Provider<T>,
     hostInjector: Injector,
-  ): ProviderRecord<T> {
+  ) {
     if (typeof provider === "function") {
-      return this.typeProviderToRecord(provider, hostInjector);
+      this.typeProviderToRecord(provider, hostInjector);
     } else {
-      return this.customProviderToRecord(provider.provide, provider, hostInjector);
+      this.customProviderToRecord(provider.provide, provider, hostInjector);
     }
   }
 
   typeProviderToRecord<T>(
     provider: TypeProvider<T>,
     hostInjector: Injector,
-  ): ProviderRecord<T> {
+  ) {
     const provDef = this.getProviderDef(provider);
     const record = this.getRecord(provider, hostInjector);
     record.defaultDef = this.createDefinitionRecord(record, provDef.factory, provDef.scope, provider.prototype);
-    return record;
   }
 
   customProviderToRecord<T>(
@@ -42,8 +41,8 @@ export const InjectorMetadata = new class {
     hostInjector: Injector,
   ) {
     const record = this.getRecord(token, hostInjector);
-    let factory: FactoryDef = undefined;
-    let prototype = undefined;
+    const constraint = provider.when;
+    let factory = undefined, proto = undefined;
 
     if (isFactoryProvider(provider)) {
       factory = () => (injector: Injector, session?: InjectionSession) => {
@@ -53,16 +52,10 @@ export const InjectorMetadata = new class {
       factory = () => provider.useValue;
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
-      const def = this.getProviderDef(classRef, true);
-      factory = InjectorResolver.providerFactory(classRef, def);
-      prototype = classRef;
-    } else if (isWrapperProvider(provider)) {
-      record.wrappers.push({
-        wrapper: provider.useWrapper,
-        constraint: provider.when || NOOP_CONSTRAINT,
-      });
-      return record;
-    } else {
+      const providerDef = this.getProviderDef(classRef, true);
+      factory = InjectorResolver.providerFactory(classRef, providerDef);
+      proto = classRef;
+    } else if (isExistingProvider(provider)) {
       factory = (injector: Injector, session?: InjectionSession) => {
         // const deepRecord = metadata.getDeepRecord(existing, injector, false);
         // if (deepRecord !== undefined) {
@@ -72,14 +65,26 @@ export const InjectorMetadata = new class {
       }
     }
 
-    const constraint = provider.when;
-    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, prototype);
-    if (constraint !== undefined) {
-      record.defs.push(def);
-    } else {
-      record.defaultDef = def;
+    let wrapper = undefined;
+    if (hasWrapperProvider(provider)) {
+      wrapper = provider.useWrapper;
+
+      // case with standalone `useWrapper`
+      if (factory === undefined) {
+        record.wrappers.push({
+          wrapper: wrapper,
+          constraint: constraint || NOOP_CONSTRAINT,
+        });
+        return;
+      }
     }
-    return record;
+
+    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, proto, wrapper);
+    if (constraint === undefined) {
+      record.defaultDef = def;
+      return;
+    }
+    record.defs.push(def);
   }
 
   createProviderRecord<T>(
@@ -100,7 +105,8 @@ export const InjectorMetadata = new class {
     factory?: FactoryDef,
     scope?: Scope,
     constraint?: ConstraintDef,
-    prototype?: Type,
+    proto?: Type,
+    wrapper?: WrapperDef,
   ): DefinitionRecord {
     return {
       record,
@@ -108,21 +114,21 @@ export const InjectorMetadata = new class {
       scope: scope || Scope.DEFAULT,
       values: new Map<Context, InstanceRecord>(),
       constraint,
-      prototype: prototype || undefined,
+      proto: proto || undefined,
+      wrapper,
     };
   }
 
   createInstanceRecord<T>(
     ctx: Context,
     value: T | undefined,
-    status?: InjectionStatus,
     def?: DefinitionRecord<T>,
   ): InstanceRecord<T> {
     return {
       ctx,
       value,
-      status: status || InjectionStatus.UNKNOWN,
       def,
+      status: InjectionStatus.UNKNOWN,
     };
   }
 
@@ -161,7 +167,7 @@ export const InjectorMetadata = new class {
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
-      instance = this.createInstanceRecord(ctx, undefined, InjectionStatus.UNKNOWN, def);
+      instance = this.createInstanceRecord(ctx, undefined, def);
       def.values.set(ctx, instance);
       // if (scope.toCache(options, def, session) === true) {
       //   ctxRecord.status |= InjectionStatus.CACHED;
@@ -172,17 +178,16 @@ export const InjectorMetadata = new class {
     return instance;
   }
 
-  getProviderDef<T>(token: Token<T>, _throw?: boolean): ProviderDef {
+  getProviderDef<T>(token: Token<T>, throwError: boolean = true): ProviderDef {
     let providerDef = getProviderDef(token);
     if (!providerDef) {
-      throw new Error('Cannot get provider def');
-
-      // // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable() or @Module()
-      // // collect only constructor params
-      // typeof token === "function" && injectableMixin(token as Type);
-      // if ((providerDef = getProviderDef(token)) === undefined && (_throw === undefined || _throw === true)) {
-      //   throw new Error('Cannot get provider def');
-      // }
+      // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable(), @Component() or @Module()
+      // collect only constructor params
+      typeof token === "function" && injectableMixin(token as Type);
+      providerDef = getProviderDef(token);
+      if (providerDef === undefined && throwError === true) {
+        throw new Error('Cannot get provider def');
+      }
     }
     return providerDef;
   }

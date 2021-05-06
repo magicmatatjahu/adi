@@ -22,6 +22,6 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
   return 'useExisting' in (provider as ExistingProvider);
 }
 
-export function isWrapperProvider(provider: unknown): provider is WrapperProvider {
+export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
   return typeof (provider as WrapperProvider).useWrapper === "function";
 }

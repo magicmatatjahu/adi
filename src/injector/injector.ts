@@ -1,10 +1,8 @@
+import { getProviderDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
-  Provider,
-  WrapperDef,
-  FactoryDef,
-  NextWrapper, 
+  Provider, ProviderDef, WrapperDef, NextWrapper, Type,
 } from "../interfaces";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
@@ -14,7 +12,7 @@ import { InjectorMetadata } from "./metadata";
 export class Injector {
   // own records
   private readonly records = new Map<Token, ProviderRecord>();
-  // imported records
+  // records from imported modules
   private readonly importedRecords = new Map<Token, ProviderRecord>();
 
   constructor(
@@ -82,8 +80,18 @@ export class Injector {
     // InjectionStatus.UNKNOWN === 1
     if (instance.status === 1) {
       instance.status |= InjectionStatus.PENDING;
-      
-      const value = this.wrap(record, def, session) as T;
+
+      const providerWrappers = this.getWrappers(record, session);
+      const length = providerWrappers.length;
+  
+      const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
+        if (i === length) {
+          return def.factory(injector, s);
+        }
+        const next: NextWrapper = nextWrapper(i + 1);
+        return providerWrappers[i].wrapper(injector, s, next);
+      }
+      const value = nextWrapper()(record.hostInjector, session) as T;
 
       // const newSession = InjectorMetadata.createSession(instance, options, session);
       // const wrappers = this.getWrappers(record, newSession);
@@ -104,7 +112,7 @@ export class Injector {
     if (instance.status & InjectionStatus.CIRCULAR) {
       return instance.value;
     }
-    const proto = def.prototype;
+    const proto = def.proto;
     if (!proto) {
       throw new Error("Circular Dependency");
     }
@@ -117,9 +125,16 @@ export class Injector {
   ): ProviderRecord {
     let record = this.records.get(token) || this.importedRecords.get(token);
 
-    // check for treeshakable provider
+    // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
-
+      const def = getProviderDef(token);
+      if (this.isProviderDefInScope(def)) {
+        if (typeof token === "function") {
+          InjectorMetadata.typeProviderToRecord(token as Type, this);
+        } else {
+          InjectorMetadata.customProviderToRecord(token, def as any, this);
+        }
+      }
     }
 
     return record;
@@ -164,23 +179,12 @@ export class Injector {
     }
   }
 
-  private wrap(
-    record: ProviderRecord,
-    def: DefinitionRecord,
-    session?: InjectionSession,
-  ) {
-    const providerWrappers = this.getWrappers(record, session);
-    const length = providerWrappers.length;
-
-    const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
-      if (i === length) {
-        return def.factory(injector, s);
-      }
-      const next: NextWrapper = nextWrapper(i + 1);
-      return providerWrappers[i].wrapper(injector, s, next);
+  // add case with modules, inline modules etc.
+  private isProviderDefInScope(def: ProviderDef): boolean {
+    if (def === undefined || def.providedIn === undefined) {
+      return false;
     }
-    return nextWrapper()(record.hostInjector, session);
-  } 
+  }
 }
 
 export const NilInjector = new class {
