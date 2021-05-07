@@ -157,7 +157,7 @@ export function createInjectionArg(token: Token, useWrapper: WrapperDef, target:
     options: {
       token,
       ctx: undefined,
-      scope: Scope.DEFAULT,
+      scope: undefined,
       attrs: {},
       useWrapper,
     },

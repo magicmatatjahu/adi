@@ -14,6 +14,8 @@ export class Injector {
   private readonly records = new Map<Token, ProviderRecord>();
   // records from imported modules
   private readonly importedRecords = new Map<Token, ProviderRecord>();
+  // scopes of injector
+  private scopes: Array<string | symbol | Type> = ['any'];
 
   constructor(
     private readonly providers: Array<Provider>,
@@ -22,6 +24,7 @@ export class Injector {
     // setupProviders?: Array<Provider>,
   ) {
     this.addProviders(this.providers);
+    typeof providers === 'function' && this.scopes.push(providers);
   }
 
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
@@ -92,7 +95,7 @@ export class Injector {
         return providerWrappers[i].wrapper(injector, s, next);
       }
       const value = nextWrapper()(record.hostInjector, session) as T;
-      
+
       if (instance.status & InjectionStatus.CIRCULAR) {
         Object.assign(instance.value, value);
       } else {
@@ -125,9 +128,9 @@ export class Injector {
       const def = getProviderDef(token);
       if (this.isProviderDefInScope(def)) {
         if (typeof token === "function") {
-          InjectorMetadata.typeProviderToRecord(token as Type, this);
+          record = InjectorMetadata.typeProviderToRecord(token as Type, this);
         } else {
-          InjectorMetadata.customProviderToRecord(token, def as any, this);
+          record = InjectorMetadata.customProviderToRecord(token, def as any, this);
         }
       }
     }
@@ -179,6 +182,7 @@ export class Injector {
     if (def === undefined || def.providedIn === undefined) {
       return false;
     }
+    if (this.scopes.includes(def.providedIn)) return true;
   }
 }
 

@@ -13,14 +13,22 @@ export function Inject<T = any>(token: ProviderToken<T> | WrapperDef, useWrapper
     token = undefined;
   }
 
-  return function(target: Object, key: string | symbol, index?: number) {
+  return function(target: Object, key: string | symbol, index?: number | PropertyDescriptor) {
     if (token === undefined) {
       if (key === undefined) { // constructor injection
-        token = (Reflection.getOwnMetadata("design:paramtypes", target) || [])[index];
+        token = Reflection.getOwnMetadata("design:paramtypes", target)[index as number];
       } else {
-        if (typeof index === 'number') { // method injection
-          token = (Reflection.getOwnMetadata("design:paramtypes", target, key) || [])[index];
-        } else { // property injection
+        if (index === undefined) { // property injection
+          token = Reflection.getOwnMetadata("design:type", target, key);
+        } else if (typeof index === 'number') { // method injection
+          token = Reflection.getOwnMetadata("design:paramtypes", target, key)[index];
+        } else if (typeof index.value === 'function') { // whole method injection
+          const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target, key);
+          for (let i = 0, l = paramtypes.length; i < l; i++) {
+            applyInjectionArg(paramtypes[i], useWrapper, target, key, i);
+          }
+          return;
+        } else { // setter injection
           token = Reflection.getOwnMetadata("design:type", target, key);
         }
       }
@@ -33,6 +41,7 @@ interface WrapperOptions {
   sideEffects?: boolean;
 }
 
+// TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class
 export function createWrapper<T = any>(
   useWrapper: (options?: T) => WrapperDef,
   wrapperOptions?: WrapperOptions,
@@ -41,11 +50,15 @@ export function createWrapper<T = any>(
     // case when defined wrapper
     if (optionsOrWrapper && optionsOrWrapper.hasOwnProperty('$$nextWrapper')) {
       const v = useWrapper();
+      v['$$wrapperDef'] = useWrapper;
       v['$$nextWrapper'] = optionsOrWrapper;
+      v['$$options'] = undefined;
       return v;
     }
     const v = (useWrapper as any)(optionsOrWrapper) as WrapperDef;
+    v['$$wrapperDef'] = useWrapper;
     v['$$nextWrapper'] = next;
+    v['$$options'] = optionsOrWrapper;
     return v;
   }
   return wr;

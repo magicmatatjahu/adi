@@ -18,30 +18,33 @@ export const InjectorMetadata = new class {
   toRecord<T>(
     provider: Provider<T>,
     hostInjector: Injector,
-  ) {
+  ): ProviderRecord {
     if (typeof provider === "function") {
-      this.typeProviderToRecord(provider, hostInjector);
+      return this.typeProviderToRecord(provider, hostInjector);
     } else {
-      this.customProviderToRecord(provider.provide, provider, hostInjector);
+      return this.customProviderToRecord(provider.provide, provider, hostInjector);
     }
   }
 
   typeProviderToRecord<T>(
     provider: TypeProvider<T>,
     hostInjector: Injector,
-  ) {
+  ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
     const record = this.getRecord(provider, hostInjector);
     record.defaultDef = this.createDefinitionRecord(record, provDef.factory, provDef.scope, provider.prototype);
+    return record;
   }
 
   customProviderToRecord<T>(
     token: Token<T>,
     provider: CustomProvider<T>,
     hostInjector: Injector,
-  ) {
+  ): ProviderRecord {
     const record = this.getRecord(token, hostInjector);
-    let factory: FactoryDef = undefined, proto = undefined;
+    let factory: FactoryDef = undefined,
+      scope: Scope = (provider as any).scope,
+      proto = undefined;
 
     if (isFactoryProvider(provider)) {
       const deps = this.convertDependencies(provider.inject || [], provider.useFactory);
@@ -50,6 +53,7 @@ export const InjectorMetadata = new class {
       }
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
+      scope = Scope.SINGLETON;
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
@@ -77,7 +81,7 @@ export const InjectorMetadata = new class {
           wrapper: wrapper,
           constraint: constraint || NOOP_CONSTRAINT,
         });
-        return;
+        return record;
       }
     }
 
@@ -87,6 +91,8 @@ export const InjectorMetadata = new class {
       return;
     }
     record.defs.push(def);
+
+    return record;
   }
 
   createProviderRecord<T>(
@@ -166,6 +172,7 @@ export const InjectorMetadata = new class {
     scope: Scope,
     session?: InjectionSession,
   ): InstanceRecord<T> {
+    // console.log(scope)
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
@@ -176,6 +183,8 @@ export const InjectorMetadata = new class {
       //   def.values.set(ctx, ctxRecord);
       // }
     }
+
+    // console.log(ctx, def.record.token)
     session.instance = instance;
     return instance;
   }

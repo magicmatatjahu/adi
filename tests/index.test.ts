@@ -1,4 +1,5 @@
-import { Injector, Injectable, Inject, Token, Ref, Optional, Skip, Self, SkipSelf, New, Lazy, Named, Multi, Decorate } from "../src";
+import { Injector, Injectable, Inject, Token, Ref, Optional, Skip, Self, SkipSelf, New, Lazy, Named, Multi, Decorate, Context } from "../src";
+import { STATIC_CONTEXT } from "../src/constants";
 
 describe('test', function() {
   test('test', function() {
@@ -342,5 +343,102 @@ describe('test', function() {
 
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService).toEqual(service.testService2);
+  });
+
+  test('whole method injection', function() {
+    @Injectable()
+    class Service {
+      @Inject()
+      method(foobar?: string, stringProp?: string, numberProp?: number) {
+        return [foobar, stringProp, numberProp];
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: String,
+        useValue: 'stringProp',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service.method());
+
+    expect(true).toEqual(true);
+  });
+
+  test('setter injection', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      public _property: TestService;
+      public _newProperty: TestService;
+
+      @Inject()
+      set property(value: TestService) {
+        this._property = value;
+      }
+
+      @Inject(New())
+      set newProperty(value: TestService) {
+        this._newProperty = value;
+      }
+    }
+
+    const injector = new Injector([
+      TestService,
+      Service,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service._property).toBeInstanceOf(TestService);
+    expect(service._newProperty).toBeInstanceOf(TestService);
+    expect(service._property === service._newProperty).toEqual(false);
+  });
+
+  test('Context provider injection', function() {
+    @Injectable()
+    class TestService {
+      constructor(
+        readonly context: Context,
+        // test INSTANCE scope
+        readonly addContext1: Context,
+        readonly addContext2: Context,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly service: TestService,
+        @Inject(New()) readonly newService: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      TestService,
+      Service,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service).toBeInstanceOf(Service);
+    expect(service.service === service.newService).toEqual(false);
+    expect(service.service).toBeInstanceOf(TestService);
+    expect(service.service.context).toBeInstanceOf(Context);
+    expect(service.service.context === STATIC_CONTEXT).toEqual(true);
+    expect(service.service.addContext1 === service.service.context).toEqual(true);
+    expect(service.service.addContext2 === service.service.context).toEqual(true);
+    expect(service.newService).toBeInstanceOf(TestService);
+    expect(service.newService.context).toBeInstanceOf(Context);
+    expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService.addContext1 === service.newService.context).toEqual(true);
+    expect(service.newService.addContext2 === service.newService.context).toEqual(true);
   });
 });
