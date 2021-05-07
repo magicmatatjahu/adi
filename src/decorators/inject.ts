@@ -5,34 +5,42 @@ import { Scope } from "../scope";
 import { Token as ProviderToken } from "../types";
 import { Reflection } from "../utils";
 
-export function Inject<T = any>(token: ProviderToken<T>, wrapper?: WrapperDef);
+export function Inject<T = any>(token?: ProviderToken<T>, wrapper?: WrapperDef);
 export function Inject<T = any>(wrapper: WrapperDef);
 export function Inject<T = any>(token: ProviderToken<T> | WrapperDef, wrapper?: WrapperDef) {
-  if (token.hasOwnProperty('$$nextWrapper')) {
+  if (token && token.hasOwnProperty('$$nextWrapper')) {
     wrapper = token as WrapperDef;
     token = undefined;
   }
 
-  return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
-    if (key !== undefined) {
-      token = token || Reflection.getOwnMetadata("design:type", target, key);
+  return function(target: Object, key: string | symbol, index?: number) {
+    if (token === undefined && key !== undefined) {
+      if (typeof index === 'number') {
+        token = (Reflection.getOwnMetadata("design:paramtypes", target, key) || [])[index];
+      } else {
+        token = Reflection.getOwnMetadata("design:type", target, key);
+      }
     }
-
-    const arg = getInjectionArg(target, key, indexOrDescriptor as any);
-    arg.token = token as any;
-    arg.options.token = token as any;
-    arg.options.wrapper = wrapper;
+    getInjectionArg(token, wrapper, target, key, index);
   }
 }
 
-export function createWrapper<T = any>(wrapper: (options?: T) => WrapperDef): (options?: T | WrapperDef, next?: WrapperDef) => WrapperDef {
-  const wr = (options?: T | WrapperDef, next?: WrapperDef): WrapperDef => {
-    if (options && options.hasOwnProperty('$$nextWrapper')) {
+interface WrapperOptions {
+  sideEffects?: boolean;
+}
+
+export function createWrapper<T = any>(
+  wrapper: (options?: T) => WrapperDef,
+  wrapperOptions?: WrapperOptions,
+): (options?: T | WrapperDef, next?: WrapperDef) => WrapperDef {
+  const wr = (optionsOrWrapper?: T | WrapperDef, next?: WrapperDef): WrapperDef => {
+    // case when defined wrapper
+    if (optionsOrWrapper && optionsOrWrapper.hasOwnProperty('$$nextWrapper')) {
       const v = wrapper();
-      v['$$nextWrapper'] = options;
+      v['$$nextWrapper'] = optionsOrWrapper;
       return v;
     }
-    const v = (wrapper as any)(options) as WrapperDef;
+    const v = (wrapper as any)(optionsOrWrapper) as WrapperDef;
     v['$$nextWrapper'] = next;
     return v;
   }
@@ -193,26 +201,3 @@ export const Decorate = createWrapper((decorator: ProviderToken | DecorateOption
     return new (decorator as any)(decoratee);
   }
 });
-
-// @Inject('token', Optional(Self()))
-
-// export function Inject<T = any>(token: Token<T> | ForwardRef<T>);
-// export function Inject<T = any>(ctx: Context);
-// export function Inject<T = any>(inject: false);
-// export function Inject<T = any>(token: Token<T> | ForwardRef<T>, ctx?: Context);
-// export function Inject<T = any>(token: Token<T> | Context | ForwardRef<T> | false, ctx?: Context) {
-//   if (token instanceof Context) {
-//     ctx = token;
-//     token = undefined;
-//   } 
-
-//   return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
-//     if (key !== undefined) {
-//       token = token || Reflection.getOwnMetadata("design:type", target, key);
-//     }
-
-//     const arg = getInjectionArg(target, key, indexOrDescriptor as any);
-//     arg.token = token as any;
-//     arg.options.ctx = ctx;
-//   }
-// }

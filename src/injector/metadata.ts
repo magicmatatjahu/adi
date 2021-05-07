@@ -1,5 +1,5 @@
 import { Context, Injector } from ".";
-import { getProviderDef, injectableMixin } from "../decorators";
+import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
   Provider, TypeProvider, CustomProvider,
   InstanceRecord, DefinitionRecord, ProviderRecord,
@@ -44,7 +44,7 @@ export const InjectorMetadata = new class {
     let factory: FactoryDef = undefined, proto = undefined;
 
     if (isFactoryProvider(provider)) {
-      const deps = this.convertDependencies(provider.inject || []);
+      const deps = this.convertDependencies(provider.inject || [], provider.useFactory);
       factory = (injector: Injector, session?: InjectionSession) => {
         return provider.useFactory(...InjectorResolver.injectDeps(deps, injector, session));
       }
@@ -138,7 +138,7 @@ export const InjectorMetadata = new class {
     instance: InstanceRecord<T>,
     options: InjectionOptions,
     parent: InjectionSession,
-    meta?: InjectionMetadata<T>,
+    meta?: InjectionMetadata,
   ): InjectionSession<T> {
     return {
       instance,
@@ -202,14 +202,14 @@ export const InjectorMetadata = new class {
     return providerDef.factory;
   }
 
-  convertDependencies(deps: Array<Token | WrapperDef>): InjectionArgument[] {
+  convertDependencies(deps: Array<Token | WrapperDef>, factory: Function): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
       if (dep.hasOwnProperty('$$nextWrapper')) {
-        converted.push({ token: undefined, options: { token: undefined, wrapper: (dep as WrapperDef) }, meta: {} });
+        converted.push(createInjectionArg(undefined, dep as WrapperDef, undefined, undefined, i, factory));
       } else {
-        converted.push({ token: dep, options: { token: dep }, meta: {} });
+        converted.push(createInjectionArg(dep as any, undefined, undefined, undefined, i, factory));
       }
     }
     return converted;

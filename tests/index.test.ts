@@ -259,4 +259,57 @@ describe('test', function() {
 
     expect(true).toEqual(true);
   });
+
+  test('property injection', function() {
+    @Injectable()
+    class Service {
+      @Inject()
+      stringProp: string;
+      @Inject()
+      numberProp: number;
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: String,
+        useValue: 'foobar',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const service = injector.get(Service);
+    console.log(service);
+
+    expect(true).toEqual(true);
+  });
+
+  test('method injection', function() {
+    @Injectable()
+    class Service {
+      method(foobar: string, @Inject() stringProp?: string, @Inject(Optional()) numberProp?: number) {
+        return [stringProp, numberProp];
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: String,
+        useValue: 'stringProp',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    console.log(service.method('foobar', undefined, 34));
+
+    expect(true).toEqual(true);
+  });
 });

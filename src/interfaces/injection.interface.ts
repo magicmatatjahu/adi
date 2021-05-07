@@ -11,11 +11,11 @@ export interface InjectionOptions<T = any> {
   wrapper?: WrapperDef,
 }
 
-export interface InjectionMetadata<T = any> {
+export interface InjectionMetadata {
   target?: Object;
   propertyKey?: string | symbol;
   index?: number;
-  instance?: T,
+  factory?: Function;
 }
 
 export interface InjectionArgument<T = any> {

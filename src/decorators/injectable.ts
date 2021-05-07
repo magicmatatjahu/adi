@@ -2,6 +2,7 @@ import { InjectableOptions, InjectionArgument, ProviderDef, WrapperDef, Type } f
 import { InjectorResolver } from "../injector/resolver";
 import { Scope } from "../scope";
 import { Reflection } from "../utils";
+import { Token } from "../types";
 
 export function Injectable(options?: InjectableOptions) {
   return function(target: Object) {
@@ -10,8 +11,8 @@ export function Injectable(options?: InjectableOptions) {
   }
 }
 
-export function injectableMixin<T>(clazz: Type<T>): Type<T> {
-  Injectable()(clazz);
+export function injectableMixin<T>(clazz: Type<T>, options?: InjectableOptions): Type<T> {
+  Injectable(options)(clazz);
   return clazz;
 }
 
@@ -19,13 +20,13 @@ export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined
   return provider['$$prov'] || undefined;
 }
 
-export function applyProviderDef<T>(target: Object, params: Array<any>, options?: InjectableOptions): ProviderDef<T> {
+export function applyProviderDef<T>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions): ProviderDef<T> {
   const def = ensureProviderDef(target);
   if (options) {
     def.providedIn = options.providedIn || def.providedIn;
     def.scope = options.scope || def.scope;
   }
-  inheritance(target, def, params);  
+  applyInheritance(target, def, paramtypes);  
   def.factory = InjectorResolver.providerFactory(target as Type<any>, def);
   return def as ProviderDef<T>;
 }
@@ -52,9 +53,10 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
 }
 
 // merge def from parent class
-function inheritance(target: Object, def: ProviderDef, params: any[] = []): void {
+function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Type>): void {
   let inheritedClass = Object.getPrototypeOf(target);
   // case when base class is not decorated by @Injectable()
+  // inheritedClass.length means arguments of constructor
   if (inheritedClass && inheritedClass.length > 0) {
     inheritedClass = injectableMixin(inheritedClass);
   }
@@ -62,48 +64,78 @@ function inheritance(target: Object, def: ProviderDef, params: any[] = []): void
 
   // when inheritedDef doesn't exist, then merge constructor params
   if (!inheritedDef) {
-    mergeArgs(def.args.ctor, params, target);
+    mergeCtorArgs(def.args.ctor, paramtypes, target);
     return;
   }
 
   const defArgs = def.args;
   const inheritedDefArgs = inheritedDef.args;
 
+  // override/adjust constructor injection
+  // if class has defined paramtypes, then skip overriding parameters from parent class
+  if (paramtypes.length > 0) {
+    mergeCtorArgs(defArgs.ctor, paramtypes, target);
+  } else {
+    // definedArgs is empty array in case of merging parent ctor arguments
+    const definedArgs = defArgs.ctor;
+    const inheritedArgs = inheritedDefArgs.ctor;
+    for (let i = 0, l = inheritedArgs.length; i < l; i++) {
+      const arg = inheritedArgs[i]
+      definedArgs[i] = createInjectionArg(arg.token, arg.options.wrapper, target, undefined, i);
+    }
+  }
+
   // override/adjust properties injection
   const props = defArgs.props;
   const inheritedProps = inheritedDefArgs.props;
   for (let key in inheritedProps) {
-    props[key] = props[key] || inheritedProps[key];
+    const inheritedProp = inheritedProps[key];
+    // shallow copy injection argument and override target
+    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, key);
+  }
+  // override/adjust symbols injection
+  const symbols = Object.getOwnPropertySymbols(inheritedProps);
+  for (let i = 0, l = symbols.length; i < l; i++) {
+    const s = symbols[i] as unknown as string;
+    const inheritedProp = inheritedProps[s];
+    // shallow copy injection argument and override target
+    props[s] = props[s] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, s);
   }
 
-  // const symbols = Object.getOwnPropertySymbols(inheritedProps);
-  // for (let i = 0, l = symbols.length; i < l; i++) {
-  //   const s = symbols[i] as unknown as string;
-  //   props[s] = props[s] || inheritedProps[s];
-  // }
-
-  mergeArgs(def.args.ctor, params, target);
+  const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
+  // override/adjust methods injection
+  for (let key in inheritedDefArgs.methods) {
+    // check if target has method.
+    // if yes, dev could make it injectable or override to pure (without injection) function in extended class.
+    // if not, copy injections from parent class
+    if (targetMethods.includes(key) === false) {
+      const copiedMethod: InjectionArgument[] = [];
+      const method = inheritedDefArgs.methods[key];
+      for (let i = 0, l = method.length; i < l; i++) {
+        const arg = method[i];
+        // shallow copy injection argument and override target
+        copiedMethod[i] = createInjectionArg(arg.token, arg.options.wrapper, target, key, i);
+      }
+      defArgs.methods[key] = copiedMethod;
+    }
+  }
 }
 
-function mergeArgs(args: Array<InjectionArgument>, params: Array<any>, target: Object, key?: string | symbol): void {
-  for (let i = 0, l = params.length; i < l; i++) {
-    const param = params[i];
-    const arg = args[i];
-    if (arg === undefined) {
-      args[i] = {
-        token: param.token || param,
-        options: param.options || createInjectionArg(target, key, i).options,
-        meta: param.meta,
-      }
-      args[i].options.token = args[i];
+function mergeCtorArgs(definedArgs: Array<InjectionArgument>, paramtypes: Array<Type>, target: Object): void {
+  for (let i = 0, l = paramtypes.length; i < l; i++) {
+    const param = paramtypes[i], definedArg = definedArgs[i];
+    if (definedArg === undefined) {
+      definedArgs[i] = createInjectionArg(param, undefined, target, undefined, i);
     } else {
-      arg.token = arg.token || param.token || param; // @Inject() has higher priority
-      arg.options.token = arg.token
+      definedArg.token = definedArg.token || param; // @Inject() has higher priority
+      definedArg.options.token = definedArg.token
     }
   }
 }
 
 export function getInjectionArg(
+  token: Token,
+  wrapper: WrapperDef,
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
@@ -115,28 +147,28 @@ export function getInjectionArg(
   if (key !== undefined) {
     if (typeof index === "number") {
       const method = (args.methods[key as string] || (args.methods[key as string] = []));
-      return method[index] = createInjectionArg(target, key, index);
+      return method[index] = createInjectionArg(token, wrapper, target, key, index);
     }
-    return args.props[key as string] = createInjectionArg(target, key);
+    return args.props[key as string] = createInjectionArg(token, wrapper, target, key);
   }
-  return args.ctor[index as number] = createInjectionArg(target, undefined, index as number);
+  return args.ctor[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
 }
 
-export function createInjectionArg(target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+export function createInjectionArg(token: Token, wrapper: WrapperDef, target: Object, propertyKey?: string | symbol, index?: number, factory?: Function): InjectionArgument {
   return {
-    token: undefined,
+    token,
     options: {
-      token: undefined,
+      token,
       ctx: undefined,
       scope: Scope.DEFAULT,
       attrs: {},
-      wrapper: undefined,
+      wrapper,
     },
     meta: {
       target,
       propertyKey,
       index,
-      instance: undefined,
+      factory,
     },
   }
 }
