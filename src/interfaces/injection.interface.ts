@@ -8,7 +8,7 @@ export interface InjectionOptions<T = any> {
   ctx?: Context;
   scope?: Scope;
   attrs?: Record<string | symbol, any>;
-  wrapper: WrapperDef,
+  wrapper?: WrapperDef,
 }
 
 export interface InjectionMetadata<T = any> {

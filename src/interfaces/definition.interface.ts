@@ -13,7 +13,7 @@ export interface ProviderDef<T = any> {
       [prop: string]: InjectionArgument;
     };
     methods: {
-      [method: string]: InjectionArgument;
+      [method: string]: Array<InjectionArgument>;
     };
   };
 }

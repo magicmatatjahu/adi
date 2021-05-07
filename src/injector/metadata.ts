@@ -4,7 +4,7 @@ import {
   Provider, TypeProvider, CustomProvider,
   InstanceRecord, DefinitionRecord, ProviderRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef,
+  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider } from "../utils";
 import { InjectionStatus } from "../enums";
@@ -41,12 +41,12 @@ export const InjectorMetadata = new class {
     hostInjector: Injector,
   ) {
     const record = this.getRecord(token, hostInjector);
-    const constraint = provider.when;
-    let factory = undefined, proto = undefined;
+    let factory: FactoryDef = undefined, proto = undefined;
 
     if (isFactoryProvider(provider)) {
-      factory = () => (injector: Injector, session?: InjectionSession) => {
-        return provider.useFactory(...InjectorResolver.injectDeps(provider.inject || [], injector, session));
+      const deps = this.convertDependencies(provider.inject || []);
+      factory = (injector: Injector, session?: InjectionSession) => {
+        return provider.useFactory(...InjectorResolver.injectDeps(deps, injector, session));
       }
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
@@ -57,6 +57,7 @@ export const InjectorMetadata = new class {
       proto = classRef;
     } else if (isExistingProvider(provider)) {
       factory = (injector: Injector, session?: InjectionSession) => {
+        // TODO: save reference of existing provdier to record - in other words change record from useExisting provider to record pointed by useExisting value
         // const deepRecord = metadata.getDeepRecord(existing, injector, false);
         // if (deepRecord !== undefined) {
         //   (injector as any).ownRecords.set(provider.provide, deepRecord);
@@ -65,6 +66,7 @@ export const InjectorMetadata = new class {
       }
     }
 
+    const constraint = provider.when;
     let wrapper = undefined;
     if (hasWrapperProvider(provider)) {
       wrapper = provider.useWrapper;
@@ -79,7 +81,7 @@ export const InjectorMetadata = new class {
       }
     }
 
-    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, proto, wrapper);
+    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, wrapper, proto);
     if (constraint === undefined) {
       record.defaultDef = def;
       return;
@@ -105,8 +107,8 @@ export const InjectorMetadata = new class {
     factory?: FactoryDef,
     scope?: Scope,
     constraint?: ConstraintDef,
-    proto?: Type,
     wrapper?: WrapperDef,
+    proto?: Type,
   ): DefinitionRecord {
     return {
       record,
@@ -114,8 +116,8 @@ export const InjectorMetadata = new class {
       scope: scope || Scope.DEFAULT,
       values: new Map<Context, InstanceRecord>(),
       constraint,
-      proto: proto || undefined,
       wrapper,
+      proto: proto || undefined,
     };
   }
 
@@ -198,5 +200,18 @@ export const InjectorMetadata = new class {
       throw new Error('Cannot get factory def')
     }
     return providerDef.factory;
+  }
+
+  convertDependencies(deps: Array<Token | WrapperDef>): InjectionArgument[] {
+    const converted: InjectionArgument[] = [];
+    for (let i = 0, l = deps.length; i < l; i++) {
+      const dep = deps[i];
+      if (dep.hasOwnProperty('$$nextWrapper')) {
+        converted.push({ token: undefined, options: { token: undefined, wrapper: (dep as WrapperDef) }, meta: {} });
+      } else {
+        converted.push({ token: dep, options: { token: dep }, meta: {} });
+      }
+    }
+    return converted;
   }
 }

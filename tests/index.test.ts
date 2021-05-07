@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Optional, Skip, Self, SkipSelf, New, Lazy, Named, Multi, Decorate } from "../src";
+import { Injector, Injectable, Inject, Token, Ref, Optional, Skip, Self, SkipSelf, New, Lazy, Named, Multi, Decorate } from "../src";
 
 describe('test', function() {
   test('test', function() {
@@ -233,6 +233,29 @@ describe('test', function() {
 
     const service = injector.get(Service) as Service;
     console.log(service.method());
+
+    expect(true).toEqual(true);
+  });
+
+  test('useFactory', function() {
+    @Injectable()
+    class Service1 {}
+
+    class Service2 {}
+
+    const injector = new Injector([
+      Service1,
+      {
+        provide: 'useFactory',
+        useFactory: (...args) => {
+          return args;
+        },
+        inject: [Service1, Token(Service2, Optional()), Token(Service1, New())],
+      }
+    ]);
+
+    const useFactory = injector.get('useFactory');
+    console.log(useFactory);
 
     expect(true).toEqual(true);
   });

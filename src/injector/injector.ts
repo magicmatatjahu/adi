@@ -29,13 +29,13 @@ export class Injector {
 
     const wrapper = options && options.wrapper;
     const nextFn = (nextWrapper: WrapperDef) => (injector: Injector, s: InjectionSession) => {
-      const $$next = nextWrapper['$$next'];
-      if ($$next !== undefined) {
-        const next: NextWrapper = nextFn($$next);
+      const $$nextWrapper = nextWrapper['$$nextWrapper'];
+      if ($$nextWrapper !== undefined) {
+        const next: NextWrapper = nextFn($$nextWrapper);
         return nextWrapper(injector, s, next);
       }
       // fix passing options
-      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieveRecord(token, s.options, s);
+      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, s);
       return nextWrapper(injector, s, next);
     }
     if (wrapper) {

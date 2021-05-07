@@ -1,14 +1,14 @@
 import { Context, Injector, NilInjector } from "../injector";
 import { getInjectionArg } from "./injectable"; 
-import { ForwardRef, InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { Token as ProviderToken } from "../types";
 import { Reflection } from "../utils";
 
-export function Inject<T = any>(token: ProviderToken<T> | ForwardRef<T>, wrapper?: WrapperDef);
+export function Inject<T = any>(token: ProviderToken<T>, wrapper?: WrapperDef);
 export function Inject<T = any>(wrapper: WrapperDef);
-export function Inject<T = any>(token: ProviderToken<T> | ForwardRef<T> | WrapperDef, wrapper?: WrapperDef) {
-  if (token.hasOwnProperty('$$next')) {
+export function Inject<T = any>(token: ProviderToken<T> | WrapperDef, wrapper?: WrapperDef) {
+  if (token.hasOwnProperty('$$nextWrapper')) {
     wrapper = token as WrapperDef;
     token = undefined;
   }
@@ -20,22 +20,22 @@ export function Inject<T = any>(token: ProviderToken<T> | ForwardRef<T> | Wrappe
 
     const arg = getInjectionArg(target, key, indexOrDescriptor as any);
     arg.token = token as any;
+    arg.options.token = token as any;
     arg.options.wrapper = wrapper;
   }
 }
 
 export function createWrapper<T = any>(wrapper: (options?: T) => WrapperDef): (options?: T | WrapperDef, next?: WrapperDef) => WrapperDef {
   const wr = (options?: T | WrapperDef, next?: WrapperDef): WrapperDef => {
-    if (options && options.hasOwnProperty('$$next')) {
+    if (options && options.hasOwnProperty('$$nextWrapper')) {
       const v = wrapper();
-      v['$$next'] = options;
+      v['$$nextWrapper'] = options;
       return v;
     }
     const v = (wrapper as any)(options) as WrapperDef;
-    v['$$next'] = next;
+    v['$$nextWrapper'] = next;
     return v;
   }
-  (wr as any)['$$wrapper'] = true;
   return wr;
 }
 
@@ -45,6 +45,16 @@ export const Token = createWrapper((token: ProviderToken): WrapperDef => {
     // console.log('inside token');
     session.options = session.options || {} as any;
     session.options.token = token;
+    return next(injector, session);
+  }
+});
+
+export const Ref = createWrapper((ref: () => ProviderToken): WrapperDef => {
+  // console.log('ref');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside ref');
+    session.options = session.options || {} as any;
+    session.options.token = ref();
     return next(injector, session);
   }
 });

@@ -112,26 +112,14 @@ export function getInjectionArg(
     target = target.constructor;
   }
   let args = ensureProviderDef(target).args;
-
-  // if (key !== undefined) {
-  //   if (typeof index === "number") {
-  //     if (isNotStatic === true) {
-  //       const method = (args.methods[key as string] || (args.methods[key as string] = createMethodArg(target, key))).deps;
-  //       return method[index] || (method[index] = createInjectionArg(InjectionFlags.METHOD_PARAMETER, target, key, index));
-  //     } else {
-  //       args = ensureProviderDef(target[key]).args;
-  //       return args.ctor[index] || (args.ctor[index] = createInjectionArg(InjectionFlags.FACTORY, target, key, index));
-  //     }
-  //   }
-  //   return args.props[key as string] || (args.props[key as string] = createInjectionArg(InjectionFlags.PROPERTY, target, key));
-  // }
   if (key !== undefined) {
     if (typeof index === "number") {
-      return args.methods[index] || (args.methods[index] = createInjectionArg(target, key, index));
+      const method = (args.methods[key as string] || (args.methods[key as string] = []));
+      return method[index] = createInjectionArg(target, key, index);
     }
-    return args.props[key as string] || (args.props[key as string] = createInjectionArg(target, key));
+    return args.props[key as string] = createInjectionArg(target, key);
   }
-  return args.ctor[index as number] || (args.ctor[index as number] = createInjectionArg(target, undefined, index as number));
+  return args.ctor[index as number] = createInjectionArg(target, undefined, index as number);
 }
 
 export function createInjectionArg(target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
