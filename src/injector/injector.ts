@@ -3,6 +3,7 @@ import {
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
   Provider, ProviderDef, WrapperDef, NextWrapper, Type,
+  ModuleMetadata,
 } from "../interfaces";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
@@ -18,16 +19,19 @@ export class Injector {
   private scopes: Array<string | symbol | Type> = ['any'];
 
   constructor(
-    private readonly providers: Array<Provider>,
-    // private readonly injector: Type<any>, // | ModuleMeta
+    private readonly injector: Type<any> | ModuleMetadata | Array<Provider>,
     private readonly parent: Injector = NilInjector,
-    // setupProviders?: Array<Provider>,
+    private readonly setupProviders?: Array<Provider>,
   ) {
-    this.addProviders(this.providers);
-    typeof providers === 'function' && this.scopes.push(providers);
+    if (typeof injector !== "function") {
+      this.addProviders(Array.isArray(injector) ? injector : injector.providers);
+    }
+    // this.addProviders(this.injector);
+    typeof injector === 'function' && this.scopes.push(injector);
   }
 
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+    options = options || {} as any;
     const newSession = InjectorMetadata.createSession(undefined, options, session);
 
     const wrapper = options && options.useWrapper;
@@ -63,7 +67,7 @@ export class Injector {
 
   private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     let scope = def.scope;
-    if (options && scope.flags & ScopeFlags.CAN_OVERRIDE) {
+    if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
       scope = options.scope || scope;
     }
     const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
@@ -126,7 +130,7 @@ export class Injector {
     // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
       const def = getProviderDef(token);
-      if (this.isProviderDefInScope(def)) {
+      if (this.isProviderInScope(def)) {
         if (typeof token === "function") {
           record = InjectorMetadata.typeProviderToRecord(token as Type, this);
         } else {
@@ -142,15 +146,14 @@ export class Injector {
     record: ProviderRecord,
     session?: InjectionSession
   ): Array<WrapperRecord> {
-    const wrappers = record.wrappers;
-    const wraps = [];
+    const wrappers = record.wrappers, w = [];
     for (let i = 0, l = wrappers.length; i < l; i++) {
-      const w = wrappers[i];
-      if (w.constraint(session) === true) {
-        wraps.push(w);
+      const wrapper = wrappers[i];
+      if (wrapper.constraint(session) === true) {
+        w.push(wrapper);
       }
     }
-    return wraps;
+    return w;
   }
 
   private getDefinition(
@@ -178,7 +181,7 @@ export class Injector {
   }
 
   // add case with modules, inline modules etc.
-  private isProviderDefInScope(def: ProviderDef): boolean {
+  private isProviderInScope(def: ProviderDef): boolean {
     if (def === undefined || def.providedIn === undefined) {
       return false;
     }
@@ -197,3 +200,12 @@ export const NilInjector = new class {
     return null;
   }
 } as unknown as Injector;
+
+export function createInjector(
+  injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+  parent: Injector = NilInjector,
+  setupProviders?: Array<Provider>,
+): Injector {
+  injector = Array.isArray(injector) ? { providers: injector } : injector;
+  return new Injector(injector, parent, setupProviders);
+}
