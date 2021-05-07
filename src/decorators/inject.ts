@@ -1,27 +1,31 @@
 import { Context, Injector, NilInjector } from "../injector";
-import { getInjectionArg } from "./injectable"; 
+import { applyInjectionArg } from "./injectable"; 
 import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { Token as ProviderToken } from "../types";
 import { Reflection } from "../utils";
 
-export function Inject<T = any>(token?: ProviderToken<T>, wrapper?: WrapperDef);
-export function Inject<T = any>(wrapper: WrapperDef);
-export function Inject<T = any>(token: ProviderToken<T> | WrapperDef, wrapper?: WrapperDef) {
+export function Inject<T = any>(token?: ProviderToken<T>, useWrapper?: WrapperDef);
+export function Inject<T = any>(useWrapper: WrapperDef);
+export function Inject<T = any>(token: ProviderToken<T> | WrapperDef, useWrapper?: WrapperDef) {
   if (token && token.hasOwnProperty('$$nextWrapper')) {
-    wrapper = token as WrapperDef;
+    useWrapper = token as WrapperDef;
     token = undefined;
   }
 
   return function(target: Object, key: string | symbol, index?: number) {
-    if (token === undefined && key !== undefined) {
-      if (typeof index === 'number') {
-        token = (Reflection.getOwnMetadata("design:paramtypes", target, key) || [])[index];
+    if (token === undefined) {
+      if (key === undefined) { // constructor injection
+        token = (Reflection.getOwnMetadata("design:paramtypes", target) || [])[index];
       } else {
-        token = Reflection.getOwnMetadata("design:type", target, key);
+        if (typeof index === 'number') { // method injection
+          token = (Reflection.getOwnMetadata("design:paramtypes", target, key) || [])[index];
+        } else { // property injection
+          token = Reflection.getOwnMetadata("design:type", target, key);
+        }
       }
     }
-    getInjectionArg(token, wrapper, target, key, index);
+    applyInjectionArg(token, useWrapper, target, key, index);
   }
 }
 
@@ -30,17 +34,17 @@ interface WrapperOptions {
 }
 
 export function createWrapper<T = any>(
-  wrapper: (options?: T) => WrapperDef,
+  useWrapper: (options?: T) => WrapperDef,
   wrapperOptions?: WrapperOptions,
 ): (options?: T | WrapperDef, next?: WrapperDef) => WrapperDef {
   const wr = (optionsOrWrapper?: T | WrapperDef, next?: WrapperDef): WrapperDef => {
     // case when defined wrapper
     if (optionsOrWrapper && optionsOrWrapper.hasOwnProperty('$$nextWrapper')) {
-      const v = wrapper();
+      const v = useWrapper();
       v['$$nextWrapper'] = optionsOrWrapper;
       return v;
     }
-    const v = (wrapper as any)(optionsOrWrapper) as WrapperDef;
+    const v = (useWrapper as any)(optionsOrWrapper) as WrapperDef;
     v['$$nextWrapper'] = next;
     return v;
   }
@@ -199,5 +203,69 @@ export const Decorate = createWrapper((decorator: ProviderToken | DecorateOption
     const decoratee = next(injector, session);
     // only class for POC
     return new (decorator as any)(decoratee);
+  }
+});
+
+export class DelayedConstructor<T> {
+  private reflectMethods: ReadonlyArray<keyof ProxyHandler<any>> = [
+    "get",
+    "getPrototypeOf",
+    "setPrototypeOf",
+    "getOwnPropertyDescriptor",
+    "defineProperty",
+    "has",
+    "set",
+    "deleteProperty",
+    "apply",
+    "construct",
+    "ownKeys"
+  ];
+
+  public createProxy(createObject: () => T): T {
+    const target: object = {};
+    let init = false;
+    let value: T;
+    const delayedObject: () => T = (): T => {
+      if (!init) {
+        value = createObject();
+        init = true;
+      }
+      return value;
+    };
+    return new Proxy<any>(target, this.createHandler(delayedObject)) as T;
+  }
+
+  private createHandler(delayedObject: () => T): ProxyHandler<object> {
+    const handler: ProxyHandler<object> = {};
+    const install = (name: keyof ProxyHandler<any>): void => {
+      handler[name] = (...args: any[]) => {
+        args[0] = delayedObject();
+        const method = Reflect[name];
+        return (method as any)(...args);
+      };
+    };
+    this.reflectMethods.forEach(install);
+    return handler;
+  }
+}
+
+// works only with objects!
+export const Lazy = createWrapper((_: never): WrapperDef => {
+  // console.log('lazy');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside lazy');
+    const delay = new DelayedConstructor();
+    const proxy = delay.createProxy(() => {
+      return next(injector, session);
+    });
+    return proxy;
+    // let value: any, resolved = false;
+    // return () => {
+    //   if (resolved === false) {
+    //     value = next(injector, session);
+    //     resolved = true;
+    //   }
+    //   return value;
+    // };
   }
 });

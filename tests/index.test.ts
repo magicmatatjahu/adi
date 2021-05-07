@@ -312,4 +312,35 @@ describe('test', function() {
 
     expect(true).toEqual(true);
   });
+
+  test('inheritance', function() {
+    @Injectable()
+    class TestService {
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject() readonly testService: TestService,
+      ) {}
+    }
+
+    @Injectable()
+    class ExtendedService extends Service {
+      @Inject()
+      readonly testService2: TestService;
+    }
+
+    const injector = new Injector([
+      TestService,
+      Service,
+      ExtendedService,
+    ]);
+
+    const service = injector.get(ExtendedService) as ExtendedService;
+    console.log(service);
+
+    expect(service.testService).toBeInstanceOf(TestService);
+    expect(service.testService).toEqual(service.testService2);
+  });
 });

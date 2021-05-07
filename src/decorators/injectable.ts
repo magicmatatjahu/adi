@@ -73,15 +73,15 @@ function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Ty
 
   // override/adjust constructor injection
   // if class has defined paramtypes, then skip overriding parameters from parent class
+  const ctor = defArgs.ctor;
   if (paramtypes.length > 0) {
-    mergeCtorArgs(defArgs.ctor, paramtypes, target);
+    mergeCtorArgs(ctor, paramtypes, target);
   } else {
     // definedArgs is empty array in case of merging parent ctor arguments
-    const definedArgs = defArgs.ctor;
     const inheritedArgs = inheritedDefArgs.ctor;
     for (let i = 0, l = inheritedArgs.length; i < l; i++) {
       const arg = inheritedArgs[i]
-      definedArgs[i] = createInjectionArg(arg.token, arg.options.wrapper, target, undefined, i);
+      ctor[i] = createInjectionArg(arg.token, arg.options.useWrapper, target, undefined, i);
     }
   }
 
@@ -91,7 +91,7 @@ function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Ty
   for (let key in inheritedProps) {
     const inheritedProp = inheritedProps[key];
     // shallow copy injection argument and override target
-    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, key);
+    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.options.useWrapper, target, key);
   }
   // override/adjust symbols injection
   const symbols = Object.getOwnPropertySymbols(inheritedProps);
@@ -99,7 +99,7 @@ function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Ty
     const s = symbols[i] as unknown as string;
     const inheritedProp = inheritedProps[s];
     // shallow copy injection argument and override target
-    props[s] = props[s] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, s);
+    props[s] = props[s] || createInjectionArg(inheritedProp.token, inheritedProp.options.useWrapper, target, s);
   }
 
   const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
@@ -114,7 +114,7 @@ function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Ty
       for (let i = 0, l = method.length; i < l; i++) {
         const arg = method[i];
         // shallow copy injection argument and override target
-        copiedMethod[i] = createInjectionArg(arg.token, arg.options.wrapper, target, key, i);
+        copiedMethod[i] = createInjectionArg(arg.token, arg.options.useWrapper, target, key, i);
       }
       defArgs.methods[key] = copiedMethod;
     }
@@ -126,16 +126,13 @@ function mergeCtorArgs(definedArgs: Array<InjectionArgument>, paramtypes: Array<
     const param = paramtypes[i], definedArg = definedArgs[i];
     if (definedArg === undefined) {
       definedArgs[i] = createInjectionArg(param, undefined, target, undefined, i);
-    } else {
-      definedArg.token = definedArg.token || param; // @Inject() has higher priority
-      definedArg.options.token = definedArg.token
     }
   }
 }
 
-export function getInjectionArg(
+export function applyInjectionArg(
   token: Token,
-  wrapper: WrapperDef,
+  useWrapper: WrapperDef,
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
@@ -147,14 +144,14 @@ export function getInjectionArg(
   if (key !== undefined) {
     if (typeof index === "number") {
       const method = (args.methods[key as string] || (args.methods[key as string] = []));
-      return method[index] = createInjectionArg(token, wrapper, target, key, index);
+      return method[index] = createInjectionArg(token, useWrapper, target, key, index);
     }
-    return args.props[key as string] = createInjectionArg(token, wrapper, target, key);
+    return args.props[key as string] = createInjectionArg(token, useWrapper, target, key);
   }
-  return args.ctor[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
+  return args.ctor[index as number] = createInjectionArg(token, useWrapper, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, wrapper: WrapperDef, target: Object, propertyKey?: string | symbol, index?: number, factory?: Function): InjectionArgument {
+export function createInjectionArg(token: Token, useWrapper: WrapperDef, target: Object, propertyKey?: string | symbol, index?: number, factory?: Function): InjectionArgument {
   return {
     token,
     options: {
@@ -162,7 +159,7 @@ export function createInjectionArg(token: Token, wrapper: WrapperDef, target: Ob
       ctx: undefined,
       scope: Scope.DEFAULT,
       attrs: {},
-      wrapper,
+      useWrapper,
     },
     meta: {
       target,

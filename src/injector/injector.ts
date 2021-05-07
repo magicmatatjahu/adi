@@ -27,7 +27,7 @@ export class Injector {
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const newSession = InjectorMetadata.createSession(undefined, options, session);
 
-    const wrapper = options && options.wrapper;
+    const wrapper = options && options.useWrapper;
     const nextFn = (nextWrapper: WrapperDef) => (injector: Injector, s: InjectionSession) => {
       const $$nextWrapper = nextWrapper['$$nextWrapper'];
       if ($$nextWrapper !== undefined) {
@@ -92,12 +92,7 @@ export class Injector {
         return providerWrappers[i].wrapper(injector, s, next);
       }
       const value = nextWrapper()(record.hostInjector, session) as T;
-
-      // const newSession = InjectorMetadata.createSession(instance, options, session);
-      // const wrappers = this.getWrappers(record, newSession);
-      // console.log(wrappers)
-      // const value = def.factory(record.hostInjector, newSession) as T;
-
+      
       if (instance.status & InjectionStatus.CIRCULAR) {
         Object.assign(instance.value, value);
       } else {
