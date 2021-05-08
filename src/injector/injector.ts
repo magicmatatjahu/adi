@@ -2,8 +2,8 @@ import { getProviderDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
-  Provider, ProviderDef, WrapperDef, NextWrapper, ProvideInType, Type,
-  InjectorOptions, ModuleMetadata,
+  Provider, ProviderDef, WrapperDef, NextWrapper, Type,
+  InjectorOptions, InjectorScopeType, ModuleMetadata,
 } from "../interfaces";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
@@ -16,7 +16,7 @@ export class Injector {
   // records from imported modules
   private readonly importedRecords = new Map<Token, ProviderRecord>();
   // scopes of injector
-  private scopes: Array<ProvideInType> = ['any'];
+  private scopes: Array<InjectorScopeType> = ['any'];
 
   constructor(
     private readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
@@ -26,7 +26,9 @@ export class Injector {
     if (options !== undefined) {
       const { setupProviders, scope } = options;
       setupProviders !== undefined && this.addProviders(options.setupProviders);
-      Array.isArray(scope) && this.scopes.push(scope);
+      if (scope !== undefined) {
+        Array.isArray(scope) ? this.scopes.push(...scope) : this.scopes.push(scope);
+      }
     }
 
     if (typeof injector === "function") {

@@ -43,7 +43,7 @@ describe('Inheritance', function() {
       constructor(
         readonly service: TestService,
       ) {
-        super(service as any, service as any);
+        super(undefined, undefined);
       }
     }
 
@@ -64,10 +64,8 @@ describe('Inheritance', function() {
     const service = injector.get(ExtendedService) as ExtendedService;
     expect(service).toBeInstanceOf(ExtendedService);
     expect(service.service).toBeInstanceOf(TestService);
-    expect(service.parentService).toBeInstanceOf(TestService);
-    expect(service.additionalArg).toBeInstanceOf(TestService);
-    expect(service.service === service.parentService).toEqual(true);
-    expect(service.service === service.additionalArg).toEqual(true);
+    expect(service.parentService).toEqual(undefined);
+    expect(service.additionalArg).toEqual(undefined);
   });
 
   test('should override parent constructor arguments with empty constructor', function() {
@@ -82,7 +80,7 @@ describe('Inheritance', function() {
     @Injectable()
     class ExtendedService extends Service {
       constructor() {
-        super('foobar', 34);
+        super(undefined, undefined);
       }
     }
 
@@ -101,8 +99,8 @@ describe('Inheritance', function() {
 
     const service = injector.get(ExtendedService) as ExtendedService;
     expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.stringArg).toEqual('foobar');
-    expect(service.numberArg).toEqual(34);
+    expect(service.stringArg).toEqual(undefined);
+    expect(service.numberArg).toEqual(undefined);
   });
 
   test('should override property injection', function() {

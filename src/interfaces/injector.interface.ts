@@ -1,6 +1,8 @@
 import { Provider, Type } from ".";
 
 export interface InjectorOptions {
-  scope?: string | symbol | Type;
+  scope?: InjectorScopeType | InjectorScopeType[];
   setupProviders?: Provider[];
 }
+
+export type InjectorScopeType = string | symbol | Type | 'any';
