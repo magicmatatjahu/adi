@@ -9,7 +9,6 @@ import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
 
 import { InjectorMetadata } from "./metadata";
-import { Scope } from "../scope";
 
 export class Injector {
   // own records
@@ -213,6 +212,7 @@ export const NilInjector = new class {
     error.name = 'NilInjectorError';
     throw error;
   }
+  retrieveRecord = this.get;
 
   getParentInjector() {
     return null;
