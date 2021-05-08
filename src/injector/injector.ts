@@ -2,8 +2,8 @@ import { getProviderDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
-  Provider, ProviderDef, WrapperDef, NextWrapper, Type,
-  ModuleMetadata,
+  Provider, ProviderDef, WrapperDef, NextWrapper, ProvideInType, Type,
+  InjectorOptions, ModuleMetadata,
 } from "../interfaces";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
@@ -16,18 +16,24 @@ export class Injector {
   // records from imported modules
   private readonly importedRecords = new Map<Token, ProviderRecord>();
   // scopes of injector
-  private scopes: Array<string | symbol | Type> = ['any'];
+  private scopes: Array<ProvideInType> = ['any'];
 
   constructor(
     private readonly injector: Type<any> | ModuleMetadata | Array<Provider>,
     private readonly parent: Injector = NilInjector,
-    private readonly setupProviders?: Array<Provider>,
+    private readonly options: InjectorOptions = {},
   ) {
-    if (typeof injector !== "function") {
+    if (options !== undefined) {
+      const { setupProviders, scope } = options;
+      setupProviders !== undefined && this.addProviders(options.setupProviders);
+      Array.isArray(scope) && this.scopes.push(scope);
+    }
+
+    if (typeof injector === "function") {
+      this.scopes.push(injector);
+    } else {
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
     }
-    // this.addProviders(this.injector);
-    typeof injector === 'function' && this.scopes.push(injector);
   }
 
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
@@ -185,7 +191,11 @@ export class Injector {
     if (def === undefined || def.providedIn === undefined) {
       return false;
     }
-    if (this.scopes.includes(def.providedIn)) return true;
+    const providedIn = def.providedIn;
+    const provideInArray = Array.isArray(providedIn) ? providedIn : [providedIn];
+    if (provideInArray.some(s => this.scopes.includes(s))) {
+      return true;
+    }
   }
 }
 
@@ -204,8 +214,8 @@ export const NilInjector = new class {
 export function createInjector(
   injector: Type<any> | ModuleMetadata | Array<Provider> = [],
   parent: Injector = NilInjector,
-  setupProviders?: Array<Provider>,
+  options?: InjectorOptions,
 ): Injector {
   injector = Array.isArray(injector) ? { providers: injector } : injector;
-  return new Injector(injector, parent, setupProviders);
+  return new Injector(injector, parent, options);
 }

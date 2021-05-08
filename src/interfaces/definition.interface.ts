@@ -1,14 +1,14 @@
 import { Injector } from "../injector";
 import { Scope } from "../scope";
-import { InjectionSession, InjectionArgument, ModuleMetadata, Type } from ".";
+import { InjectionSession, InjectionArgument, ModuleMetadata, ProvideInType } from ".";
 
 export type ModuleDef<T = any> = ModuleMetadata<T>;
 
 export interface ProviderDef<T = any> {
   token: unknown;
   factory: FactoryDef<T>;
+  providedIn?: ProvideInType | ProvideInType[];
   scope?: Scope;
-  providedIn?: string | symbol | Type;
   args?: {
     ctor: Array<InjectionArgument>;
     props: {
