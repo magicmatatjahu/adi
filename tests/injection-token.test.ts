@@ -143,5 +143,42 @@ describe('InjectionToken', function() {
       const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
     });
+
+    test('should override tree shakable provider when this same token is defined in providers array', async () => {
+      const token = new InjectionToken<string>({
+        providedIn: "any",
+        useValue: "foobar",
+      });
+  
+      const injector = new Injector([
+        {
+          provide: token,
+          useFactory: () => "barfoo"
+        }
+      ]);
+  
+      const value = injector.get(token);
+      expect(value).toEqual("barfoo");
+    });
+
+    test('should use another tree shakable InjectionToken', async () => {
+      const helperToken = new InjectionToken<string>({
+        providedIn: "any",
+        useValue: "foobar",
+      });
+
+      const token = new InjectionToken<string>({
+        providedIn: "any",
+        useFactory(value) {
+          return value;
+        },
+        inject: [helperToken],
+      });
+  
+      const injector = new Injector();
+  
+      const value = injector.get(token);
+      expect(value).toEqual("foobar");
+    });
   })
 });

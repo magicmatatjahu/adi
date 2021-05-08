@@ -7,3 +7,4 @@ export * from "./module.interface";
 export * from "./provider.interface";
 export * from "./record.interface";
 export * from "./type.interface";
+export * from "./wrapper.interface";

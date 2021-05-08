@@ -158,4 +158,58 @@ describe('Type provider (injectable provider)', function() {
     expect(service._service3).toBeInstanceOf(HelperService2);
     expect(service.method()).toBeInstanceOf(HelperService1);
   });
+
+  test('should works whole method injection', function() {
+    @Injectable()
+    class Service {
+      @Inject()
+      method(stringArg1?: string, stringArg2?: string, numberArg?: number) {
+        return [stringArg1, stringArg2, numberArg];
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: String,
+        useValue: 'stringArg',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.method()).toEqual(['stringArg', 'stringArg', 2137]);
+  });
+
+  test('should works whole method injection with override case (using @Inject() decorator in one of arguments)', function() {
+    @Injectable()
+    class Service {
+      @Inject()
+      method(@Inject('useValue') foobar?: string, stringArg?: string, numberArg?: number) {
+        return [foobar, stringArg, numberArg];
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'useValue',
+        useValue: 'foobar',
+      },
+      {
+        provide: String,
+        useValue: 'stringArg',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.method()).toEqual(['foobar', 'stringArg', 2137]);
+  });
 });

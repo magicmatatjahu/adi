@@ -16,5 +16,6 @@ export class Context<T = any> {
       return parentSession.instance.ctx;
     },
     providedIn: 'any',
+    // scope: Scope.INSTANCE is added in `index.ts` file due to circular references between `injector` dir and `scope` file  
   };
 }

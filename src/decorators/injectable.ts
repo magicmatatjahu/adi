@@ -144,7 +144,7 @@ export function applyInjectionArg(
   if (key !== undefined) {
     if (typeof index === "number") {
       const method = (args.methods[key as string] || (args.methods[key as string] = []));
-      return method[index] = createInjectionArg(token, useWrapper, target, key, index);
+      return method[index] || (method[index] = createInjectionArg(token, useWrapper, target, key, index));
     }
     return args.props[key as string] = createInjectionArg(token, useWrapper, target, key);
   }
