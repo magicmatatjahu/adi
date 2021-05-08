@@ -1,12 +1,15 @@
-import { getProviderDef } from "../decorators";
+import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
   Provider, ProviderDef, WrapperDef, NextWrapper, Type,
-  InjectorOptions, InjectorScopeType, ModuleMetadata,
+  InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule,
+  ForwardRef,
 } from "../interfaces";
+import { MODULE_INITIALIZERS } from "../constants";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
+import { resolveRef } from "../utils";
 
 import { InjectorMetadata } from "./metadata";
 
@@ -65,6 +68,12 @@ export class Injector {
 
   getParentInjector(): Injector {
     return this.parent;
+  }
+
+  async compile(): Promise<void> {
+    if (typeof this.injector === "function") {
+      await this.processModule(this.injector, []);
+    }
   }
 
   private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
@@ -189,7 +198,7 @@ export class Injector {
     InjectorMetadata.toRecord(provider, this);
   }
 
-  private addProviders(providers: Provider[]): void {
+  private addProviders(providers: Provider[] = []): void {
     for (let i = 0, l = providers.length; i < l; i++) {
       InjectorMetadata.toRecord(providers[i], this);
     }
@@ -205,6 +214,71 @@ export class Injector {
     if (provideInArray.some(s => this.scopes.includes(s))) {
       return true;
     }
+  }
+
+  private async processModule<T>(mod: Type<T> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>, modulesStack: Array<Injector>, importer?: Injector) {
+    mod = resolveRef(mod);
+    if (mod === undefined) {
+      return;
+    }
+
+    // retrieve module metadata
+    // if it's dynamic module, first try to resolve the module metadata
+    let moduleDef = getModuleDef(mod), 
+      dynamicModuleDef: DynamicModule<T> = undefined,
+      isDynamicModule = false;
+    if (moduleDef === undefined) {
+      dynamicModuleDef = await (mod as Promise<DynamicModule>);
+      mod = dynamicModuleDef.module;
+      moduleDef = getModuleDef(mod);
+      isDynamicModule = true;
+    }
+
+    if (moduleDef === undefined) {
+      throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
+    }
+
+    const retrievedMod = mod as Type;
+
+
+    if (isDynamicModule === true) {
+      const imports = dynamicModuleDef.imports || []; 
+      for (let i = 0, l = imports.length; i < l; i++) {
+        // change this to appropriate reference to injector
+        await this.processModule(imports[i], modulesStack, this);
+      }  
+    }
+
+    if (isDynamicModule) {
+      this.addProviders(dynamicModuleDef.providers);
+      // this.addExports(dynamicModuleDef.exports || EMPTY_ARR, importer);
+    }
+
+    // root module
+    await this.initModule();
+  }
+
+  async initModule(): Promise<void> {
+    // resolve INJECTOR_SCOPE provider
+    // this.configureScope();
+
+    // first init all providers for MODULE_INITIALIZERS token
+    // and if returned value (one of returned) is a function, call this function
+    const initializers = await this.get(MODULE_INITIALIZERS);
+    let initializer = undefined;
+    for (let i = 0, l = initializers.length; i < l; i++) {
+      if (typeof (initializer = initializers[i]) === "function") {
+        await initializer();
+      }
+    }
+
+    // // then init all inlined modules for given module
+    // for (let i = 0, l = this.inlineModules.length; i < l; i++) {
+    //   await this.resolveComponent(this.inlineModules[i]);
+    // }
+
+    // // at the end init given module
+    // await this.resolveComponent(MODULE as any);
   }
 }
 

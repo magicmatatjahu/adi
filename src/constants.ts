@@ -9,7 +9,7 @@ export const INJECTOR_SCOPE = new InjectionToken<InjectorScopeType | Array<Injec
 }, "INJECTOR_SCOPE");
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({
-  providedIn: "any",
+  providedIn: 'any',
   useValue: [],
 }, "MODULE_INITIALIZERS");
 

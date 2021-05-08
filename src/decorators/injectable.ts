@@ -106,7 +106,7 @@ function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Ty
   // override/adjust methods injection
   for (let key in inheritedDefArgs.methods) {
     // check if target has method.
-    // if yes, dev could make it injectable or override to pure (without injection) function in extended class.
+    // if yes, dev could make it injectable from scratch or override to pure (without injection) function in extended class.
     // if not, copy injections from parent class
     if (targetMethods.includes(key) === false) {
       const copiedMethod: InjectionArgument[] = [];
