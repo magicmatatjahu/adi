@@ -9,6 +9,7 @@ import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
 
 import { InjectorMetadata } from "./metadata";
+import { Scope } from "../scope";
 
 export class Injector {
   // own records
@@ -19,7 +20,7 @@ export class Injector {
   private scopes: Array<ProvideInType> = ['any'];
 
   constructor(
-    private readonly injector: Type<any> | ModuleMetadata | Array<Provider>,
+    private readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
     private readonly parent: Injector = NilInjector,
     private readonly options: InjectorOptions = {},
   ) {
@@ -34,6 +35,9 @@ export class Injector {
     } else {
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
     }
+
+    // add Injector as self provider
+    this.addProvider({ provide: Injector, useValue: this });
   }
 
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
@@ -178,6 +182,10 @@ export class Injector {
       }
     }
     return record.defaultDef;
+  }
+
+  private addProvider(provider: Provider): void {
+    InjectorMetadata.toRecord(provider, this);
   }
 
   private addProviders(providers: Provider[]): void {

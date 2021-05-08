@@ -9,7 +9,7 @@
   "author": "Maciej Urbańczyk",
   "license": "MIT",
   "scripts": {
-    "test": "jest --coverage"
+    "test": "jest"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",

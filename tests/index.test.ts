@@ -1,7 +1,7 @@
 import { Injector, Injectable, Inject, Token, Ref, Optional, Skip, Self, SkipSelf, New, Lazy, Named, Multi, Decorate, Context } from "../src";
 import { STATIC_CONTEXT } from "../src/constants";
 
-describe('test', function() {
+describe.skip('test', function() {
   test('test', function() {
     @Injectable()
     class ServiceA {

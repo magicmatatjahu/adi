@@ -13,6 +13,13 @@ export type CustomProvider<T = any> =
   | ValueProvider<T>
   | WrapperProvider<T>;
 
+export type CustomSansProvider<T = any> =
+  | Omit<ClassProvider<T>, 'provide'>
+  | Omit<FactoryProvider<T>, 'provide'>
+  | Omit<ValueProvider<T>, 'provide'>
+  | Omit<ExistingProvider<T>, 'provide'>
+
+
 export interface TypeProvider<T = any> extends Type<T> {}
 
 export interface ClassProvider<T = any> {

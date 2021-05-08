@@ -4,6 +4,10 @@ import { InjectionSession, InjectionArgument, ModuleMetadata, ProvideInType } fr
 
 export type ModuleDef<T = any> = ModuleMetadata<T>;
 
+export interface ComponentDef {
+  token: unknown;
+}
+
 export interface ProviderDef<T = any> {
   token: unknown;
   factory: FactoryDef<T>;

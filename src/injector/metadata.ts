@@ -13,6 +13,7 @@ import { Scope } from "../scope";
 import { STATIC_CONTEXT, NOOP_CONSTRAINT } from "../constants";
 
 import { InjectorResolver } from "./resolver";
+import { NilInjector } from "./injector";
 
 export const InjectorMetadata = new class {
   toRecord<T>(
@@ -60,13 +61,19 @@ export const InjectorMetadata = new class {
       factory = InjectorResolver.providerFactory(classRef, providerDef);
       proto = classRef;
     } else if (isExistingProvider(provider)) {
+      const aliasProvider = provider.useExisting;
+      let changed = false;
       factory = (injector: Injector, session?: InjectionSession) => {
-        // TODO: save reference of existing provdier to record - in other words change record from useExisting provider to record pointed by useExisting value
-        // const deepRecord = metadata.getDeepRecord(existing, injector, false);
-        // if (deepRecord !== undefined) {
-        //   (injector as any).ownRecords.set(provider.provide, deepRecord);
-        // }
-        return injector.get(provider.useExisting, session.options, session.parent);
+        // save reference of record of existing provider to record created for useExisting
+        // in other words change record from useExisting provider to record pointed by useExisting token
+        if (changed === false) {
+          const deepRecord = this.retrieveDeepRecord(aliasProvider, injector);
+          if (deepRecord !== undefined) {
+            (injector as any).records.set(provider.provide, deepRecord);
+            changed = true;
+          }
+        }
+        return injector.get(aliasProvider, session.options, session);
       }
     }
 
@@ -88,9 +95,9 @@ export const InjectorMetadata = new class {
     const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, wrapper, proto);
     if (constraint === undefined) {
       record.defaultDef = def;
-      return;
+    } else {
+      record.defs.push(def);  
     }
-    record.defs.push(def);
 
     return record;
   }
@@ -222,5 +229,21 @@ export const InjectorMetadata = new class {
       }
     }
     return converted;
+  }
+
+  retrieveDeepRecord(token: Token, injector: Injector): ProviderRecord | undefined {
+    let record: ProviderRecord = (injector as any).getRecord(token); 
+    if (record !== undefined) {
+      return record;
+    }
+
+    let parentInjector = injector.getParentInjector();
+    while (parentInjector !== NilInjector) {
+      if (record = (parentInjector as any).getRecord(token)) {
+        return record;
+      }
+      parentInjector = parentInjector.getParentInjector();
+    }
+    return record;
   }
 }
