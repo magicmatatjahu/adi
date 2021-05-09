@@ -6,13 +6,14 @@ import {
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleDef, ModuleID,
   ForwardRef,
 } from "../interfaces";
-import { MODULE_INITIALIZERS } from "../constants";
+import { INJECTOR_SCOPE, MODULE_INITIALIZERS } from "../constants";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
 import { resolveRef } from "../utils";
 
 import { Context } from "./context";
 import { InjectorMetadata } from "./metadata";
+import { Optional } from "../wrappers";
 
 export class Injector {
   // imported modules
@@ -44,7 +45,10 @@ export class Injector {
     }
 
     if (typeof injector === "function") {
-      this.scopes.push(injector);
+      // resolve INJECTOR_SCOPE provider again - it could be changed in provider array
+      this.configureScope();
+      // add passed injector (Type or ModuleMetadata) as component
+      this.addComponent(this.injector as any);
     } else {
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
     }
@@ -267,11 +271,14 @@ export class Injector {
     return instance.value || (instance.value = comp.factory(this, session) as any);
   }
 
+  private addComponent(component: Type): void {
+    const record = InjectorMetadata.toComponentRecord(component);
+    this.components.set(component, record);
+  }
+
   private addComponents(components: Type[] = []): void {
     for (let i = 0, l = components.length; i < l; i++) {
-      const comp = components[i];
-      const record = InjectorMetadata.toComponentRecord(comp);
-      this.components.set(comp, record);
+      this.addComponent(components[i]);
     }
   }
 
@@ -349,15 +356,14 @@ export class Injector {
     if (moduleDef === undefined) {
       throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
     }
-
     return [mod as Type, moduleDef, dynamicModuleDef];
   }
 
   async initModule(): Promise<void> {
-    // resolve INJECTOR_SCOPE provider
-    // this.configureScope();
+    // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
+    this.configureScope();
 
-    // first init all providers for MODULE_INITIALIZERS token
+    // init all providers for MODULE_INITIALIZERS token
     // and if returned value (one of returned) is a function, call this function
     const initializers = await this.get(MODULE_INITIALIZERS);
     let initializer = undefined;
@@ -434,6 +440,18 @@ export class Injector {
   //   }
   //   return undefined;
   // }
+
+  private configureScope(): void {
+    this.scopes = ["any", this.injector as any];
+    const scopes = this.get(INJECTOR_SCOPE, { token: INJECTOR_SCOPE, useWrapper: Optional() }) as InjectorScopeType;
+    if (Array.isArray(scopes)) {
+      for (let i = 0, l = scopes.length; i < l; i++) {
+        this.scopes.push(scopes[i]);
+      }  
+    } else {
+      this.scopes.push(scopes);
+    }
+  }
 }
 
 export const NilInjector = new class {

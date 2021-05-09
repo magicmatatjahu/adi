@@ -248,6 +248,7 @@ export const InjectorMetadata = new class {
       options,
       meta,
       parent,
+      shared: (parent && parent.shared) || {},
     };
   }
 
