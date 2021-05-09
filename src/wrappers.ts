@@ -4,6 +4,7 @@ import { Scope } from "./scope";
 import { Token as ProviderToken } from "./types";
 import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "./utils";
 import { CONSTRAINTS } from "./constants";
+import { InjectionStatus } from "./enums";
 
 export const Token = createWrapper((token: ProviderToken): WrapperDef => {
   // console.log('token');
@@ -173,14 +174,40 @@ export const Lazy = createWrapper((_: never): WrapperDef => {
   // console.log('lazy');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside lazy');
-    let value: any, resolved = false;
-    return () => {
-      if (resolved === false) {
-        value = next(injector, session);
-        resolved = true;
+
+    // when someone retrieve provider by `injector.get(...)`
+    if (session.parent === undefined) {
+      let value: any, resolved = false;
+      return () => {
+        if (resolved === false) {
+          value = next(injector, session);
+          resolved = true;
+        }
+        return value;
+      };
+    }
+
+    if (!session.meta.propertyKey) {
+      throw Error('in Lazy wrapper');
+    }
+
+    const parentInstance = session.instance.value;
+    let value = undefined, isSet = false;
+    Object.defineProperty(parentInstance, session.meta.propertyKey, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        if (isSet === true) {
+          return value;
+        }
+        isSet = true;
+        return value = next(injector, session);
+      },
+      set(newValue: any) {
+        isSet === true;
+        value = newValue;
       }
-      return value;
-    };
+    });
   }
 });
 
@@ -241,7 +268,33 @@ export const OnInitHook = createWrapper((_: never): WrapperDef => {
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside onInitHook');
     const value = next(injector, session);
-    if (hasOnInitHook(value)) {
+
+    // when resolution chain has circular reference
+    // TODO: OPTIMIZE IT!!!
+    if (session['$$circular'] ) {
+      if (
+        session.instance.status & InjectionStatus.CIRCULAR &&
+        session['$$startCircular'] === session.instance.value
+      ) {
+        // merge circular object
+        Object.assign(session.instance.value, value);
+
+        const circulars = session['$$circular'];
+        for (let i = 0, l = circulars.length; i < l; i++) {
+          const circularValue = circulars[i];
+          hasOnInitHook(circularValue) && circularValue.onInit();
+        }
+        hasOnInitHook(value) && value.onInit();
+        // delete session['$$circular'];
+      } else if (session.parent) {
+        if (Array.isArray(session.parent['$$circular'])) {
+          session.parent['$$circular'] = [...session['$$circular'], value, ...session.parent['$$circular']];
+        } else {
+          session.parent['$$circular'] = [...session['$$circular'], value];
+        }
+        session.parent['$$startCircular'] = session.parent['$$startCircular'] || session['$$startCircular'];
+      }
+    } else if (hasOnInitHook(value)) {
       value.onInit();
     }
     return value;
@@ -268,7 +321,7 @@ export const Memo = createWrapper((_: never): WrapperDef => {
   // console.log('memo');
   let value: any, init = false;
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('memo');
+    // console.log('inside memo');
     if (init === false) {
       value = next(injector, session);
       init = true;
@@ -280,3 +333,20 @@ export const Memo = createWrapper((_: never): WrapperDef => {
 export function useMemo(wrapper?: WrapperDef): WrapperDef {
   return Memo(wrapper);
 }
+
+/**
+ * PRIVATE WRAPPERS
+ */
+
+export const Cacheable = createWrapper((_: never): WrapperDef => {
+  // console.log('cacheable');
+  let value: any, init = false;
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside cacheable');
+    if (init === false) {
+      value = next(injector, session);
+      init = true;
+    }
+    return value;
+  }
+});

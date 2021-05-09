@@ -75,8 +75,8 @@ export class Injector {
 
     const wrapper = options && options.useWrapper;
     if (wrapper) {
-      const lastNext = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, s);
-      return execWrapper(wrapper, lastNext)(this, newSession);
+      const last = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, s);
+      return execWrapper(wrapper, last)(this, newSession);
     }
 
     return this.retrieveRecord(token, options, newSession);
@@ -114,9 +114,8 @@ export class Injector {
     if (instance.status === 1) {
       instance.status |= InjectionStatus.PENDING;
 
-      const providerWrappers = this.getWrappers(record, session);
-      const length = providerWrappers.length;
-  
+      // const providerWrappers = this.getWrappers(record, session);
+      // const length = providerWrappers.length;
       // const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
       //   if (i === length) {
       //     return def.factory(injector, s);
@@ -126,18 +125,16 @@ export class Injector {
       // }
       // const value = nextWrapper()(record.hostInjector, session) as T;
 
-      // const value = def.factory(record.hostInjector, session) as T;
-
       let value: T;
-      const wrapper = def.wrapper;
-      if (wrapper) {
-        const lastNext = (i: Injector, s: InjectionSession) => def.factory(i, s) as T;
-        value = execWrapper(wrapper, lastNext)(record.hostInjector, session);
+      if (def.wrapper !== undefined) {
+        const last = (i: Injector, s: InjectionSession) => def.factory(i, s) as T;
+        value = execWrapper(def.wrapper, last)(record.hostInjector, session);
       } else {
         value = def.factory(record.hostInjector, session) as T;
       }
 
       if (instance.status & InjectionStatus.CIRCULAR) {
+        // merge of instance is done in OnInitHook wrapper
         Object.assign(instance.value, value);
       } else {
         instance.value = value;
@@ -156,7 +153,12 @@ export class Injector {
       throw new Error("Circular Dependency");
     }
     (instance as InstanceRecord).status |= InjectionStatus.CIRCULAR;
-    return (instance.value = Object.create(proto));
+    // add flag that resolution session has circular reference. 
+    // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
+    instance.value = Object.create(proto);
+    session.parent['$$circular'] = session.parent['$$circular'] || true;
+    session.parent['$$startCircular'] = instance.value;
+    return instance.value;
   }
 
   private getRecord<T>(

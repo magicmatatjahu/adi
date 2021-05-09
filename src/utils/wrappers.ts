@@ -26,16 +26,16 @@ export function createWrapper<T = any>(
 }
 
 // change last `next` function to custom function passed by function argument
-export function execWrapper(nextWrapper: WrapperDef, lastNext: NextWrapper) {
+export function execWrapper(nextWrapper: WrapperDef, last: NextWrapper) {
   return (injector: Injector, s: InjectionSession) => {
     const $$nextWrapper = nextWrapper['$$nextWrapper'];
     if ($$nextWrapper !== undefined) {
-      const next: NextWrapper = execWrapper($$nextWrapper, lastNext);
+      const next: NextWrapper = execWrapper($$nextWrapper, last);
       return nextWrapper(injector, s, next);
     }
     // fix passing options
     // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
-    return nextWrapper(injector, s, lastNext);
+    return nextWrapper(injector, s, last);
   }
 }
 
