@@ -1,9 +1,105 @@
 import { 
   Injector, Injectable, Inject, Scope, constraint,
-  Token, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged,
+  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged,
 } from "../src";
 
 describe('Wrappers', function() {
+  describe('Token', function() {
+    test('should override inferred token', function() {
+      @Injectable()
+      class TestService {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Token(TestService)) readonly service: String,
+        ) {}
+      }
+
+  
+      const injector = new Injector([
+        TestService,
+        Service,
+      ]);
+  
+      const service = injector.get(Service) as Service;
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service).toBeInstanceOf(TestService);
+    });
+
+    test('should override token passed in @Inject() decorator', function() {
+      @Injectable()
+      class TestService {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(String, Token(TestService)) readonly service: any,
+        ) {}
+      }
+
+  
+      const injector = new Injector([
+        TestService,
+        Service,
+      ]);
+  
+      const service = injector.get(Service) as Service;
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service).toBeInstanceOf(TestService);
+    });
+  });
+
+  describe('Ref', function() {
+    test('should wrap reference to function and forward it', function() {
+      @Injectable()
+      class ServiceA {
+        constructor(
+          @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        ) {}
+      }
+  
+      @Injectable()
+      class ServiceB {}
+  
+      const injector = new Injector([
+        ServiceA,
+        ServiceB,
+      ]);
+  
+      const service = injector.get(ServiceA) as ServiceA;
+      expect(service).toBeInstanceOf(ServiceA);
+      expect(service.serviceB).toBeInstanceOf(ServiceB);
+    });
+
+    test('should wrap reference to function and forward it (circular ref case)', function() {
+      @Injectable()
+      class ServiceA {
+        constructor(
+          @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        ) {}
+      }
+  
+      @Injectable()
+      class ServiceB {
+        constructor(
+          @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        ServiceA,
+        ServiceB,
+      ]);
+  
+      const service = injector.get(ServiceA) as ServiceA;
+      expect(service).toBeInstanceOf(ServiceA);
+      expect(service.serviceB).toBeInstanceOf(ServiceB);
+      expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
+      expect(service === service.serviceB.serviceA).toEqual(true);
+    });
+  });
+
   describe('Optional', function () {
     test('should handle exception when token is not defined in providers array', function () {
       @Injectable()
