@@ -11,7 +11,7 @@ import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, NOOP_CONSTRAINT } from "../constants";
-import { useDefaultHooks } from "../wrappers";
+import { useDefaultHooks, useCacheable } from "../wrappers";
 
 import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";
@@ -77,7 +77,7 @@ export const InjectorMetadata = new class {
             changed = true;
           }
         }
-        return injector.get(aliasProvider, session.options, session);
+        return injector.get(aliasProvider, session.options, session.meta, session);
       }
     }
 
@@ -171,7 +171,6 @@ export const InjectorMetadata = new class {
     scope: Scope,
     session?: InjectionSession,
   ): InstanceRecord<T> {
-    // console.log(scope)
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
@@ -182,8 +181,6 @@ export const InjectorMetadata = new class {
       //   def.values.set(ctx, ctxRecord);
       // }
     }
-
-    // console.log(ctx, def.record.token)
     session.instance = instance;
     return instance;
   }
@@ -243,8 +240,8 @@ export const InjectorMetadata = new class {
   createSession<T>(
     instance: InstanceRecord<T>,
     options: InjectionOptions,
+    meta: InjectionMetadata,
     parent: InjectionSession,
-    meta?: InjectionMetadata,
   ): InjectionSession<T> {
     return {
       instance,
@@ -282,7 +279,7 @@ export const InjectorMetadata = new class {
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
       if (dep.hasOwnProperty('$$nextWrapper')) {
-        converted.push(createInjectionArg(undefined, dep as WrapperDef, undefined, undefined, i, factory));
+        converted.push(createInjectionArg(undefined, useCacheable(dep as WrapperDef), undefined, undefined, i, factory));
       } else {
         converted.push(createInjectionArg(dep as any, undefined, undefined, undefined, i, factory));
       }

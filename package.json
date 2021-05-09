@@ -26,7 +26,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",

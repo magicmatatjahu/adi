@@ -3,11 +3,11 @@ import { InjectionArgument, InjectionSession, FactoryDef, ProviderDef, Type } fr
 import { resolveRef } from "../utils";
 
 export const InjectorResolver = new class {
-  injectDeps(deps: Array<InjectionArgument | any>, injector: Injector, session: InjectionSession): Array<any> {
+  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: InjectionSession): Array<any> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(injector.get(resolveRef(arg.token), arg.options, session));
+      args.push(injector.get(resolveRef(arg.token), arg.options, arg.meta, session));
     };
     return args;
   }
@@ -15,12 +15,12 @@ export const InjectorResolver = new class {
   injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session?: InjectionSession): void {
     for (const name in props) {
       const prop = props[name];
-      instance[name] = injector.get(prop.token, prop.options, session);
+      instance[name] = injector.get(prop.token, prop.options, prop.meta, session);
     }
     // inject symbols
     for (const sb of Object.getOwnPropertySymbols(props)) {
       const prop = props[sb as any as string];
-      instance[sb] = injector.get(prop.token, prop.options, session);
+      instance[sb] = injector.get(prop.token, prop.options, prop.meta, session);
     }
   }
 
@@ -34,7 +34,7 @@ export const InjectorResolver = new class {
         let methodProp = undefined;
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            args[i] = injector.get(methodProp.token, methodProp.options, session);
+            args[i] = injector.get(methodProp.token, methodProp.options, methodProp.meta, session);
           }
         }
         return originalMethod.apply(instance, args);

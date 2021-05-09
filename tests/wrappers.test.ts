@@ -1,6 +1,6 @@
 import { 
-  Injector, Injectable, Inject, Scope, constraint,
-  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged,
+  Injector, Injectable, Inject, Scope, constraint, createWrapper,
+  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged, Memo, SideEffects,
 } from "../src";
 
 describe('Wrappers', function() {
@@ -369,6 +369,80 @@ describe('Wrappers', function() {
       expect(service.service).toBeInstanceOf(TestService);
       expect((service.foobar) as any).toEqual('foobar');
       expect((service.barfoo) as any).toEqual('barfoo');
+    });
+  });
+
+  describe('Memo', function () {
+    test('should memoize injection even when injection has side effects', function () {
+      let calls = 0;
+
+      const TestWrapper = createWrapper((_: never) => {
+        return (injector, session, next) => {
+          const value = next(injector, session);
+          session['$$sideEffects'] = true;
+          calls++;
+          return value;
+        }
+      });
+
+      @Injectable()
+      class TestService {}
+
+      // use Transient scope to create Service on each injector.get(...)
+      @Injectable({ scope: Scope.TRANSIENT })
+      class Service {
+        constructor(
+          @Inject(Memo(TestWrapper())) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+      ]);
+
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+
+      expect(calls).toEqual(1);
+    });
+  });
+
+  describe('SideEffects', function () {
+    test('should call wrapper chain on each injector.get(...)', function () {
+      let calls = 0;
+
+      const TestWrapper = createWrapper((_: never) => {
+        return (injector, session, next) => {
+          const value = next(injector, session);
+          session['$$sideEffects'] = false;
+          calls++;
+          return value;
+        }
+      });
+
+      @Injectable()
+      class TestService {}
+
+      // use Transient scope to create Service on each injector.get(...)
+      @Injectable({ scope: Scope.TRANSIENT })
+      class Service {
+        constructor(
+          @Inject(SideEffects(TestWrapper())) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+      ]);
+
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+
+      expect(calls).toEqual(3);
     });
   });
 

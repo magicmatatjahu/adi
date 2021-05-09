@@ -5,19 +5,19 @@ import {
   Provider, ProviderDef, WrapperDef, NextWrapper, Type,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleDef, ModuleID,
   ForwardRef,
+  InjectionMetadata,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS } from "../constants";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
 import { resolveRef, execWrapper } from "../utils";
 
-import { Context } from "./context";
 import { InjectorMetadata } from "./metadata";
 
 export class Injector {
-  // imported modules
   //private readonly imports = new Map<Type, Map<Context, InjectorRecord>>();
-  private readonly imports = new Map<Type, Map<Context, Injector>>();
+  // imported modules
+  private readonly imports = new Map<Type, Map<ModuleID, Injector>>();
   // components
   private readonly components = new Map<Type, ComponentRecord>();
   // own records
@@ -27,7 +27,7 @@ export class Injector {
   // scopes of injector
   private scopes: Array<InjectorScopeType> = ['any'];
   // id of injector/module
-  private id: ModuleID= 'static';
+  private id: ModuleID = 'static';
 
   constructor(
     private readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
@@ -69,31 +69,31 @@ export class Injector {
   /*
    * PROVIDERS
    */
-  get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+  get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     options = options || {} as any;
-    const newSession = InjectorMetadata.createSession(undefined, options, session);
+    const newSession = InjectorMetadata.createSession(undefined, options, meta, session);
 
     const wrapper = options && options.useWrapper;
     if (wrapper) {
-      const last = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, s);
+      const last = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, meta, s);
       return execWrapper(wrapper, last)(this, newSession);
     }
 
-    return this.retrieveRecord(token, options, newSession);
+    return this.retrieveRecord(token, options, meta, newSession);
   }
 
-  private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+  private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const record = this.getRecord(token);
     if (record !== undefined) {
       const def = this.getDefinition(record, session);
       return this.resolveDef(def, options, session);
     }
-    return this.getParentInjector().get(token, options, session);
+    return this.getParentInjector().get(token, options, meta, session);
   }
 
   private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     let scope = def.scope;
-    if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
+    if (scope.canBeOverrided() === true) {
       scope = options.scope || scope;
     }
     const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
@@ -238,14 +238,14 @@ export class Injector {
   /*
    * COMPONENTS
    */
-  getComponent<T>(token: Type<T>, options?: any, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+  getComponent<T>(token: Type<T>, options?: any, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const component = this.components.get(token);
     if (component === undefined) {
       throw Error(`Given component of ${token} type doesn't exists`);
     }
 
     options = options || {} as any;
-    const newSession = InjectorMetadata.createSession(undefined, options, session);
+    const newSession = InjectorMetadata.createSession(undefined, options, meta, session);
 
     const wrapper = options && options.useWrapper;
     if (wrapper) {
@@ -258,7 +258,7 @@ export class Injector {
 
   private resolveComponent<T>(comp: ComponentRecord<T>, options?: any, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     let scope = comp.scope;
-    if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
+    if (scope.canBeOverrided() === true) {
       scope = options.scope || scope;
     }
     const instance = InjectorMetadata.getComponentInstanceRecord(comp, scope, session);
@@ -371,7 +371,7 @@ export class Injector {
   }
 
   // injector is here for searching in his parent and more depper
-  findModule(injector: Injector, mod: Type, ctx: Context): Injector | undefined {
+  findModule(injector: Injector, mod: Type, id: ModuleID): Injector | undefined {
     if (mod === injector.injector) {
       // TODO: Check this statement - maybe error isn't needed
       // throw Error('Cannot import this same module to injector');
@@ -380,8 +380,8 @@ export class Injector {
     }
 
     let foundedModule = injector.imports.get(mod);
-    if (foundedModule && foundedModule.has(ctx)) {
-      return foundedModule.get(ctx);
+    if (foundedModule && foundedModule.has(id)) {
+      return foundedModule.get(id);
     }
 
     let parentInjector = injector.getParentInjector();
@@ -391,8 +391,8 @@ export class Injector {
       if (mod === parentInjector.injector) {
         return parentInjector as Injector;
       }
-      if ((foundedModule = parentInjector.imports.get(mod)) && foundedModule.has(ctx)) {
-        return foundedModule.get(ctx);
+      if ((foundedModule = parentInjector.imports.get(mod)) && foundedModule.has(id)) {
+        return foundedModule.get(id);
       }
       parentInjector = parentInjector.getParentInjector();
     }

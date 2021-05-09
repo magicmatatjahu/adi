@@ -263,6 +263,30 @@ export const LazyProxy = createWrapper((_: never): WrapperDef => {
   }
 });
 
+export const Memo = createWrapper((_: never): WrapperDef => {
+  // console.log('memo');
+  let value: any, init = false;
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside memo');
+    if (init === false) {
+      value = next(injector, session);
+      session['$$sideEffects'] = false;
+      init = true;
+    }
+    return value;
+  }
+});
+
+export const SideEffects = createWrapper((_: never): WrapperDef => {
+  // console.log('side effects');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside side effects');
+    const value = next(injector, session);
+    session['$$sideEffects'] = true;
+    return value;
+  }
+});
+
 export const OnInitHook = createWrapper((_: never): WrapperDef => {
   // console.log('onInitHook');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
@@ -317,36 +341,27 @@ export function useDefaultHooks(wrapper?: WrapperDef): WrapperDef {
   return OnDestroyHook(OnInitHook(wrapper));
 }
 
-export const Memo = createWrapper((_: never): WrapperDef => {
-  // console.log('memo');
-  let value: any, init = false;
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside memo');
-    if (init === false) {
-      value = next(injector, session);
-      init = true;
-    }
-    return value;
-  }
-});
-
-export function useMemo(wrapper?: WrapperDef): WrapperDef {
-  return Memo(wrapper);
-}
-
 /**
  * PRIVATE WRAPPERS
  */
 
 export const Cacheable = createWrapper((_: never): WrapperDef => {
   // console.log('cacheable');
-  let value: any, init = false;
+  let value: any, init = false, sideEffects = false;
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside cacheable');
+    if (sideEffects === true) {
+      return next(injector, session);;
+    }
     if (init === false) {
       value = next(injector, session);
       init = true;
+      if (session['$$sideEffects'] !== false) sideEffects = true;
     }
     return value;
   }
 });
+
+export function useCacheable(wrapper?: WrapperDef): WrapperDef {
+  return Cacheable(wrapper);
+}

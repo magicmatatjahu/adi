@@ -27,6 +27,14 @@ export class Scope {
   // ): boolean {
   //   return true;
   // }
+
+  public canBeOverrided(): boolean {
+    return (this.flags & ScopeFlags.CAN_OVERRIDE) === ScopeFlags.CAN_OVERRIDE;
+  }
+
+  public hasSideEffects(): boolean {
+    return (this.flags & ScopeFlags.SIDE_EFFECTS) === ScopeFlags.SIDE_EFFECTS;
+  }
 }
 
 export class SingletonScope extends Scope {
@@ -46,7 +54,7 @@ export class SingletonScope extends Scope {
 Scope.SINGLETON = new SingletonScope();
 
 export class TransientScope extends Scope {
-  public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE;
+  public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE | ScopeFlags.SIDE_EFFECTS;
 
   public name = "Transient";
 
@@ -64,7 +72,7 @@ export class TransientScope extends Scope {
 Scope.TRANSIENT = new TransientScope();
 
 export class InstanceScope extends Scope {
-  public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE;
+  public readonly flags: ScopeFlags = ScopeFlags.CAN_OVERRIDE | ScopeFlags.SIDE_EFFECTS;
 
   public name = "Instance";
 

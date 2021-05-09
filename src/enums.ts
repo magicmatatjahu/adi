@@ -9,5 +9,6 @@ export enum InjectionStatus {
 export enum ScopeFlags {
   NONE = 0,
   CAN_OVERRIDE = 1,
-  PROXY_MODE = 2,
+  SIDE_EFFECTS = 2,
+  PROXY_MODE = 4,
 }

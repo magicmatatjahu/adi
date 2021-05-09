@@ -71,4 +71,48 @@ describe('Module', function() {
     expect(component).toBeInstanceOf(Controller);
     expect(component.service).toBeInstanceOf(Service);
   });
+
+  test('should be able to imports another modules', async function() {
+    @Injectable()
+    class Service {}
+
+    @Module()
+    class SharedModule {}
+
+    @Module()
+    class FeatureModule {}
+
+    @Module({
+      imports: [
+        SharedModule,
+        FeatureModule,
+      ],
+      providers: [
+        Service,
+      ],
+    })
+    class MainModule {
+      constructor(
+        readonly service: Service,
+      ) {}
+    }
+
+    const injector = await new Injector(MainModule).compile();
+    expect(injector).toBeInstanceOf(Injector);
+  });
+
+  test('should be able to imports another modules', async function() {
+    @Module()
+    class SharedModule {}
+
+    @Module({
+      imports: [
+        SharedModule,
+      ],
+    })
+    class MainModule {}
+
+    const injector = await new Injector(MainModule).compile();
+    expect(injector).toBeInstanceOf(Injector);
+  });
 });

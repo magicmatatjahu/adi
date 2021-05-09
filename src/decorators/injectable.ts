@@ -3,7 +3,7 @@ import { InjectorResolver } from "../injector/resolver";
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { Reflection } from "../utils";
-import { useMemo } from "../wrappers";
+import { useCacheable } from "../wrappers";
 
 export function Injectable(options?: InjectableOptions) {
   return function(target: Object) {
@@ -160,7 +160,7 @@ export function createInjectionArg(token: Token, useWrapper: WrapperDef, target:
       ctx: undefined,
       scope: undefined,
       attrs: {},
-      useWrapper: useMemo(useWrapper),
+      useWrapper: useCacheable(useWrapper),
     },
     meta: {
       target,
