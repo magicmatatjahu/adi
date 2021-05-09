@@ -210,11 +210,11 @@ export class Injector {
     return record.defaultDef;
   }
 
-  private addProvider(provider: Provider): void {
+  addProvider(provider: Provider): void {
     InjectorMetadata.toRecord(provider, this);
   }
 
-  private addProviders(providers: Provider[] = []): void {
+  addProviders(providers: Provider[] = []): void {
     for (let i = 0, l = providers.length; i < l; i++) {
       InjectorMetadata.toRecord(providers[i], this);
     }
@@ -271,12 +271,12 @@ export class Injector {
     return instance.value || (instance.value = comp.factory(this, session) as any);
   }
 
-  private addComponent(component: Type): void {
+  addComponent(component: Type): void {
     const record = InjectorMetadata.toComponentRecord(component);
     this.components.set(component, record);
   }
 
-  private addComponents(components: Type[] = []): void {
+  addComponents(components: Type[] = []): void {
     for (let i = 0, l = components.length; i < l; i++) {
       this.addComponent(components[i]);
     }
@@ -330,9 +330,8 @@ export class Injector {
       this.addComponents(dynamicModuleDef.components);
     }
 
-    // root module
-    // await this.initModule();
-
+    // init module - create instance of given module
+    await this.initModule();
     return this;
   }
 
@@ -373,13 +372,8 @@ export class Injector {
       }
     }
 
-    // // then init all inlined modules for given module
-    // for (let i = 0, l = this.inlineModules.length; i < l; i++) {
-    //   await this.resolveComponent(this.inlineModules[i]);
-    // }
-
-    // // at the end init given module
-    // await this.resolveComponent(MODULE as any);
+    // at the end init given module
+    typeof this.injector === 'function' && await this.getComponent(this.injector as any);
   }
 
   // injector is here for searching in his parent and more depper
@@ -443,7 +437,7 @@ export class Injector {
 
   private configureScope(): void {
     this.scopes = ["any", this.injector as any];
-    const scopes = this.get(INJECTOR_SCOPE, { token: INJECTOR_SCOPE, useWrapper: Optional() }) as InjectorScopeType;
+    const scopes = this.get(INJECTOR_SCOPE) as InjectorScopeType;
     if (Array.isArray(scopes)) {
       for (let i = 0, l = scopes.length; i < l; i++) {
         this.scopes.push(scopes[i]);

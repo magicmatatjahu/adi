@@ -2,12 +2,23 @@
   "name": "adi",
   "version": "0.0.1",
   "description": "Another DI system for TS/JS",
+  "author": "Maciej Urbańczyk",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/magicmatatjahu/adi"
   },
-  "author": "Maciej Urbańczyk",
-  "license": "MIT",
+  "keywords": [
+    "ioc",
+    "di",
+    "dependency injection",
+    "inversion of control",
+    "js",
+    "javascript",
+    "ts",
+    "typescript",
+    "node"
+  ],
   "scripts": {
     "test": "jest"
   },

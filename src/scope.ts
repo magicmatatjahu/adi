@@ -35,7 +35,8 @@ export class SingletonScope extends Scope {
   public name = "Singleton";
 
   public getContext(_: DefinitionRecord, session: InjectionSession): Context {
-    if (session.options.ctx !== STATIC_CONTEXT) {
+    const ctx = session.options.ctx;
+    if (ctx && ctx !== STATIC_CONTEXT) {
       // todo: change to warning
       throw new Error("Cannot create provider with singleton scope");
     }
