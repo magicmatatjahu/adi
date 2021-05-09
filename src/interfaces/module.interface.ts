@@ -1,14 +1,13 @@
-import { Provider } from "./provider.interface";
-import { Type } from "./type.interface";
+import { Provider, ForwardRef, Type } from ".";
 import { Token } from "../types";
 
 export interface ModuleMetadata<T = any> {
-  // type?: ModuleType;
+  id?: string | symbol;
   imports?: Array<
     | Type
     | DynamicModule<T>
     | Promise<DynamicModule<T>>
-    // | ForwardRef
+    | ForwardRef
   >;
   components?: Array<Type>;
   providers?: Array<Provider>;
@@ -25,3 +24,5 @@ export interface ModuleMetadata<T = any> {
 export interface DynamicModule<T = any> extends ModuleMetadata<T> {
   module: Type<T>;
 }
+
+export type ModuleID = string | symbol;

@@ -1,9 +1,9 @@
 import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession,
-  ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, 
+  ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
   Provider, ProviderDef, WrapperDef, NextWrapper, Type,
-  InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule,
+  InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleDef, ModuleID,
   ForwardRef,
 } from "../interfaces";
 import { MODULE_INITIALIZERS } from "../constants";
@@ -11,15 +11,23 @@ import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
 import { resolveRef } from "../utils";
 
+import { Context } from "./context";
 import { InjectorMetadata } from "./metadata";
 
 export class Injector {
+  // imported modules
+  //private readonly imports = new Map<Type, Map<Context, InjectorRecord>>();
+  private readonly imports = new Map<Type, Map<Context, Injector>>();
+  // components
+  private readonly components = new Map<Type, ComponentRecord>();
   // own records
   private readonly records = new Map<Token, ProviderRecord>();
   // records from imported modules
   private readonly importedRecords = new Map<Token, ProviderRecord>();
   // scopes of injector
   private scopes: Array<InjectorScopeType> = ['any'];
+  // id of injector/module
+  private id: ModuleID= 'static';
 
   constructor(
     private readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
@@ -29,6 +37,7 @@ export class Injector {
     if (options !== undefined) {
       const { setupProviders, scope } = options;
       setupProviders !== undefined && this.addProviders(options.setupProviders);
+      this.id = options.id || this.id;
       if (scope !== undefined) {
         Array.isArray(scope) ? this.scopes.push(...scope) : this.scopes.push(scope);
       }
@@ -44,6 +53,19 @@ export class Injector {
     this.addProvider({ provide: Injector, useValue: this });
   }
 
+  getParentInjector(): Injector {
+    return this.parent;
+  }
+
+  compile(): Promise<Injector> {
+    if (!Array.isArray(this.injector)) {
+      return this.processModule(this.injector, []);
+    }
+  }
+
+  /*
+   * PROVIDERS
+   */
   get<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     options = options || {} as any;
     const newSession = InjectorMetadata.createSession(undefined, options, session);
@@ -64,16 +86,6 @@ export class Injector {
     }
 
     return this.retrieveRecord(token, options, newSession);
-  }
-
-  getParentInjector(): Injector {
-    return this.parent;
-  }
-
-  async compile(): Promise<void> {
-    if (typeof this.injector === "function") {
-      await this.processModule(this.injector, []);
-    }
   }
 
   private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
@@ -216,46 +228,129 @@ export class Injector {
     }
   }
 
-  private async processModule<T>(mod: Type<T> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>, modulesStack: Array<Injector>, importer?: Injector) {
+  /*
+   * COMPONENTS
+   */
+  getComponent<T>(token: Type<T>, options?: any, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+    const component = this.components.get(token);
+    if (component === undefined) {
+      throw Error(`Given component of ${token} type doesn't exists`);
+    }
+
+    options = options || {} as any;
+    const newSession = InjectorMetadata.createSession(undefined, options, session);
+
+    const wrapper = options && options.useWrapper;
+    const nextFn = (nextWrapper: WrapperDef) => (injector: Injector, s: InjectionSession) => {
+      const $$nextWrapper = nextWrapper['$$nextWrapper'];
+      if ($$nextWrapper !== undefined) {
+        const next: NextWrapper = nextFn($$nextWrapper);
+        return nextWrapper(injector, s, next);
+      }
+      // fix passing options
+      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.resolveComponent(component, s.options, s);
+      return nextWrapper(injector, s, next);
+    }
+    if (wrapper) {
+      return nextFn(wrapper)(this, newSession);
+    }
+
+    return this.resolveComponent(component, options, newSession);
+  }
+
+  private resolveComponent<T>(comp: ComponentRecord<T>, options?: any, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+    let scope = comp.scope;
+    if (scope.flags & ScopeFlags.CAN_OVERRIDE) {
+      scope = options.scope || scope;
+    }
+    const instance = InjectorMetadata.getComponentInstanceRecord(comp, scope, session);
+    return instance.value || (instance.value = comp.factory(this, session) as any);
+  }
+
+  private addComponents(components: Type[] = []): void {
+    for (let i = 0, l = components.length; i < l; i++) {
+      const comp = components[i];
+      const record = InjectorMetadata.toComponentRecord(comp);
+      this.components.set(comp, record);
+    }
+  }
+
+  /*
+   * IMPORTS
+   */
+  private async processModule<T>(mod: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>, modulesStack: Array<Injector>, importer?: Injector): Promise<Injector> {
+    // retrieve module metadata
+    // if it's dynamic module, first try to resolve the module metadata
+    let moduleDef = getModuleDef(mod), 
+      dynamicModuleDef: DynamicModule<T> = undefined;
+    if (moduleDef === undefined) {
+      dynamicModuleDef = await (mod as Promise<DynamicModule>);
+      mod = dynamicModuleDef.module;
+      if (mod !== undefined) moduleDef = getModuleDef(mod);
+    }
+
+    // // imports modules from moduleDef
+    // const imports = moduleDef.imports || [];
+    // for (let i = 0, l = imports.length; i < l; i++) {
+    //   const [mod, def, dynamicDef] = await this.compileModuleMetadata(imports[i]);
+    //   // TODO: Add context as third argument
+    //   const injectorRecord = this.findModule(this, mod, dynamicDef.context || STATIC_CONTEXT);
+
+    //   if (injectorRecord === undefined) { // if injector isn't in injectors tree
+    //     const newInjector = createInjector(mod, this);
+    //   } else { // if injector is in injectors tree
+
+    //   }
+    // }
+
+    // const retrievedMod = mod as Type;
+
+    // if (dynamicModuleDef !== undefined) {
+    //   const imports = dynamicModuleDef.imports || []; 
+    //   for (let i = 0, l = imports.length; i < l; i++) {
+    //     // change this to appropriate reference to injector
+    //     await this.processModule(imports[i], modulesStack, this);
+    //   }  
+    // }
+
+    if (moduleDef !== undefined) {
+      this.addProviders(moduleDef.providers);
+      this.addComponents(moduleDef.components);
+    }
+
+    if (dynamicModuleDef !== undefined) {
+      this.addProviders(dynamicModuleDef.providers);
+      this.addComponents(dynamicModuleDef.components);
+    }
+
+    // root module
+    // await this.initModule();
+
+    return this;
+  }
+
+  // temporary function
+  async compileModuleMetadata<T>(mod: Type<T> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>): Promise<[Type, ModuleDef, DynamicModule]> {
     mod = resolveRef(mod);
-    if (mod === undefined) {
-      return;
+    if (!mod) {
+      throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
     }
 
     // retrieve module metadata
     // if it's dynamic module, first try to resolve the module metadata
     let moduleDef = getModuleDef(mod), 
-      dynamicModuleDef: DynamicModule<T> = undefined,
-      isDynamicModule = false;
+      dynamicModuleDef: DynamicModule<T> = undefined;
     if (moduleDef === undefined) {
       dynamicModuleDef = await (mod as Promise<DynamicModule>);
       mod = dynamicModuleDef.module;
-      moduleDef = getModuleDef(mod);
-      isDynamicModule = true;
+      if (mod !== undefined) moduleDef = getModuleDef(mod);
     }
 
     if (moduleDef === undefined) {
       throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
     }
 
-    const retrievedMod = mod as Type;
-
-
-    if (isDynamicModule === true) {
-      const imports = dynamicModuleDef.imports || []; 
-      for (let i = 0, l = imports.length; i < l; i++) {
-        // change this to appropriate reference to injector
-        await this.processModule(imports[i], modulesStack, this);
-      }  
-    }
-
-    if (isDynamicModule) {
-      this.addProviders(dynamicModuleDef.providers);
-      // this.addExports(dynamicModuleDef.exports || EMPTY_ARR, importer);
-    }
-
-    // root module
-    await this.initModule();
+    return [mod as Type, moduleDef, dynamicModuleDef];
   }
 
   async initModule(): Promise<void> {
@@ -280,6 +375,65 @@ export class Injector {
     // // at the end init given module
     // await this.resolveComponent(MODULE as any);
   }
+
+  // injector is here for searching in his parent and more depper
+  findModule(injector: Injector, mod: Type, ctx: Context): Injector | undefined {
+    if (mod === injector.injector) {
+      // TODO: Check this statement - maybe error isn't needed
+      // throw Error('Cannot import this same module to injector');
+      console.log('Cannot import this same module to injector');
+      return undefined;
+    }
+
+    let foundedModule = injector.imports.get(mod);
+    if (foundedModule && foundedModule.has(ctx)) {
+      return foundedModule.get(ctx);
+    }
+
+    let parentInjector = injector.getParentInjector();
+    // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
+    while (parentInjector !== NilInjector) {
+      // TODO: Check this statement - maybe it's needed
+      if (mod === parentInjector.injector) {
+        return parentInjector as Injector;
+      }
+      if ((foundedModule = parentInjector.imports.get(mod)) && foundedModule.has(ctx)) {
+        return foundedModule.get(ctx);
+      }
+      parentInjector = parentInjector.getParentInjector();
+    }
+    return undefined;
+  }
+
+  // IMPLEMENTATION BASED ON INJECTOR_RECORD, NOT INJECTOR
+  // // injector is here for searching in his parent and more depper
+  // findModule(injector: Injector, mod: Type, ctx: Context): InjectorRecord | undefined {
+  //   if (mod === injector.injector) {
+  //     // TODO: Check this statement - maybe error isn't needed
+  //     throw Error('Cannot import this same module to injector');
+  //   }
+
+  //   let foundedModule = injector.imports.get(mod);
+  //   if (foundedModule && foundedModule.has(ctx)) {
+  //     return foundedModule.get(ctx);
+  //   }
+
+  //   let parentInjector = injector.getParentInjector();
+  //   while (parentInjector !== NilInjector) {
+  //     // TODO: Check this statement - maybe it's needed
+  //     // if (mod === parentInjector.injector) {
+  //     //   return parentInjector.injector as Type;
+  //     // }
+  //     if ((foundedModule = parentInjector.imports.get(mod)) && foundedModule.has(ctx)) {
+  //       return foundedModule.get(ctx);
+  //     }
+  //     parentInjector = parentInjector.getParentInjector();
+  //   }
+  //   if (foundedModule && foundedModule.has(ctx)) {
+  //     return foundedModule.get(ctx);
+  //   }
+  //   return undefined;
+  // }
 }
 
 export const NilInjector = new class {

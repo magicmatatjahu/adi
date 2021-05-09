@@ -4,7 +4,7 @@ import {
   Provider, TypeProvider, CustomProvider,
   InstanceRecord, DefinitionRecord, ProviderRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument,
+  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider } from "../utils";
 import { InjectionStatus } from "../enums";
@@ -16,6 +16,9 @@ import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";
 
 export const InjectorMetadata = new class {
+  /**
+   * PROVIDERS
+   */
   toRecord<T>(
     provider: Provider<T>,
     hostInjector: Injector,
@@ -127,37 +130,23 @@ export const InjectorMetadata = new class {
       record,
       factory,
       scope: scope || Scope.DEFAULT,
-      values: new Map<Context, InstanceRecord>(),
       constraint,
       wrapper,
       proto: proto || undefined,
+      values: new Map<Context, InstanceRecord>(),
     };
   }
 
   createInstanceRecord<T>(
     ctx: Context,
     value: T | undefined,
-    def?: DefinitionRecord<T>,
+    def: DefinitionRecord<T>,
   ): InstanceRecord<T> {
     return {
       ctx,
       value,
       def,
       status: InjectionStatus.UNKNOWN,
-    };
-  }
-
-  createSession<T>(
-    instance: InstanceRecord<T>,
-    options: InjectionOptions,
-    parent: InjectionSession,
-    meta?: InjectionMetadata,
-  ): InjectionSession<T> {
-    return {
-      instance,
-      options,
-      meta,
-      parent,
     };
   }
 
@@ -194,6 +183,72 @@ export const InjectorMetadata = new class {
     // console.log(ctx, def.record.token)
     session.instance = instance;
     return instance;
+  }
+
+  /**
+   * COMPONENTS
+   */
+  toComponentRecord<T>(
+    comp: Type<T>,
+    wrapper?: WrapperDef,
+  ): ComponentRecord<T> {
+    const def = this.getProviderDef(comp);
+    return {
+      factory: def.factory,
+      scope: def.scope || Scope.SINGLETON,
+      wrapper,
+      values: new Map<Context, ComponentInstanceRecord>(),
+    };
+  }
+
+  createComponentInstanceRecord<T>(
+    ctx: Context,
+    value: T | undefined,
+    comp: ComponentRecord<T>,
+  ): ComponentInstanceRecord<T> {
+    return {
+      ctx,
+      value,
+      comp,
+    };
+  }
+
+  getComponentInstanceRecord<T>(
+    comp: ComponentRecord<T>, 
+    scope: Scope,
+    session?: InjectionSession,
+  ): ComponentInstanceRecord<T> {
+    const ctx = scope.getContext(comp as unknown as DefinitionRecord, session) || STATIC_CONTEXT;
+    let instance = comp.values.get(ctx);
+    if (instance === undefined) {
+      instance = this.createComponentInstanceRecord(ctx, undefined, comp);
+      comp.values.set(ctx, instance);
+      // if (scope.toCache(options, def, session) === true) {
+      //   ctxRecord.status |= InjectionStatus.CACHED;
+      //   def.values.set(ctx, ctxRecord);
+      // }
+    }
+
+    // TODO: FIX TYPES!!!
+    (session.instance as any) = instance;
+    return instance;
+  }
+
+  /**
+   * HELPERS
+   */
+  createSession<T>(
+    instance: InstanceRecord<T>,
+    options: InjectionOptions,
+    parent: InjectionSession,
+    meta?: InjectionMetadata,
+  ): InjectionSession<T> {
+    return {
+      instance,
+      options,
+      meta,
+      parent,
+    };
   }
 
   getProviderDef<T>(token: Token<T>, throwError: boolean = true): ProviderDef {

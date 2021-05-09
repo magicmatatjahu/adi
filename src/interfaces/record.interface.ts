@@ -10,17 +10,16 @@ export interface ProviderRecord<T = any> {
   defs: Array<DefinitionRecord>;
   defaultDef: DefinitionRecord;
   wrappers: Array<WrapperRecord>;
-  // isMulti: boolean;
 }
 
 export interface DefinitionRecord<T = any> {
   record: ProviderRecord<T>;
   factory: FactoryDef<T> | undefined;
-  constraint: ConstraintDef;
-  values: Map<Context, InstanceRecord<T>>;
+  constraint: ConstraintDef | undefined;
+  wrapper: WrapperDef | undefined;
   scope: Scope;
   proto: Type<T> | undefined;
-  wrapper: WrapperDef;
+  values: Map<Context, InstanceRecord<T>>;
   // weakValues: WeakMap<Context, InstanceRecord<T>>;
   // flags: InjectionRecordFlags;
   // original: Provider;
@@ -36,4 +35,17 @@ export interface InstanceRecord<T = any> {
   value: T;
   status: InjectionStatus;
   def: DefinitionRecord;
+}
+
+export interface ComponentRecord<T = any> {
+  factory: FactoryDef<T> | undefined;
+  wrapper: WrapperDef | undefined;
+  scope: Scope;
+  values: Map<Context, ComponentInstanceRecord<T>>;
+}
+
+export interface ComponentInstanceRecord<T = any> {
+  ctx: Context;
+  value: T;
+  comp: ComponentRecord;
 }

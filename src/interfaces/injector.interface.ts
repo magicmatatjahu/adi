@@ -1,7 +1,8 @@
-import { Provider, Type } from ".";
+import { ModuleID, Provider, Type } from ".";
 
 export interface InjectorOptions {
   scope?: InjectorScopeType | InjectorScopeType[];
+  id?: ModuleID;
   setupProviders?: Provider[];
 }
 
