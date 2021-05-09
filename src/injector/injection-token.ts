@@ -3,6 +3,7 @@ import { InjectionTokenOptions, ProviderDef } from "../interfaces";
 export class InjectionToken<T = any> {
   constructor(
     options?: InjectionTokenOptions,
+    // for debug purpose
     private readonly name?: string,
   ) {
     if (options !== undefined) {

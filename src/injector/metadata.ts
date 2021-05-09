@@ -11,7 +11,7 @@ import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, NOOP_CONSTRAINT } from "../constants";
-import { applyHooksWrappers } from "../wrappers";
+import { useDefaultHooks } from "../wrappers";
 
 import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";
@@ -128,7 +128,7 @@ export const InjectorMetadata = new class {
     proto?: Type,
   ): DefinitionRecord {
     // if provider is a class provider, then apply hooks wrappers
-    if (proto !== undefined) wrapper = applyHooksWrappers(wrapper);
+    if (proto !== undefined) wrapper = useDefaultHooks(wrapper);
     return {
       record,
       factory,

@@ -10,4 +10,6 @@ export * from "./decorators";
 export * from "./injector";
 export * from "./interfaces";
 export * from "./scope";
-export * from "./wrappers";
+export {
+  Token, Ref, Optional, Skip, Self, SkipSelf, Scoped, New, Named, Tagged, Memo, Lazy, LazyProxy, Decorate, Multi, OnInitHook, OnDestroyHook,
+} from "./wrappers";

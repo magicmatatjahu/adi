@@ -236,10 +236,6 @@ export const LazyProxy = createWrapper((_: never): WrapperDef => {
   }
 });
 
-
-/**
- * PRIVATE WRAPPERS
- */
 export const OnInitHook = createWrapper((_: never): WrapperDef => {
   // console.log('onInitHook');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
@@ -264,14 +260,15 @@ export const OnDestroyHook = createWrapper((_: never): WrapperDef => {
   }
 });
 
-export function applyHooksWrappers(wrapper?: WrapperDef): WrapperDef {
+export function useDefaultHooks(wrapper?: WrapperDef): WrapperDef {
   return OnDestroyHook(OnInitHook(wrapper));
 }
 
-export const Cacheable = createWrapper((_: never): WrapperDef => {
-  // console.log('cacheable');
+export const Memo = createWrapper((_: never): WrapperDef => {
+  // console.log('memo');
   let value: any, init = false;
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('memo');
     if (init === false) {
       value = next(injector, session);
       init = true;
@@ -280,6 +277,6 @@ export const Cacheable = createWrapper((_: never): WrapperDef => {
   }
 });
 
-export function applyCacheableWrapper(wrapper?: WrapperDef): WrapperDef {
-  return Cacheable(wrapper);
+export function useMemo(wrapper?: WrapperDef): WrapperDef {
+  return Memo(wrapper);
 }
