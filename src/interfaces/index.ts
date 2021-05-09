@@ -1,5 +1,6 @@
 export * from "./component.interface";
 export * from "./definition.interface";
+export * from "./hook.interface";
 export * from "./injectable.interface";
 export * from "./injection.interface";
 export * from "./injector.interface";

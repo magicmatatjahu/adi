@@ -8,5 +8,6 @@ export { constraint, c } from "./constraint";
 export * from "./constants";
 export * from "./decorators";
 export * from "./injector";
+export * from "./interfaces";
 export * from "./scope";
 export * from "./wrappers";

@@ -19,6 +19,12 @@
     "typescript",
     "node"
   ],
+  "files": [
+    "src/",
+    "./README.md",
+    "./LICENSE"
+  ],
+  "sideEffects": false,
   "scripts": {
     "test": "jest"
   },

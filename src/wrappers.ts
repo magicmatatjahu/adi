@@ -2,7 +2,7 @@ import { Context, Injector, NilInjector } from "./injector";
 import { InjectionSession, NextWrapper, WrapperDef } from "./interfaces";
 import { Scope } from "./scope";
 import { Token as ProviderToken } from "./types";
-import { createWrapper } from "./utils";
+import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "./utils";
 import { CONSTRAINTS } from "./constants";
 
 export const Token = createWrapper((token: ProviderToken): WrapperDef => {
@@ -215,7 +215,7 @@ function createProxy<T = any>(createObject: () => T): T {
   const target: object = {};
   let value: T, init = false;
   const delayedObject: () => T = (): T => {
-    if (!init) {
+    if (init === false) {
       value = createObject();
       init = true;
     }
@@ -235,3 +235,51 @@ export const LazyProxy = createWrapper((_: never): WrapperDef => {
     return proxy;
   }
 });
+
+
+/**
+ * PRIVATE WRAPPERS
+ */
+export const OnInitHook = createWrapper((_: never): WrapperDef => {
+  // console.log('onInitHook');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside onInitHook');
+    const value = next(injector, session);
+    if (hasOnInitHook(value)) {
+      value.onInit();
+    }
+    return value;
+  }
+});
+
+export const OnDestroyHook = createWrapper((_: never): WrapperDef => {
+  // console.log('onDestroyHook');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside onDestroyHook');
+    const value = next(injector, session);
+    if (hasOnDestroyHook(value)) {
+      // value.onDestroy();
+    }
+    return value;
+  }
+});
+
+export function applyHooksWrappers(wrapper?: WrapperDef): WrapperDef {
+  return OnDestroyHook(OnInitHook(wrapper));
+}
+
+export const Cacheable = createWrapper((_: never): WrapperDef => {
+  // console.log('cacheable');
+  let value: any, init = false;
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    if (init === false) {
+      value = next(injector, session);
+      init = true;
+    }
+    return value;
+  }
+});
+
+export function applyCacheableWrapper(wrapper?: WrapperDef): WrapperDef {
+  return Cacheable(wrapper);
+}

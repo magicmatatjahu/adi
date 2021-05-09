@@ -1,4 +1,6 @@
-import { WrapperDef, WrapperOptions } from "../interfaces";
+import { Injector } from "../injector";
+import { InjectionSession, NextWrapper, WrapperDef, WrapperOptions } from "../interfaces";
+import { Token } from "../types";
 
 // TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class
 export function createWrapper<T = any>(
@@ -23,6 +25,21 @@ export function createWrapper<T = any>(
   return wr;
 }
 
+// change last `next` function to custom function passed by function argument
+export function execWrapper(nextWrapper: WrapperDef, lastNext: NextWrapper) {
+  return (injector: Injector, s: InjectionSession) => {
+    const $$nextWrapper = nextWrapper['$$nextWrapper'];
+    if ($$nextWrapper !== undefined) {
+      const next: NextWrapper = execWrapper($$nextWrapper, lastNext);
+      return nextWrapper(injector, s, next);
+    }
+    // fix passing options
+    // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
+    return nextWrapper(injector, s, lastNext);
+  }
+}
+
+// copy wrapper chain in inheritance case
 export function copyWrapper<T = any>(wrapper: ReturnType<typeof createWrapper>) {
 
 }

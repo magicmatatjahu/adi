@@ -9,11 +9,10 @@ import {
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS } from "../constants";
 import { InjectionStatus, ScopeFlags } from "../enums";
 import { Token } from "../types";
-import { resolveRef } from "../utils";
+import { resolveRef, execWrapper } from "../utils";
 
 import { Context } from "./context";
 import { InjectorMetadata } from "./metadata";
-import { Optional } from "../wrappers";
 
 export class Injector {
   // imported modules
@@ -75,18 +74,9 @@ export class Injector {
     const newSession = InjectorMetadata.createSession(undefined, options, session);
 
     const wrapper = options && options.useWrapper;
-    const nextFn = (nextWrapper: WrapperDef) => (injector: Injector, s: InjectionSession) => {
-      const $$nextWrapper = nextWrapper['$$nextWrapper'];
-      if ($$nextWrapper !== undefined) {
-        const next: NextWrapper = nextFn($$nextWrapper);
-        return nextWrapper(injector, s, next);
-      }
-      // fix passing options
-      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, s);
-      return nextWrapper(injector, s, next);
-    }
     if (wrapper) {
-      return nextFn(wrapper)(this, newSession);
+      const lastNext = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, s);
+      return execWrapper(wrapper, lastNext)(this, newSession);
     }
 
     return this.retrieveRecord(token, options, newSession);
@@ -127,14 +117,25 @@ export class Injector {
       const providerWrappers = this.getWrappers(record, session);
       const length = providerWrappers.length;
   
-      const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
-        if (i === length) {
-          return def.factory(injector, s);
-        }
-        const next: NextWrapper = nextWrapper(i + 1);
-        return providerWrappers[i].wrapper(injector, s, next);
+      // const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
+      //   if (i === length) {
+      //     return def.factory(injector, s);
+      //   }
+      //   const next: NextWrapper = nextWrapper(i + 1);
+      //   return providerWrappers[i].wrapper(injector, s, next);
+      // }
+      // const value = nextWrapper()(record.hostInjector, session) as T;
+
+      // const value = def.factory(record.hostInjector, session) as T;
+
+      let value: T;
+      const wrapper = def.wrapper;
+      if (wrapper) {
+        const lastNext = (i: Injector, s: InjectionSession) => def.factory(i, s) as T;
+        value = execWrapper(wrapper, lastNext)(record.hostInjector, session);
+      } else {
+        value = def.factory(record.hostInjector, session) as T;
       }
-      const value = nextWrapper()(record.hostInjector, session) as T;
 
       if (instance.status & InjectionStatus.CIRCULAR) {
         Object.assign(instance.value, value);
@@ -245,18 +246,9 @@ export class Injector {
     const newSession = InjectorMetadata.createSession(undefined, options, session);
 
     const wrapper = options && options.useWrapper;
-    const nextFn = (nextWrapper: WrapperDef) => (injector: Injector, s: InjectionSession) => {
-      const $$nextWrapper = nextWrapper['$$nextWrapper'];
-      if ($$nextWrapper !== undefined) {
-        const next: NextWrapper = nextFn($$nextWrapper);
-        return nextWrapper(injector, s, next);
-      }
-      // fix passing options
-      const next: NextWrapper = (i: Injector, s: InjectionSession) => i.resolveComponent(component, s.options, s);
-      return nextWrapper(injector, s, next);
-    }
     if (wrapper) {
-      return nextFn(wrapper)(this, newSession);
+      const lastNext = (i: Injector, s: InjectionSession) => i.resolveComponent(component, s.options, s);
+      return execWrapper(wrapper, lastNext)(this, newSession);
     }
 
     return this.resolveComponent(component, options, newSession);

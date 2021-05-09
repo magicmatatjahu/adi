@@ -11,6 +11,7 @@ import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, NOOP_CONSTRAINT } from "../constants";
+import { applyHooksWrappers } from "../wrappers";
 
 import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";
@@ -36,7 +37,7 @@ export const InjectorMetadata = new class {
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
     const record = this.getRecord(provider, hostInjector);
-    record.defaultDef = this.createDefinitionRecord(record, provDef.factory, provDef.scope, provider.prototype);
+    record.defaultDef = this.createDefinitionRecord(record, provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
     return record;
   }
 
@@ -126,6 +127,8 @@ export const InjectorMetadata = new class {
     wrapper?: WrapperDef,
     proto?: Type,
   ): DefinitionRecord {
+    // if provider is a class provider, then apply hooks wrappers
+    if (proto !== undefined) wrapper = applyHooksWrappers(wrapper);
     return {
       record,
       factory,
