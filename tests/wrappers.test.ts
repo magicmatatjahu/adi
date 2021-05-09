@@ -392,7 +392,7 @@ describe('Wrappers', function() {
       @Injectable({ scope: Scope.TRANSIENT })
       class Service {
         constructor(
-          @Inject(Memo(TestWrapper())) readonly service: TestService,
+          @Inject(Memo(TestWrapper(New()))) readonly service: TestService,
         ) {}
       }
   
@@ -430,6 +430,76 @@ describe('Wrappers', function() {
       class Service {
         constructor(
           @Inject(SideEffects(TestWrapper())) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+      ]);
+
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+
+      expect(calls).toEqual(3);
+    });
+  });
+
+  describe('Cacheable', function () {
+    test('should cache injection with simple provider (with DEFAULT scope)', function () {
+      let calls = 0;
+
+      const TestWrapper = createWrapper((_: never) => {
+        return (injector, session, next) => {
+          const value = next(injector, session);
+          calls++;
+          return value;
+        }
+      });
+
+      @Injectable()
+      class TestService {}
+
+      // use Transient scope to create Service on each injector.get(...)
+      @Injectable({ scope: Scope.TRANSIENT })
+      class Service {
+        constructor(
+          @Inject(TestWrapper()) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+      ]);
+
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+      injector.get(Service) as Service;
+
+      expect(calls).toEqual(1);
+    });
+
+    test('should not cache injection with side effects - case with New wrapper', function () {
+      let calls = 0;
+
+      const TestWrapper = createWrapper((_: never) => {
+        return (injector, session, next) => {
+          const value = next(injector, session);
+          calls++;
+          return value;
+        }
+      });
+
+      @Injectable()
+      class TestService {}
+
+      // use Transient scope to create Service on each injector.get(...)
+      @Injectable({ scope: Scope.TRANSIENT })
+      class Service {
+        constructor(
+          @Inject(TestWrapper(New())) readonly service: TestService,
         ) {}
       }
   

@@ -171,7 +171,9 @@ export const InjectorMetadata = new class {
     scope: Scope,
     session?: InjectionSession,
   ): InstanceRecord<T> {
+    session['$$sideEffects'] = scope.hasSideEffects();
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
+    
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = this.createInstanceRecord(ctx, undefined, def);
@@ -182,6 +184,7 @@ export const InjectorMetadata = new class {
       // }
     }
     session.instance = instance;
+
     return instance;
   }
 

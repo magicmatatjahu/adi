@@ -446,6 +446,7 @@ export const NilInjector = new class {
   get(token: Token): never {
     const error = new Error(`NilInjector: No provider for ${token as any}!`);
     error.name = 'NilInjectorError';
+    (error as any).NilInjectorError = true;
     throw error;
   }
   retrieveRecord = this.get;

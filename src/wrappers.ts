@@ -1,7 +1,7 @@
 import { Context, Injector, NilInjector } from "./injector";
 import { InjectionSession, NextWrapper, WrapperDef } from "./interfaces";
 import { Scope } from "./scope";
-import { Token as ProviderToken } from "./types";
+import { Token as ProviderToken, Token as ProvideToken } from "./types";
 import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "./utils";
 import { CONSTRAINTS } from "./constants";
 import { InjectionStatus } from "./enums";
@@ -33,7 +33,7 @@ export const Optional = createWrapper((_: never): WrapperDef => {
     try {
       return next(injector, session);
     } catch(err) {
-      if (err.name === 'NilInjectorError') return undefined;
+      if ((err as any).NilInjectorError === true) return undefined;
       throw err;
     }
   }
@@ -149,6 +149,23 @@ export const Multi = createWrapper((_: never): WrapperDef => {
     }
     const defs = getDefinitions(record, session);
     return defs.map(def => (injector as any).resolveDef(def, options, session))
+  }
+});
+
+export const Fallback = createWrapper((token: ProviderToken): WrapperDef => {
+  // console.log('fallback');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside fallback');
+    try {
+      return next(injector, session);
+    } catch(err) {
+      if ((err as any).NilInjectorError === true) {
+        session.options = session.options || {} as any;
+        session.options.token = token;
+        return next(injector, session);
+      }
+      throw err;
+    }
   }
 });
 
@@ -354,9 +371,10 @@ export const Cacheable = createWrapper((_: never): WrapperDef => {
       return next(injector, session);;
     }
     if (init === false) {
+      session['$$sideEffects'] = false;
       value = next(injector, session);
-      init = true;
       if (session['$$sideEffects'] !== false) sideEffects = true;
+      init = true;
     }
     return value;
   }
