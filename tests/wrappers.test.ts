@@ -401,10 +401,13 @@ describe('Wrappers', function() {
         TestService,
       ]);
 
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
+      const service1 = injector.get(Service) as Service;
+      const service2 = injector.get(Service) as Service;
+      const service3 = injector.get(Service) as Service;
 
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service1.service).toEqual(service2.service);
+      expect(service1.service).toEqual(service3.service);
       expect(calls).toEqual(1);
     });
   });
@@ -438,10 +441,13 @@ describe('Wrappers', function() {
         TestService,
       ]);
 
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
+      const service1 = injector.get(Service) as Service;
+      const service2 = injector.get(Service) as Service;
+      const service3 = injector.get(Service) as Service;
 
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service1.service).toEqual(service2.service);
+      expect(service1.service).toEqual(service3.service);
       expect(calls).toEqual(3);
     });
   });
@@ -474,10 +480,13 @@ describe('Wrappers', function() {
         TestService,
       ]);
 
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
+      const service1 = injector.get(Service) as Service;
+      const service2 = injector.get(Service) as Service;
+      const service3 = injector.get(Service) as Service;
 
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service1.service).toEqual(service2.service);
+      expect(service1.service).toEqual(service3.service);
       expect(calls).toEqual(1);
     });
 
@@ -508,10 +517,14 @@ describe('Wrappers', function() {
         TestService,
       ]);
 
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
-      injector.get(Service) as Service;
+      const service1 = injector.get(Service) as Service;
+      const service2 = injector.get(Service) as Service;
+      const service3 = injector.get(Service) as Service;
 
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service1.service === service2.service).toEqual(false);
+      expect(service1.service === service3.service).toEqual(false);
+      expect(service2.service === service3.service).toEqual(false);
       expect(calls).toEqual(3);
     });
   });
