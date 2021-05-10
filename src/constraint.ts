@@ -4,24 +4,24 @@ import { CONSTRAINTS } from "./constants";
 import { Token } from "./types";
 
 export function named(named: Token): ConstraintDef {
-  return (session: InjectionSession) => session.options?.attrs[CONSTRAINTS.NAMED] === named;
+  return (session: InjectionSession) => session.options?.labels[CONSTRAINTS.NAMED] === named;
 }
 
-export function tagged(tags: Record<string | symbol | number, any> = {}): ConstraintDef {
-  const tagsLength = Object.keys(tags).length;
+export function labels(l: Record<string | symbol | number, any> = {}): ConstraintDef {
+  const tagsLength = Object.keys(l).length;
   return (session: InjectionSession) => {
-    const attrs = session.options?.attrs;
-    if (!attrs) return false;
+    const labels = session.options?.labels;
+    if (!labels) return false;
     let checks = 0;
-    for (const attr in attrs) {
-      if (attrs[attr] === tags[attr]) checks++;
+    for (const label in labels) {
+      if (labels[label] === l[label]) checks++;
     }
     return tagsLength === checks;
   }
 }
 
-export function withoutAttrs(): ConstraintDef {
-  return (session: InjectionSession) => Object.keys(session.options.attrs).length === 0;
+export function withoutLabels(): ConstraintDef {
+  return (session: InjectionSession) => Object.keys(session.options.labels).length === 0;
 }
 
 export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
@@ -34,9 +34,9 @@ export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
 }
 
 export const constraint = {
-  withoutAttrs,
+  withoutLabels,
   named,
-  tagged,
+  labels,
   concat,
 }
 export const c = constraint;

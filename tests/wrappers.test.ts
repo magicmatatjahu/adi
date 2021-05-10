@@ -1,6 +1,6 @@
 import { 
   Injector, Injectable, Inject, Scope, constraint, createWrapper,
-  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged, Fallback, Multi, Memo, SideEffects, c,
+  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Labeled, Fallback, Multi, Memo, SideEffects, c,
 } from "../src";
 
 describe('Wrappers', function() {
@@ -337,7 +337,7 @@ describe('Wrappers', function() {
   });
 
   describe('Tagged', function () {
-    test('should inject tagged provider', function () {
+    test('should inject labeled provider', function () {
       @Injectable()
       class TestService {}
 
@@ -345,8 +345,8 @@ describe('Wrappers', function() {
       class Service {
         constructor(
           readonly service: TestService,
-          @Inject(Tagged({ foo: 'bar' })) readonly foobar: TestService,
-          @Inject(Tagged({ bar: 'foo' })) readonly barfoo: TestService,
+          @Inject(Labeled({ foo: 'bar' })) readonly foobar: TestService,
+          @Inject(Labeled({ bar: 'foo' })) readonly barfoo: TestService,
         ) {}
       }
   
@@ -356,12 +356,12 @@ describe('Wrappers', function() {
         {
           provide: TestService,
           useValue: 'foobar',
-          when: constraint.tagged({ foo: 'bar' }),
+          when: constraint.labels({ foo: 'bar' }),
         },
         {
           provide: TestService,
           useValue: 'barfoo',
-          when: constraint.tagged({ bar: 'foo' }),
+          when: constraint.labels({ bar: 'foo' }),
         },
       ]);
 

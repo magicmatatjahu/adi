@@ -2,13 +2,13 @@ import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
-  Provider, ProviderDef, WrapperDef, NextWrapper, Type,
+  Provider, ProviderDef, NextWrapper, Type,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleDef, ModuleID,
   ForwardRef,
   InjectionMetadata,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS } from "../constants";
-import { InjectionStatus, ScopeFlags } from "../enums";
+import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, execWrapper } from "../utils";
 
@@ -203,47 +203,43 @@ export class Injector {
     record: ProviderRecord,
     session?: InjectionSession
   ): Array<WrapperRecord> {
-    const wrappers = record.wrappers, w = [];
+    const wrappers = record.wrappers, satisfyingWraps = [];
     for (let i = 0, l = wrappers.length; i < l; i++) {
       const wrapper = wrappers[i];
       if (wrapper.constraint(session) === true) {
-        w.push(wrapper);
+        satisfyingWraps.push(wrapper);
       }
     }
-    return w;
+    return satisfyingWraps;
   }
 
   private getDefinition(
     record: ProviderRecord,
     session?: InjectionSession
   ): DefinitionRecord {
-    const defs = record.defs;
-    if (defs.length === 0) {
-      return record.defaultDef;
-    }
-
-    for (let i = defs.length - 1; i > -1; i--) {
-      const def = defs[i];
+    const constraintDefs = record.constraintDefs;
+    for (let i = constraintDefs.length - 1; i > -1; i--) {
+      const def = constraintDefs[i];
       if (def.constraint(session) === true) {
         return def;
       }
     }
-    return record.defaultDef;
+    return record.defs[record.defs.length - 1];
   }
 
   private getDefinitions(
     record: ProviderRecord,
     session?: InjectionSession
   ): Array<any> {
-    const recordDefs = record.defs;
-    const defs = [];
-    for (let i = 0, l = recordDefs.length; i < l; i++) {
-      const d = recordDefs[i];
+    const constraintDefs = record.constraintDefs;
+    const satisfyingDefs = [];
+    for (let i = 0, l = constraintDefs.length; i < l; i++) {
+      const d = constraintDefs[i];
       if (d.constraint(session) === true) {
-        defs.push(d);
+        satisfyingDefs.push(d);
       }
     }
-    return defs.length === 0 ? record.defaultDefs : defs;
+    return satisfyingDefs.length === 0 ? record.defs : satisfyingDefs;
   }
 
   addProvider(provider: Provider): void {

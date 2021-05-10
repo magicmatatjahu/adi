@@ -7,7 +7,7 @@ export interface InjectionOptions<T = any> {
   token: Token<T>;
   ctx?: Context;
   scope?: Scope;
-  attrs?: Record<string | symbol, any>;
+  labels?: Record<string | symbol, any>;
   useWrapper?: WrapperDef,
 }
 

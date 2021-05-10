@@ -11,7 +11,8 @@ import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, NOOP_CONSTRAINT } from "../constants";
-import { useDefaultHooks, useCacheable } from "../wrappers";
+import { useDefaultHooks } from "../wrappers";
+import { Cacheable } from "../wrappers/private";
 
 import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";
@@ -38,8 +39,7 @@ export const InjectorMetadata = new class {
     const provDef = this.getProviderDef(provider);
     const record = this.getRecord(provider, hostInjector);
     const def = this.createDefinitionRecord(record, provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
-    record.defaultDef = def;
-    record.defaultDefs.push(def);
+    record.defs.push(def);
     return record;
   }
 
@@ -100,10 +100,9 @@ export const InjectorMetadata = new class {
 
     const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, useWrapper, proto);
     if (constraint === undefined) {
-      record.defaultDef = def;
-      record.defaultDefs.push(def);
+      record.defs.push(def);
     } else {
-      record.defs.push(def);  
+      record.constraintDefs.push(def);  
     }
 
     return record;
@@ -116,9 +115,8 @@ export const InjectorMetadata = new class {
     return {
       token,
       hostInjector,
-      defaultDef: undefined,
       defs: [],
-      defaultDefs: [],
+      constraintDefs: [],
       wrappers: [],
     }
   }
@@ -197,13 +195,13 @@ export const InjectorMetadata = new class {
    */
   toComponentRecord<T>(
     comp: Type<T>,
-    wrapper?: WrapperDef,
+    useWrapper?: WrapperDef,
   ): ComponentRecord<T> {
     const def = this.getProviderDef(comp);
     return {
       factory: def.factory,
       scope: def.scope || Scope.SINGLETON,
-      wrapper,
+      useWrapper,
       values: new Map<Context, ComponentInstanceRecord>(),
     };
   }
@@ -286,7 +284,7 @@ export const InjectorMetadata = new class {
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
       if (dep.hasOwnProperty('$$nextWrapper')) {
-        converted.push(createInjectionArg(undefined, useCacheable(dep as WrapperDef), undefined, undefined, i, factory));
+        converted.push(createInjectionArg(undefined, Cacheable(dep as WrapperDef), undefined, undefined, i, factory));
       } else {
         converted.push(createInjectionArg(dep as any, undefined, undefined, undefined, i, factory));
       }

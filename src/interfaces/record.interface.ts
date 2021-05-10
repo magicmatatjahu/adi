@@ -8,9 +8,7 @@ export interface ProviderRecord<T = any> {
   token: Token<T>;
   hostInjector: Injector;
   defs: Array<DefinitionRecord>;
-  defaultDef: DefinitionRecord;
-  // TODO: Probably implementation for it should be changed
-  defaultDefs: Array<DefinitionRecord>;
+  constraintDefs: Array<DefinitionRecord>;
   wrappers: Array<WrapperRecord>;
 }
 
@@ -41,7 +39,7 @@ export interface InstanceRecord<T = any> {
 
 export interface ComponentRecord<T = any> {
   factory: FactoryDef<T> | undefined;
-  wrapper: WrapperDef | undefined;
+  useWrapper: WrapperDef | undefined;
   scope: Scope;
   values: Map<Context, ComponentInstanceRecord<T>>;
 }

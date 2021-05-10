@@ -19,7 +19,6 @@ export type CustomSansProvider<T = any> =
   | Omit<ValueProvider<T>, 'provide'>
   | Omit<ExistingProvider<T>, 'provide'>
 
-
 export interface TypeProvider<T = any> extends Type<T> {}
 
 export interface ClassProvider<T = any> {
