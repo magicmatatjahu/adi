@@ -37,7 +37,9 @@ export const InjectorMetadata = new class {
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
     const record = this.getRecord(provider, hostInjector);
-    record.defaultDef = this.createDefinitionRecord(record, provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
+    const def = this.createDefinitionRecord(record, provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
+    record.defaultDef = def;
+    record.defaultDefs.push(def);
     return record;
   }
 
@@ -82,23 +84,24 @@ export const InjectorMetadata = new class {
     }
 
     const constraint = provider.when;
-    let wrapper = undefined;
+    let useWrapper = undefined;
     if (hasWrapperProvider(provider)) {
-      wrapper = provider.useWrapper;
+      useWrapper = provider.useWrapper;
 
       // case with standalone `useWrapper`
       if (factory === undefined) {
         record.wrappers.push({
-          wrapper: wrapper,
+          useWrapper: useWrapper,
           constraint: constraint || NOOP_CONSTRAINT,
         });
         return record;
       }
     }
 
-    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, wrapper, proto);
+    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, useWrapper, proto);
     if (constraint === undefined) {
       record.defaultDef = def;
+      record.defaultDefs.push(def);
     } else {
       record.defs.push(def);  
     }
@@ -115,6 +118,7 @@ export const InjectorMetadata = new class {
       hostInjector,
       defaultDef: undefined,
       defs: [],
+      defaultDefs: [],
       wrappers: [],
     }
   }
@@ -124,17 +128,17 @@ export const InjectorMetadata = new class {
     factory?: FactoryDef,
     scope?: Scope,
     constraint?: ConstraintDef,
-    wrapper?: WrapperDef,
+    useWrapper?: WrapperDef,
     proto?: Type,
   ): DefinitionRecord {
     // if provider is a class provider, then apply hooks wrappers
-    if (proto !== undefined) wrapper = useDefaultHooks(wrapper);
+    if (proto !== undefined) useWrapper = useDefaultHooks(useWrapper);
     return {
       record,
       factory,
       scope: scope || Scope.DEFAULT,
       constraint,
-      wrapper,
+      useWrapper,
       proto: proto || undefined,
       values: new Map<Context, InstanceRecord>(),
     };
@@ -173,7 +177,7 @@ export const InjectorMetadata = new class {
   ): InstanceRecord<T> {
     session['$$sideEffects'] = scope.hasSideEffects();
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
-    
+
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = this.createInstanceRecord(ctx, undefined, def);

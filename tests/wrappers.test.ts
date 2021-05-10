@@ -1,6 +1,6 @@
 import { 
   Injector, Injectable, Inject, Scope, constraint, createWrapper,
-  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged, Memo, SideEffects,
+  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Tagged, Fallback, Multi, Memo, SideEffects, c,
 } from "../src";
 
 describe('Wrappers', function() {
@@ -372,6 +372,129 @@ describe('Wrappers', function() {
     });
   });
 
+  describe('Fallback', function () {
+    test('should inject fallback provider when given provider doesnt exist in injector', function () {
+      @Injectable()
+      class TestService {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Fallback("token")) readonly service: TestService
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        {
+          provide: "token",
+          useValue: "foobar"
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual("foobar");
+    });
+
+    test('should throw error when fallback doesnt exists', function () {
+      @Injectable()
+      class TestService {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Fallback(String)) readonly service: TestService
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+      ]);
+
+      let err, service;
+      try {
+        service = injector.get(Service) as Service;
+      } catch(e) {
+        err = e;
+      }
+
+      expect(service === undefined).toEqual(true);
+      expect(err !== undefined).toEqual(true);
+    });
+  });
+
+  describe('Multi', function () {
+    test('should inject multi providers when wrapper is defined as normal provider in providers array', function () {
+      @Injectable()
+      class MultiProvider extends Array<any> {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject() readonly multi: MultiProvider,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        {
+          provide: MultiProvider,
+          useWrapper: Multi(),
+        },
+        {
+          provide: MultiProvider,
+          useValue: 'multi-provider-1'
+        },
+        {
+          provide: MultiProvider,
+          useValue: 'multi-provider-2'
+        },
+        {
+          provide: MultiProvider,
+          useValue: 'multi-provider-3'
+        },
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
+    });
+
+    test('should inject multi providers from given token with constraints', function () {
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject('token', Multi(Named('multi'))) readonly multi: Array<any>,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        {
+          provide: 'token',
+          useValue: 'no-multi'
+        },
+        {
+          provide: 'token',
+          useValue: 'multi1',
+          when: c.named('multi'),
+        },
+        {
+          provide: 'token',
+          useValue: 'multi2',
+          when: c.named('multi'),
+        },
+        {
+          provide: 'token',
+          useValue: 'multi3',
+          when: c.named('multi'),
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.multi).toEqual(['multi1', 'multi2', 'multi3']);
+    });
+  });
+
   describe('Memo', function () {
     test('should memoize injection even when injection has side effects', function () {
       let calls = 0;
@@ -616,50 +739,6 @@ describe('Wrappers', function() {
       expect(calls).toEqual(6);
     });
 
-    test('should not cache injection in different modules - case when this same provider is provided in parent injector with sideEffects', function () {
-      let calls = 0;
-
-      const TestWrapper = createWrapper((_: never) => {
-        return (injector, session, next) => {
-          const value = next(injector, session);
-          calls++;
-          return value;
-        }
-      });
-
-      @Injectable()
-      class TestService {}
-
-      // use Transient scope to create Service on each injector.get(...)
-      @Injectable({ scope: Scope.TRANSIENT })
-      class Service {
-        constructor(
-          @Inject(TestWrapper(New())) readonly service: TestService,
-        ) {}
-      }
-  
-      const parentInjector = new Injector([
-        Service,
-        TestService,
-      ]);
-      const childInjector = new Injector([
-        Service,
-        TestService,
-      ], parentInjector);
-
-      const parentService = parentInjector.get(Service) as Service;
-      parentInjector.get(Service) as Service;
-      parentInjector.get(Service) as Service;
-      const childService = childInjector.get(Service) as Service;
-      childInjector.get(Service) as Service;
-      childInjector.get(Service) as Service;
-
-      expect(parentService.service).toBeInstanceOf(TestService);
-      expect(childService.service).toBeInstanceOf(TestService);
-      expect(parentService.service === childService.service).toEqual(false);
-      expect(calls).toEqual(6);
-    });
-
     test('should not cache injection in different modules - case when this same provider is provided in parent injector', function () {
       let calls = 0;
 
@@ -702,6 +781,52 @@ describe('Wrappers', function() {
       expect(childService.service).toBeInstanceOf(TestService);
       expect(parentService.service === childService.service).toEqual(false);
       expect(calls).toEqual(2);
+    });
+
+    test('should not cache injection in different modules - case when this same provider is provided in parent injector with sideEffects', function () {
+      let calls = 0;
+
+      const TestWrapper = createWrapper((_: never) => {
+        return (injector, session, next) => {
+          const value = next(injector, session);
+          calls++;
+          return value;
+        }
+      });
+
+      @Injectable()
+      class TestService {}
+
+      // use Transient scope to create Service on each injector.get(...)
+      @Injectable({ scope: Scope.TRANSIENT })
+      class Service {
+        constructor(
+          @Inject(TestWrapper(New())) readonly service: TestService,
+        ) {}
+      }
+  
+      const parentInjector = new Injector([
+        Service,
+        TestService,
+      ]);
+      const childInjector = new Injector([
+        Service,
+        TestService,
+      ], parentInjector);
+
+      const parentService = parentInjector.get(Service) as Service;
+      const parentService2 = parentInjector.get(Service) as Service;
+      const parentService3 = parentInjector.get(Service) as Service;
+      const childService = childInjector.get(Service) as Service;
+      const childService2 = childInjector.get(Service) as Service;
+      const childService3 = childInjector.get(Service) as Service;
+
+      expect(parentService.service).toBeInstanceOf(TestService);
+      expect(childService.service).toBeInstanceOf(TestService);
+      expect(parentService.service === childService.service).toEqual(false);
+      expect(parentService2.service === parentService3.service).toEqual(false);
+      expect(childService2.service === childService3.service).toEqual(false);
+      expect(calls).toEqual(6);
     });
   });
 

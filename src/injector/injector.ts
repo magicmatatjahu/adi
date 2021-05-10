@@ -85,10 +85,28 @@ export class Injector {
   private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const record = this.getRecord(token);
     if (record !== undefined) {
-      const def = this.getDefinition(record, session);
-      return this.resolveDef(def, options, session);
+      const providerWrappers = this.getWrappers(record, session);
+
+      if (providerWrappers !== undefined) {
+        const length = providerWrappers.length;
+        const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
+          if (i === length) {
+            return this.getDef(record, s.options, s);
+          }
+          const next: NextWrapper = nextWrapper(i + 1);
+          return providerWrappers[i].useWrapper(injector, s, next);
+        }
+        return nextWrapper()(this, session);
+      }
+      
+      return this.getDef(record, options, session);
     }
     return this.getParentInjector().get(token, options, meta, session);
+  }
+
+  private getDef<T>(record: ProviderRecord<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+    const def = this.getDefinition(record, session);
+    return this.resolveDef(def, options, session);
   }
 
   private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
@@ -126,9 +144,9 @@ export class Injector {
       // const value = nextWrapper()(record.hostInjector, session) as T;
 
       let value: T;
-      if (def.wrapper !== undefined) {
+      if (def.useWrapper !== undefined) {
         const last = (i: Injector, s: InjectionSession) => def.factory(i, s) as T;
-        value = execWrapper(def.wrapper, last)(record.hostInjector, session);
+        value = execWrapper(def.useWrapper, last)(record.hostInjector, session);
       } else {
         value = def.factory(record.hostInjector, session) as T;
       }
@@ -211,6 +229,21 @@ export class Injector {
       }
     }
     return record.defaultDef;
+  }
+
+  private getDefinitions(
+    record: ProviderRecord,
+    session?: InjectionSession
+  ): Array<any> {
+    const recordDefs = record.defs;
+    const defs = [];
+    for (let i = 0, l = recordDefs.length; i < l; i++) {
+      const d = recordDefs[i];
+      if (d.constraint(session) === true) {
+        defs.push(d);
+      }
+    }
+    return defs.length === 0 ? record.defaultDefs : defs;
   }
 
   addProvider(provider: Provider): void {

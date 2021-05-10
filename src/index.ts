@@ -11,6 +11,7 @@ export * from "./injector";
 export * from "./interfaces";
 export * from "./scope";
 export {
-  Token, Ref, Optional, Skip, Self, SkipSelf, Scoped, New, Named, Tagged, Memo, Lazy, LazyProxy, Decorate, Multi, OnInitHook, OnDestroyHook, SideEffects,
+  Token, Ref, Optional, Skip, Self, SkipSelf, Scoped, New, Named, Tagged, Fallback, Memo, Lazy, LazyProxy, Decorate, Multi, 
+  OnInitHook, OnDestroyHook, SideEffects,
 } from "./wrappers";
 export { resolveRef, createWrapper } from "./utils";

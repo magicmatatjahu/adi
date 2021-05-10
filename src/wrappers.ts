@@ -122,36 +122,6 @@ export const Tagged = createWrapper((records: Record<string | symbol, any>): Wra
   }
 });
 
-export const Multi = createWrapper((_: never): WrapperDef => {
-  function getDefinitions(
-    record: any,
-    session?: InjectionSession
-  ): Array<any> {
-    const recordDefs = record.defs;
-    const defs = [];
-    for (let i = 0, l = recordDefs.length; i < l; i++) {
-      const d = recordDefs[i];
-      if (d.constraint(session) === true) {
-        defs.push(d);
-      }
-    }
-    return defs;
-  }
-
-  // console.log('multi');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside multi');
-    const options = session.options;
-    const token = options.token;
-    const record = (injector as any).records.get(token);
-    if (!record) {
-      return [];
-    }
-    const defs = getDefinitions(record, session);
-    return defs.map(def => (injector as any).resolveDef(def, options, session))
-  }
-});
-
 export const Fallback = createWrapper((token: ProviderToken): WrapperDef => {
   // console.log('fallback');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
@@ -169,9 +139,24 @@ export const Fallback = createWrapper((token: ProviderToken): WrapperDef => {
   }
 });
 
+export const Multi = createWrapper((_: never): WrapperDef => {
+  // console.log('multi');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside multi');
+    // exec wrappers chain to retrieve needed, updated session
+    next(injector, session);
+    const options = session.options;
+    // injector should have record
+    const record = (injector as any).records.get(options.token);
+    const defs = (injector as any).getDefinitions(record, session);
+    // TODO: improve function to pass wrappers chain again and maybe copy of session
+    // add also check for side effects
+    return defs.map(def => (injector as any).resolveDef(def, options, session));
+  }
+});
+
 interface DecorateOptions {
-  decorator: ProviderToken;
-  reuseScope?: true;
+  decorator: ProviderToken; 
 }
 
 export const Decorate = createWrapper((decorator: ProviderToken | DecorateOptions): WrapperDef => {

@@ -9,6 +9,8 @@ export interface ProviderRecord<T = any> {
   hostInjector: Injector;
   defs: Array<DefinitionRecord>;
   defaultDef: DefinitionRecord;
+  // TODO: Probably implementation for it should be changed
+  defaultDefs: Array<DefinitionRecord>;
   wrappers: Array<WrapperRecord>;
 }
 
@@ -16,7 +18,7 @@ export interface DefinitionRecord<T = any> {
   record: ProviderRecord<T>;
   factory: FactoryDef<T> | undefined;
   constraint: ConstraintDef | undefined;
-  wrapper: WrapperDef | undefined;
+  useWrapper: WrapperDef | undefined;
   scope: Scope;
   proto: Type<T> | undefined;
   values: Map<Context, InstanceRecord<T>>;
@@ -26,7 +28,7 @@ export interface DefinitionRecord<T = any> {
 }
 
 export interface WrapperRecord<T = any> {
-  wrapper: WrapperDef<T>,
+  useWrapper: WrapperDef<T>,
   constraint: ConstraintDef;
 }
 
