@@ -1,4 +1,4 @@
-import { Injector, Injectable, Component, Module } from "../src";
+import { Injector, Injectable, Component, Module, MODULE_INITIALIZERS } from "../src";
 
 describe('Module', function() {
   test('should be able to create injector from module', async function() {
@@ -108,6 +108,25 @@ describe('Module', function() {
     @Module({
       imports: [
         SharedModule,
+      ],
+    })
+    class MainModule {}
+
+    const injector = await new Injector(MainModule).compile();
+    expect(injector).toBeInstanceOf(Injector);
+  });
+
+  test.only('should call MODULE_INITIALIZERS on init', async function() {
+    @Module({
+      providers: [
+        {
+          provide: MODULE_INITIALIZERS,
+          useValue: 1,
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useValue: 2,
+        }
       ],
     })
     class MainModule {}

@@ -388,12 +388,15 @@ export class Injector {
 
     // init all providers for MODULE_INITIALIZERS token
     // and if returned value (one of returned) is a function, call this function
-    const initializers = await this.get(MODULE_INITIALIZERS) || [];
-    let initializer = undefined;
-    for (let i = 0, l = initializers.length; i < l; i++) {
-      if (typeof (initializer = initializers[i]) === "function") {
-        await initializer();
-      }
+    if (this.records.has(MODULE_INITIALIZERS)) {
+      console.log(this.get(MODULE_INITIALIZERS))
+      // const initializers = await this.get(MODULE_INITIALIZERS);
+      // let initializer = undefined;
+      // for (let i = 0, l = initializers.length; i < l; i++) {
+      //   if (typeof (initializer = initializers[i]) === "function") {
+      //     await initializer();
+      //   }
+      // }
     }
 
     // at the end init given module
