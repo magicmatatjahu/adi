@@ -1,22 +1,24 @@
-import { Injector, Injectable, OnInit } from "../src";
+import { Injector, Injectable, OnInit, Component } from "../src";
 
 describe('Hooks', function() {
-  test('should call onInit hook', function() {
-    let checkInit = false;
-
-    @Injectable()
-    class Service implements OnInit {
-      onInit() {
-        checkInit = true;
+  describe('onInit', function() {
+    test('should call onInit hook in provider', function() {
+      let checkInit = false;
+  
+      @Injectable()
+      class Service implements OnInit {
+        onInit() {
+          checkInit = true;
+        }
       }
-    }
-
-    const injector = new Injector([
-      Service,
-    ]);
-
-    const service = injector.get(Service) as Service;
-    expect(service).toBeInstanceOf(Service);
-    expect(checkInit).toEqual(true);
+  
+      const injector = new Injector([
+        Service,
+      ]);
+  
+      const service = injector.get(Service) as Service;
+      expect(service).toBeInstanceOf(Service);
+      expect(checkInit).toEqual(true);
+    });
   });
 });

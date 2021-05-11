@@ -25,14 +25,14 @@ export const Ref = createWrapper((ref: () => ProviderToken): WrapperDef => {
   }
 });
 
-export const Optional = createWrapper((_: never): WrapperDef => {
+export const Optional = createWrapper((defaultValue: any): WrapperDef => {
   // console.log('optional');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside optional');
     try {
       return next(injector, session);
     } catch(err) {
-      if ((err as any).NilInjectorError === true) return undefined;
+      if ((err as any).NilInjectorError === true) return defaultValue;
       throw err;
     }
   }
@@ -73,6 +73,8 @@ export const Self = createWrapper((_: never): WrapperDef => {
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside self');
     const token = session.options.token;
+    // check for treeshakable provider
+    (injector as any).getRecord(token);
     const ownRecord = (injector as any).records.get(token);
     // if token is not found
     if (ownRecord === undefined) {
@@ -88,9 +90,12 @@ export const SkipSelf = createWrapper((_: never): WrapperDef => {
     // console.log('inside skipSelf');
     const token = session.options.token;
     let parentInjector = injector.getParentInjector();
+    // check for treeshakable provider
+    (injector as any).getRecord(token);
     const ownRecord = (injector as any).records.get(token);
 
     while (parentInjector !== NilInjector) {
+      (parentInjector as any).getRecord(token);
       if (
         (parentInjector as any).records.get(token) ||
         (parentInjector as any).importedRecords.get(token) !== ownRecord
@@ -147,7 +152,8 @@ export const Multi = createWrapper((_: never): WrapperDef => {
     const options = session.options;
     const instantietedInstance = session.instance;
     const instantietedDef = instantietedInstance.def;
-    const record = (injector as any).records.get(options.token);
+    const token = options.token || instantietedInstance.def.record.token;
+    const record = (injector as any).records.get(token);
     const defs = (injector as any).getDefinitions(record, session);
     // TODO: improve function to pass wrappers chain again and maybe copy of session
     // add also check for side effects
@@ -171,11 +177,11 @@ interface DecorateOptions {
 }
 
 export const Decorate = createWrapper((decorator: ProviderToken | DecorateOptions): WrapperDef => {
-  let token: ProviderToken, factory: ((decoratee: any, ...args: any[]) => any), inject: InjectionArgument[];
+  let token: ProviderToken, factory: ((decoratee: any, ...args: any[]) => any), deps: InjectionArgument[];
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
     factory = (decorator as DecorateOptions).decorator;
-    inject = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
+    deps = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
   } else { // class based decorator
     token = decorator as ProviderToken;
   }
@@ -193,7 +199,7 @@ export const Decorate = createWrapper((decorator: ProviderToken | DecorateOption
     }
 
     // function based decorator
-    return factory(decoratee, ...InjectorResolver.injectDeps(inject, injector, session));
+    return factory(decoratee, ...InjectorResolver.injectDeps(deps, injector, session));
   }
 });
 

@@ -98,7 +98,7 @@ export const InjectorMetadata = new class {
       }
     }
 
-    const def = this.createDefinitionRecord(record, factory, (provider as any).scope, constraint, useWrapper, proto);
+    const def = this.createDefinitionRecord(record, factory, scope, constraint, useWrapper, proto);
     if (constraint === undefined) {
       record.defs.push(def);
     } else {
@@ -198,6 +198,7 @@ export const InjectorMetadata = new class {
     useWrapper?: WrapperDef,
   ): ComponentRecord<T> {
     const def = this.getProviderDef(comp);
+    useWrapper = useDefaultHooks(useWrapper);
     return {
       factory: def.factory,
       scope: def.scope || Scope.SINGLETON,

@@ -119,6 +119,44 @@ describe('Wrappers', function() {
       const service = injector.get(Service) as Service;
       expect(service.service).toEqual(undefined);
     });
+
+    test('should handle exception when token is not defined in providers array and return default value passed as argument', function () {
+      @Injectable()
+      class TestService {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Optional('testService')) readonly service: TestService
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual('testService');
+    });
+
+    test('should default value overrides value passed in constructor as fallback', function () {
+      @Injectable()
+      class TestService {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Optional('testService')) readonly service: TestService = 'defaultValue'
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual('testService');
+    });
   });
 
   describe('Skip', function () {

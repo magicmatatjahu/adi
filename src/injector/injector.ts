@@ -92,7 +92,7 @@ export class Injector {
         const length = providerWrappers.length;
         const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
           if (i === length) {
-            return this.getDef(record, s.options, s);
+            return this.getDef(record, s.options, s.meta, s);
           }
           const next: NextWrapper = nextWrapper(i + 1);
           return providerWrappers[i].useWrapper(injector, s, next);
@@ -100,12 +100,12 @@ export class Injector {
         return nextWrapper()(this, session);
       }
       
-      return this.getDef(record, options, session);
+      return this.getDef(record, options, meta, session);
     }
     return this.getParentInjector().get(token, options, meta, session);
   }
 
-  private getDef<T>(record: ProviderRecord<T>, options?: InjectionOptions, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+  private getDef<T>(record: ProviderRecord<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const def = this.getDefinition(record, session);
     return this.resolveDef(def, options, session);
   }
@@ -388,7 +388,7 @@ export class Injector {
 
     // init all providers for MODULE_INITIALIZERS token
     // and if returned value (one of returned) is a function, call this function
-    const initializers = await this.get(MODULE_INITIALIZERS);
+    const initializers = await this.get(MODULE_INITIALIZERS) || [];
     let initializer = undefined;
     for (let i = 0, l = initializers.length; i < l; i++) {
       if (typeof (initializer = initializers[i]) === "function") {

@@ -1,5 +1,6 @@
 import { Context, InjectionToken } from "./injector";
 import { InjectorOptions, InjectorScopeType } from "./interfaces";
+import { Multi } from "./wrappers";
 
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");
 
@@ -15,13 +16,14 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({
   providedIn: 'any',
-  useFactory() { return [] },
+  // TODO: Fix using single wrapper without normal providers
+  useValue: undefined,
+  useWrapper: Multi(),
 }, "MODULE_INITIALIZERS");
 
 export const CONSTRAINTS = {
   NAMED: '$$named',
 }
 
-export const NOOP_CONSTRAINT = () => true;
 export const ALWAYS_CONSTRAINT = () => true;
 export const NEVER_CONSTRAINT = () => false;
