@@ -15,7 +15,7 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({
   providedIn: 'any',
-  useValue: [],
+  useFactory() { return [] },
 }, "MODULE_INITIALIZERS");
 
 export const CONSTRAINTS = {
@@ -23,5 +23,5 @@ export const CONSTRAINTS = {
 }
 
 export const NOOP_CONSTRAINT = () => true;
-export const TRUE_CONSTRAINT = () => true;
-export const FALSE_CONSTRAINT = () => false;
+export const ALWAYS_CONSTRAINT = () => true;
+export const NEVER_CONSTRAINT = () => false;

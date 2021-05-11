@@ -1,6 +1,6 @@
 import { 
   Injector, Injectable, Inject, Scope, constraint, createWrapper,
-  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Labeled, Fallback, Multi, Memo, SideEffects, c,
+  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Labeled, Fallback, Multi, Memo, SideEffects, c, Decorate,
 } from "../src";
 
 describe('Wrappers', function() {
@@ -459,7 +459,44 @@ describe('Wrappers', function() {
       expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
     });
 
-    test('should inject multi providers from given token with constraints', function () {
+    test('should inject multi providers from given token with constraints (token based useWrapper)', function () {
+      @Injectable()
+      class MultiProvider extends Array<any> {}
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Named('multi')) readonly multi: MultiProvider,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        {
+          provide: MultiProvider,
+          useWrapper: Multi(),
+        },
+        {
+          provide: MultiProvider,
+          useValue: 'multi1',
+          when: c.named('multi'),
+        },
+        {
+          provide: MultiProvider,
+          useValue: 'multi2',
+        },
+        {
+          provide: MultiProvider,
+          useValue: 'multi3',
+          when: c.named('multi'),
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.multi).toEqual(['multi1', 'multi3']);
+    });
+
+    test('should inject multi providers from given token with constraints (injection based useWrapper)', function () {
       @Injectable()
       class Service {
         constructor(
@@ -486,12 +523,130 @@ describe('Wrappers', function() {
         {
           provide: 'token',
           useValue: 'multi3',
-          when: c.named('multi'),
         }
       ]);
 
       const service = injector.get(Service) as Service;
-      expect(service.multi).toEqual(['multi1', 'multi2', 'multi3']);
+      expect(service.multi).toEqual(['multi1', 'multi2']);
+    });
+
+    // TODO: Add more testing with side effects etc
+  });
+
+  describe('Decorate', function () {
+    test('should decorate provider (injection based useWrapper) - function decorator case', function () {
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      const functionDecorator = {
+        decorator(decoratee: TestService) { return decoratee.method() + 'bar' }
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Decorate(functionDecorator)) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual('foobar');
+    });
+
+    test('should decorate provider (injection based useWrapper) - function decorator case with inject array', function () {
+      @Injectable()
+      class AwesomeService {
+        addAwesome() {
+          return ' is awesome';
+        }
+      }
+
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      const functionDecorator = {
+        decorator(decoratee: TestService, service: AwesomeService, exclamation: string) { return decoratee.method() + 'bar' + service.addAwesome() + exclamation },
+        inject: [AwesomeService, Token('exclamation')],
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Decorate(functionDecorator)) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+        AwesomeService,
+        {
+          provide: 'exclamation',
+          useValue: '!',
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual('foobar is awesome!');
+    });
+
+    test('should decorate provider (injection based useWrapper) - double decorator', function () {
+      @Injectable()
+      class AwesomeService {
+        addAwesome() {
+          return ' is awesome';
+        }
+      }
+
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      const decorator1 = {
+        decorator(decoratee: TestService, service: AwesomeService) { return decoratee.method() + 'bar' + service.addAwesome() },
+        inject: [AwesomeService, Token('exclamation')],
+      }
+
+      const decorator2 = {
+        decorator(value: string, exclamation: string) { return `(${value + exclamation})` },
+        inject: ['exclamation'],
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Decorate(decorator2, Decorate(decorator1))) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+        AwesomeService,
+        {
+          provide: 'exclamation',
+          useValue: '!',
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual('(foobar is awesome!)');
     });
   });
 

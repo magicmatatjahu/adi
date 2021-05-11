@@ -6,6 +6,7 @@ import {
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleDef, ModuleID,
   ForwardRef,
   InjectionMetadata,
+  InjectionArgument,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS } from "../constants";
 import { InjectionStatus } from "../enums";
@@ -69,11 +70,11 @@ export class Injector {
   /*
    * PROVIDERS
    */
-  get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
-    options = options || {} as any;
-    const newSession = InjectorMetadata.createSession(undefined, options, meta, session);
+  get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: InjectionSession): Promise<T | undefined> | T | undefined {
+    options = options || {} as InjectionOptions;
+    const newSession = InjectorMetadata.createSession(undefined, options, meta, parentSession);
 
-    const wrapper = options && options.useWrapper;
+    const wrapper = options.useWrapper;
     if (wrapper) {
       const last = (i: Injector, s: InjectionSession) => i.retrieveRecord(s.options.token || token, s.options, meta, s);
       return execWrapper(wrapper, last)(this, newSession);

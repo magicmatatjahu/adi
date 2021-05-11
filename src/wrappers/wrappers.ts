@@ -1,5 +1,5 @@
-import { Context, Injector, NilInjector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { Context, Injector, NilInjector, InjectorMetadata, InjectorResolver } from "../injector";
+import { InjectionArgument, InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { Token as ProviderToken } from "../types";
 import { createWrapper } from "../utils";
@@ -10,7 +10,7 @@ export const Token = createWrapper((token: ProviderToken): WrapperDef => {
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside token');
     session.options = session.options || {} as any;
-    session.options.token = token;
+    session.options.token = token || session.options.token;
     return next(injector, session);
   }
 });
@@ -145,29 +145,55 @@ export const Multi = createWrapper((_: never): WrapperDef => {
     // exec wrappers chain to retrieve needed, updated session
     next(injector, session);
     const options = session.options;
-    // injector should have record
+    const instantietedInstance = session.instance;
+    const instantietedDef = instantietedInstance.def;
     const record = (injector as any).records.get(options.token);
     const defs = (injector as any).getDefinitions(record, session);
     // TODO: improve function to pass wrappers chain again and maybe copy of session
     // add also check for side effects
-    return defs.map(def => (injector as any).resolveDef(def, options, session));
+    // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
+    const values = [];
+    for (let i = 0, l = defs.length; i < l; i++) {
+      const def = defs[i];
+      if (def === instantietedDef) {
+        values.push(instantietedInstance.value);
+      } else {
+        values.push((injector as any).resolveDef(def, options, session));
+      }
+    }
+    return values;
   }
 });
 
 interface DecorateOptions {
-  decorator: ProviderToken; 
+  decorator: ((decoratee: any, ...args: any[]) => any);
+  inject?: Array<ProviderToken | WrapperDef>;
 }
 
 export const Decorate = createWrapper((decorator: ProviderToken | DecorateOptions): WrapperDef => {
-  const token = (decorator as DecorateOptions).decorator || decorator;
+  let token: ProviderToken, factory: ((decoratee: any, ...args: any[]) => any), inject: InjectionArgument[];
+
+  if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
+    factory = (decorator as DecorateOptions).decorator;
+    inject = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
+  } else { // class based decorator
+    token = decorator as ProviderToken;
+  }
 
   // console.log('decorate');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside decorate');
 
     const decoratee = next(injector, session);
-    // only class for POC
-    return new (decorator as any)(decoratee);
+
+    // class based decorator
+    if (token) {
+      const decoratedToken = session.options.token;
+      return new (decorator as any)(decoratee);
+    }
+
+    // function based decorator
+    return factory(decoratee, ...InjectorResolver.injectDeps(inject, injector, session));
   }
 });
 

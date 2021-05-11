@@ -10,7 +10,7 @@ import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { STATIC_CONTEXT, NOOP_CONSTRAINT } from "../constants";
+import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
 import { useDefaultHooks } from "../wrappers";
 import { Cacheable } from "../wrappers/private";
 
@@ -92,7 +92,7 @@ export const InjectorMetadata = new class {
       if (factory === undefined) {
         record.wrappers.push({
           useWrapper: useWrapper,
-          constraint: constraint || NOOP_CONSTRAINT,
+          constraint: constraint || ALWAYS_CONSTRAINT,
         });
         return record;
       }
