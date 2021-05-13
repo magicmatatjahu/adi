@@ -1,12 +1,12 @@
 import { Provider, ForwardRef, Type } from ".";
+import { Injector } from "../injector";
 import { Token } from "../types";
 
-export interface ModuleMetadata<T = any> {
-  id?: string | symbol;
+export interface ModuleMetadata {
   imports?: Array<
     | Type
-    | DynamicModule<T>
-    | Promise<DynamicModule<T>>
+    | DynamicModule
+    | Promise<DynamicModule>
     | ForwardRef
   >;
   components?: Array<Type>;
@@ -14,15 +14,23 @@ export interface ModuleMetadata<T = any> {
   exports?: Array<
     | Token
     | Provider
-    // TODO: Add DynamicModule and/or Promise<DynamicModule>> ?
-    //| DynamicModule
-    //| Promise<DynamicModule>> ?
-    // | ForwardRef
+    | DynamicModule
+    | Promise<DynamicModule>
+    | ForwardRef
   >;
 }
 
-export interface DynamicModule<T = any> extends ModuleMetadata<T> {
+export interface DynamicModule<T = any> extends ModuleMetadata {
+  id?: ModuleID;
   module: Type<T>;
 }
 
 export type ModuleID = string | symbol;
+
+export interface ModulesGraphItem {
+  mod: Type,
+  distance: number;
+  possibleParent: Injector; 
+}
+
+export type ModulesGraph = Map<Type, Map<ModuleID, ModulesGraphItem>>;

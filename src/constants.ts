@@ -26,3 +26,6 @@ export const CONSTRAINTS = {
 
 export const ALWAYS_CONSTRAINT = () => true;
 export const NEVER_CONSTRAINT = () => false;
+
+export const EMPTY_OBJECT = {};
+export const EMPTY_ARRAY = [];

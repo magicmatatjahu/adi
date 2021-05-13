@@ -17,12 +17,12 @@ export function moduleMixin<T>(clazz: Type<T>, metadata?: ModuleMetadata): Type<
   return clazz;
 }
 
-export function getModuleDef<T>(injector: unknown): ModuleDef<T> | undefined {
+export function getModuleDef<T>(injector: unknown): ModuleDef | undefined {
   return injector['$$module'] || undefined;
 }
 
 // modules don't support inheritance
-function applyModuleDef<T>(target: Object, metadata: ModuleMetadata = {}): ModuleDef<T> {
+function applyModuleDef<T>(target: Object, metadata: ModuleMetadata = {}): ModuleDef {
   // metadata.type = metadata.type || ModuleType.SHARED;
   return Object.defineProperty(target, '$$module', { value: metadata, enumerable: true })
 }

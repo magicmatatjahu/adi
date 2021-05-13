@@ -2,7 +2,7 @@ import { Injector } from "../injector";
 import { Scope } from "../scope";
 import { InjectionSession, InjectionArgument, ModuleMetadata, ProvideInType } from ".";
 
-export type ModuleDef<T = any> = ModuleMetadata<T>;
+export type ModuleDef = ModuleMetadata;
 
 export interface ComponentDef {
   token: unknown;
