@@ -1,6 +1,7 @@
 import { Provider, ForwardRef, Type } from ".";
 import { Injector } from "../injector";
 import { Token } from "../types";
+import { ModuleDef } from "./definition.interface";
 
 export interface ModuleMetadata {
   imports?: Array<
@@ -14,8 +15,7 @@ export interface ModuleMetadata {
   exports?: Array<
     | Token
     | Provider
-    | DynamicModule
-    | Promise<DynamicModule>
+    | ExportedModule
     | ForwardRef
   >;
 }
@@ -27,10 +27,17 @@ export interface DynamicModule<T = any> extends ModuleMetadata {
 
 export type ModuleID = string | symbol;
 
-export interface ModulesGraphItem {
-  mod: Type,
-  distance: number;
-  possibleParent: Injector; 
+export interface CompiledModule {
+  mod: Type;
+  moduleDef: ModuleDef;
+  dynamicDef: DynamicModule;
+  injector: Injector;
+  exportTo: Injector;
+  isFacade: boolean;
 }
 
-export type ModulesGraph = Map<Type, Map<ModuleID, ModulesGraphItem>>;
+export interface ExportedModule {
+  module: Type;
+  id?: ModuleID; 
+  providers: Array<Token | Provider>;
+}

@@ -26,34 +26,4 @@ describe.skip('test', function() {
 
     expect(true).toEqual(true);
   });
-
-  test('Decorate wrapper', function() {
-    @Injectable()
-    class Service {
-      constructor() {}
-
-      method() {
-        return "foo";
-      }
-    }
-
-    class Decorator {
-      constructor(readonly service: Service) {}
-
-      method() { return this.service.method() + 'bar'; }
-    }
-
-    const injector = new Injector([
-      Service,
-      {
-        provide: Service,
-        useWrapper: Decorate(Decorator),
-      }
-    ]);
-
-    const service = injector.get(Service) as Service;
-    console.log(service.method());
-
-    expect(true).toEqual(true);
-  });
 });
