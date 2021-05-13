@@ -1,5 +1,6 @@
+import { getProviderDef } from "../decorators";
 import { Context, Injector, NilInjector, InjectorMetadata, InjectorResolver } from "../injector";
-import { InjectionArgument, InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { InjectionArgument, InjectionSession, NextWrapper, WrapperDef, Type } from "../interfaces";
 import { Scope } from "../scope";
 import { Token as ProviderToken } from "../types";
 import { createWrapper } from "../utils";
@@ -25,7 +26,7 @@ export const Ref = createWrapper((ref: () => ProviderToken): WrapperDef => {
   }
 });
 
-export const Optional = createWrapper((defaultValue: any): WrapperDef => {
+export const Optional = createWrapper((defaultValue?: any): WrapperDef => {
   // console.log('optional');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside optional');
@@ -39,11 +40,11 @@ export const Optional = createWrapper((defaultValue: any): WrapperDef => {
 });
 
 // skip injection
-export const Skip = createWrapper((_: never): WrapperDef => {
+export const Skip = createWrapper((value?: any): WrapperDef => {
   // console.log('noinject');
   return () => {
     // console.log('inside noinject');
-    return undefined;
+    return value;
   }
 });
 
@@ -176,26 +177,42 @@ interface DecorateOptions {
   inject?: Array<ProviderToken | WrapperDef>;
 }
 
-export const Decorate = createWrapper((decorator: ProviderToken | DecorateOptions): WrapperDef => {
-  let token: ProviderToken, factory: ((decoratee: any, ...args: any[]) => any), deps: InjectionArgument[];
+// TODO: At the moment method inejction isn't supported - think about supporting it
+export const Decorate = createWrapper((decorator: Type | DecorateOptions): WrapperDef => {
+  let token: Type, factory: ((decoratee: any, ...args: any[]) => any), deps: InjectionArgument[];
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
     factory = (decorator as DecorateOptions).decorator;
     deps = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
   } else { // class based decorator
-    token = decorator as ProviderToken;
+    token = decorator as Type;
   }
 
   // console.log('decorate');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside decorate');
 
+    // think about copy session
     const decoratee = next(injector, session);
 
     // class based decorator
     if (token) {
       const decoratedToken = session.options.token;
-      return new (decorator as any)(decoratee);
+      const providerDef = getProviderDef(decorator);
+      const args = providerDef.args;
+
+      const ctorDeps: InjectionArgument[] = [];
+      for (let i = 0, l = args.ctor.length; i < l; i++) {
+        const arg = args.ctor[i];
+        ctorDeps[i] = arg.token === decoratedToken ? { token: decoratedToken, options: { token: decoratedToken, useWrapper: Skip(decoratee) }, meta: {} } : arg;
+      }
+      const propsDeps: { [key: string]: InjectionArgument } = {};
+      for (const name in args.props) {
+        const prop = args.props[name];
+        propsDeps[name] = prop.token === decoratedToken ? { token: decoratedToken, options: { token: decoratedToken, useWrapper: Skip(decoratee) }, meta: {} } : prop;
+      }
+      
+      return InjectorResolver.createFactory(token, providerDef, ctorDeps, propsDeps)(injector, session);
     }
 
     // function based decorator

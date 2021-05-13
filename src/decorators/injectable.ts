@@ -28,7 +28,7 @@ export function applyProviderDef<T>(target: Object, paramtypes: Array<Type> = []
     def.scope = options.scope || def.scope;
   }
   applyInheritance(target, def, paramtypes);  
-  def.factory = InjectorResolver.providerFactory(target as Type<any>, def);
+  def.factory = InjectorResolver.createFactory(target as Type<any>, def);
   return def as ProviderDef<T>;
 }
 

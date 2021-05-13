@@ -658,7 +658,7 @@ describe('Wrappers', function() {
 
       const decorator1 = {
         decorator(decoratee: TestService, service: AwesomeService) { return decoratee.method() + 'bar' + service.addAwesome() },
-        inject: [AwesomeService, Token('exclamation')],
+        inject: [AwesomeService],
       }
 
       const decorator2 = {
@@ -685,6 +685,92 @@ describe('Wrappers', function() {
 
       const service = injector.get(Service) as Service;
       expect(service.service).toEqual('(foobar is awesome!)');
+    });
+
+    test('should decorate provider (injection based useWrapper) - class decorator case with constructor injection', function () {
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      @Injectable()
+      class DecoratorService implements TestService {
+        constructor(
+          @Inject('exclamation') readonly exclamation: string,
+          public decoratee: TestService,
+        ) {}
+
+        method() {
+          return this.decoratee.method() + 'bar' + this.exclamation;
+        }
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Decorate(DecoratorService)) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+        {
+          provide: 'exclamation',
+          useValue: '!',
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toBeInstanceOf(DecoratorService);
+      expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
+      expect(service.service.method()).toEqual('foobar!');
+    });
+
+    test('should decorate provider (injection based useWrapper) - class decorator case with property injection', function () {
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      @Injectable()
+      class DecoratorService implements TestService {
+        @Inject()
+        public decoratee: TestService;
+
+        constructor(
+          @Inject('exclamation') readonly exclamation: string,
+        ) {}
+
+        method() {
+          return this.decoratee.method() + 'bar' + this.exclamation;
+        }
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Decorate(DecoratorService)) readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+        {
+          provide: 'exclamation',
+          useValue: '!',
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toBeInstanceOf(DecoratorService);
+      expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
+      expect(service.service.method()).toEqual('foobar!');
     });
   });
 

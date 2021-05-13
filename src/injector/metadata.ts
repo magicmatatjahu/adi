@@ -64,7 +64,7 @@ export const InjectorMetadata = new class {
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
-      factory = InjectorResolver.providerFactory(classRef, providerDef);
+      factory = InjectorResolver.createFactory(classRef, providerDef);
       proto = classRef;
     } else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;

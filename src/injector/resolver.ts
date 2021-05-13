@@ -2,6 +2,7 @@ import { Injector } from "./injector";
 import { InjectionArgument, InjectionSession, FactoryDef, ProviderDef, Type } from "../interfaces";
 import { resolveRef } from "../utils";
 
+// TODO: Think if passing `value` in InjectionArgument is a good for performance
 export const InjectorResolver = new class {
   injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: InjectionSession): Array<any> {
     const args: Array<any> = [];
@@ -42,9 +43,14 @@ export const InjectorResolver = new class {
     }
   }
 
-  providerFactory<T>(provider: Type<T>, def: ProviderDef, ctorDeps?: Array<InjectionArgument>): FactoryDef<T> {
+  createFactory<T>(
+    provider: Type<T>, 
+    def: ProviderDef, 
+    ctorDeps?: Array<InjectionArgument>, 
+    propsDeps?: { [key: string]: InjectionArgument }
+  ): FactoryDef<T> {
     const deps = ctorDeps || def.args.ctor,
-      props = def.args.props,
+      props = propsDeps || def.args.props,
       methods = def.args.methods;
     
     return (injector: Injector, session?: InjectionSession) => {
