@@ -13,7 +13,6 @@ import { resolveRef, execWrapper } from "../utils";
 import { InjectorMetadata } from "./metadata";
 
 export class Injector {
-  //private readonly imports = new Map<Type, Map<Context, InjectorRecord>>();
   // TODO: Change to Array not Map<ModuleID, Injector> 
   // imported modules
   private imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
@@ -159,11 +158,11 @@ export class Injector {
       // const value = nextWrapper()(record.hostInjector, session) as T;
 
       let value: T;
-      if (def.useWrapper !== undefined) {
+      if (def.useWrapper === undefined) {
+        value = def.factory(record.hostInjector, session) as T;
+      } else {
         const last = (i: Injector, s: InjectionSession) => def.factory(i, s) as T;
         value = execWrapper(def.useWrapper, last)(record.hostInjector, session);
-      } else {
-        value = def.factory(record.hostInjector, session) as T;
       }
 
       if (instance.status & InjectionStatus.CIRCULAR) {
@@ -203,9 +202,9 @@ export class Injector {
     if (record === undefined) {
       const def = getProviderDef(token);
       if (this.isProviderInScope(def)) {
-        if (typeof token === "function") {
+        if (typeof token === "function") { // type provider case
           record = InjectorMetadata.typeProviderToRecord(token as Type, this);
-        } else {
+        } else { // injection token case
           record = InjectorMetadata.customProviderToRecord(token, def as any, this);
         }
       }
@@ -269,10 +268,10 @@ export class Injector {
 
   // add case with modules, inline modules etc.
   private isProviderInScope(def: ProviderDef): boolean {
-    if (def === undefined || def.providedIn === undefined) {
+    if (def === undefined || def.provideIn === undefined) {
       return false;
     }
-    const providedIn = def.providedIn;
+    const providedIn = def.provideIn;
     const provideInArray = Array.isArray(providedIn) ? providedIn : [providedIn];
     if (provideInArray.some(s => this.scopes.includes(s))) {
       return true;

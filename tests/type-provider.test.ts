@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject } from "../src";
+import { Injector, Injectable, Inject, createWrapper } from "../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -211,5 +211,61 @@ describe('Type provider (injectable provider)', function() {
 
     const service = injector.get(Service) as Service;
     expect(service.method()).toEqual(['foobar', 'stringArg', 2137]);
+  });
+
+  describe('should works as tree shakable provider', function() {
+    @Injectable({
+      provideIn: 'any',
+    })
+    class Service {}
+
+    const injector = new Injector();
+
+    const service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+  });
+
+  describe('should works with useWrapper', function() {
+    let called: boolean = false;
+    const TestWrapper = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        session['$$sideEffects'] = true;
+        called = true;
+        return value;
+      }
+    });
+
+    @Injectable({
+      useWrapper: TestWrapper(),
+    })
+    class Service {}
+
+    const injector = new Injector([
+      Service
+    ]);
+
+    const service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+    expect(called).toEqual(true);
+  });
+
+  describe('should works with custom provider inside options', function() {
+    @Injectable({
+      useFactory(foobar: string) { return foobar },
+      inject: ["token"],
+    })
+    class Service {}
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useValue: 'foobar',
+      }
+    ]);
+
+    const service = injector.get(Service);
+    expect(service).toEqual('foobar');
   });
 });

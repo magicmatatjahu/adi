@@ -24,8 +24,9 @@ export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined
 export function applyProviderDef<T>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions): ProviderDef<T> {
   const def = ensureProviderDef(target);
   if (options) {
-    def.providedIn = options.providedIn || def.providedIn;
+    def.provideIn = options.provideIn || def.provideIn;
     def.scope = options.scope || def.scope;
+    def.options = options;
   }
   applyInheritance(target, def, paramtypes);  
   def.factory = InjectorResolver.createFactory(target as Type<any>, def);
@@ -44,7 +45,8 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
     token: provider,
     factory: undefined,
     scope: Scope.DEFAULT,
-    providedIn: undefined,
+    provideIn: undefined,
+    options: {},
     args: {
       ctor: [],
       props: {},

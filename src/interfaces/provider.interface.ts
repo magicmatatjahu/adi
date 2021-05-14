@@ -14,11 +14,11 @@ export type CustomProvider<T = any> =
   | WrapperProvider<T>;
 
 export type CustomSansProvider<T = any> =
-  | Omit<ClassProvider<T>, 'provide'>
-  | Omit<FactoryProvider<T>, 'provide'>
-  | Omit<ValueProvider<T>, 'provide'>
-  | Omit<ExistingProvider<T>, 'provide'>
-  | Omit<WrapperProvider<T>, 'provide'>
+  | Omit<ClassProvider<T>, 'provide' | 'when'>
+  | Omit<FactoryProvider<T>, 'provide' | 'when'>
+  | Omit<ValueProvider<T>, 'provide' | 'when'>
+  | Omit<ExistingProvider<T>, 'provide' | 'when'>
+  | Omit<WrapperProvider<T>, 'provide' | 'when'>
 
 export interface TypeProvider<T = any> extends Type<T> {}
 
@@ -33,7 +33,7 @@ export interface ClassProvider<T = any> {
 export interface FactoryProvider<T = any> {
   provide: Token<T>;
   useFactory: (...args: any[]) => T | Promise<T>;
-  inject?: Array<Token | WrapperDef>; // Array<Token | Array<ParameterDecorator>>;
+  inject?: Array<Token | WrapperDef>;
   scope?: Scope;
   useWrapper?: WrapperDef;
   when?: ConstraintDef;

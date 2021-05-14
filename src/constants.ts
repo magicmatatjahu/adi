@@ -5,17 +5,17 @@ import { Multi } from "./wrappers";
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");
 
 export const INJECTOR_SCOPE = new InjectionToken<InjectorScopeType | Array<InjectorScopeType>>({
-  providedIn: "any",
+  provideIn: "any",
   useValue: undefined,
 }, "INJECTOR_SCOPE");
 
 export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
-  providedIn: "any",
+  provideIn: "any",
   useValue: undefined,
 }, "INJECTOR_OPTIONS");
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({
-  providedIn: 'any',
+  provideIn: 'any',
   // TODO: Fix using single wrapper without normal providers
   useWrapper: Multi(),
 }, "MODULE_INITIALIZERS");

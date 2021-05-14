@@ -37,6 +37,20 @@ export const InjectorMetadata = new class {
     hostInjector: Injector,
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
+    const injOptions = provDef.options || {};
+
+    if (
+      'useWrapper' in injOptions || 
+      'useFactory' in injOptions ||
+      'useValue' in injOptions ||
+      'useExisting' in injOptions ||
+      'useClass' in injOptions
+    ) {
+      // shallow copy provDef for safe original reference
+      const customProvider = { ...(injOptions as CustomProvider), useClass: provider } as CustomProvider;
+      return this.customProviderToRecord(provider, customProvider, hostInjector);
+    }
+
     const record = this.getRecord(provider, hostInjector);
     const def = this.createDefinitionRecord(record, provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
     record.defs.push(def);
@@ -61,12 +75,7 @@ export const InjectorMetadata = new class {
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
       scope = Scope.SINGLETON;
-    } else if (isClassProvider(provider)) {
-      const classRef = provider.useClass;
-      const providerDef = this.getProviderDef(classRef, true);
-      factory = InjectorResolver.createFactory(classRef, providerDef);
-      proto = classRef;
-    } else if (isExistingProvider(provider)) {
+    }  else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;
       let changed = false;
       factory = (injector: Injector, session?: InjectionSession) => {
@@ -81,6 +90,11 @@ export const InjectorMetadata = new class {
         }
         return injector.get(aliasProvider, session.options, session.meta, session);
       }
+    } else if (isClassProvider(provider)) {
+      const classRef = provider.useClass;
+      const providerDef = this.getProviderDef(classRef, true);
+      factory = InjectorResolver.createFactory(classRef, providerDef);
+      proto = classRef;
     }
 
     const constraint = provider.when;
@@ -200,6 +214,7 @@ export const InjectorMetadata = new class {
     const def = this.getProviderDef(comp);
     useWrapper = useDefaultHooks(useWrapper);
     return {
+      comp,
       factory: def.factory,
       scope: def.scope || Scope.SINGLETON,
       useWrapper,

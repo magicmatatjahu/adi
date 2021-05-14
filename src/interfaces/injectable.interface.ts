@@ -3,12 +3,12 @@ import { Scope } from "../scope";
 
 export type ProvideInType = string | symbol | Type | 'any';
 
-export interface InjectableOptions {
-  providedIn?: ProvideInType | ProvideInType[];
+export type InjectableOptions = {
+  provideIn?: ProvideInType | ProvideInType[];
   scope?: Scope;
-}
+} & Partial<CustomSansProvider>;
 
 export type InjectionTokenOptions = {
-  providedIn?: ProvideInType | ProvideInType[];
+  provideIn?: ProvideInType | ProvideInType[];
   scope?: Scope;
-} & CustomSansProvider;
+} & Partial<CustomSansProvider>;

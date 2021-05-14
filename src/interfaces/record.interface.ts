@@ -38,6 +38,7 @@ export interface InstanceRecord<T = any> {
 }
 
 export interface ComponentRecord<T = any> {
+  comp: Type<T>;
   factory: FactoryDef<T> | undefined;
   useWrapper: WrapperDef | undefined;
   scope: Scope;

@@ -63,7 +63,7 @@ export class TransientScope extends Scope {
       throw Error("Cannot inject new instance of itself class (with TRANSIENT scope)");
     }
     let ctx = session.options.ctx;
-    if (!ctx) {
+    if (ctx === undefined) {
       ctx = new Context();
     }
     return ctx;

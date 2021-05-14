@@ -79,7 +79,7 @@ describe('InjectionToken', function() {
   describe('should works as tree shakable provider', function() {
     test('with useValue', function() {
       const Token = new InjectionToken<string>({
-        providedIn: 'any',
+        provideIn: 'any',
         useValue: 'foobar',
       });
 
@@ -91,7 +91,7 @@ describe('InjectionToken', function() {
 
     test('with useFactory', function() {
       const Token = new InjectionToken<string>({
-        providedIn: 'any',
+        provideIn: 'any',
         useFactory(useValue) {
           return useValue;
         },
@@ -114,7 +114,7 @@ describe('InjectionToken', function() {
       class Service {}
 
       const Token = new InjectionToken<Service>({
-        providedIn: 'any',
+        provideIn: 'any',
         useClass: Service,
       });
 
@@ -129,7 +129,7 @@ describe('InjectionToken', function() {
       class Service {}
 
       const Token = new InjectionToken<string>({
-        providedIn: 'any',
+        provideIn: 'any',
         useExisting: 'useValue',
       });
 
@@ -146,7 +146,7 @@ describe('InjectionToken', function() {
 
     test('should override tree shakable provider when this same token is defined in providers array', async () => {
       const token = new InjectionToken<string>({
-        providedIn: "any",
+        provideIn: "any",
         useValue: "foobar",
       });
   
@@ -163,12 +163,12 @@ describe('InjectionToken', function() {
 
     test('should use another tree shakable InjectionToken', async () => {
       const helperToken = new InjectionToken<string>({
-        providedIn: "any",
+        provideIn: "any",
         useValue: "foobar",
       });
 
       const token = new InjectionToken<string>({
-        providedIn: "any",
+        provideIn: "any",
         useFactory(value) {
           return value;
         },
