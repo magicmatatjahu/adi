@@ -273,6 +273,10 @@ export const InjectorMetadata = new class {
     };
   }
 
+  copyOptions(options: InjectionOptions = {} as InjectionOptions): InjectionOptions {
+    return { ...options, labels: { ...options.labels } };
+  }
+
   getProviderDef<T>(token: Token<T>, throwError: boolean = true): ProviderDef {
     let providerDef = getProviderDef(token);
     if (!providerDef) {

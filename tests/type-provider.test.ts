@@ -225,30 +225,6 @@ describe('Type provider (injectable provider)', function() {
     expect(service).toBeInstanceOf(Service);
   });
 
-  describe('should works with useWrapper', function() {
-    let called: boolean = false;
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
-        called = true;
-        return value;
-      }
-    });
-
-    @Injectable({
-      useWrapper: TestWrapper(),
-    })
-    class Service {}
-
-    const injector = new Injector([
-      Service
-    ]);
-
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-    expect(called).toEqual(true);
-  });
-
   describe('should works with custom provider inside options', function() {
     @Injectable({
       useFactory(foobar: string) { return foobar },

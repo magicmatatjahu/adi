@@ -84,7 +84,8 @@ export class Injector {
    * PROVIDERS
    */
   get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: InjectionSession): Promise<T | undefined> | T | undefined {
-    options = options || {} as InjectionOptions;
+    // Passing copy of options is for wrapper. Inside them dev can change shape of these options.
+    options = InjectorMetadata.copyOptions(options);
     const newSession = InjectorMetadata.createSession(undefined, options, meta, parentSession);
 
     const wrapper = options.useWrapper;
@@ -264,13 +265,13 @@ export class Injector {
   /**
    * COMPONENTS
    */
-  getComponent<T>(token: Type<T>, options?: any, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
+  getComponent<T>(token: Type<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: InjectionSession): Promise<T | undefined> | T | undefined {
     const component = this.components.get(token);
     if (component === undefined) {
       throw Error(`Given component of ${token} type doesn't exists`);
     }
 
-    options = options || {} as any;
+    options = InjectorMetadata.copyOptions(options);
     const newSession = InjectorMetadata.createSession(undefined, options, meta, session);
 
     const wrapper = options && options.useWrapper;

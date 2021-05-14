@@ -1,14 +1,12 @@
 import { Injector } from "./injector";
 import { InjectionArgument, InjectionSession, FactoryDef, ProviderDef, Type } from "../interfaces";
-import { resolveRef } from "../utils";
 
-// TODO: Think if passing `value` in InjectionArgument is a good for performance
 export const InjectorResolver = new class {
   injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: InjectionSession): Array<any> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(injector.get(resolveRef(arg.token), arg.options, arg.meta, session));
+      args.push(injector.get(arg.token, arg.options, arg.meta, session));
     };
     return args;
   }
@@ -25,7 +23,6 @@ export const InjectorResolver = new class {
     }
   }
 
-  // TODO: optimize it
   injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session?: InjectionSession): void {
     for (const name in methods) {
       const methodDeps = methods[name];
