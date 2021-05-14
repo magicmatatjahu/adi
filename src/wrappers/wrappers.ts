@@ -10,7 +10,6 @@ export const Token = createWrapper((token: ProviderToken): WrapperDef => {
   // console.log('token');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside token');
-    session.options = session.options || {} as any;
     session.options.token = token || session.options.token;
     return next(injector, session);
   }
@@ -20,8 +19,20 @@ export const Ref = createWrapper((ref: () => ProviderToken): WrapperDef => {
   // console.log('ref');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
     // console.log('inside ref');
-    session.options = session.options || {} as any;
     session.options.token = ref();
+    return next(injector, session);
+  }
+});
+
+export const Ctx = createWrapper((ctxOrData: Context | any): WrapperDef => {
+  // console.log('ctx');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside ctx');
+    if (ctxOrData instanceof Context) {
+      session.options.ctx = ctxOrData;
+    } else {
+      session.options.ctx = new Context(ctxOrData);
+    }
     return next(injector, session);
   }
 });
@@ -135,7 +146,6 @@ export const Fallback = createWrapper((token: ProviderToken): WrapperDef => {
       return next(injector, session);
     } catch(err) {
       if ((err as any).NilInjectorError === true) {
-        session.options = session.options || {} as any;
         session.options.token = token;
         return next(injector, session);
       }
@@ -168,32 +178,6 @@ export const SideEffects = createWrapper((_: never): WrapperDef => {
   }
 });
 
-export const Lazy = createWrapper((proxy: boolean = true): WrapperDef => {
-  // console.log('lazy');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside lazy');
-
-    if (proxy === true) {
-      // works only with objects!
-      return createProxy(() => {
-        return next(injector, session);
-      });
-    }
-
-    // when someone retrieve provider by `injector.get(...)`
-    if (session.parent === undefined) {
-      let value: any, resolved = false;
-      return () => {
-        if (resolved === false) {
-          value = next(injector, session);
-          resolved = true;
-        }
-        return value;
-      };
-    }
-  }
-});
-
 const reflectMethods: ReadonlyArray<keyof ProxyHandler<any>> = [
   "get",
   "getPrototypeOf",
@@ -222,7 +206,6 @@ function createHandler<T>(delayedObject: () => T): ProxyHandler<object> {
 }
 
 function createProxy<T = any>(createObject: () => T): T {
-  const target: object = {};
   let value: T, init = false;
   const delayedObject: () => T = (): T => {
     if (init === false) {
@@ -231,8 +214,34 @@ function createProxy<T = any>(createObject: () => T): T {
     }
     return value;
   };
-  return new Proxy<any>(target, createHandler(delayedObject)) as T;
+  return new Proxy<any>({} as object, createHandler(delayedObject)) as T;
 }
+
+export const Lazy = createWrapper((proxy: boolean = true): WrapperDef => {
+  // console.log('lazy');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside lazy');
+
+    if (proxy === true) {
+      // works only with objects!
+      return createProxy(() => {
+        return next(injector, session);
+      });
+    }
+
+    // when someone retrieve provider by `injector.get(...)`
+    if (session.parent === undefined) {
+      let value: any, resolved = false;
+      return () => {
+        if (resolved === false) {
+          value = next(injector, session);
+          resolved = true;
+        }
+        return value;
+      };
+    }
+  }
+});
 
 function getDefinitions(
   record: ProviderRecord,

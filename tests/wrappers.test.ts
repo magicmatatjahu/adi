@@ -1,6 +1,6 @@
 import { 
   Injector, Injectable, Inject, Scope, constraint, c, createWrapper,
-  Token, Ref, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Labeled, Fallback, Multi, Memo, SideEffects, Decorate, Lazy,
+  Token, Ref, Ctx, Optional, Skip, Scoped, New, Self, SkipSelf, Named, Labeled, Fallback, Multi, Memo, SideEffects, Decorate, Lazy, Context,
 } from "../src";
 
 describe('Wrappers', function() {
@@ -97,6 +97,39 @@ describe('Wrappers', function() {
       expect(service.serviceB).toBeInstanceOf(ServiceB);
       expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
       expect(service === service.serviceB.serviceA).toEqual(true);
+    });
+  });
+
+  describe('Ctx', function () {
+    test('should inject given context', function () {
+      const firstCtx = new Context();
+      const secondCtx = new Context();
+
+      @Injectable()
+      class TestService {
+        constructor(
+          readonly ctx: Context,
+        ) {}
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          @Inject(Ctx(firstCtx)) readonly service1: TestService,
+          @Inject(Ctx(secondCtx)) readonly service2: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service1).toBeInstanceOf(TestService);
+      expect(service.service1.ctx).toEqual(firstCtx);
+      expect(service.service2).toBeInstanceOf(TestService);
+      expect(service.service2.ctx).toEqual(secondCtx);
     });
   });
 

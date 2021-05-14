@@ -331,7 +331,6 @@ export class Injector {
 
       // operate on Module
       if (moduleDef !== undefined) {
-        // fix facade case - don't import everything from imported module
         this.processModuleExport(exp as Type, 'static', undefined, from, to);
         return;
       }
