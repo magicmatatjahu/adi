@@ -1,6 +1,6 @@
 import { getProviderDef } from "../decorators";
 import { Context, Injector, NilInjector, InjectorMetadata, InjectorResolver } from "../injector";
-import { InjectionArgument, InjectionSession, NextWrapper, WrapperDef, Type } from "../interfaces";
+import { InjectionArgument, InjectionSession, NextWrapper, ProviderRecord, WrapperDef, Type } from "../interfaces";
 import { Scope } from "../scope";
 import { Token as ProviderToken } from "../types";
 import { createWrapper } from "../utils";
@@ -144,82 +144,6 @@ export const Fallback = createWrapper((token: ProviderToken): WrapperDef => {
   }
 });
 
-export const Multi = createWrapper((_: never): WrapperDef => {
-  // console.log('multi');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside multi');
-    // exec wrappers chain to retrieve needed, updated session
-    next(injector, session);
-    const options = session.options;
-    const instantietedInstance = session.instance;
-    const instantietedDef = instantietedInstance.def;
-    const token = options.token || instantietedInstance.def.record.token;
-    const record = (injector as any).records.get(token);
-    const defs = (injector as any).getDefinitions(record, session);
-    // TODO: improve function to pass wrappers chain again and maybe copy of session
-    // add also check for side effects
-    // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
-    const values = [];
-    for (let i = 0, l = defs.length; i < l; i++) {
-      const def = defs[i];
-      if (def === instantietedDef) {
-        values.push(instantietedInstance.value);
-      } else {
-        values.push((injector as any).resolveDef(def, options, session));
-      }
-    }
-    return values;
-  }
-});
-
-interface DecorateOptions {
-  decorator: ((decoratee: any, ...args: any[]) => any);
-  inject?: Array<ProviderToken | WrapperDef>;
-}
-
-// TODO: At the moment method inejction isn't supported - think about supporting it
-export const Decorate = createWrapper((decorator: Type | DecorateOptions): WrapperDef => {
-  let token: Type, factory: ((decoratee: any, ...args: any[]) => any), deps: InjectionArgument[];
-
-  if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
-    factory = (decorator as DecorateOptions).decorator;
-    deps = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
-  } else { // class based decorator
-    token = decorator as Type;
-  }
-
-  // console.log('decorate');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside decorate');
-
-    // think about copy session
-    const decoratee = next(injector, session);
-
-    // class based decorator
-    if (token) {
-      const decoratedToken = session.options.token;
-      const providerDef = getProviderDef(decorator);
-      const args = providerDef.args;
-
-      const ctorDeps: InjectionArgument[] = [];
-      for (let i = 0, l = args.ctor.length; i < l; i++) {
-        const arg = args.ctor[i];
-        ctorDeps[i] = arg.token === decoratedToken ? { token: decoratedToken, options: { token: decoratedToken, useWrapper: Skip(decoratee) }, meta: {} } : arg;
-      }
-      const propsDeps: { [key: string]: InjectionArgument } = {};
-      for (const name in args.props) {
-        const prop = args.props[name];
-        propsDeps[name] = prop.token === decoratedToken ? { token: decoratedToken, options: { token: decoratedToken, useWrapper: Skip(decoratee) }, meta: {} } : prop;
-      }
-      
-      return InjectorResolver.createFactory(token, providerDef, ctorDeps, propsDeps)(injector, session);
-    }
-
-    // function based decorator
-    return factory(decoratee, ...InjectorResolver.injectDeps(deps, injector, session));
-  }
-});
-
 export const Memo = createWrapper((_: never): WrapperDef => {
   // console.log('memo');
   let value: any, init = false;
@@ -309,3 +233,90 @@ function createProxy<T = any>(createObject: () => T): T {
   };
   return new Proxy<any>(target, createHandler(delayedObject)) as T;
 }
+
+function getDefinitions(
+  record: ProviderRecord,
+  session?: InjectionSession
+): Array<any> {
+  const constraintDefs = record.constraintDefs;
+  const satisfyingDefs = [];
+  for (let i = 0, l = constraintDefs.length; i < l; i++) {
+    const d = constraintDefs[i];
+    if (d.constraint(session) === true) {
+      satisfyingDefs.push(d);
+    }
+  }
+  return satisfyingDefs.length === 0 ? record.defs : satisfyingDefs;
+}
+
+export const Multi = createWrapper((_: never): WrapperDef => {
+  // console.log('multi');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside multi');
+    // exec wrappers chain to retrieve needed, updated session
+    next(injector, session);
+
+    const options = session.options;
+    const createdInstance = session.instance;
+    const createdDef = createdInstance.def;
+    const token = options.token || createdDef.record.token;
+    const record = (injector as any).records.get(token);
+    const defs = getDefinitions(record, session);
+
+    // TODO: improve function to pass wrappers chain again and copy session
+    // add also check for side effects
+    // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
+    const values = [];
+    for (let i = 0, l = defs.length; i < l; i++) {
+      const def = defs[i];
+      if (def === createdDef) {
+        values.push(createdInstance.value);
+      } else {
+        values.push((injector as any).resolveDef(def, options, session));
+      }
+    }
+    return values;
+  }
+});
+
+interface DecorateOptions {
+  decorator: ((decoratee: any, ...args: any[]) => any);
+  inject?: Array<ProviderToken | WrapperDef>;
+}
+
+// TODO: At the moment method inejction isn't supported - think about supporting it
+export const Decorate = createWrapper((decorator: Type | DecorateOptions): WrapperDef => {
+  let token: Type, factory: ((decoratee: any, ...args: any[]) => any), deps: InjectionArgument[];
+
+  if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
+    factory = (decorator as DecorateOptions).decorator;
+    deps = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
+  } else { // class based decorator
+    token = decorator as Type;
+  }
+
+  // console.log('decorate');
+  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
+    // console.log('inside decorate');
+
+    // think about copy session
+    const decoratee = next(injector, session);
+
+    // function based decorator
+    if (token === undefined) {
+      return factory(decoratee, ...InjectorResolver.injectDeps(deps, injector, session));
+    }
+
+    // class based decorator
+    const decoratedToken = session.options.token;
+    const providerDef = getProviderDef(decorator);
+    const args = providerDef.args;
+    
+    return InjectorResolver.createFactory(
+      token, 
+      providerDef, 
+      InjectorMetadata.transiteConstructorDeps(decoratedToken, decoratee, args.ctor), 
+      InjectorMetadata.transitePropertyDeps(decoratedToken, decoratee, args.props), 
+    )(injector, session);
+  }
+});

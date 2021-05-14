@@ -11,7 +11,7 @@ import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
-import { useDefaultHooks } from "../wrappers";
+import { Skip, useDefaultHooks } from "../wrappers";
 import { Cacheable } from "../wrappers/private";
 
 import { InjectorResolver } from "./resolver";
@@ -306,6 +306,24 @@ export const InjectorMetadata = new class {
       }
     }
     return converted;
+  }
+
+  transiteConstructorDeps(token: Token, value: any, ctorDeps: InjectionArgument[]): InjectionArgument[] {
+    const newCtor: InjectionArgument[] = [];
+    for (let i = 0, l = ctorDeps.length; i < l; i++) {
+      const arg = ctorDeps[i];
+      newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, useWrapper: Skip(value) }, meta: arg.meta } : arg;
+    }
+    return newCtor;
+  }
+
+  transitePropertyDeps(token: Token, value: any, props: { [key: string]: InjectionArgument }): { [key: string]: InjectionArgument } {
+    const newProps: { [key: string]: InjectionArgument } = {};
+    for (const name in props) {
+      const prop = props[name];
+      newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, useWrapper: Skip(value) }, meta: prop.meta } : prop;
+    }
+    return newProps;
   }
 
   retrieveDeepRecord(token: Token, injector: Injector): ProviderRecord | undefined {

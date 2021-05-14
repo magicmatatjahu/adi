@@ -772,6 +772,86 @@ describe('Wrappers', function() {
       expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
       expect(service.service.method()).toEqual('foobar!');
     });
+
+    test('should decorate provider (provider based useWrapper) - function decorator case', function () {
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+
+      const functionDecorator = {
+        decorator(decoratee: TestService) { return decoratee.method() + 'bar' }
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+        {
+          provide: TestService,
+          useWrapper: Decorate(functionDecorator),
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toEqual('foobar');
+    });
+
+    test('should decorate provider (provider based useWrapper) - class decorator', function () {
+      @Injectable()
+      class TestService {
+        method() {
+          return 'foo';
+        }
+      }
+
+      @Injectable()
+      class DecoratorService implements TestService {
+        @Inject()
+        public decoratee: TestService;
+
+        constructor(
+          @Inject('exclamation') readonly exclamation: string,
+        ) {}
+
+        method() {
+          return this.decoratee.method() + 'bar' + this.exclamation;
+        }
+      }
+
+      @Injectable()
+      class Service {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        Service,
+        TestService,
+        {
+          provide: TestService,
+          useWrapper: Decorate(DecoratorService),
+        },
+        {
+          provide: 'exclamation',
+          useValue: '!',
+        }
+      ]);
+
+      const service = injector.get(Service) as Service;
+      expect(service.service).toBeInstanceOf(DecoratorService);
+      expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
+      expect(service.service.method()).toEqual('foobar!');
+    });
   });
 
   describe('Lazy', function () {

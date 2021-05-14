@@ -241,21 +241,6 @@ export class Injector {
     return record.defs[record.defs.length - 1];
   }
 
-  private getDefinitions(
-    record: ProviderRecord,
-    session?: InjectionSession
-  ): Array<any> {
-    const constraintDefs = record.constraintDefs;
-    const satisfyingDefs = [];
-    for (let i = 0, l = constraintDefs.length; i < l; i++) {
-      const d = constraintDefs[i];
-      if (d.constraint(session) === true) {
-        satisfyingDefs.push(d);
-      }
-    }
-    return satisfyingDefs.length === 0 ? record.defs : satisfyingDefs;
-  }
-
   addProvider(provider: Provider): void {
     InjectorMetadata.toRecord(provider, this);
   }
@@ -266,16 +251,14 @@ export class Injector {
     }
   }
 
-  // add case with modules, inline modules etc.
+  // TODO: add case with imported modules
   private isProviderInScope(def: ProviderDef): boolean {
     if (def === undefined || def.provideIn === undefined) {
       return false;
     }
     const providedIn = def.provideIn;
     const provideInArray = Array.isArray(providedIn) ? providedIn : [providedIn];
-    if (provideInArray.some(s => this.scopes.includes(s))) {
-      return true;
-    }
+    return provideInArray.some(s => this.scopes.includes(s));
   }
 
   /**
@@ -466,6 +449,7 @@ export class Injector {
 
     if (parentInjector.imports.has(mod)) {
       const modules = parentInjector.imports.get(mod);
+
       // when modules is a map not a single injector
       if (modules instanceof Map) {
         modules.set(id, injector);
@@ -484,9 +468,6 @@ export class Injector {
   private async compileModuleMetadata<T>(mod: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>): Promise<CompiledModule> {
     mod = resolveRef(mod);
     if (!mod) return;
-    // if (!mod) {
-    //   throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
-    // }
 
     // retrieve module metadata
     // if it's dynamic module, first try to resolve the module metadata

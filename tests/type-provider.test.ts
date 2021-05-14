@@ -230,7 +230,6 @@ describe('Type provider (injectable provider)', function() {
     const TestWrapper = createWrapper((_: never) => {
       return (injector, session, next) => {
         const value = next(injector, session);
-        session['$$sideEffects'] = true;
         called = true;
         return value;
       }
