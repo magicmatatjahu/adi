@@ -604,6 +604,18 @@ describe('Module', function() {
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
+  test('should handle falsed imports', async function() {
+    @Module({ 
+      imports: [
+        undefined,
+        null,
+      ],
+    })
+    class A {}
+
+    await new Injector(A).compile();
+  });
+
   test('should work with .select()', async function() {
     @Injectable()
     class ServiceB {}

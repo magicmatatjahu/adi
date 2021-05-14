@@ -438,6 +438,7 @@ export class Injector {
     stack: Array<Injector>,
   ) {
     const processedModule = await this.compileModuleMetadata(imp);
+    if (processedModule === undefined) return;
 
     const { mod, dynamicDef } = processedModule;
     const id = (dynamicDef && dynamicDef.id) || 'static';
@@ -483,9 +484,10 @@ export class Injector {
 
   private async compileModuleMetadata<T>(mod: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>): Promise<CompiledModule> {
     mod = resolveRef(mod);
-    if (!mod) {
-      throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
-    }
+    if (!mod) return;
+    // if (!mod) {
+    //   throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
+    // }
 
     // retrieve module metadata
     // if it's dynamic module, first try to resolve the module metadata
