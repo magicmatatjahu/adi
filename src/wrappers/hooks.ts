@@ -3,6 +3,7 @@ import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
 import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "../utils";
 import { InjectionStatus } from "../enums";
 
+// Make it more easier to understand
 export const OnInitHook = createWrapper((_: never): WrapperDef => {
   // console.log('onInitHook');
   return (injector: Injector, session: InjectionSession, next: NextWrapper) => {

@@ -154,6 +154,7 @@ export const Fallback = createWrapper((token: ProviderToken): WrapperDef => {
   }
 });
 
+// TODO: Fix this - it is cacheable on every injector, so it can end with cache where it shouldn't - it should works similar to Cacheable wrapper
 export const Memo = createWrapper((_: never): WrapperDef => {
   // console.log('memo');
   let value: any, init = false;
@@ -293,14 +294,14 @@ interface DecorateOptions {
   inject?: Array<ProviderToken | WrapperDef>;
 }
 
-// TODO: At the moment method inejction isn't supported - think about supporting it
+// TODO: At the moment method injection isn't supported - think about supporting it
 export const Decorate = createWrapper((decorator: Type | DecorateOptions): WrapperDef => {
   let token: Type, factory: ((decoratee: any, ...args: any[]) => any), deps: InjectionArgument[];
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
     factory = (decorator as DecorateOptions).decorator;
     deps = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
-  } else { // class based decorator
+  } else { // type based decorator
     token = decorator as Type;
   }
 
