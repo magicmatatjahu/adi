@@ -5,10 +5,10 @@ import { Scope } from "./scope";
 Context.$$prov.scope = Scope.INSTANCE;
 
 export { constraint, c } from "./constraint";
-export * from "./constants";
-export * from "./decorators";
-export * from "./injector";
+export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS } from "./constants";
+export { Component, Inject, Injectable, Module, componentMixin, injectableMixin, moduleMixin } from "./decorators";
+export { Context, createInjector, Injector, InjectorMetadata, InjectorResolver, InjectionToken } from "./injector";
 export * from "./interfaces";
-export * from "./scope";
+export { Scope } from "./scope";
 export * from "./wrappers";
 export { resolveRef, createWrapper } from "./utils";

@@ -22,7 +22,9 @@ export function getModuleDef<T>(injector: unknown): ModuleDef | undefined {
 }
 
 // modules don't support inheritance
-function applyModuleDef<T>(target: Object, metadata: ModuleMetadata = {}): ModuleDef {
-  // metadata.type = metadata.type || ModuleType.SHARED;
-  return Object.defineProperty(target, '$$module', { value: metadata, enumerable: true })
+function applyModuleDef<T>(mod: Object, metadata: ModuleMetadata = {}): ModuleDef {
+  if (!mod.hasOwnProperty('$$module')) {
+    Object.defineProperty(mod, '$$module', { value: metadata, enumerable: true });
+  }
+  return mod['$$module'];
 }

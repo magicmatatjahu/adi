@@ -4,11 +4,9 @@ import { Reflection } from "../utils";
 
 export function Component(options: ComponentOptions = {}) {
   return function(target: Object) {
-    applyComponentDef(target);
+    applyComponentDef(target, options);
     const params = Reflection.getOwnMetadata("design:paramtypes", target);
-    applyProviderDef(target, params, {
-      scope: options.scope,
-    });
+    applyProviderDef(target, params, { scope: options.scope });
   }
 }
 
@@ -21,7 +19,9 @@ export function getComponentDef(injector: unknown): ComponentDef | undefined {
   return injector['$$comp'] || undefined;
 }
 
-function applyComponentDef<T>(target: Object, options: ComponentOptions = {}): ComponentDef {
-  // TODO: change it
-  return Object.defineProperty(target, '$$comp', { value: options, enumerable: true })
+function applyComponentDef<T>(component: Object, options: ComponentOptions = {}): ComponentDef {
+  if (!component.hasOwnProperty('$$comp')) {
+    Object.defineProperty(component, '$$comp', { value: options, enumerable: true });
+  }
+  return component['$$comp'];
 }

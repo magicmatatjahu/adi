@@ -1,5 +1,5 @@
 {
-  "name": "adi",
+  "name": "adi-di",
   "version": "0.0.1",
   "description": "Another DI system for TS/JS",
   "author": "Maciej Urbańczyk",
@@ -7,6 +7,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/magicmatatjahu/adi"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "ioc",
@@ -19,13 +22,20 @@
     "typescript",
     "node"
   ],
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
   "files": [
-    "src/",
+    "lib/",
     "./README.md",
     "./LICENSE"
   ],
   "sideEffects": false,
   "scripts": {
+    "build:prod": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
     "test": "jest --runInBand"
   },
   "devDependencies": {
