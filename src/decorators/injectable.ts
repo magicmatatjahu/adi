@@ -3,7 +3,7 @@ import { InjectorResolver } from "../injector/resolver";
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { Reflection } from "../utils";
-import { Cacheable } from "../wrappers/private";
+import { Cacheable } from "../wrappers/cacheable";
 
 export function Injectable(options?: InjectableOptions) {
   return function(target: Object) {

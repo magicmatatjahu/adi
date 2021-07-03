@@ -12,7 +12,7 @@ import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
 import { Skip, useDefaultHooks } from "../wrappers";
-import { Cacheable } from "../wrappers/private";
+import { Cacheable } from "../wrappers/cacheable";
 
 import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";

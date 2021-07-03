@@ -11,7 +11,7 @@ export const OnInitHook = createWrapper((_: never): WrapperDef => {
     const value = next(injector, session);
 
     // when resolution chain has circular reference
-    // TODO: OPTIMIZE IT!!!
+    // TODO: optimize it
     if (session['$$circular'] ) {
       if (
         session.instance.status & InjectionStatus.CIRCULAR &&

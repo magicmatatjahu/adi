@@ -580,6 +580,21 @@ export const NilInjector = new class {
 } as unknown as Injector;
 
 export function createInjector(
+  injector: Type<any>,
+  parent: Injector,
+  options?: InjectorOptions,
+): Injector;
+export function createInjector(
+  injector: ModuleMetadata,
+  parent: Injector,
+  options?: InjectorOptions,
+): Injector;
+export function createInjector(
+  injector: Array<Provider>,
+  parent: Injector,
+  options?: InjectorOptions,
+): Injector;
+export function createInjector(
   injector: Type<any> | ModuleMetadata | Array<Provider> = [],
   parent: Injector = NilInjector,
   options?: InjectorOptions,

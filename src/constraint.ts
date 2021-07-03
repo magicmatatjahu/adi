@@ -7,7 +7,7 @@ export function named(named: Token): ConstraintDef {
   return (session: InjectionSession) => session.options?.labels[CONSTRAINTS.NAMED] === named;
 }
 
-export function labels(l: Record<string | symbol | number, any> = {}): ConstraintDef {
+export function labelled(l: Record<string | symbol | number, any> = {}): ConstraintDef {
   const tagsLength = Object.keys(l).length;
   return (session: InjectionSession) => {
     const labels = session.options?.labels;
@@ -20,10 +20,6 @@ export function labels(l: Record<string | symbol | number, any> = {}): Constrain
   }
 }
 
-export function withoutLabels(): ConstraintDef {
-  return (session: InjectionSession) => Object.keys(session.options.labels).length === 0;
-}
-
 export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
   return (session: InjectionSession) => {
     for (let i = 0, l = fns.length; i < l; i++) {
@@ -34,9 +30,8 @@ export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
 }
 
 export const constraint = {
-  withoutLabels,
   named,
-  labels,
+  labelled,
   concat,
 }
 export const c = constraint;
