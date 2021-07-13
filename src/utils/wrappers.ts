@@ -25,21 +25,21 @@ export function createWrapper<T = any>(
   return wr;
 }
 
-// change last `next` function to custom function passed by function argument
-export function execWrapper(nextWrapper: WrapperDef, last: NextWrapper) {
+// change the lastWrapper `next` function to custom function passed by function argument
+export function execWrapper(nextWrapper: WrapperDef, lastWrapper: NextWrapper) {
   return (injector: Injector, s: InjectionSession) => {
     const $$nextWrapper = nextWrapper['$$nextWrapper'];
     if ($$nextWrapper !== undefined) {
-      const next: NextWrapper = execWrapper($$nextWrapper, last);
+      const next: NextWrapper = execWrapper($$nextWrapper, lastWrapper);
       return nextWrapper(injector, s, next);
     }
     // fix passing options
     // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
-    return nextWrapper(injector, s, last);
+    return nextWrapper(injector, s, lastWrapper);
   }
 }
 
-// copy wrapper chain in inheritance case
+// copy wrapper chain in an inheritance case
 export function copyWrapper<T = any>(wrapper: ReturnType<typeof createWrapper>) {
 
 }

@@ -6,12 +6,16 @@ export class InjectionToken<T = any> {
     // for debug purpose
     private readonly name?: string,
   ) {
+    // TODO: Fix the shape of $$prov
     if (options !== undefined) {
       this.$$prov = {
         ...options,
         token: this,
         factory: undefined,
-      } as any;
+        scope: options.scope,
+        provideIn: options.provideIn,
+        options: options,
+      } as ProviderDef;
     }
   }
 

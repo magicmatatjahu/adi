@@ -46,7 +46,7 @@ export const InjectorMetadata = new class {
       'useExisting' in injOptions ||
       'useClass' in injOptions
     ) {
-      // shallow copy provDef for safe original reference
+      // shallow copy provDef
       const customProvider = { ...(injOptions as CustomProvider), useClass: provider } as CustomProvider;
       return this.customProviderToRecord(provider, customProvider, hostInjector);
     }
@@ -125,13 +125,19 @@ export const InjectorMetadata = new class {
   createProviderRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
+    useWrapper: WrapperDef,
   ): ProviderRecord<T> {
     return {
       token,
       hostInjector,
       defs: [],
       constraintDefs: [],
-      wrappers: [],
+      wrappers: useWrapper ? [
+        {
+          useWrapper: useWrapper,
+          constraint: ALWAYS_CONSTRAINT,
+        }
+      ] : [],
     }
   }
 
@@ -172,11 +178,22 @@ export const InjectorMetadata = new class {
   getRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
+    customProvider?: CustomProvider<T>,
   ): ProviderRecord {
     const records: Map<Token, ProviderRecord> = (hostInjector as any).records;
     let record = records.get(token);
     if (record === undefined) {
-      record = this.createProviderRecord(token, hostInjector);
+      let useWrapper = undefined;
+      if (customProvider && hasWrapperProvider(customProvider)) {
+        useWrapper = customProvider.useWrapper;
+      } else {
+        // change this statement to something more optimize 
+        const def = getProviderDef(token);
+        if (def && def.options && hasWrapperProvider(def.options)) {
+          useWrapper = def.options.useWrapper;
+        }
+      }
+      record = this.createProviderRecord(token, hostInjector, useWrapper);
       records.set(token, record);
     }
     return record;
@@ -269,7 +286,6 @@ export const InjectorMetadata = new class {
       options,
       meta,
       parent,
-      shared: (parent && parent.shared) || {},
     };
   }
 

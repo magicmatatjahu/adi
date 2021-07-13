@@ -1,9 +1,9 @@
-import { Injector, Injectable, Inject, Multi, Named, c } from "../../src";
+import { Injector, Injectable, Inject, Multi, Named, c, InjectionToken } from "../../src";
 
 describe('Multi wrapper', function () {
-  test('should inject multi providers when wrapper is defined as normal provider in providers array', function () {
+  test('should inject multi providers - token based useWrapper', function () {
     @Injectable()
-    class MultiProvider extends Array<any> {}
+    class MultiProvider extends Array<string> {}
 
     @Injectable()
     class Service {
@@ -36,9 +36,40 @@ describe('Multi wrapper', function () {
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
-  test('should inject multi providers from given token with constraints (token based useWrapper)', function () {
+  test('should inject multi providers - injection based useWrapper', function () {
     @Injectable()
-    class MultiProvider extends Array<any> {}
+    class MultiProvider extends Array<string> {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Multi()) readonly multi: MultiProvider,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-1'
+      },
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-2'
+      },
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-3'
+      },
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
+  });
+
+  test('should inject multi providers from given token with constraints - token based useWrapper', function () {
+    @Injectable()
+    class MultiProvider extends Array<string> {}
 
     @Injectable()
     class Service {
@@ -73,11 +104,11 @@ describe('Multi wrapper', function () {
     expect(service.multi).toEqual(['multi1', 'multi3']);
   });
 
-  test('should inject multi providers from given token with constraints (injection based useWrapper)', function () {
+  test('should inject multi providers from given token with constraints - injection based useWrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi(Named('multi'))) readonly multi: Array<any>,
+        @Inject('token', Multi(Named('multi'))) readonly multi: Array<string>,
       ) {}
     }
 
@@ -105,6 +136,71 @@ describe('Multi wrapper', function () {
 
     const service = injector.get(Service) as Service;
     expect(service.multi).toEqual(['multi1', 'multi2']);
+  });
+
+  test('should inject multi providers - tree-shakable token based useWrapper', function () {
+    @Injectable({
+      useWrapper: Multi()
+    })
+    class MultiProvider extends Array<string> {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly multi: MultiProvider,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-1'
+      },
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-2'
+      },
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-3'
+      },
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
+  });
+
+  test('should inject multi providers - tree-shakable (injection token) token based useWrapper', function () {
+    const MultiProvider = new InjectionToken({
+      useWrapper: Multi(),
+    });
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(MultiProvider) readonly multi: Array<string>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-1'
+      },
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-2'
+      },
+      {
+        provide: MultiProvider,
+        useValue: 'multi-provider-3'
+      },
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
   // TODO: Add more testing with side effects etc

@@ -73,7 +73,7 @@ export class Injector {
   }
 
   select(mod: Type, id: ModuleID = 'static'): Injector | undefined {
-    let founded: Injector | Map<ModuleID, Injector> = this.imports.get(mod);
+    let founded = this.imports.get(mod);
     if (founded instanceof Map) {
       return founded.get(id);
     }
@@ -84,7 +84,7 @@ export class Injector {
    * PROVIDERS
    */
   get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: InjectionSession): Promise<T | undefined> | T | undefined {
-    // Passing copy of options is for wrapper. Inside them dev can change shape of these options.
+    // Passing copy of options is for wrapper. Inside them we can change shape of these options.
     options = InjectorMetadata.copyOptions(options);
     const newSession = InjectorMetadata.createSession(undefined, options, meta, parentSession);
 
@@ -143,27 +143,14 @@ export class Injector {
       return instance.value;
     }
 
-    // InjectionStatus.UNKNOWN === 1
-    if (instance.status === 1) {
+    if (instance.status === InjectionStatus.UNKNOWN) {
       instance.status |= InjectionStatus.PENDING;
-
-      // const providerWrappers = this.getWrappers(record, session);
-      // const length = providerWrappers.length;
-      // const nextWrapper = (i = 0) => (injector: Injector, s: InjectionSession) => {
-      //   if (i === length) {
-      //     return def.factory(injector, s);
-      //   }
-      //   const next: NextWrapper = nextWrapper(i + 1);
-      //   return providerWrappers[i].wrapper(injector, s, next);
-      // }
-      // const value = nextWrapper()(record.hostInjector, session) as T;
 
       let value: T;
       if (def.useWrapper === undefined) {
         value = def.factory(record.hostInjector, session) as T;
       } else {
-        const last = (i: Injector, s: InjectionSession) => def.factory(i, s) as T;
-        value = execWrapper(def.useWrapper, last)(record.hostInjector, session);
+        value = execWrapper(def.useWrapper, def.factory)(record.hostInjector, session);
       }
 
       if (instance.status & InjectionStatus.CIRCULAR) {

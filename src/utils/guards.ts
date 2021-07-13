@@ -35,3 +35,7 @@ export function hasOnInitHook(instance: unknown): instance is OnInit {
 export function hasOnDestroyHook(instance: unknown): instance is OnDestroy {
   return instance && typeof (instance as OnDestroy).onDestroy === "function";
 }
+
+export function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
+  return maybePromise && typeof maybePromise.then === 'function';
+}

@@ -30,5 +30,4 @@ export interface InjectionSession<T = any> {
   options: InjectionOptions;
   meta: InjectionMetadata;
   parent?: InjectionSession;
-  shared?: any;
 }
