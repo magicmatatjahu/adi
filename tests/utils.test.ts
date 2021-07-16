@@ -11,7 +11,6 @@ describe('Utils function', function() {
       const result = wrapper('promiseLikify').then(val => {
         return val
       });
-  
       expect(result).toEqual('promiseLikify works!');
     });
 
@@ -24,7 +23,6 @@ describe('Utils function', function() {
       const result = wrapper('promiseLikify').then(val => {
         return val
       });
-  
       expect(await result).toEqual('promiseLikify works!');
     });
   });

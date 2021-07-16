@@ -1,6 +1,7 @@
 import { Injector } from "../injector";
 import { InjectionSession, NextWrapper, WrapperDef, WrapperOptions } from "../interfaces";
 import { Token } from "../types";
+import { promiseLikify } from "./promise-likify";
 
 // TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class
 export function createWrapper<T = any>(
@@ -24,6 +25,11 @@ export function createWrapper<T = any>(
   }
   return wr;
 }
+
+// change the lastWrapper `next` function to custom function passed by function argument
+// export function execWrapper<T>(nextWrapper: WrapperDef, lastWrapper: NextWrapper): (...args: any[]) => PromiseLike<T> {
+//   return promiseLikify(val => val);
+// }
 
 // change the lastWrapper `next` function to custom function passed by function argument
 export function execWrapper(nextWrapper: WrapperDef, lastWrapper: NextWrapper) {
