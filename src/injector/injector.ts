@@ -150,7 +150,7 @@ export class Injector {
       if (def.useWrapper === undefined) {
         value = def.factory(record.hostInjector, session) as T;
       } else {
-        value = execWrapper(def.useWrapper, def.factory)(record.hostInjector, session);
+        value = execWrapper(def.useWrapper, def.factory as any)(record.hostInjector, session) as any;
       }
 
       if (instance.status & InjectionStatus.CIRCULAR) {

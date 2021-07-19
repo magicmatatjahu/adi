@@ -28,7 +28,16 @@ export function createWrapper<T = any>(
 
 // change the lastWrapper `next` function to custom function passed by function argument
 // export function execWrapper<T>(nextWrapper: WrapperDef, lastWrapper: NextWrapper): (...args: any[]) => PromiseLike<T> {
-//   return promiseLikify(val => val);
+//   return promiseLikify((injector: Injector, s: InjectionSession) => {
+//     const $$nextWrapper = nextWrapper['$$nextWrapper'];
+//     if ($$nextWrapper !== undefined) {
+//       const next: NextWrapper = execWrapper($$nextWrapper, lastWrapper);
+//       return nextWrapper(injector, s, next);
+//     }
+//     // fix passing options
+//     // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
+//     return nextWrapper(injector, s, lastWrapper);
+//   });
 // }
 
 // change the lastWrapper `next` function to custom function passed by function argument

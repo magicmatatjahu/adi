@@ -1,53 +1,43 @@
+import { Injector, Injectable, Inject, Ctx, Context, createWrapper } from "../src";
 import { promiseLikify } from "../src/utils/promise-likify";
 
-describe('Misc testing', function() {
-  test('checking event loop', async function() {
-    let a = 0;
-    async function add() {
-      a++;
-    }
-    async function addTwo() {
-      await add();
-      a++;
-    }
-    async function loop() {
-      for (let i = 0; i < 100; i++) {
-        await addTwo();
+describe.skip('Misc testing', function() {
+  test('should inject with new wrapper def', function () {
+    const TestWrapper1 = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        console.log(value);
+        return value;
       }
-      setTimeout(() => {
-        console.log(a);
-        a = 1000000000000;
-      }, 0);
-      for (let i = 0; i < 100; i++) {
-        await addTwo();
+    });
+
+    const TestWrapper2 = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        console.log(value);
+        return value;
       }
+    });
+
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(TestWrapper1(TestWrapper2())) service: TestService,
+      ) {}
     }
-    await loop();
+
+    const injector = new Injector([
+      TestService,
+      Service,
+    ]);
+
+    const service = injector.get(Service) as any;
+    console.log(service)
+    // service.then(val => {
+    //   console.log(val);
+    // })
   });
-
-  // test.only('checking promislikefy', async function() {
-  //   function next(str: string) {
-  //     return str + ' dupa';
-  //   }
-
-  //   async function asyncNext(str: string) {
-  //     return str + ' dupa';
-  //   }
-
-  //   const wrapper = promiseLikify(next);
-
-  //   let result = wrapper('lol').then(val => {
-  //     return val
-  //   });
-
-  //   console.log(result);
-
-  //   const asyncWrapper = promiseLikify(asyncNext);
-
-  //   result = asyncWrapper('lol').then(val => {
-  //     return val
-  //   });
-
-  //   console.log(await result)
-  // });
 });
