@@ -125,19 +125,20 @@ export const InjectorMetadata = new class {
   createProviderRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
-    useWrapper: WrapperDef,
+    // useWrapper: WrapperDef,
   ): ProviderRecord<T> {
     return {
       token,
       hostInjector,
       defs: [],
       constraintDefs: [],
-      wrappers: useWrapper ? [
-        {
-          useWrapper: useWrapper,
-          constraint: ALWAYS_CONSTRAINT,
-        }
-      ] : [],
+      wrappers: [],
+      // wrappers: useWrapper ? [
+      //   {
+      //     useWrapper: useWrapper,
+      //     constraint: ALWAYS_CONSTRAINT,
+      //   }
+      // ] : [],
     }
   }
 
@@ -183,17 +184,17 @@ export const InjectorMetadata = new class {
     const records: Map<Token, ProviderRecord> = (hostInjector as any).records;
     let record = records.get(token);
     if (record === undefined) {
-      let useWrapper = undefined;
-      if (customProvider && hasWrapperProvider(customProvider)) {
-        useWrapper = customProvider.useWrapper;
-      } else {
-        // change this statement to something more optimize 
-        const def = getProviderDef(token);
-        if (def && def.options && hasWrapperProvider(def.options)) {
-          useWrapper = def.options.useWrapper;
-        }
-      }
-      record = this.createProviderRecord(token, hostInjector, useWrapper);
+      // let useWrapper = undefined;
+      // if (customProvider && hasWrapperProvider(customProvider)) {
+      //   useWrapper = customProvider.useWrapper;
+      // } else {
+      //   // change this statement to something more optimize 
+      //   const def = getProviderDef(token);
+      //   if (def && def.options && hasWrapperProvider(def.options)) {
+      //     useWrapper = def.options.useWrapper;
+      //   }
+      // }
+      record = this.createProviderRecord(token, hostInjector);
       records.set(token, record);
     }
     return record;

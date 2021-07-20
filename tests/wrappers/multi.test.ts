@@ -138,7 +138,7 @@ describe('Multi wrapper', function () {
     expect(service.multi).toEqual(['multi1', 'multi2']);
   });
 
-  test('should inject multi providers - tree-shakable token based useWrapper', function () {
+  test.skip('should inject multi providers - tree-shakable token based useWrapper', function () {
     @Injectable({
       useWrapper: Multi()
     })
@@ -171,7 +171,7 @@ describe('Multi wrapper', function () {
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
-  test('should inject multi providers - tree-shakable (injection token) token based useWrapper', function () {
+  test.skip('should inject multi providers - tree-shakable (injection token) token based useWrapper', function () {
     const MultiProvider = new InjectionToken({
       useWrapper: Multi(),
     });

@@ -1,9 +1,8 @@
-import { Injector, Injectable, Inject, Ctx, Context, createWrapper } from "../src";
-import { promiseLikify } from "../src/utils/promise-likify";
+import { Injector, Injectable, Inject, Ctx, Context, createWrapper, InjectionToken } from "../src";
 
-describe.skip('Misc testing', function() {
+describe('Misc testing', function() {
   test('should inject with new wrapper def', function () {
-    const TestWrapper1 = createWrapper((_: never) => {
+    const TestWrapper = createWrapper((_: never) => {
       return (injector, session, next) => {
         const value = next(injector, session);
         console.log(value);
@@ -25,7 +24,7 @@ describe.skip('Misc testing', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestWrapper1(TestWrapper2())) service: TestService,
+        @Inject(TestWrapper()) service: TestService,
       ) {}
     }
 
@@ -34,10 +33,33 @@ describe.skip('Misc testing', function() {
       Service,
     ]);
 
-    const service = injector.get(Service) as any;
-    console.log(service)
-    // service.then(val => {
-    //   console.log(val);
-    // })
+    const service = injector.get(Service);
+  });
+
+  test('should inject with new wrapper def', function () {
+    const TestWrapper = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        console.log(value);
+        return value;
+      }
+    });
+
+    @Injectable({
+      useWrapper: TestWrapper(),
+    })
+    class TestService {}
+
+    const testToken = new InjectionToken({
+      useWrapper: TestWrapper(),
+      useValue: 'lol',
+      provideIn: 'any',
+    });
+
+    const injector = new Injector([
+      TestService,
+    ]);
+
+    const service = injector.get(testToken);
   });
 });

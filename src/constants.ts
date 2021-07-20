@@ -16,7 +16,7 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({
   provideIn: 'any',
-  // TODO: Fix using single wrapper without normal providers
+  // TODO: Fix using wrapper in the treeshakable providers without value/factory
   useWrapper: Multi(),
 }, "MODULE_INITIALIZERS");
 
