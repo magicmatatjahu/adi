@@ -4,6 +4,7 @@ import {
   FactoryProvider,
   WrapperProvider,
   ValueProvider,
+  // CustomProvider,
   OnInit,
   OnDestroy,
 } from "../interfaces";
@@ -19,6 +20,10 @@ export function isValueProvider(provider: unknown): provider is ValueProvider {
 export function isClassProvider(provider: unknown): provider is ClassProvider {
   return 'useClass' in (provider as ClassProvider);
 }
+
+// export function isCustomProvider(provider: unknown): provider is CustomProvider {
+//   return 'useCustom' in (provider as CustomProvider);
+// }
 
 export function isExistingProvider(provider: unknown): provider is ExistingProvider {
   return 'useExisting' in (provider as ExistingProvider);

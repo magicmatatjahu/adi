@@ -1,9 +1,9 @@
 import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionSession, InjectionMetadata,
-  ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord, CustomProvider,
+  ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
   Provider, ProviderDef, NextWrapper, Type, ForwardRef,
-  InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule,
+  InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
 import { InjectionStatus } from "../enums";
@@ -226,7 +226,10 @@ export class Injector {
         return def;
       }
     }
-    return record.defs[record.defs.length - 1];
+    if (record.defs.length) {
+      return record.defs[record.defs.length - 1];
+    }
+    return undefined;
   }
 
   addProvider(provider: Provider): void {
@@ -333,7 +336,7 @@ export class Injector {
 
     // Token, Provider and InjectionToken case
     // import also imported records
-    const token: any = (exp as CustomProvider).provide || exp;
+    const token: any = (exp as PlainProvider).provide || exp;
     const record = from.getRecord(token);
     if (record !== undefined) {
       to.importedRecords.set(token, record);
@@ -357,7 +360,7 @@ export class Injector {
     } else {
       parent.importedRecords.forEach((record, token) => {
         if (record.hostInjector === fromModule) {
-          const givenToken = providers.some(p => p === token || (p as CustomProvider).provide === token);
+          const givenToken = providers.some(p => p === token || (p as PlainProvider).provide === token);
           givenToken && to.importedRecords.set(token, record);
         }
       });

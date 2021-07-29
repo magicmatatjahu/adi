@@ -9,12 +9,12 @@ function wrapper(_: never): WrapperDef {
     const token = session.options.token;
     // check for treeshakable provider
     (injector as any).getRecord(token);
-    const ownRecord = (injector as any).records.get(token);
-    // if token is not found
-    if (ownRecord === undefined) {
-      return next(NilInjector, session);
+    
+    if ((injector as any).records.has(token)) {
+      return next(injector, session);
     }
-    return next(injector, session);
+    // if token is not found
+    return next(NilInjector, session);
   }
 }
 

@@ -1,10 +1,10 @@
 import { Context, Injector } from ".";
 import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
-  Provider, TypeProvider, CustomProvider,
+  Provider, TypeProvider,
   InstanceRecord, DefinitionRecord, ProviderRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord,
+  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider } from "../utils";
 import { InjectionStatus } from "../enums";
@@ -37,17 +37,17 @@ export const InjectorMetadata = new class {
     hostInjector: Injector,
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
-    const injOptions = provDef.options || {};
+    const options = provDef.options || {};
 
     if (
-      'useWrapper' in injOptions || 
-      'useFactory' in injOptions ||
-      'useValue' in injOptions ||
-      'useExisting' in injOptions ||
-      'useClass' in injOptions
+      'useWrapper' in options || 
+      'useFactory' in options ||
+      'useValue' in options ||
+      'useExisting' in options ||
+      'useClass' in options
     ) {
       // shallow copy provDef
-      const customProvider = { ...(injOptions as CustomProvider), useClass: provider } as CustomProvider;
+      const customProvider = { ...options, useClass: provider } as PlainProvider;
       return this.customProviderToRecord(provider, customProvider, hostInjector);
     }
 
@@ -59,7 +59,7 @@ export const InjectorMetadata = new class {
 
   customProviderToRecord<T>(
     token: Token<T>,
-    provider: CustomProvider<T>,
+    provider: PlainProvider<T>,
     hostInjector: Injector,
   ): ProviderRecord {
     const record = this.getRecord(token, hostInjector);
@@ -95,7 +95,13 @@ export const InjectorMetadata = new class {
       const providerDef = this.getProviderDef(classRef, true);
       factory = InjectorResolver.createFactory(classRef, providerDef);
       proto = classRef;
-    }
+    } 
+    // else if (isCustomProvider(provider)) {
+    //   const customDef = provider.useCustom;
+    //   const providerDef = this.getProviderDef(classRef, true);
+    //   factory = InjectorResolver.createFactory(classRef, providerDef);
+    //   proto = classRef;
+    // }
 
     const constraint = provider.when;
     let useWrapper = undefined;
@@ -179,7 +185,6 @@ export const InjectorMetadata = new class {
   getRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
-    customProvider?: CustomProvider<T>,
   ): ProviderRecord {
     const records: Map<Token, ProviderRecord> = (hostInjector as any).records;
     let record = records.get(token);

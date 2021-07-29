@@ -4,16 +4,16 @@ import { ConstraintDef, WrapperDef, Type } from ".";
 
 export type Provider<T = any> =
   | TypeProvider<T>
-  | CustomProvider<T>;
+  | PlainProvider<T>;
 
-export type CustomProvider<T = any> =
+export type PlainProvider<T = any> =
   | ClassProvider<T>
   | FactoryProvider<T>
   | ExistingProvider<T>
   | ValueProvider<T>
   | WrapperProvider<T>;
 
-export type CustomSansProvider<T = any> =
+export type PlainSansProvider<T = any> =
   | Omit<ClassProvider<T>, 'provide' | 'when'>
   | Omit<FactoryProvider<T>, 'provide' | 'when'>
   | Omit<ValueProvider<T>, 'provide' | 'when'>
@@ -58,6 +58,13 @@ export interface WrapperProvider<T = any> {
   useWrapper: WrapperDef;
   when?: ConstraintDef;
 }
+
+// export interface CustomProvider<T = any> {
+//   provide: Token<T>;
+//   useCustom: Function;
+//   useWrapper?: WrapperDef;
+//   when?: ConstraintDef;
+// }
 
 export interface ForwardRef<T = any> {
   ref: () => T;
