@@ -1,11 +1,10 @@
-import { Injector } from "../injector";
-import { InjectionSession, ProviderRecord, NextWrapper, WrapperDef } from "../interfaces";
-import { CONSTRAINTS } from "../constants"
+import { Session } from "../injector";
+import { ProviderRecord, WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function getDefinitions(
   record: ProviderRecord,
-  session?: InjectionSession
+  session?: Session
 ): Array<any> {
   const constraintDefs = record.constraintDefs;
   const satisfyingDefs = [];
@@ -19,16 +18,14 @@ function getDefinitions(
 }
 
 function wrapper(_: never): WrapperDef {
-  // console.log('multi');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside multi');
+  return (injector, session, next) => {
     // exec wrappers chain to retrieve needed, updated session
     next(injector, session);
 
     const options = session.options;
     const createdInstance = session.instance;
     const createdDef = createdInstance.def;
-    const token = options.token || createdDef.record.token;
+    const token = session.getToken() || createdDef.record.token;
     const record = (injector as any).records.get(token);
     const defs = getDefinitions(record, session);
 

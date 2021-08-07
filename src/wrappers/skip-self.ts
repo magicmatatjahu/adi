@@ -1,12 +1,10 @@
-import { Injector, NilInjector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { NilInjector } from "../injector";
+import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function wrapper(_: never): WrapperDef {
-  // console.log('skipSelf');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside skipSelf');
-    const token = session.options.token;
+  return (injector, session, next) => {
+    const token = session.getToken();
     let parentInjector = injector.getParentInjector();
     // check for treeshakable provider
     (injector as any).getRecord(token);

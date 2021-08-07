@@ -1,29 +1,30 @@
 import { Injector } from "./injector";
-import { InjectionArgument, InjectionSession, FactoryDef, ProviderDef, Type } from "../interfaces";
+import { Session } from "./session";
+import { InjectionArgument, FactoryDef, ProviderDef, Type } from "../interfaces";
 
 export const InjectorResolver = new class {
-  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: InjectionSession): Array<any> {
+  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session): Array<any> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(injector.get(arg.token, arg.options, arg.meta, session));
+      args.push(injector.get(arg.token, arg.options, arg.metadata, session));
     };
     return args;
   }
 
-  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session?: InjectionSession): void {
+  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session?: Session): void {
     for (const name in props) {
       const prop = props[name];
-      instance[name] = injector.get(prop.token, prop.options, prop.meta, session);
+      instance[name] = injector.get(prop.token, prop.options, prop.metadata, session);
     }
     // inject symbols
     for (const sb of Object.getOwnPropertySymbols(props)) {
       const prop = props[sb as any as string];
-      instance[sb] = injector.get(prop.token, prop.options, prop.meta, session);
+      instance[sb] = injector.get(prop.token, prop.options, prop.metadata, session);
     }
   }
 
-  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session?: InjectionSession): void {
+  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session?: Session): void {
     for (const name in methods) {
       const methodDeps = methods[name];
       const originalMethod = instance[name];
@@ -32,7 +33,7 @@ export const InjectorResolver = new class {
         let methodProp = undefined;
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            args[i] = injector.get(methodProp.token, methodProp.options, methodProp.meta, session);
+            args[i] = injector.get(methodProp.token, methodProp.options, methodProp.metadata, session);
           }
         }
         return originalMethod.apply(instance, args);
@@ -50,7 +51,7 @@ export const InjectorResolver = new class {
       props = propsDeps || def.args.props,
       methods = def.args.methods;
     
-    return (injector: Injector, session?: InjectionSession) => {
+    return (injector: Injector, session?: Session) => {
       const instance = new provider(...this.injectDeps(deps, injector, session));
       this.injectProperties(instance, props, injector, session);
       this.injectMethods(instance, methods, injector, session);

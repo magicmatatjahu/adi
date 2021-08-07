@@ -164,7 +164,7 @@ export function createInjectionArg(token: Token, useWrapper: WrapperDef, target:
       labels: {},
       useWrapper: Cacheable(useWrapper),
     },
-    meta: {
+    metadata: {
       target,
       propertyKey,
       index,

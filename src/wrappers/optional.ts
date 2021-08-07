@@ -1,11 +1,8 @@
-import { Injector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function wrapper(defaultValue?: any): WrapperDef {
-  // console.log('optional');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside optional');
+  return (injector, session, next) => {
     try {
       return next(injector, session);
     } catch(err) {

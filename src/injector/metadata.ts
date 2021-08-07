@@ -1,4 +1,4 @@
-import { Context, Injector } from ".";
+import { Context, Session, Injector } from ".";
 import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
   Provider, TypeProvider,
@@ -69,7 +69,7 @@ export const InjectorMetadata = new class {
 
     if (isFactoryProvider(provider)) {
       const deps = this.convertDependencies(provider.inject || [], provider.useFactory);
-      factory = (injector: Injector, session?: InjectionSession) => {
+      factory = (injector: Injector, session?: Session) => {
         return provider.useFactory(...InjectorResolver.injectDeps(deps, injector, session));
       }
     } else if (isValueProvider(provider)) {
@@ -78,7 +78,7 @@ export const InjectorMetadata = new class {
     }  else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;
       let changed = false;
-      factory = (injector: Injector, session?: InjectionSession) => {
+      factory = (injector: Injector, session?: Session) => {
         // save reference of record of existing provider to record created for useExisting
         // in other words change record from useExisting provider to record pointed by useExisting token
         if (changed === false) {
@@ -208,9 +208,10 @@ export const InjectorMetadata = new class {
   getInstanceRecord<T>(
     def: DefinitionRecord<T>, 
     scope: Scope,
-    session?: InjectionSession,
+    session?: Session,
   ): InstanceRecord<T> {
-    session['$$sideEffects'] = scope.hasSideEffects();
+    // session['$$sideEffects'] = scope.hasSideEffects();
+    session.setSideEffect(scope.hasSideEffects());
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
 
     let instance = def.values.get(ctx);
@@ -260,7 +261,7 @@ export const InjectorMetadata = new class {
   getComponentInstanceRecord<T>(
     comp: ComponentRecord<T>, 
     scope: Scope,
-    session?: InjectionSession,
+    session?: Session,
   ): ComponentInstanceRecord<T> {
     const ctx = scope.getContext(comp as unknown as DefinitionRecord, session) || STATIC_CONTEXT;
     let instance = comp.values.get(ctx);
@@ -338,7 +339,7 @@ export const InjectorMetadata = new class {
     const newCtor: InjectionArgument[] = [];
     for (let i = 0, l = ctorDeps.length; i < l; i++) {
       const arg = ctorDeps[i];
-      newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, useWrapper: Skip(value) }, meta: arg.meta } : arg;
+      newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, useWrapper: Skip(value) }, metadata: arg.metadata } : arg;
     }
     return newCtor;
   }
@@ -347,7 +348,7 @@ export const InjectorMetadata = new class {
     const newProps: { [key: string]: InjectionArgument } = {};
     for (const name in props) {
       const prop = props[name];
-      newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, useWrapper: Skip(value) }, meta: prop.meta } : prop;
+      newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, useWrapper: Skip(value) }, metadata: prop.metadata } : prop;
     }
     return newProps;
   }

@@ -1,13 +1,10 @@
-import { Injector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { WrapperDef } from "../interfaces";
 import { Token as ProviderToken } from "../types";
 import { createWrapper } from "../utils";
 
 function wrapper(token: ProviderToken): WrapperDef {
-  // console.log('token');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside token');
-    session.options.token = token || session.options.token;
+  return (injector, session, next) => {
+    session.setToken(token || session.getToken());
     return next(injector, session);
   }
 }

@@ -1,4 +1,4 @@
-import { Injector } from "../injector";
+import { Injector, Session } from "../injector";
 import { InjectionSession, NextWrapper, WrapperDef, WrapperOptions } from "../interfaces";
 import { Token } from "../types";
 import { promiseLikify } from "./promise-likify";
@@ -42,15 +42,15 @@ export function createWrapper<T = any>(
 
 // change the lastWrapper `next` function to custom function passed by function argument
 export function execWrapper(nextWrapper: WrapperDef, lastWrapper: NextWrapper) {
-  return (injector: Injector, s: InjectionSession) => {
+  return (injector: Injector, session: Session) => {
     const $$nextWrapper = nextWrapper['$$nextWrapper'];
     if ($$nextWrapper !== undefined) {
       const next: NextWrapper = execWrapper($$nextWrapper, lastWrapper);
-      return nextWrapper(injector, s, next);
+      return nextWrapper(injector, session, next);
     }
     // fix passing options
     // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
-    return nextWrapper(injector, s, lastWrapper);
+    return nextWrapper(injector, session, lastWrapper);
   }
 }
 

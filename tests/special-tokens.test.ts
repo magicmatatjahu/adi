@@ -1,7 +1,7 @@
 import { Injector, Injectable, Context, STATIC_CONTEXT, Inject } from "../src";
 
 describe('Special tokens (providers)', function() {
-  describe('Context token', function() {
+  describe.only('Context token', function() {
     test('Should works in simple case', function() {
       @Injectable()
       class TestService {

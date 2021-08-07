@@ -1,5 +1,4 @@
-import { Injector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 const reflectMethods: ReadonlyArray<keyof ProxyHandler<any>> = [
@@ -42,10 +41,7 @@ function createProxy<T = any>(createObject: () => T): T {
 }
 
 function wrapper(proxy: boolean = true): WrapperDef {
-  // console.log('lazy');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside lazy');
-
+  return (injector, session, next) => {
     if (proxy === true) {
       // works only with objects!
       return createProxy(() => {

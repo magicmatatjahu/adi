@@ -1,4 +1,4 @@
-import { Injector } from "../injector";
+import { Injector, Session } from "../injector";
 import { Scope } from "../scope";
 import { InjectionSession, InjectionArgument, ModuleMetadata, ProvideInType } from ".";
 import { InjectableOptions } from "./injectable.interface";
@@ -28,14 +28,14 @@ export interface ProviderDef<T = any> {
 
 export type FactoryDef<T = any> = (
   injector: Injector, 
-  session: InjectionSession, 
+  session: Session, 
 ) => Promise<T | undefined> | T | undefined;
 
-export type ConstraintDef = (session: InjectionSession) => boolean;
+export type ConstraintDef = (session: Session) => boolean;
 
 export type NextWrapper<T = any> = (
   injector: Injector, 
-  session: InjectionSession
+  session: Session,
 ) => Promise<T | undefined> | T | undefined;
 
-export type WrapperDef<T = any> = (injector: Injector, session: InjectionSession, next: NextWrapper) => Promise<T> | T;
+export type WrapperDef<T = any> = (injector: Injector, session: Session, next: NextWrapper) => Promise<T> | T;

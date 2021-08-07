@@ -1,13 +1,10 @@
-import { Injector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function wrapper(_: never): WrapperDef {
-  // console.log('memo');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside memo');
+  return (injector, session, next) => {
     const value = next(injector, session);
-    session['$$sideEffects'] = false;
+    session.setSideEffect(false);
     return value;
   }
 }

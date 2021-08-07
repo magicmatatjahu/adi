@@ -1,15 +1,15 @@
-
-import { ConstraintDef, InjectionSession } from "./interfaces";
+import { Session } from "./injector";
+import { ConstraintDef } from "./interfaces";
 import { CONSTRAINTS } from "./constants";
 import { Token } from "./types";
 
 export function named(named: Token): ConstraintDef {
-  return (session: InjectionSession) => session.options?.labels[CONSTRAINTS.NAMED] === named;
+  return (session) => session.options?.labels[CONSTRAINTS.NAMED] === named;
 }
 
 export function labelled(l: Record<string | symbol | number, any> = {}): ConstraintDef {
   const tagsLength = Object.keys(l).length;
-  return (session: InjectionSession) => {
+  return (session) => {
     const labels = session.options?.labels;
     if (!labels) return false;
     let checks = 0;
@@ -21,7 +21,7 @@ export function labelled(l: Record<string | symbol | number, any> = {}): Constra
 }
 
 export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
-  return (session: InjectionSession) => {
+  return (session) => {
     for (let i = 0, l = fns.length; i < l; i++) {
       if (fns[i](session) === false) return false;
     }

@@ -1,16 +1,14 @@
-import { Injector, Context } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { Context } from "../injector";
+import { WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { createWrapper } from "../utils";
 
 function wrapper(ctxData: any): WrapperDef {
-  // console.log('new');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside new');
+  return (injector, session, next) => {
     if (ctxData !== undefined) {
-      session.options.ctx = new Context(ctxData);
+      session.setContext(new Context(ctxData));
     }
-    session.options.scope = Scope.TRANSIENT;
+    session.setScope(Scope.TRANSIENT);
     return next(injector, session);
   }
 }

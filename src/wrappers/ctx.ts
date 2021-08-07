@@ -1,15 +1,13 @@
-import { Injector, Context } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { Context } from "../injector";
+import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function wrapper(ctxOrData: Context | any): WrapperDef {
-  // console.log('ctx');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside ctx');
+  return (injector, session, next) => {
     if (ctxOrData instanceof Context) {
-      session.options.ctx = ctxOrData;
+      session.setContext(ctxOrData);
     } else {
-      session.options.ctx = new Context(ctxOrData);
+      session.setContext(new Context(ctxOrData));
     }
     return next(injector, session);
   }

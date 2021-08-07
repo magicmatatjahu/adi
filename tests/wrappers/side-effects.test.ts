@@ -7,7 +7,7 @@ describe('SideEffects wrapper', function () {
     const TestWrapper = createWrapper((_: never) => {
       return (injector, session, next) => {
         const value = next(injector, session);
-        session['$$sideEffects'] = false;
+        session.setSideEffect(false);
         calls++;
         return value;
       }

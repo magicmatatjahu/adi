@@ -22,7 +22,7 @@ export interface InjectionArgument<T = any> {
   // argument and options have token, it (token) should be only in one place
   token: Token<T>;
   options: InjectionOptions;
-  meta: InjectionMetadata;
+  metadata: InjectionMetadata;
 }
 
 export interface InjectionSession<T = any> {

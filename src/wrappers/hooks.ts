@@ -1,13 +1,10 @@
-import { Injector } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef } from "../interfaces";
+import { WrapperDef } from "../interfaces";
 import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "../utils";
 import { InjectionStatus } from "../enums";
 
 // Make it more easier to understand
 export const OnInitHook = createWrapper((_: never): WrapperDef => {
-  // console.log('onInitHook');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside onInitHook');
+  return (injector, session, next) => {
     const value = next(injector, session);
 
     // when resolution chain has circular reference
@@ -43,17 +40,15 @@ export const OnInitHook = createWrapper((_: never): WrapperDef => {
 });
 
 export const OnDestroyHook = createWrapper((_: never): WrapperDef => {
-  // console.log('onDestroyHook');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside onDestroyHook');
+  return (injector, session, next) => {
     const value = next(injector, session);
     if (hasOnDestroyHook(value)) {
-      // value.onDestroy();
+      value.onDestroy();
     }
     return value;
   }
 });
 
 export function useDefaultHooks(wrapper?: WrapperDef): WrapperDef {
-  return OnDestroyHook(OnInitHook(wrapper));
+  return OnInitHook(wrapper);
 }

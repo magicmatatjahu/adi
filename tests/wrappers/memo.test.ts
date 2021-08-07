@@ -7,7 +7,7 @@ describe('Memo wrapper', function () {
     const TestWrapper = createWrapper((_: never) => {
       return (injector, session, next) => {
         const value = next(injector, session);
-        session['$$sideEffects'] = true;
+        session.setSideEffect(true);
         calls++;
         return value;
       }

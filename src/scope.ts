@@ -1,5 +1,5 @@
-import { Context } from "./injector";
-import { DefinitionRecord, InjectionSession, InstanceRecord } from "./interfaces";
+import { Context, Session } from "./injector";
+import { DefinitionRecord, InstanceRecord } from "./interfaces";
 import { STATIC_CONTEXT } from "./constants";
 import { ScopeFlags } from "./enums";
 
@@ -15,7 +15,7 @@ export class Scope {
 
   public getContext<T = any>(
     _: DefinitionRecord<T>, 
-    session?: InjectionSession,
+    session?: Session,
   ): Context {
     return session?.options?.ctx || STATIC_CONTEXT;
   }
@@ -29,11 +29,11 @@ export class Scope {
   // }
 
   public canBeOverrided(): boolean {
-    return (this.flags & ScopeFlags.CAN_OVERRIDE) === ScopeFlags.CAN_OVERRIDE;
+    return (this.flags & ScopeFlags.CAN_OVERRIDE) > 0;
   }
 
   public hasSideEffects(): boolean {
-    return (this.flags & ScopeFlags.SIDE_EFFECTS) === ScopeFlags.SIDE_EFFECTS;
+    return (this.flags & ScopeFlags.SIDE_EFFECTS) > 0;
   }
 }
 
@@ -42,7 +42,7 @@ export class SingletonScope extends Scope {
 
   public name = "Singleton";
 
-  public getContext(_: DefinitionRecord, session: InjectionSession): Context {
+  public getContext(_: DefinitionRecord, session: Session): Context {
     const ctx = session.options.ctx;
     if (ctx && ctx !== STATIC_CONTEXT) {
       // todo: change to warning
@@ -58,7 +58,7 @@ export class TransientScope extends Scope {
 
   public name = "Transient";
 
-  getContext(def: DefinitionRecord, session: InjectionSession): Context {
+  getContext(def: DefinitionRecord, session: Session): Context {
     if (session.parent && def === session.parent.instance.def) {
       throw Error("Cannot inject new instance of itself class (with TRANSIENT scope)");
     }
@@ -78,7 +78,7 @@ export class InstanceScope extends Scope {
 
   private instances = new Map<InstanceRecord, Context>();
 
-  getContext(def: DefinitionRecord, session: InjectionSession): Context {
+  getContext(def: DefinitionRecord, session: Session): Context {
     const parentSession = session.parent;
     // if parent session in undefined treat scope as Transient
     if (parentSession === undefined) {

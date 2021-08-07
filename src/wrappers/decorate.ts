@@ -1,6 +1,6 @@
 import { getProviderDef } from "../decorators";
-import { Injector, InjectorMetadata, InjectorResolver } from "../injector";
-import { InjectionSession, InjectionArgument, NextWrapper, Type, WrapperDef } from "../interfaces";
+import { InjectorMetadata, InjectorResolver } from "../injector";
+import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper } from "../utils";
 
@@ -20,10 +20,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
     token = decorator as Type;
   }
 
-  // console.log('decorate');
-  return (injector: Injector, session: InjectionSession, next: NextWrapper) => {
-    // console.log('inside decorate');
-
+  return (injector, session, next) => {
     // think about copy session
     const decoratee = next(injector, session);
 
@@ -33,7 +30,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
     }
 
     // class based decorator
-    const decoratedToken = session.options.token;
+    const decoratedToken = session.getToken();
     const providerDef = getProviderDef(decorator);
     const args = providerDef.args;
     
