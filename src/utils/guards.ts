@@ -22,16 +22,16 @@ export function isClassProvider(provider: unknown): provider is ClassProvider {
   return 'useClass' in (provider as ClassProvider);
 }
 
-// export function isCustomProvider(provider: unknown): provider is CustomProvider {
-//   return 'useCustom' in (provider as CustomProvider);
-// }
-
 export function isExistingProvider(provider: unknown): provider is ExistingProvider {
   return 'useExisting' in (provider as ExistingProvider);
 }
 
 export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
   return typeof (provider as WrapperProvider).useWrapper === "function";
+}
+
+export function isWrapper<T>(wrapper: unknown): wrapper is WrapperDef<T> {
+  return wrapper && wrapper.hasOwnProperty('$$nextWrapper');
 }
 
 export function hasOnInitHook(instance: unknown): instance is OnInit {
@@ -44,8 +44,4 @@ export function hasOnDestroyHook(instance: unknown): instance is OnDestroy {
 
 export function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
   return maybePromise && typeof maybePromise.then === 'function';
-}
-
-export function isWrapper<T>(wrapper: unknown): wrapper is WrapperDef<T> {
-  return wrapper && wrapper.hasOwnProperty('$$nextWrapper');
 }

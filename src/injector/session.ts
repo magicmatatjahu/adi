@@ -60,6 +60,10 @@ export class Session<T = any> {
     return this.instance;
   }
 
+  setInstance(instance: InstanceRecord) {
+    this.instance = instance;
+  }
+
   getOptions() {
     return this.options;
   }

@@ -11,7 +11,7 @@ import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
-import { Skip, useDefaultHooks } from "../wrappers";
+import { useDefaultHooks } from "../wrappers";
 import { Cacheable } from "../wrappers/cacheable";
 
 import { InjectorResolver } from "./resolver";
@@ -95,13 +95,7 @@ export const InjectorMetadata = new class {
       const providerDef = this.getProviderDef(classRef, true);
       factory = InjectorResolver.createFactory(classRef, providerDef);
       proto = classRef;
-    } 
-    // else if (isCustomProvider(provider)) {
-    //   const customDef = provider.useCustom;
-    //   const providerDef = this.getProviderDef(classRef, true);
-    //   factory = InjectorResolver.createFactory(classRef, providerDef);
-    //   proto = classRef;
-    // }
+    }
 
     const constraint = provider.when;
     let useWrapper = undefined;
@@ -131,7 +125,6 @@ export const InjectorMetadata = new class {
   createProviderRecord<T>(
     token: Token<T>,
     hostInjector: Injector,
-    // useWrapper: WrapperDef,
   ): ProviderRecord<T> {
     return {
       token,
@@ -139,12 +132,6 @@ export const InjectorMetadata = new class {
       defs: [],
       constraintDefs: [],
       wrappers: [],
-      // wrappers: useWrapper ? [
-      //   {
-      //     useWrapper: useWrapper,
-      //     constraint: ALWAYS_CONSTRAINT,
-      //   }
-      // ] : [],
     }
   }
 
