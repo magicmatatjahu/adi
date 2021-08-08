@@ -17,12 +17,8 @@ export interface ProviderDef<T = any> {
   options?: InjectableOptions;
   args?: {
     ctor: Array<InjectionArgument>;
-    props: {
-      [prop: string]: InjectionArgument;
-    };
-    methods: {
-      [method: string]: Array<InjectionArgument>;
-    };
+    props: Record<string | symbol, InjectionArgument>;
+    methods: Record<string, InjectionArgument[]>;
   };
 }
 

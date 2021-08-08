@@ -70,7 +70,7 @@ describe('Decorate wrapper', function () {
     expect(service.service).toEqual('foobar is awesome!');
   });
 
-  test('should decorate provider (injection based useWrapper) - double decorator', function () {
+  test('should decorate provider (injection based useWrapper) - double decorator - function decorator case', function () {
     @Injectable()
     class AwesomeService {
       addAwesome() {
@@ -200,6 +200,68 @@ describe('Decorate wrapper', function () {
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
+  });
+
+  test('should decorate provider (injection based useWrapper) - double decorator - class decorator case', function () {
+    @Injectable()
+    class AwesomeService {
+      addAwesome() {
+        return ' is awesome';
+      }
+    }
+
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    @Injectable()
+    class DecoratorService1 implements TestService {
+      constructor(
+        public service: AwesomeService,
+        public decoratee: TestService,
+      ) {}
+
+      method() {
+        return this.decoratee.method() + 'bar' + this.service.addAwesome();
+      }
+    }
+
+    @Injectable()
+    class DecoratorService2 implements TestService {
+      constructor(
+        @Inject('exclamation') readonly exclamation: string,
+        public decoratee: TestService,
+      ) {}
+
+      method() {
+        return `(${this.decoratee.method() + this.exclamation})`
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Decorate(DecoratorService2, Decorate(DecoratorService1))) readonly service: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+      AwesomeService,
+      {
+        provide: 'exclamation',
+        useValue: '!',
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.service).toBeInstanceOf(DecoratorService2);
+    expect((service.service as DecoratorService2).decoratee).toBeInstanceOf(DecoratorService1);
+    expect(service.service.method()).toEqual('(foobar is awesome!)');
   });
 
   test('should decorate provider (provider based useWrapper) - function decorator case', function () {

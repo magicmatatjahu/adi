@@ -6,7 +6,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
@@ -326,31 +326,13 @@ export const InjectorMetadata = new class {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
-      if (dep.hasOwnProperty('$$nextWrapper')) {
-        converted.push(createInjectionArg(undefined, Cacheable(dep as WrapperDef), undefined, undefined, i, factory));
+      if (isWrapper(dep)) {
+        converted.push(createInjectionArg(undefined, Cacheable(dep), factory, undefined, i));
       } else {
-        converted.push(createInjectionArg(dep as any, undefined, undefined, undefined, i, factory));
+        converted.push(createInjectionArg(dep, undefined, factory, undefined, i));
       }
     }
     return converted;
-  }
-
-  transiteConstructorDeps(token: Token, value: any, ctorDeps: InjectionArgument[]): InjectionArgument[] {
-    const newCtor: InjectionArgument[] = [];
-    for (let i = 0, l = ctorDeps.length; i < l; i++) {
-      const arg = ctorDeps[i];
-      newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, useWrapper: Skip(value) }, metadata: arg.metadata } : arg;
-    }
-    return newCtor;
-  }
-
-  transitePropertyDeps(token: Token, value: any, props: { [key: string]: InjectionArgument }): { [key: string]: InjectionArgument } {
-    const newProps: { [key: string]: InjectionArgument } = {};
-    for (const name in props) {
-      const prop = props[name];
-      newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, useWrapper: Skip(value) }, metadata: prop.metadata } : prop;
-    }
-    return newProps;
   }
 
   retrieveDeepRecord(token: Token, injector: Injector): ProviderRecord | undefined {

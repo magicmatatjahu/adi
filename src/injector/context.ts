@@ -10,11 +10,11 @@ export class Context<T = any> {
   static $$prov: ProviderDef = {
     token: Context,
     factory: (_, session) => {
-      const parentSession = session.parent;
+      const parentSession = session.getParent();
       if (parentSession === undefined) {
         throw new Error('Context provider can be only used in other providers');
       }
-      return parentSession.instance.ctx;
+      return parentSession.getInstance().ctx;
     },
     provideIn: 'any',
     // scope: Scope.INSTANCE is added in `index.ts` file due to circular references between `injector` dir and `scope` file  

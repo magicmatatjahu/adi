@@ -1,12 +1,12 @@
 import { applyInjectionArg } from "./injectable"; 
 import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { Reflection } from "../utils";
+import { Reflection, isWrapper } from "../utils";
 
 export function Inject<T = any>(token?: Token<T>, useWrapper?: WrapperDef);
 export function Inject<T = any>(useWrapper?: WrapperDef);
 export function Inject<T = any>(token?: Token<T> | WrapperDef, useWrapper?: WrapperDef) {
-  if (token && token.hasOwnProperty('$$nextWrapper')) {
+  if (isWrapper(token)) {
     useWrapper = token as WrapperDef;
     token = undefined;
   }

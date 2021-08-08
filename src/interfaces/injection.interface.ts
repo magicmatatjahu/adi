@@ -15,7 +15,6 @@ export interface InjectionMetadata {
   target?: Object;
   propertyKey?: string | symbol;
   index?: number;
-  factory?: Function;
 }
 
 export interface InjectionArgument<T = any> {

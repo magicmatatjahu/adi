@@ -2,7 +2,7 @@ import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionMetadata,
   ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
-  Provider, ProviderDef, NextWrapper, Type, ForwardRef,
+  Provider, ProviderDef, NextWrapper, Type, ForwardRef, WrapperDef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
@@ -84,6 +84,10 @@ export class Injector {
   /**
    * PROVIDERS
    */
+  // _get<T>(token: Token<T>, wrapper?: WrapperDef): T | undefined {
+  //   const session = new Session(undefined, undefined, undefined, undefined);
+  // }
+
   get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: Session): Promise<T | undefined> | T | undefined {
     // Passing copy of options is for wrapper. Inside them we can change shape of these options.
     options = InjectorMetadata.copyOptions(options);
@@ -573,21 +577,6 @@ export const NilInjector = new class {
   }
 } as unknown as Injector;
 
-export function createInjector(
-  injector: Type<any>,
-  parent: Injector,
-  options?: InjectorOptions,
-): Injector;
-export function createInjector(
-  injector: ModuleMetadata,
-  parent: Injector,
-  options?: InjectorOptions,
-): Injector;
-export function createInjector(
-  injector: Array<Provider>,
-  parent: Injector,
-  options?: InjectorOptions,
-): Injector;
 export function createInjector(
   injector: Type<any> | ModuleMetadata | Array<Provider> = [],
   parent: Injector = NilInjector,

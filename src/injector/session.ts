@@ -24,20 +24,28 @@ export class Session<T = any> {
     this.options.token = token;
   }
 
+  getContext(): Context {
+    return this.options.ctx;
+  }
+
   setContext(ctx: Context) {
     this.options.ctx = ctx;
+  }
+
+  getScope(): Scope {
+    return this.options.scope;
   }
 
   setScope(scope: Scope) {
     this.options.scope = scope;
   }
 
-  addLabels(labels: Record<string | symbol, any>) {
-    this.options.labels = { ...this.options.labels, ...labels };
+  getLabels(): Record<string | symbol, any> {
+    return this.options.labels;
   }
 
-  // TODO: implement
-  useWrapper(wrapper: WrapperDef) {
+  addLabels(labels: Record<string | symbol, any>) {
+    this.options.labels = { ...this.options.labels, ...labels };
   }
 
   setSideEffect(sideEffect: boolean) {
@@ -46,6 +54,14 @@ export class Session<T = any> {
 
   hasSideEffect(): boolean {
     return this.sideEffect;
+  }
+
+  getInstance() {
+    return this.instance;
+  }
+
+  getOptions() {
+    return this.options;
   }
 
   getMetadata() {
@@ -59,7 +75,7 @@ export class Session<T = any> {
   static $$prov: ProviderDef = {
     token: Session,
     factory: (_, session) => {
-      const parentSession = session.parent;
+      const parentSession = session.getParent();
       if (parentSession === undefined) {
         throw new Error('Session provider can be only used in other providers');
       }

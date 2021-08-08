@@ -1,7 +1,7 @@
 import { Context, Session } from "./injector";
 import { Scope } from "./scope";
 
-// fix circular references between Scope and Context;
+// Circular references between Scope and Context
 Context.$$prov.scope = Scope.INSTANCE;
 Session.$$prov.scope = Scope.INSTANCE;
 

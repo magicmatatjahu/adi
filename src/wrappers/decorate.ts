@@ -4,9 +4,34 @@ import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper } from "../utils";
 
+import { Skip } from './skip';
+
 interface DecorateOptions {
   decorator: ((decoratee: any, ...args: any[]) => any);
   inject?: Array<Token | WrapperDef>;
+}
+
+function transiteConstructorDeps(token: Token, value: any, ctorDeps: InjectionArgument[]): InjectionArgument[] {
+  const newCtor: InjectionArgument[] = [];
+  for (let i = 0, l = ctorDeps.length; i < l; i++) {
+    const arg = ctorDeps[i];
+    newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, useWrapper: Skip(value) }, metadata: arg.metadata } : arg;
+  }
+  return newCtor;
+}
+
+function transitePropertyDeps(token: Token, value: any, props: Record<string | symbol, InjectionArgument>): Record<string | symbol, InjectionArgument> {
+  const newProps: Record<string | symbol, InjectionArgument> = {};
+  for (const name in props) {
+    const prop = props[name];
+    newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, useWrapper: Skip(value) }, metadata: prop.metadata } : prop;
+  }
+  // inject symbols
+  for (const sb of Object.getOwnPropertySymbols(props)) {
+    const prop = props[sb as any as string];
+    newProps[sb as any] = prop.token === token ? { token, options: {  ...prop.options, token, useWrapper: Skip(value) }, metadata: prop.metadata } : prop;
+  }
+  return newProps;
 }
 
 // TODO: At the moment method injection isn't supported - think about supporting it
@@ -21,7 +46,6 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
   }
 
   return (injector, session, next) => {
-    // think about copy session
     const decoratee = next(injector, session);
 
     // function based decorator
@@ -37,8 +61,8 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
     return InjectorResolver.createFactory(
       token, 
       providerDef, 
-      InjectorMetadata.transiteConstructorDeps(decoratedToken, decoratee, args.ctor), 
-      InjectorMetadata.transitePropertyDeps(decoratedToken, decoratee, args.props), 
+      transiteConstructorDeps(decoratedToken, decoratee, args.ctor), 
+      transitePropertyDeps(decoratedToken, decoratee, args.props), 
     )(injector, session);
   }
 }

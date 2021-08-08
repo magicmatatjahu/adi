@@ -63,7 +63,7 @@ function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Ty
   if (inheritedClass && inheritedClass.length > 0) {
     inheritedClass = injectableMixin(inheritedClass);
   }
-  let inheritedDef = getProviderDef(inheritedClass);
+  const inheritedDef = getProviderDef(inheritedClass);
 
   // when inheritedDef doesn't exist, then merge constructor params
   if (!inheritedDef) {
@@ -154,7 +154,7 @@ export function applyInjectionArg(
   return args.ctor[index as number] = createInjectionArg(token, useWrapper, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, useWrapper: WrapperDef, target: Object, propertyKey?: string | symbol, index?: number, factory?: Function): InjectionArgument {
+export function createInjectionArg(token: Token, useWrapper: WrapperDef, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   return {
     token,
     options: {
@@ -168,7 +168,6 @@ export function createInjectionArg(token: Token, useWrapper: WrapperDef, target:
       target,
       propertyKey,
       index,
-      factory,
     },
   }
 }

@@ -7,6 +7,7 @@ import {
   // CustomProvider,
   OnInit,
   OnDestroy,
+  WrapperDef,
 } from "../interfaces";
 
 export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
@@ -43,4 +44,8 @@ export function hasOnDestroyHook(instance: unknown): instance is OnDestroy {
 
 export function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
   return maybePromise && typeof maybePromise.then === 'function';
+}
+
+export function isWrapper<T>(wrapper: unknown): wrapper is WrapperDef<T> {
+  return wrapper && wrapper.hasOwnProperty('$$nextWrapper');
 }
