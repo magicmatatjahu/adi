@@ -33,7 +33,9 @@ export class Module<T = any> {
     if (moduleDef === undefined) {
       dynamicDef = await (mod as Promise<DynamicModule>);
       mod = dynamicDef.module;
-      if (mod !== undefined) moduleDef = getModuleDef(mod);
+      if (mod !== undefined) {
+        moduleDef = getModuleDef(mod);
+      }
     }
 
     if (moduleDef === undefined && dynamicDef === undefined) {

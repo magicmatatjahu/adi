@@ -2,7 +2,7 @@ import { Context, Session, Injector } from ".";
 import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
   Provider, TypeProvider,
-  InstanceRecord, DefinitionRecord, ProviderRecord,
+  InstanceRecord, DefinitionRecord,
   ProviderDef, FactoryDef, Type,
   InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider,
 } from "../interfaces";
@@ -14,8 +14,9 @@ import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
 import { useDefaultHooks } from "../wrappers";
 import { Cacheable } from "../wrappers/cacheable";
 
-import { InjectorResolver } from "./resolver";
 import { NilInjector } from "./injector";
+import { ProviderRecord } from "./provider";
+import { InjectorResolver } from "./resolver";
 
 export const InjectorMetadata = new class {
   /**
@@ -23,18 +24,18 @@ export const InjectorMetadata = new class {
    */
   toRecord<T>(
     provider: Provider<T>,
-    hostInjector: Injector,
+    host: Injector,
   ): ProviderRecord {
     if (typeof provider === "function") {
-      return this.typeProviderToRecord(provider, hostInjector);
+      return this.typeProviderToRecord(provider, host);
     } else {
-      return this.customProviderToRecord(provider.provide, provider, hostInjector);
+      return this.customProviderToRecord(provider.provide, provider, host);
     }
   }
 
   typeProviderToRecord<T>(
     provider: TypeProvider<T>,
-    hostInjector: Injector,
+    host: Injector,
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
     const options = provDef.options || {};
@@ -48,21 +49,20 @@ export const InjectorMetadata = new class {
     ) {
       // shallow copy provDef
       const customProvider = { ...options, useClass: provider } as PlainProvider;
-      return this.customProviderToRecord(provider, customProvider, hostInjector);
+      return this.customProviderToRecord(provider, customProvider, host);
     }
 
-    const record = this.getRecord(provider, hostInjector);
-    const def = this.createDefinitionRecord(record, provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
-    record.defs.push(def);
+    const record = this.getRecord(provider, host);
+    record.addDefinition(provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
     return record;
   }
 
   customProviderToRecord<T>(
     token: Token<T>,
     provider: PlainProvider<T>,
-    hostInjector: Injector,
+    host: Injector,
   ): ProviderRecord {
-    const record = this.getRecord(token, hostInjector);
+    const record = this.getRecord(token, host);
     let factory: FactoryDef = undefined,
       scope: Scope = (provider as any).scope,
       proto = undefined;
@@ -75,12 +75,11 @@ export const InjectorMetadata = new class {
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
       scope = Scope.SINGLETON;
-    }  else if (isExistingProvider(provider)) {
+    } else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;
       let changed = false;
       factory = (injector: Injector, session?: Session) => {
-        // save reference of record of existing provider to record created for useExisting
-        // in other words change record from useExisting provider to record pointed by useExisting token
+        // change record from useExisting provider to record pointed by useExisting token
         if (changed === false) {
           const deepRecord = this.retrieveDeepRecord(aliasProvider, injector);
           if (deepRecord !== undefined) {
@@ -94,86 +93,31 @@ export const InjectorMetadata = new class {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
       factory = InjectorResolver.createFactory(classRef, providerDef);
+      scope = scope || providerDef.scope;
       proto = classRef;
     }
 
     const constraint = provider.when;
-    let useWrapper = undefined;
+    let wrapper = undefined;
     if (hasWrapperProvider(provider)) {
-      useWrapper = provider.useWrapper;
+      wrapper = provider.useWrapper;
 
       // case with standalone `useWrapper`
       if (factory === undefined) {
-        record.wrappers.push({
-          useWrapper: useWrapper,
-          constraint: constraint || ALWAYS_CONSTRAINT,
-        });
+        record.addWrapper(wrapper, constraint)
         return record;
       }
     }
 
-    const def = this.createDefinitionRecord(record, factory, scope, constraint, useWrapper, proto);
-    if (constraint === undefined) {
-      record.defs.push(def);
-    } else {
-      record.constraintDefs.push(def);  
-    }
-
+    record.addDefinition(factory, scope, constraint, wrapper, proto);
     return record;
-  }
-
-  createProviderRecord<T>(
-    token: Token<T>,
-    hostInjector: Injector,
-  ): ProviderRecord<T> {
-    return {
-      token,
-      hostInjector,
-      defs: [],
-      constraintDefs: [],
-      wrappers: [],
-    }
-  }
-
-  createDefinitionRecord(
-    record: ProviderRecord,
-    factory?: FactoryDef,
-    scope?: Scope,
-    constraint?: ConstraintDef,
-    useWrapper?: WrapperDef,
-    proto?: Type,
-  ): DefinitionRecord {
-    // if provider is a class provider, then apply hooks wrappers
-    if (proto !== undefined) useWrapper = useDefaultHooks(useWrapper);
-    return {
-      record,
-      factory,
-      scope: scope || Scope.DEFAULT,
-      constraint,
-      useWrapper,
-      proto: proto || undefined,
-      values: new Map<Context, InstanceRecord>(),
-    };
-  }
-
-  createInstanceRecord<T>(
-    ctx: Context,
-    value: T | undefined,
-    def: DefinitionRecord<T>,
-  ): InstanceRecord<T> {
-    return {
-      ctx,
-      value,
-      def,
-      status: InjectionStatus.UNKNOWN,
-    };
   }
 
   getRecord<T>(
     token: Token<T>,
-    hostInjector: Injector,
+    host: Injector,
   ): ProviderRecord {
-    const records: Map<Token, ProviderRecord> = (hostInjector as any).records;
+    const records: Map<Token, ProviderRecord> = (host as any).records;
     let record = records.get(token);
     if (record === undefined) {
       // let useWrapper = undefined;
@@ -186,33 +130,10 @@ export const InjectorMetadata = new class {
       //     useWrapper = def.options.useWrapper;
       //   }
       // }
-      record = this.createProviderRecord(token, hostInjector);
+      record = new ProviderRecord(token, host);
       records.set(token, record);
     }
     return record;
-  }
-
-  getInstanceRecord<T>(
-    def: DefinitionRecord<T>, 
-    scope: Scope,
-    session?: Session,
-  ): InstanceRecord<T> {
-    // session['$$sideEffects'] = scope.hasSideEffects();
-    session.setSideEffect(scope.hasSideEffects());
-    const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
-
-    let instance = def.values.get(ctx);
-    if (instance === undefined) {
-      instance = this.createInstanceRecord(ctx, undefined, def);
-      def.values.set(ctx, instance);
-      // if (scope.toCache(options, def, session) === true) {
-      //   ctxRecord.status |= InjectionStatus.CACHED;
-      //   def.values.set(ctx, ctxRecord);
-      // }
-    }
-    session.instance = instance;
-
-    return instance;
   }
 
   /**
@@ -269,20 +190,6 @@ export const InjectorMetadata = new class {
   /**
    * HELPERS
    */
-  createSession<T>(
-    instance: InstanceRecord<T>,
-    options: InjectionOptions,
-    meta: InjectionMetadata,
-    parent: InjectionSession,
-  ): InjectionSession<T> {
-    return {
-      instance,
-      options,
-      meta,
-      parent,
-    };
-  }
-
   copyOptions(options: InjectionOptions = {} as InjectionOptions): InjectionOptions {
     return { ...options, labels: { ...options.labels } };
   }

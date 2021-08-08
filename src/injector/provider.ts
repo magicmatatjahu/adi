@@ -6,7 +6,7 @@ import { Token } from "../types";
 import { Scope } from "../scope";
 import { useDefaultHooks } from "../wrappers";
 
-export class Provider<T = any> {
+export class ProviderRecord<T = any> {
   readonly defs: Array<DefinitionRecord> = [];
   readonly constraintDefs: Array<DefinitionRecord> = [];
   readonly wrappers: Array<WrapperRecord> = [];
@@ -19,7 +19,7 @@ export class Provider<T = any> {
   getInstance(
     def: DefinitionRecord<T>, 
     scope: Scope,
-    session?: Session,
+    session: Session,
   ): InstanceRecord<T> {
     const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
@@ -46,20 +46,19 @@ export class Provider<T = any> {
     factory?: FactoryDef,
     scope?: Scope,
     constraint?: ConstraintDef,
-    useWrapper?: WrapperDef,
+    wrapper?: WrapperDef,
     proto?: Type,
   ): void {
     // if provider is a class provider, then apply hooks wrappers
     if (proto !== undefined) {
-      useWrapper = useDefaultHooks(useWrapper);
+      wrapper = useDefaultHooks(wrapper);
     }
     const def: DefinitionRecord = {
-      // change name from record to provider
       record: this as any,
       factory,
       scope: scope || Scope.DEFAULT,
       constraint,
-      useWrapper,
+      wrapper,
       proto: proto || undefined,
       values: new Map<Context, InstanceRecord<T>>(),
     };
@@ -71,18 +70,18 @@ export class Provider<T = any> {
   }
 
   addWrapper(
-    useWrapper: WrapperDef,
+    wrapper: WrapperDef,
     constraint: ConstraintDef,
   ): void {
     this.wrappers.push({
-      useWrapper: useWrapper,
+      wrapper,
       constraint: constraint || ALWAYS_CONSTRAINT,
     });
   }
 
   getDefinition(
     session?: Session
-  ): DefinitionRecord {
+  ): DefinitionRecord | undefined {
     const constraintDefs = this.constraintDefs;
     for (let i = constraintDefs.length - 1; i > -1; i--) {
       const def = constraintDefs[i];

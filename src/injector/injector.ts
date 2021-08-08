@@ -1,7 +1,7 @@
 import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionMetadata,
-  ProviderRecord, WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
+  WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
   Provider, ProviderDef, NextWrapper, Type, ForwardRef, WrapperDef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
@@ -11,6 +11,7 @@ import { Token } from "../types";
 import { resolveRef, execWrapper } from "../utils";
 
 import { InjectorMetadata } from "./metadata";
+import { ProviderRecord } from "./provider";
 import { Session } from "./session";
 
 export class Injector {
@@ -105,7 +106,7 @@ export class Injector {
   private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
     const record = this.getRecord(token);
     if (record !== undefined) {
-      const providerWrappers = this.getWrappers(record, session);
+      const providerWrappers = record.filterWrappers(session);
 
       if (providerWrappers !== undefined) {
         const length = providerWrappers.length;
@@ -114,7 +115,7 @@ export class Injector {
             return this.getDef(token, record, s.options, s.meta, s);
           }
           const next: NextWrapper = nextWrapper(i + 1);
-          return providerWrappers[i].useWrapper(injector, s, next);
+          return providerWrappers[i].wrapper(injector, s, next);
         }
         return nextWrapper()(this, session);
       }
@@ -125,7 +126,7 @@ export class Injector {
   }
 
   private getDef<T>(token: Token<T>, record: ProviderRecord<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
-    const def = this.getDefinition(record, session);
+    const def = record.getDefinition(session);
     if (def === undefined) {
       return this.getParentInjector().get(token, options, meta, session);
     }
@@ -137,7 +138,8 @@ export class Injector {
     if (scope.canBeOverrided() === true) {
       scope = options.scope || scope;
     }
-    const instance = InjectorMetadata.getInstanceRecord(def, scope, session);
+    
+    const instance = def.record.getInstance(def, scope, session);
     return this.resolveInstance(def.record, def, instance, session);
   }
 
@@ -155,10 +157,10 @@ export class Injector {
       instance.status |= InjectionStatus.PENDING;
 
       let value: T;
-      if (def.useWrapper === undefined) {
-        value = def.factory(record.hostInjector, session) as T;
+      if (def.wrapper === undefined) {
+        value = def.factory(record.host, session) as T;
       } else {
-        value = execWrapper(def.useWrapper, def.factory as any)(record.hostInjector, session) as any;
+        value = execWrapper(def.wrapper, def.factory as any)(record.host, session) as any;
       }
 
       if (instance.status & InjectionStatus.CIRCULAR) {
@@ -207,37 +209,6 @@ export class Injector {
     }
 
     return record;
-  }
-
-  private getWrappers(
-    record: ProviderRecord,
-    session?: Session
-  ): Array<WrapperRecord> {
-    const wrappers = record.wrappers, satisfyingWraps = [];
-    for (let i = 0, l = wrappers.length; i < l; i++) {
-      const wrapper = wrappers[i];
-      if (wrapper.constraint(session) === true) {
-        satisfyingWraps.push(wrapper);
-      }
-    }
-    return satisfyingWraps;
-  }
-
-  private getDefinition(
-    record: ProviderRecord,
-    session?: Session
-  ): DefinitionRecord {
-    const constraintDefs = record.constraintDefs;
-    for (let i = constraintDefs.length - 1; i > -1; i--) {
-      const def = constraintDefs[i];
-      if (def.constraint(session) === true) {
-        return def;
-      }
-    }
-    if (record.defs.length) {
-      return record.defs[record.defs.length - 1];
-    }
-    return undefined;
   }
 
   addProvider(provider: Provider): void {
@@ -363,11 +334,11 @@ export class Injector {
 
     if (providers === undefined) {
       parent.importedRecords.forEach((record, token) => {
-        if (record.hostInjector === fromModule) to.importedRecords.set(token, record);
+        if (record.host === fromModule) to.importedRecords.set(token, record);
       });
     } else {
       parent.importedRecords.forEach((record, token) => {
-        if (record.hostInjector === fromModule) {
+        if (record.host === fromModule) {
           const givenToken = providers.some(p => p === token || (p as PlainProvider).provide === token);
           givenToken && to.importedRecords.set(token, record);
         }
