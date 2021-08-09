@@ -82,6 +82,40 @@ describe('Wrappers', function() {
     expect(values).toEqual(['foobar', undefined]);
   });
 
+  test('should works with multiple wrappers (provider based useWrapper)', function () {
+    let called: number = 0;
+    const TestWrapper = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        called++;
+        return value;
+      }
+    });
+
+    const injector = new Injector([
+      {
+        provide: 'useValue',
+        useValue: 'foobar',
+      },
+      {
+        provide: 'useValue',
+        useWrapper: TestWrapper(),
+      },
+      {
+        provide: 'useValue',
+        useWrapper: TestWrapper(),
+      },
+      {
+        provide: 'useValue',
+        useWrapper: TestWrapper(),
+      },
+    ]);
+
+    const values = injector.get('useValue');
+    expect(values).toEqual('foobar');
+    expect(called).toEqual(3);
+  });
+
   test('should works in useFactory inject array (in injectable options)', function () {
     @Injectable({
       useFactory(useValue, stringArg) {

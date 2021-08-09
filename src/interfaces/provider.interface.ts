@@ -59,13 +59,6 @@ export interface WrapperProvider<T = any> {
   when?: ConstraintDef;
 }
 
-// export interface CustomProvider<T = any> {
-//   provide: Token<T>;
-//   useCustom: Function;
-//   useWrapper?: WrapperDef;
-//   when?: ConstraintDef;
-// }
-
 export interface ForwardRef<T = any> {
   ref: () => T;
   _$ref: Function;

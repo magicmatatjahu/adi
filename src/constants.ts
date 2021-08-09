@@ -14,11 +14,7 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
   useValue: undefined,
 }, "INJECTOR_OPTIONS");
 
-export const MODULE_INITIALIZERS = new InjectionToken<any>({
-  provideIn: 'any',
-  // TODO: Fix using wrapper in the treeshakable providers without value/factory
-  useWrapper: Multi(),
-}, "MODULE_INITIALIZERS");
+export const MODULE_INITIALIZERS = new InjectionToken<any>({}, "MODULE_INITIALIZERS");
 
 export const CONSTRAINTS = {
   NAMED: '$$named',

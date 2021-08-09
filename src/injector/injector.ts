@@ -13,6 +13,7 @@ import { resolveRef, execWrapper } from "../utils";
 import { InjectorMetadata } from "./metadata";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
+import { Multi } from "../wrappers";
 
 export class Injector {
   // TODO: Change to Array not Map<ModuleID, Injector> 
@@ -50,8 +51,7 @@ export class Injector {
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
     }
 
-    // add Injector as self provider
-    this.addProvider({ provide: Injector, useValue: this });
+    this.addCoreProviders();
   }
 
   /**
@@ -94,7 +94,7 @@ export class Injector {
     options = InjectorMetadata.copyOptions(options);
     const newSession = new Session(undefined, options, meta, parentSession);
 
-    const wrapper = options.useWrapper;
+    const wrapper = options.wrapper;
     if (wrapper) {
       const last = (i: Injector, s: Session) => i.retrieveRecord(s.options.token || token, s.options, meta, s);
       return execWrapper(wrapper, last)(this, newSession);
@@ -138,7 +138,6 @@ export class Injector {
     if (scope.canBeOverrided() === true) {
       scope = options.scope || scope;
     }
-    
     const instance = def.record.getInstance(def, scope, session);
     return this.resolveInstance(def.record, def, instance, session);
   }
@@ -243,7 +242,7 @@ export class Injector {
     options = InjectorMetadata.copyOptions(options);
     const newSession = new Session(undefined, options, meta, session);
 
-    const wrapper = options && options.useWrapper;
+    const wrapper = options && options.wrapper;
     if (wrapper) {
       const lastNext = (i: Injector, s: Session) => i.resolveComponent(component, s.options, s);
       return execWrapper(wrapper, lastNext)(this, newSession);
@@ -531,6 +530,12 @@ export class Injector {
     } else {
       this.scopes.push(scopes);
     }
+  }
+
+  private addCoreProviders() {
+    // add Injector as self provider
+    this.addProvider({ provide: Injector, useValue: this });
+    this.addProvider({ provide: MODULE_INITIALIZERS, useWrapper: Multi() });
   }
 }
 
