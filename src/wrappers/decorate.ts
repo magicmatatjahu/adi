@@ -2,7 +2,7 @@ import { getProviderDef } from "../decorators";
 import { InjectorMetadata, InjectorResolver } from "../injector";
 import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { createWrapper } from "../utils";
+import { createWrapper, extendWrapper } from "../utils";
 
 import { Skip } from './skip';
 
@@ -15,7 +15,7 @@ function transiteConstructorDeps(token: Token, value: any, ctorDeps: InjectionAr
   const newCtor: InjectionArgument[] = [];
   for (let i = 0, l = ctorDeps.length; i < l; i++) {
     const arg = ctorDeps[i];
-    newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, wrapper: Skip(value) }, metadata: arg.metadata } : arg;
+    newCtor[i] = arg.token === token ? { token, options: { ...arg.options, token, wrapper: extendWrapper(arg.options.wrapper, Skip(value)) }, metadata: arg.metadata } : arg;
   }
   return newCtor;
 }
@@ -24,12 +24,12 @@ function transitePropertyDeps(token: Token, value: any, props: Record<string | s
   const newProps: Record<string | symbol, InjectionArgument> = {};
   for (const name in props) {
     const prop = props[name];
-    newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, wrapper: Skip(value) }, metadata: prop.metadata } : prop;
+    newProps[name] = prop.token === token ? { token, options: {  ...prop.options, token, wrapper: extendWrapper(prop.options.wrapper, Skip(value)) }, metadata: prop.metadata } : prop;
   }
   // inject symbols
   for (const sb of Object.getOwnPropertySymbols(props)) {
     const prop = props[sb as any as string];
-    newProps[sb as any] = prop.token === token ? { token, options: {  ...prop.options, token, wrapper: Skip(value) }, metadata: prop.metadata } : prop;
+    newProps[sb as any] = prop.token === token ? { token, options: {  ...prop.options, token, wrapper: extendWrapper(prop.options.wrapper, Skip(value)) }, metadata: prop.metadata } : prop;
   }
   return newProps;
 }

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Decorate } from "../../src";
+import { Injector, Injectable, Inject, Decorate, createWrapper } from "../../src";
 
 describe('Decorate wrapper', function () {
   test('should decorate provider (injection based useWrapper) - function decorator case', function () {
@@ -342,5 +342,63 @@ describe('Decorate wrapper', function () {
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
+  });
+
+  test('should decorate provider with custom wrappers on decoratee injection', function () {
+    let called: boolean = false;
+    const TestWrapper = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        called = true;
+        return value;
+      }
+    });
+
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    @Injectable()
+    class DecoratorService implements TestService {
+      @Inject(TestWrapper())
+      public decoratee: TestService;
+
+      constructor(
+        @Inject('exclamation') readonly exclamation: string,
+      ) {}
+
+      method() {
+        return this.decoratee.method() + 'bar' + this.exclamation;
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        useWrapper: Decorate(DecoratorService),
+      },
+      {
+        provide: 'exclamation',
+        useValue: '!',
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.service).toBeInstanceOf(DecoratorService);
+    expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
+    expect(service.service.method()).toEqual('foobar!');
+    expect(called).toEqual(true);
   });
 });

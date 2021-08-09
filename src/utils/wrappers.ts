@@ -58,3 +58,15 @@ export function execWrapper(nextWrapper: WrapperDef, lastWrapper: NextWrapper) {
 export function copyWrapper<T = any>(wrapper: ReturnType<typeof createWrapper>) {
 
 }
+
+export function extendWrapper(wrapper: WrapperDef | undefined, nextWrapper: WrapperDef): WrapperDef {
+  if (wrapper) {
+    let next = wrapper;
+    while (next['$$nextWrapper'] !== undefined) {
+      next = next['$$nextWrapper'];
+    }
+    next['$$nextWrapper'] = nextWrapper;
+    return wrapper;
+  }
+  return nextWrapper;
+}

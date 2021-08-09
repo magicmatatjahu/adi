@@ -83,11 +83,11 @@ describe('Wrappers', function() {
   });
 
   test('should works with multiple wrappers (provider based useWrapper)', function () {
-    let called: number = 0;
-    const TestWrapper = createWrapper((_: never) => {
+    let order: number[] = [];
+    const TestWrapper = createWrapper((nr: number) => {
       return (injector, session, next) => {
         const value = next(injector, session);
-        called++;
+        order.push(nr);
         return value;
       }
     });
@@ -99,21 +99,21 @@ describe('Wrappers', function() {
       },
       {
         provide: 'useValue',
-        useWrapper: TestWrapper(),
+        useWrapper: TestWrapper(3),
       },
       {
         provide: 'useValue',
-        useWrapper: TestWrapper(),
+        useWrapper: TestWrapper(2),
       },
       {
         provide: 'useValue',
-        useWrapper: TestWrapper(),
+        useWrapper: TestWrapper(1),
       },
     ]);
 
     const values = injector.get('useValue');
     expect(values).toEqual('foobar');
-    expect(called).toEqual(3);
+    expect(order).toEqual([1, 2, 3]);
   });
 
   test('should works in useFactory inject array (in injectable options)', function () {

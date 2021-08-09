@@ -2,6 +2,7 @@ export * from "./ctx";
 export * from "./decorate";
 export * from "./fallback";
 export * from "./hooks";
+export * from "./inquirer";
 export * from "./labelled";
 export * from "./lazy";
 export * from "./memo";
