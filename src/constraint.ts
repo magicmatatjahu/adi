@@ -1,10 +1,14 @@
-import { Session } from "./injector";
+import { Context } from "./injector";
 import { ConstraintDef } from "./interfaces";
 import { CONSTRAINTS } from "./constants";
 import { Token } from "./types";
 
 export function named(named: Token): ConstraintDef {
   return (session) => session.options?.labels[CONSTRAINTS.NAMED] === named;
+}
+
+export function ctx(ctx: Context): ConstraintDef {
+  return (session) => session.options?.ctx === ctx;
 }
 
 export function labelled(l: Record<string | symbol | number, any> = {}): ConstraintDef {

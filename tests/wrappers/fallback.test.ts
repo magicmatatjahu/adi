@@ -24,6 +24,30 @@ describe('Fallback wrapper', function () {
     expect(service.service).toEqual("foobar");
   });
 
+  test('should inject existing provider in injector', function () {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Fallback("token")) readonly service: TestService
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+      {
+        provide: "token",
+        useValue: "foobar"
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.service).toBeInstanceOf(TestService);
+  });
+
   test('should throw error when fallback doesnt exists', function () {
     @Injectable()
     class TestService {}
@@ -31,7 +55,7 @@ describe('Fallback wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Fallback(String)) readonly service: TestService
+        @Inject(Fallback('foobar')) readonly service: TestService
       ) {}
     }
 

@@ -1,5 +1,6 @@
 export * from "./ctx";
 export * from "./decorate";
+export * from "./deps";
 export * from "./fallback";
 export * from "./hooks";
 export * from "./inquirer";

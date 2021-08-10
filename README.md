@@ -9,4 +9,6 @@
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules...
 - Add `useCustom` provider...
 - Create `Request` scope
-- Reuse the wrappers in the Decorate wrappers - in other words, pass the defined wrappers for decorated injection before `Skip(value)` wrapper
+- Reuse the wrappers in the Decorate wrappers - in other words, pass the defined wrappers for decorated injection before `Skip(value)` wrapper - fixed by `Delegate` wrapper
+- Add fallback to the providers like in https://github.com/angular/angular/issues/13854
+- Make transitional dependency as in https://github.com/typestack/typedi/issues/186

@@ -44,11 +44,9 @@ export const InjectorResolver = new class {
   createFactory<T>(
     provider: Type<T>, 
     def: ProviderDef, 
-    ctorDeps?: Array<InjectionArgument>, 
-    propsDeps?: { [key: string]: InjectionArgument }
   ): FactoryDef<T> {
-    const deps = ctorDeps || def.args.ctor,
-      props = propsDeps || def.args.props,
+    const deps = def.args.ctor,
+      props = def.args.props,
       methods = def.args.methods;
     
     return (injector: Injector, session?: Session) => {
