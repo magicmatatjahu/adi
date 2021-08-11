@@ -7,12 +7,12 @@ export function named(named: Token): ConstraintDef {
   return (session) => session.options?.labels[CONSTRAINTS.NAMED] === named;
 }
 
-export function ctx(ctx: Context): ConstraintDef {
+export function withContext(ctx: Context): ConstraintDef {
   return (session) => session.options?.ctx === ctx;
 }
 
-export function labelled(l: Record<string | symbol | number, any> = {}): ConstraintDef {
-  const tagsLength = Object.keys(l).length;
+export function labelled(l: Record<string | symbol | number, any>): ConstraintDef {
+  const labelsLength = Object.keys(l).length;
   return (session) => {
     const labels = session.options?.labels;
     if (!labels) return false;
@@ -20,7 +20,7 @@ export function labelled(l: Record<string | symbol | number, any> = {}): Constra
     for (const label in labels) {
       if (labels[label] === l[label]) checks++;
     }
-    return tagsLength === checks;
+    return labelsLength === checks;
   }
 }
 
@@ -33,12 +33,12 @@ export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
   }
 }
 
-export const constraint = {
+export const when = {
   named,
+  withContext,
   labelled,
   concat,
 }
-export const c = constraint;
 
 export const NOOP_CONSTRAINT = () => true;
 export const TRUE_CONSTRAINT = () => true;

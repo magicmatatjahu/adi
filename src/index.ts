@@ -5,7 +5,7 @@ import { Scope } from "./scope";
 Context.$$prov.scope = Scope.INSTANCE;
 Session.$$prov.scope = Scope.INSTANCE;
 
-export { constraint, c } from "./constraint";
+export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS } from "./constants";
 export { Component, Inject, Injectable, Module, componentMixin, injectableMixin, moduleMixin } from "./decorators";
 export { Context, Session, Injector, InjectionToken, createInjector, InjectorMetadata, InjectorResolver } from "./injector";

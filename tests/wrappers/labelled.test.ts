@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Labelled, c } from "../../src";
+import { Injector, Injectable, Inject, Labelled, when } from "../../src";
 
 describe('Labelled wrapper', function () {
   test('should inject labeled provider', function () {
@@ -20,12 +20,12 @@ describe('Labelled wrapper', function () {
       {
         provide: TestService,
         useValue: 'foobar',
-        when: c.labelled({ foo: 'bar' }),
+        when: when.labelled({ foo: 'bar' }),
       },
       {
         provide: TestService,
         useValue: 'barfoo',
-        when: c.labelled({ bar: 'foo' }),
+        when: when.labelled({ bar: 'foo' }),
       },
     ]);
 

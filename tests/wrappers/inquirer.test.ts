@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Inquirer, c } from "../../src";
+import { Injector, Injectable, Inject, Inquirer } from "../../src";
 
 describe('Inquirer wrapper', function () {
   test('should inject inquirer in class provider', function () {

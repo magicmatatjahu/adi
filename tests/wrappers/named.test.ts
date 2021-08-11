@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Named, c } from "../../src";
+import { Injector, Injectable, Inject, Named, when } from "../../src";
 
 describe('Named wrapper', function () {
   test('should inject named provider', function () {
@@ -20,12 +20,12 @@ describe('Named wrapper', function () {
       {
         provide: TestService,
         useValue: 'foobar',
-        when: c.named('namedService'),
+        when: when.named('namedService'),
       },
       {
         provide: TestService,
         useValue: 'barfoo',
-        when: c.named('anotherService'),
+        when: when.named('anotherService'),
       },
     ]);
 

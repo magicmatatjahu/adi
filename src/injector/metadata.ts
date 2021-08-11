@@ -72,7 +72,7 @@ export const InjectorMetadata = new class {
       }
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
-      scope = Scope.SINGLETON;
+      // scope = Scope.SINGLETON;
     } else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;
       let changed = false;

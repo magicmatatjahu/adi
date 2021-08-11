@@ -1,4 +1,5 @@
 import { WrapperDef } from "../interfaces";
+import { NilInjectorError } from "../errors";
 import { createWrapper } from "../utils";
 
 function wrapper(defaultValue?: any): WrapperDef {
@@ -6,7 +7,7 @@ function wrapper(defaultValue?: any): WrapperDef {
     try {
       return next(injector, session);
     } catch(err) {
-      if ((err as any).NilInjectorError === true) return defaultValue;
+      if ((err as NilInjectorError).isNilInjectorError) return defaultValue;
       throw err;
     }
   }

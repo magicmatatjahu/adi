@@ -48,9 +48,7 @@ function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
   return (injector, session, next) => {
     if (proxy === true) {
       // works only with objects
-      return createProxy(() => {
-        return next(injector, session);
-      });
+      return createProxy(() => next(injector, session));
     }
 
     let value: any, resolved = false;

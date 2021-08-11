@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Multi, Named, c, InjectionToken } from "../../src";
+import { Injector, Injectable, Inject, Multi, Named, when, InjectionToken } from "../../src";
 
 describe('Multi wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -87,7 +87,7 @@ describe('Multi wrapper', function () {
       {
         provide: MultiProvider,
         useValue: 'multi1',
-        when: c.named('multi'),
+        when: when.named('multi'),
       },
       {
         provide: MultiProvider,
@@ -96,7 +96,7 @@ describe('Multi wrapper', function () {
       {
         provide: MultiProvider,
         useValue: 'multi3',
-        when: c.named('multi'),
+        when: when.named('multi'),
       }
     ]);
 
@@ -121,12 +121,12 @@ describe('Multi wrapper', function () {
       {
         provide: 'token',
         useValue: 'multi1',
-        when: c.named('multi'),
+        when: when.named('multi'),
       },
       {
         provide: 'token',
         useValue: 'multi2',
-        when: c.named('multi'),
+        when: when.named('multi'),
       },
       {
         provide: 'token',

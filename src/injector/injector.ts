@@ -14,6 +14,7 @@ import { InjectorMetadata } from "./metadata";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
 import { Multi } from "../wrappers";
+import { NilInjectorError } from "../errors";
 
 export class Injector {
   // TODO: Change to Array not Map<ModuleID, Injector> 
@@ -541,10 +542,7 @@ export class Injector {
 
 export const NilInjector = new class {
   get(token: Token): never {
-    const error = new Error(`NilInjector: No provider for ${token as any}!`);
-    error.name = 'NilInjectorError';
-    (error as any).NilInjectorError = true;
-    throw error;
+    throw new NilInjectorError(token);
   }
   retrieveRecord = this.get;
 

@@ -1,5 +1,4 @@
 import { WrapperDef } from "../interfaces";
-import { Token } from "../types";
 import { createWrapper } from "../utils";
 
 function wrapper(): WrapperDef {
