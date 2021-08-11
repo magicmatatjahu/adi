@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Decorate, Delegate, createWrapper } from "../../src";
+import { Injector, Injectable, Inject, Decorate, Delegate, Fallback, createWrapper } from "../../src";
 
 describe('Decorate wrapper', function () {
   test('should decorate provider (injection based useWrapper) - function decorator case', function () {
@@ -440,6 +440,26 @@ describe('Decorate wrapper', function () {
     expect(service.service.method()).toEqual('foobar!');
   });
 
+  test('should works in definition based useWrapper', function () {
+    const injector = new Injector([
+      {
+        provide: 'test',
+        useValue: 'foobar',
+        useWrapper: Decorate({
+          decorator(decoratee: string, exclamation: string) { return decoratee + exclamation; },
+          inject: [Delegate(), 'exclamation'],
+        }),
+      },
+      {
+        provide: 'exclamation',
+        useValue: '!',
+      },
+    ]);
+
+    const t = injector.get('test') as string;
+    expect(t).toEqual('foobar!');
+  });
+
   test('Delegate wrapper should works without Decorate', function () {
     let called: boolean = false;
     const TestWrapper = createWrapper((_: never) => {
@@ -467,6 +487,32 @@ describe('Decorate wrapper', function () {
 
     const service = injector.get(Service) as Service;
     expect(service.service).toBeInstanceOf(TestService);
+  });
+
+  // TODO: support also this case
+  test('Decorate wrapper should provides in absent use case - using Fallback wrapper', function () {
+    class Service {}
+
+    @Injectable()
+    class DecoratorService {
+      constructor(
+        @Inject(Delegate()) readonly service: any,
+      ) {}
+    }
+
+    const injector = new Injector([
+      {
+        provide: 'test',
+        useValue: 'foobar'
+      },
+      {
+        provide: Service,
+        useWrapper: Fallback('test', Decorate(DecoratorService)),
+      },
+    ]);
+
+    const service = injector.get(Service) as DecoratorService;
+    expect(service).toEqual('foobar');
   });
 });
 

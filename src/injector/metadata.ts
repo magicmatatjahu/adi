@@ -1,16 +1,14 @@
 import { Context, Session, Injector } from ".";
 import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
-  Provider, TypeProvider,
-  InstanceRecord, DefinitionRecord,
+  Provider, TypeProvider, DefinitionRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionSession, ConstraintDef, InjectionMetadata, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider,
+  InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
-import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
+import { STATIC_CONTEXT } from "../constants";
 import { useDefaultHooks } from "../wrappers";
 import { Cacheable } from "../wrappers/cacheable";
 

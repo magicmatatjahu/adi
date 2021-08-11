@@ -4,12 +4,14 @@ import { createWrapper } from "../utils";
 
 function wrapper(token: Token): WrapperDef {
   return (injector, session, next) => {
+    const newSession = session.copy();
     try {
       return next(injector, session);
     } catch(err) {
       if ((err as any).NilInjectorError === true) {
-        session.setToken(token);
-        return next(injector, session);
+        newSession.setToken(token);
+        return injector.get(token, newSession.options, newSession.meta, newSession.parent);
+        // return next(injector, newSession);
       }
       throw err;
     }

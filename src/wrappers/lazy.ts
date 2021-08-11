@@ -1,6 +1,10 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
+interface LazyOptions {
+  proxy?: boolean;
+}
+
 const reflectMethods: ReadonlyArray<keyof ProxyHandler<any>> = [
   "get",
   "getPrototypeOf",
@@ -40,26 +44,23 @@ function createProxy<T = any>(createObject: () => T): T {
   return new Proxy<any>({} as object, createHandler(delayedObject)) as T;
 }
 
-function wrapper(proxy: boolean = true): WrapperDef {
+function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
   return (injector, session, next) => {
     if (proxy === true) {
-      // works only with objects!
+      // works only with objects
       return createProxy(() => {
         return next(injector, session);
       });
     }
 
-    // when someone retrieve provider by `injector.get(...)`
-    if (session.parent === undefined) {
-      let value: any, resolved = false;
-      return () => {
-        if (resolved === false) {
-          value = next(injector, session);
-          resolved = true;
-        }
-        return value;
-      };
-    }
+    let value: any, resolved = false;
+    return () => {
+      if (resolved === false) {
+        value = next(injector, session);
+        resolved = true;
+      }
+      return value;
+    };
   }
 }
 

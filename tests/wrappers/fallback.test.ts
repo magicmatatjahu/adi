@@ -73,4 +73,22 @@ describe('Fallback wrapper', function () {
     expect(service === undefined).toEqual(true);
     expect(err !== undefined).toEqual(true);
   });
+
+  test('should works in definition based useWrapper', function () {
+    class Service {}
+
+    const injector = new Injector([
+      {
+        provide: "lol",
+        useValue: "foobar"
+      },
+      {
+        provide: Service,
+        useWrapper: Fallback('lol'),
+      }
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service).toEqual("foobar");
+  });
 });

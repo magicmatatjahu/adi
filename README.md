@@ -12,3 +12,6 @@
 - Reuse the wrappers in the Decorate wrappers - in other words, pass the defined wrappers for decorated injection before `Skip(value)` wrapper - fixed by `Delegate` wrapper
 - Add fallback to the providers like in https://github.com/angular/angular/issues/13854
 - Make transitional dependency as in https://github.com/typestack/typedi/issues/186
+- Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers
+- Add `PROVIDER` Injection Token which will be used to wrap all defined providers
+- Check if `instance` property in the session should be copied or not - check in all wrappers

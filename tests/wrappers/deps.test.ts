@@ -2,7 +2,6 @@ import { Injector, Inject, Injectable, Deps, Provider } from "../../src";
 
 describe('Deps wrapper', function () {
   test('should works (injection based wrapper)', function () {
-
     @Injectable()
     class TestService {
       constructor(

@@ -12,3 +12,11 @@ export enum ScopeFlags {
   SIDE_EFFECTS = 2,
   PROXY_MODE = 4,
 }
+
+export enum InjectionPlace {
+  TYPE = 0,
+  CONSTRUCTOR_PARAMETER = 1,
+  PROPERTY = 2,
+  METHOD_ARGUMENT = 4,
+  CUSTOM = 8,
+}

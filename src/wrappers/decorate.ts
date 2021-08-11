@@ -1,25 +1,17 @@
-import { EMPTY_OBJECT } from "../constants";
 import { InjectorMetadata, InjectorResolver, Session } from "../injector";
 import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
+import { NULL_REF } from "../constants";
 import { createWrapper } from "../utils";
 
 /**
  * DELEGATE
  */
-function retrieveDeepDelegate(session: Session) {
-  while (session['$$delegate'] === undefined && session.parent) {
-    // change to `session.getParent()`
-    session = session.parent || EMPTY_OBJECT as any;
-  }
-  return session['$$delegate'] || EMPTY_OBJECT;
-}
-
 function delegateWrapper(_: never): WrapperDef {
   return (injector, session, next) => {
-    const delegate = retrieveDeepDelegate(session);
+    const delegate = session.retrieveDeepMeta('$$delegate');
     // delegate isn't set
-    if (delegate === EMPTY_OBJECT) {
+    if (delegate === NULL_REF) {
       return next(injector, session);
     }
     return delegate;
@@ -47,19 +39,22 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
   }
 
   return (injector, session, next) => {
+    // copy session and resolve the value to decorate
+    const newSession = session.copy();
     const decoratee = next(injector, session);
+
     // add delegation
-    // TODO: think about copying the session
-    session['$$delegate'] = decoratee;
+    newSession['$$delegate'] = decoratee;
 
     // function based decorator
     if (token === undefined) {
-      return factory(...InjectorResolver.injectDeps(deps, injector, session));
+      return factory(...InjectorResolver.injectDeps(deps, injector, newSession));
     }
 
     // class based decorator
     const factoryDef = InjectorMetadata.getFactoryDef(token);
-    return factoryDef(injector, session);
+    // TODO: should the wrappers from wrappers chain be running here?
+    return factoryDef(injector, newSession);
   }
 }
 

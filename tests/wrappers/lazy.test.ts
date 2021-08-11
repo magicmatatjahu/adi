@@ -9,7 +9,7 @@ describe('Lazy wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: Lazy(false),
+        useWrapper: Lazy(),
       },
     ]);
 
@@ -27,7 +27,7 @@ describe('Lazy wrapper', function () {
 
     @Injectable()
     class TestService {
-      @Inject(Lazy())
+      @Inject(Lazy({ proxy: true }))
       public lazyService: LazyService;
     }
 
@@ -36,13 +36,20 @@ describe('Lazy wrapper', function () {
       LazyService,
     ]);
 
-    let err: Error;
+    let err: Error, service: TestService;
     try {
-      injector.get(TestService) as TestService;
+      service = injector.get(TestService) as TestService;
     } catch(e) {
       err = e;
     }
     expect(err).toEqual(undefined);
+
+    try {
+      service.lazyService.prop;
+    } catch(e) {
+      err = e;
+    }
+    expect(err === undefined).toEqual(false);
   });
 
   test('should create proxy - proxy case', function () {
@@ -54,7 +61,7 @@ describe('Lazy wrapper', function () {
 
     @Injectable()
     class TestService {
-      @Inject(Lazy())
+      @Inject(Lazy({ proxy: true }))
       public lazyService: LazyService;
     }
 

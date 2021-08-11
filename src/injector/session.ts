@@ -1,6 +1,7 @@
 import { 
-  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, WrapperDef,
+  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef,
 } from "../interfaces";
+import { NULL_REF } from "../constants";
 
 import { Context } from "./context";
 import { Scope } from "../scope";
@@ -44,6 +45,10 @@ export class Session<T = any> {
     return this.options.labels;
   }
 
+  addLabel(key: string | symbol, value: any) {
+    this.options.labels[key as any] = value;
+  }
+
   addLabels(labels: Record<string | symbol, any>) {
     this.options.labels = { ...this.options.labels, ...labels };
   }
@@ -74,6 +79,26 @@ export class Session<T = any> {
 
   getParent() {
     return this.parent;
+  }
+
+  // TODO: maybe `leaveInstance` argument is unnecessary, or not...
+  copy(leaveInstance: boolean = false): Session {
+    const newOptions = { ...this.options, labels: { ...this.options.labels } };
+    if (leaveInstance === false) {
+      return new Session(undefined, newOptions, this.meta, this.parent);
+    }
+    return new Session(this.instance, newOptions, this.meta, this.parent);
+  }
+
+  retrieveDeepMeta(key: string) {
+    let tempSession: Session = this;
+    while (tempSession.hasOwnProperty(key) === false && tempSession.parent) {
+      tempSession = tempSession.parent || NULL_REF as any;
+    }
+    if (tempSession.hasOwnProperty(key)) {
+      return tempSession[key];
+    }
+    return NULL_REF;
   }
 
   static $$prov: ProviderDef = {

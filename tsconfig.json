@@ -11,7 +11,7 @@
     "target": "es5",
     "sourceMap": false,
     "allowJs": true,
-    "outDir": "dist",
+    "outDir": "lib",
     "lib": ["es7"]
   },
   "include": ["src/**/*"],

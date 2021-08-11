@@ -17,7 +17,7 @@ export class Scope {
     _: DefinitionRecord<T>, 
     session?: Session,
   ): Context {
-    return session?.options?.ctx || STATIC_CONTEXT;
+    return session?.getContext() || STATIC_CONTEXT;
   }
 
   // public toCache<T = any>(
