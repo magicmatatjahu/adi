@@ -11,6 +11,7 @@ export enum ScopeFlags {
   CAN_OVERRIDE = 1,
   SIDE_EFFECTS = 2,
   PROXY_MODE = 4,
+  CANNOT_OVERRIDE = 8,
 }
 
 export enum InjectionPlace {

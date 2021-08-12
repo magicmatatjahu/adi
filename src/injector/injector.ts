@@ -93,7 +93,7 @@ export class Injector {
   get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: Session): Promise<T | undefined> | T | undefined {
     // Passing copy of options is for wrapper. Inside them we can change shape of these options.
     options = InjectorMetadata.copyOptions(options);
-    const newSession = new Session(undefined, options, meta, parentSession);
+    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
 
     const wrapper = options.wrapper;
     if (wrapper) {
@@ -241,7 +241,7 @@ export class Injector {
     }
 
     options = InjectorMetadata.copyOptions(options);
-    const newSession = new Session(undefined, options, meta, session);
+    const newSession = new Session(undefined, undefined, undefined, options, meta, session);
 
     const wrapper = options && options.wrapper;
     if (wrapper) {

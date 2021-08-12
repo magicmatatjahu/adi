@@ -26,7 +26,7 @@ describe('Constraint', function() {
     });
   });
 
-  describe('Ctx constraint', function() {
+  describe('WithContext constraint', function() {
     test('should works', function () {
       const ctx = new Context();
 

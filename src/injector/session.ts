@@ -1,16 +1,19 @@
 import { 
-  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef,
+  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord,
 } from "../interfaces";
 import { NULL_REF } from "../constants";
 
 import { Context } from "./context";
 import { Scope } from "../scope";
 import { Token } from "../types";
+import { ProviderRecord } from "./provider";
 
 export class Session<T = any> {
   private sideEffect: boolean = false;
 
   constructor(
+    public record: ProviderRecord<T>,
+    public definition: DefinitionRecord<T>,
     public instance: InstanceRecord<T>,
     public options: InjectionOptions,
     public meta: InjectionMetadata,
@@ -61,6 +64,22 @@ export class Session<T = any> {
     return this.sideEffect;
   }
 
+  getRecord() {
+    return this.record;
+  }
+
+  setRecord(record: ProviderRecord) {
+    this.record = record;
+  }
+
+  getDefinition() {
+    return this.definition;
+  }
+
+  setDefinition(def: DefinitionRecord) {
+    this.definition = def;
+  }
+
   getInstance() {
     return this.instance;
   }
@@ -84,10 +103,10 @@ export class Session<T = any> {
   // TODO: maybe `leaveInstance` argument is unnecessary, or not...
   copy(leaveInstance: boolean = false): Session {
     const newOptions = { ...this.options, labels: { ...this.options.labels } };
-    if (leaveInstance === false) {
-      return new Session(undefined, newOptions, this.meta, this.parent);
-    }
-    return new Session(this.instance, newOptions, this.meta, this.parent);
+    // if (leaveInstance === false) {
+    //   return new Session(undefined, newOptions, this.meta, this.parent);
+    // }
+    return new Session(this.record, this.definition, this.instance, newOptions, this.meta, this.parent);
   }
 
   retrieveDeepMeta(key: string) {
