@@ -139,12 +139,14 @@ export const InjectorMetadata = new class {
    */
   toComponentRecord<T>(
     comp: Type<T>,
+    host: Injector,
     useWrapper?: WrapperDef,
   ): ComponentRecord<T> {
     const def = this.getProviderDef(comp);
     useWrapper = useDefaultHooks(useWrapper);
     return {
       comp,
+      host,
       factory: def.factory,
       scope: def.scope || Scope.SINGLETON,
       useWrapper,
@@ -169,7 +171,8 @@ export const InjectorMetadata = new class {
     scope: Scope,
     session?: Session,
   ): ComponentInstanceRecord<T> {
-    const ctx = scope.getContext(comp as unknown as DefinitionRecord, session) || STATIC_CONTEXT;
+    // FIX this
+    const ctx = scope.getContext(session, comp as any) || STATIC_CONTEXT;
     let instance = comp.values.get(ctx);
     if (instance === undefined) {
       instance = this.createComponentInstanceRecord(ctx, undefined, comp);

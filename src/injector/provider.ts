@@ -21,7 +21,7 @@ export class ProviderRecord<T = any> {
     scope: Scope,
     session: Session,
   ): InstanceRecord<T> {
-    const ctx = scope.getContext(def, session) || STATIC_CONTEXT;
+    const ctx = scope.getContext(session, this.host) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = {
@@ -37,7 +37,6 @@ export class ProviderRecord<T = any> {
       // }
     }
     // TODO: Should it be here?
-    session.setSideEffect(scope.hasSideEffects());
     session.setInstance(instance);
     return instance;
   }

@@ -1,4 +1,4 @@
-import { Context, ProviderRecord } from "../injector";
+import { Context, Injector, ProviderRecord } from "../injector";
 import { InjectionStatus } from "../enums";
 import { Scope } from "../scope";
 import { ConstraintDef, FactoryDef, WrapperDef, Type } from ".";
@@ -38,6 +38,7 @@ export interface InstanceRecord<T = any> {
 
 export interface ComponentRecord<T = any> {
   comp: Type<T>;
+  host: Injector;
   factory: FactoryDef<T> | undefined;
   useWrapper: WrapperDef | undefined;
   scope: Scope;

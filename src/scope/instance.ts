@@ -13,8 +13,8 @@ export class InstanceScope extends Scope {
   public getContext(session: Session, injector: Injector): Context {
     const parent = session.getParent();
 
-    // if parent session in `undefined` treat scope as Transient
-    if (parent === undefined) {
+    // if parent session in `undefined` or custom Context exists treat scope as Transient
+    if (session.getContext() || parent === undefined) {
       return Scope.TRANSIENT.getContext(session, injector);
     }
 
@@ -24,6 +24,7 @@ export class InstanceScope extends Scope {
       ctx = new Context();
       this.instances.set(instance, ctx);
     }
+    session.setSideEffect(true);
     return ctx;
   }
 
@@ -33,6 +34,6 @@ export class InstanceScope extends Scope {
     if (instance === undefined && parent) {
       return this.getNearestInstance(parent);
     }
-    return undefined;
+    return instance;
   }
 }

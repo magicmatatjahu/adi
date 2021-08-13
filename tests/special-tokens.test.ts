@@ -61,13 +61,14 @@ describe('Special tokens (providers)', function() {
       expect(service).toBeInstanceOf(Service);
       expect(service.service).toBeInstanceOf(TestService);
       expect(service.newService).toBeInstanceOf(TestService);
+      expect(service.service === service.newService).toEqual(false);
       expect(service.context).toBeInstanceOf(Context);
       expect(service.context === STATIC_CONTEXT).toEqual(true);
       expect(service.service.context1).toBeInstanceOf(Context);
       expect(service.service.context1 === STATIC_CONTEXT).toEqual(true);
-      expect(service.service.context1 === service.service.context2).toEqual(true);
+      expect(service.service.context2 === STATIC_CONTEXT).toEqual(true);
       expect(service.newService.context1).toBeInstanceOf(Context);
-      expect(service.newService.context1 !== STATIC_CONTEXT).toEqual(true);
+      expect(service.newService.context1 === STATIC_CONTEXT).toEqual(false);
       expect(service.newService.context1 === service.newService.context2).toEqual(true);
     });
 

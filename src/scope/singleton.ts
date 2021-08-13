@@ -13,9 +13,9 @@ export class SingletonScope extends Scope {
 
   public getContext(session: Session): Context {
     const ctx = session.getContext();
-    if (ctx !== STATIC_CONTEXT) {
+    if (ctx && ctx !== STATIC_CONTEXT) {
       throw new Error("Cannot create provider with singleton scope");
     }
-    return ctx;
+    return STATIC_CONTEXT;
   }
 }

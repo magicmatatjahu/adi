@@ -108,6 +108,7 @@ export class Injector {
     const record = this.getRecord(token);
     if (record !== undefined) {
       const providerWrappers = record.filterWrappers(session);
+      session.setRecord(record);
 
       if (providerWrappers !== undefined) {
         const length = providerWrappers.length;
@@ -131,6 +132,7 @@ export class Injector {
     if (def === undefined) {
       return this.getParentInjector().get(token, options, meta, session);
     }
+    session.setDefinition(def);
     return this.resolveDef(def, options, session);
   }
 
@@ -262,7 +264,7 @@ export class Injector {
   }
 
   addComponent(component: Type): void {
-    const record = InjectorMetadata.toComponentRecord(component);
+    const record = InjectorMetadata.toComponentRecord(component, this);
     this.components.set(component, record);
   }
 
