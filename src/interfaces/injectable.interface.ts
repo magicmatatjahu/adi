@@ -8,11 +8,13 @@ export type InjectableOptions = {
   // providers?: ModuleMetadata['providers'];
   provideIn?: ProvideInType | ProvideInType[];
   scope?: Scope;
+  annotations?: Record<string | symbol, any>;
   // labels?: Record<string | symbol, any>;
 } & Partial<PlainSansProvider>;
 
 export type InjectionTokenOptions = {
   provideIn?: ProvideInType | ProvideInType[];
   scope?: Scope;
+  annotations?: Record<string | symbol, any>;
   // labels?: Record<string | symbol, any>;
 } & Partial<PlainSansProvider>;

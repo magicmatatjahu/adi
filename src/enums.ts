@@ -8,10 +8,8 @@ export enum InjectionStatus {
 
 export enum ScopeFlags {
   NONE = 0,
-  CAN_OVERRIDE = 1,
-  SIDE_EFFECTS = 2,
+  CANNOT_OVERRIDE = 1,
   PROXY_MODE = 4,
-  CANNOT_OVERRIDE = 8,
 }
 
 export enum InjectionPlace {

@@ -46,6 +46,7 @@ export class ProviderRecord<T = any> {
     scope?: Scope,
     constraint?: ConstraintDef,
     wrapper?: WrapperDef,
+    annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): void {
     // if provider is a class provider, then apply hooks wrappers
@@ -58,6 +59,7 @@ export class ProviderRecord<T = any> {
       scope: scope || Scope.DEFAULT,
       constraint,
       wrapper,
+      annotations,
       proto: proto || undefined,
       values: new Map<Context, InstanceRecord<T>>(),
     };

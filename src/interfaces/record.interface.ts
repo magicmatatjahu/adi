@@ -17,6 +17,7 @@ export interface DefinitionRecord<T = any> {
   constraint: ConstraintDef | undefined;
   wrapper: WrapperDef | undefined;
   scope: Scope;
+  annotations: Record<string | symbol, any>;
   proto: Type<T> | undefined;
   values: Map<Context, InstanceRecord<T>>;
   // weakValues: WeakMap<Context, InstanceRecord<T>>;

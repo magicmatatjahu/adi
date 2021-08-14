@@ -14,11 +14,11 @@ export type PlainProvider<T = any> =
   | WrapperProvider<T>;
 
 export type PlainSansProvider<T = any> =
-  | Omit<ClassProvider<T>, 'provide' | 'when'>
-  | Omit<FactoryProvider<T>, 'provide' | 'when'>
-  | Omit<ValueProvider<T>, 'provide' | 'when'>
-  | Omit<ExistingProvider<T>, 'provide' | 'when'>
-  | Omit<WrapperProvider<T>, 'provide' | 'when'>
+  | Omit<ClassProvider<T>, 'provide' | 'when' | 'annotations'>
+  | Omit<FactoryProvider<T>, 'provide' | 'when' | 'annotations'>
+  | Omit<ValueProvider<T>, 'provide' | 'when' | 'annotations'>
+  | Omit<ExistingProvider<T>, 'provide' | 'when' | 'annotations'>
+  | Omit<WrapperProvider<T>, 'provide' | 'when' | 'annotations'>
 
 export interface TypeProvider<T = any> extends Type<T> {}
 
@@ -28,6 +28,7 @@ export interface ClassProvider<T = any> {
   scope?: Scope;
   useWrapper?: WrapperDef;
   when?: ConstraintDef;
+  annotations?: Record<string | symbol, any>;
 }
 
 export interface FactoryProvider<T = any> {
@@ -37,6 +38,7 @@ export interface FactoryProvider<T = any> {
   scope?: Scope;
   useWrapper?: WrapperDef;
   when?: ConstraintDef;
+  annotations?: Record<string | symbol, any>;
 }
 
 export interface ExistingProvider<T = any> {
@@ -44,6 +46,7 @@ export interface ExistingProvider<T = any> {
   useExisting: Token;
   useWrapper?: WrapperDef;
   when?: ConstraintDef;
+  annotations?: Record<string | symbol, any>;
 }
 
 export interface ValueProvider<T = any> {
@@ -51,12 +54,15 @@ export interface ValueProvider<T = any> {
   useValue: T;
   useWrapper?: WrapperDef;
   when?: ConstraintDef;
+  annotations?: Record<string | symbol, any>;
 }
 
 export interface WrapperProvider<T = any> {
   provide: Token<T>;
   useWrapper: WrapperDef;
   when?: ConstraintDef;
+  // TODO: useWrapper should have also annotations? Think about it
+  annotations?: Record<string | symbol, any>;
 }
 
 export interface ForwardRef<T = any> {

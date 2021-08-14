@@ -3,12 +3,12 @@ import { createInjectionArg, getProviderDef, injectableMixin } from "../decorato
 import { 
   Provider, TypeProvider, DefinitionRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider,
+  InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { STATIC_CONTEXT } from "../constants";
+import { EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
 import { useDefaultHooks } from "../wrappers";
 import { Cacheable } from "../wrappers/cacheable";
 
@@ -36,7 +36,7 @@ export const InjectorMetadata = new class {
     host: Injector,
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
-    const options = provDef.options || {};
+    const options = provDef.options || EMPTY_OBJECT as InjectableOptions;
 
     if (
       'useWrapper' in options || 
@@ -51,7 +51,7 @@ export const InjectorMetadata = new class {
     }
 
     const record = this.getRecord(provider, host);
-    record.addDefinition(provDef.factory, provDef.scope, undefined, undefined, provider.prototype);
+    record.addDefinition(provDef.factory, provDef.scope, undefined, undefined, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -63,6 +63,7 @@ export const InjectorMetadata = new class {
     const record = this.getRecord(token, host);
     let factory: FactoryDef = undefined,
       scope: Scope = (provider as any).scope,
+      annotations: Record<string | symbol, any> = provider.annotations || EMPTY_OBJECT,
       proto = undefined;
 
     if (isFactoryProvider(provider)) {
@@ -72,7 +73,6 @@ export const InjectorMetadata = new class {
       }
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
-      // scope = Scope.SINGLETON;
     } else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;
       let changed = false;
@@ -107,7 +107,7 @@ export const InjectorMetadata = new class {
       }
     }
 
-    record.addDefinition(factory, scope, constraint, wrapper, proto);
+    record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
     return record;
   }
 

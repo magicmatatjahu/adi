@@ -4,7 +4,7 @@ import { ScopeFlags } from "../enums";
 
 import { Scope } from "./index";
 
-export class SingletonScope extends Scope {
+export class SingletonScope extends Scope<never> {
   public readonly flags: ScopeFlags = ScopeFlags.CANNOT_OVERRIDE;
 
   get name() {

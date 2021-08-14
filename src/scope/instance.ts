@@ -14,7 +14,7 @@ export class InstanceScope extends Scope {
     const parent = session.getParent();
 
     // if parent session in `undefined` or custom Context exists treat scope as Transient
-    if (session.getContext() || parent === undefined) {
+    if (parent === undefined || session.getContext()) {
       return Scope.TRANSIENT.getContext(session, injector);
     }
 
