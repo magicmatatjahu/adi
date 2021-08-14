@@ -86,9 +86,17 @@ export class Injector {
   /**
    * PROVIDERS
    */
-  // _get<T>(token: Token<T>, wrapper?: WrapperDef): T | undefined {
-  //   const session = new Session(undefined, undefined, undefined, undefined);
-  // }
+  _get<T>(token: Token<T>, wrapper?: WrapperDef, session?: Session): T | undefined {
+    // TODO: Improve constructor parameters for Session
+    session = session || new Session(undefined, undefined, undefined, undefined, undefined, undefined);
+    return this.get(token, { token, wrapper }, undefined, session) as T | undefined;
+  }
+
+  async _getAsync<T>(token: Token<T>, wrapper?: WrapperDef, session?: Session): Promise<T | undefined> {
+    // TODO: Improve constructor parameters for Session
+    session = session || new Session(undefined, undefined, undefined, undefined, undefined, undefined);
+    return this.get(token, { token, wrapper }, undefined, session) as T | undefined;
+  }
 
   get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: Session): Promise<T | undefined> | T | undefined {
     // Passing copy of options is for wrapper. Inside them we can change shape of these options.
@@ -137,11 +145,14 @@ export class Injector {
   }
 
   private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: Session): Promise<T | undefined> | T | undefined {
-    let scope = def.scope;
+    // Optimize it
+    let scope = def.scope.which;
+    let scopeOptions = def.scope.options;
     if (scope.canBeOverrided() === true) {
-      scope = options.scope || scope;
+      scope = (options.scope && options.scope.which) || scope;
+      scopeOptions = (options.scope && options.scope.options) || scopeOptions;
     }
-    const instance = def.record.getInstance(def, scope, session);
+    const instance = def.record.getInstance(def, scope, scopeOptions, session);
     return this.resolveInstance(def.record, def, instance, session);
   }
 

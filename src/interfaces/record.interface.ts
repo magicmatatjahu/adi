@@ -1,7 +1,7 @@
 import { Context, Injector, ProviderRecord } from "../injector";
 import { InjectionStatus } from "../enums";
 import { Scope } from "../scope";
-import { ConstraintDef, FactoryDef, WrapperDef, Type } from ".";
+import { ConstraintDef, FactoryDef, WrapperDef, ScopeShape, Type } from ".";
 
 // export interface ProviderRecord<T = any> {
 //   token: Token<T>;
@@ -11,12 +11,12 @@ import { ConstraintDef, FactoryDef, WrapperDef, Type } from ".";
 //   wrappers: Array<WrapperRecord>;
 // }
 
-export interface DefinitionRecord<T = any> {
+export interface DefinitionRecord<T = any, S = any> {
   record: ProviderRecord<T>;
   factory: FactoryDef<T> | undefined;
   constraint: ConstraintDef | undefined;
   wrapper: WrapperDef | undefined;
-  scope: Scope;
+  scope: ScopeShape<S>;
   annotations: Record<string | symbol, any>;
   proto: Type<T> | undefined;
   values: Map<Context, InstanceRecord<T>>;

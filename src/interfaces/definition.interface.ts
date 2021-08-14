@@ -1,7 +1,5 @@
 import { Injector, Session } from "../injector";
-import { Scope } from "../scope";
-import { InjectionSession, InjectionArgument, ModuleMetadata, ProvideInType } from ".";
-import { InjectableOptions } from "./injectable.interface";
+import { InjectionArgument, InjectableOptions, ModuleMetadata, ScopeType, ProvideInType } from ".";
 
 export type ModuleDef = ModuleMetadata;
 
@@ -9,12 +7,12 @@ export interface ComponentDef {
   token: unknown;
 }
 
-export interface ProviderDef<T = any> {
+export interface ProviderDef<T = any, S = any> {
   token: unknown;
   factory: FactoryDef<T>;
   provideIn?: ProvideInType | ProvideInType[];
-  scope?: Scope;
-  options?: InjectableOptions;
+  scope?: ScopeType<S>;
+  options?: InjectableOptions<S>;
   args?: {
     ctor: Array<InjectionArgument>;
     props: Record<string | symbol, InjectionArgument>;

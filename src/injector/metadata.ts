@@ -3,7 +3,7 @@ import { createInjectionArg, getProviderDef, injectableMixin } from "../decorato
 import { 
   Provider, TypeProvider, DefinitionRecord,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions,
+  InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
@@ -36,7 +36,7 @@ export const InjectorMetadata = new class {
     host: Injector,
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
-    const options = provDef.options || EMPTY_OBJECT as InjectableOptions;
+    const options = provDef.options || EMPTY_OBJECT as InjectableOptions<any>;
 
     if (
       'useWrapper' in options || 
@@ -51,7 +51,7 @@ export const InjectorMetadata = new class {
     }
 
     const record = this.getRecord(provider, host);
-    record.addDefinition(provDef.factory, provDef.scope, undefined, undefined, options.annotations || EMPTY_OBJECT, provider.prototype);
+    record.addDefinition(provDef.factory, this.getScopeShape(provDef.scope), undefined, undefined, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -62,7 +62,7 @@ export const InjectorMetadata = new class {
   ): ProviderRecord {
     const record = this.getRecord(token, host);
     let factory: FactoryDef = undefined,
-      scope: Scope = (provider as any).scope,
+      scope: ScopeShape = this.getScopeShape((provider as any).scope),
       annotations: Record<string | symbol, any> = provider.annotations || EMPTY_OBJECT,
       proto = undefined;
 
@@ -91,7 +91,7 @@ export const InjectorMetadata = new class {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
       factory = InjectorResolver.createFactory(classRef, providerDef);
-      scope = scope || providerDef.scope;
+      scope = scope || this.getScopeShape(providerDef.scope);
       proto = classRef;
     }
 
@@ -134,6 +134,16 @@ export const InjectorMetadata = new class {
     return record;
   }
 
+  getScopeShape(scope: ScopeType): ScopeShape {
+    if (scope && (scope as ScopeShape).which === undefined) {
+      scope = {
+        which: scope as unknown as Scope,
+        options: undefined,
+      }
+    }
+    return scope as ScopeShape;
+  }
+
   /**
    * COMPONENTS
    */
@@ -148,7 +158,7 @@ export const InjectorMetadata = new class {
       comp,
       host,
       factory: def.factory,
-      scope: def.scope || Scope.SINGLETON,
+      scope: (def.scope || Scope.SINGLETON) as any,
       useWrapper,
       values: new Map<Context, ComponentInstanceRecord>(),
     };
@@ -172,7 +182,8 @@ export const InjectorMetadata = new class {
     session?: Session,
   ): ComponentInstanceRecord<T> {
     // FIX this
-    const ctx = scope.getContext(session, comp as any) || STATIC_CONTEXT;
+    // const ctx = scope.getContext(session, comp as any) || STATIC_CONTEXT;
+    const ctx = STATIC_CONTEXT;
     let instance = comp.values.get(ctx);
     if (instance === undefined) {
       instance = this.createComponentInstanceRecord(ctx, undefined, comp);

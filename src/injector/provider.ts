@@ -1,7 +1,7 @@
 import { Injector, Context, Session } from ".";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
 import { InjectionStatus } from "../enums";
-import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, WrapperDef } from "../interfaces";
+import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, WrapperDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { useDefaultHooks } from "../wrappers";
@@ -16,12 +16,13 @@ export class ProviderRecord<T = any> {
     readonly host: Injector,
   ) {}
 
-  getInstance(
+  getInstance<S>(
     def: DefinitionRecord<T>, 
-    scope: Scope,
+    scope: Scope<S>,
+    scopeOptions: S,
     session: Session,
   ): InstanceRecord<T> {
-    const ctx = scope.getContext(session, this.host) || STATIC_CONTEXT;
+    const ctx = scope.getContext(session, scopeOptions, this.host) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = {
@@ -41,14 +42,21 @@ export class ProviderRecord<T = any> {
     return instance;
   }
 
-  addDefinition<T>(
+  addDefinition<T, S>(
     factory?: FactoryDef,
-    scope?: Scope,
+    scope?: ScopeShape<S>,
     constraint?: ConstraintDef,
     wrapper?: WrapperDef,
     annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): void {
+    // console.log(scope)
+    if (scope === undefined) {
+      scope = {
+        which: Scope.DEFAULT,
+        options: undefined,
+      }
+    }
     // if provider is a class provider, then apply hooks wrappers
     if (proto !== undefined) {
       wrapper = useDefaultHooks(wrapper);
@@ -56,7 +64,7 @@ export class ProviderRecord<T = any> {
     const def: DefinitionRecord = {
       record: this as any,
       factory,
-      scope: scope || Scope.DEFAULT,
+      scope,
       constraint,
       wrapper,
       annotations,

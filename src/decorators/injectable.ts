@@ -5,14 +5,14 @@ import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cacheable } from "../wrappers/cacheable";
 
-export function Injectable(options?: InjectableOptions) {
+export function Injectable<S>(options?: InjectableOptions<S>) {
   return function(target: Object) {
     const params = Reflection.getOwnMetadata("design:paramtypes", target);
     applyProviderDef(target, params, options);
   }
 }
 
-export function injectableMixin<T>(clazz: Type<T>, options?: InjectableOptions): Type<T> {
+export function injectableMixin<T, S>(clazz: Type<T>, options?: InjectableOptions<S>): Type<T> {
   Injectable(options)(clazz);
   return clazz;
 }
@@ -21,7 +21,7 @@ export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined
   return provider['$$prov'] || undefined;
 }
 
-export function applyProviderDef<T>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions): ProviderDef<T> {
+export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions<S>): ProviderDef<T> {
   const def = ensureProviderDef(target);
   if (options) {
     def.provideIn = options.provideIn || def.provideIn;

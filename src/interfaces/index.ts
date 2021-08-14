@@ -1,3 +1,4 @@
+export * from "./common.interface";
 export * from "./component.interface";
 export * from "./definition.interface";
 export * from "./hook.interface";

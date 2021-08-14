@@ -3,12 +3,9 @@ import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function wrapper(ctxOrData: Context | any): WrapperDef {
+  const ctx = ctxOrData instanceof Context ? ctxOrData : new Context(ctxOrData);
   return (injector, session, next) => {
-    if (ctxOrData instanceof Context) {
-      session.setContext(ctxOrData);
-    } else {
-      session.setContext(new Context(ctxOrData));
-    }
+    session.setContext(ctx);
     return next(injector, session);
   }
 }

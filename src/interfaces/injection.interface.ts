@@ -1,12 +1,11 @@
 import { Context } from "../injector";
-import { InstanceRecord, WrapperDef } from ".";
+import { InstanceRecord, ScopeShape, WrapperDef } from ".";
 import { Token } from "../types";
-import { Scope } from "../scope";
 
 export interface InjectionOptions<T = any> {
   token: Token<T>;
   ctx?: Context;
-  scope?: Scope;
+  scope?: ScopeShape;
   labels?: Record<string | symbol, any>;
   wrapper?: WrapperDef,
 }

@@ -6,14 +6,12 @@ import { SingletonScope } from "./scope/singleton";
 import { TransientScope } from "./scope/transient";
 import { InstanceScope } from "./scope/instance";
 import { LocalScope } from "./scope/local";
-import { ParentScope } from "./scope/parent";
 
 Scope.DEFAULT = new DefaultScope();
 Scope.SINGLETON = new SingletonScope();
 Scope.TRANSIENT = new TransientScope();
 Scope.INSTANCE = new InstanceScope();
 Scope.LOCAL = new LocalScope();
-Scope.PARENT = new ParentScope();
 
 // Circular references between Scope and Context
 Context.$$prov.scope = Scope.INSTANCE;

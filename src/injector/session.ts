@@ -1,5 +1,5 @@
 import { 
-  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord,
+  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord, ScopeShape,
 } from "../interfaces";
 import { NULL_REF } from "../constants";
 
@@ -18,7 +18,10 @@ export class Session<T = any> {
     public options: InjectionOptions,
     public meta: InjectionMetadata,
     public readonly parent: Session,
-  ) {}
+  ) {
+    // TODO: Fix options
+    this.options.scope = this.options.scope || {} as ScopeShape;
+  }
 
   getToken(): Token {
     return this.options.token;
@@ -36,12 +39,13 @@ export class Session<T = any> {
     this.options.ctx = ctx;
   }
 
-  getScope(): Scope {
+  getScope(): ScopeShape {
     return this.options.scope;
   }
 
-  setScope(scope: Scope) {
-    this.options.scope = scope;
+  setScope<T>(scope: Scope<T>, options?: T) {
+    this.options.scope.which = scope;
+    this.options.scope.options = options;
   }
 
   getLabels(): Record<string | symbol, any> {

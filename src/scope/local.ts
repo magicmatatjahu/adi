@@ -2,16 +2,15 @@ import { EMPTY_ARRAY, STATIC_CONTEXT } from "../constants";
 import { Context, Injector, Session } from "../injector";
 import { ForwardRef, InstanceRecord } from "../interfaces";
 import { Token } from "../types";
+import { resolveRef } from "../utils";
 
 import { Scope } from "./index";
 
-type LocalScopeOptions = {
-  toToken: Token | ForwardRef;
+export interface LocalScopeOptions {
+  toToken?: Token | ForwardRef;
   toScope?: string | symbol;
   depth?: 'nearest' | 'farthest' | number;
-} | {
-  toScope: string | symbol;
-  depth?: 'nearest' | 'farthest' | number;
+  reuseContext?: boolean;
 }
 
 const defaultOptions: LocalScopeOptions = {
@@ -19,6 +18,7 @@ const defaultOptions: LocalScopeOptions = {
   // remove it
   toScope: 'test',
   depth: 'farthest',
+  reuseContext: true,
 }
 
 /**
@@ -32,13 +32,13 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return 'Local';
   }
 
-  public getContext(session: Session, injector: Injector, options: LocalScopeOptions = defaultOptions): Context {
+  public getContext(session: Session, options: LocalScopeOptions = defaultOptions, injector: Injector): Context {
     const parent = session.getParent();
 
     // if parent session in `undefined` or custom Context exists treat scope as Transient
     // TODO: rethink the `session.getContext()` case - it's valid in all cases, maybe use should have option to define the custom context for local "scope"
-    if (parent === undefined || session.getContext()) {
-      return Scope.TRANSIENT.getContext(session, injector);
+    if (parent === undefined || (options.reuseContext === true && session.getContext())) {
+      return Scope.TRANSIENT.getContext(session, options as any, injector);
     }
 
     // treat scope as with side effects
@@ -46,7 +46,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     let instance: InstanceRecord;
     const depth = options.depth || 'nearest';
-    const toToken = (options as any).toToken;
+    const toToken = resolveRef(options.toToken) as Token;
     const toScope = options.toScope;
     if (depth === 'nearest') {
       instance = this.retrieveInstanceByDepth(parent, 1, toToken, toScope);

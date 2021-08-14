@@ -3,19 +3,27 @@ import { InstanceRecord } from "../interfaces";
 
 import { Scope } from "./index";
 
-export class InstanceScope extends Scope {
+export interface InstanceScopeOptions {
+  reuseContext?: boolean;
+}
+
+const defaultOptions: InstanceScopeOptions = {
+  reuseContext: true
+}
+
+export class InstanceScope extends Scope<InstanceScopeOptions> {
   private instances = new Map<InstanceRecord, Context>();
 
   get name() {
     return 'Instance';
   }
 
-  public getContext(session: Session, injector: Injector): Context {
+  public getContext(session: Session, options: InstanceScopeOptions = defaultOptions, injector: Injector): Context {
     const parent = session.getParent();
 
     // if parent session in `undefined` or custom Context exists treat scope as Transient
-    if (parent === undefined || session.getContext()) {
-      return Scope.TRANSIENT.getContext(session, injector);
+    if (parent === undefined || (options.reuseContext === true && session.getContext())) {
+      return Scope.TRANSIENT.getContext(session, options, injector);
     }
 
     const instance = this.getNearestInstance(parent);
