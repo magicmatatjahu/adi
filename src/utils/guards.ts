@@ -31,22 +31,9 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
   const wrapper = (provider as WrapperProvider).useWrapper;
   return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
-  // return (
-  //   typeof (provider as WrapperProvider).useWrapper === "function"
-  //   // newHasWrapperProvider(provider)
-  // );
 }
 
-export function newHasWrapperProvider(provider: unknown): provider is WrapperProvider {
-  const wrapper = (provider as WrapperProvider).useWrapper;
-  return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
-}
-
-export function isWrapper<T>(wrapper: unknown): wrapper is WrapperDef<T> {
-  return wrapper && wrapper.hasOwnProperty('$$nextWrapper');
-}
-
-export function isNewWrapper(wrapper: unknown): wrapper is Wrapper {
+export function isWrapper(wrapper: unknown): wrapper is Wrapper {
   return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
 }
 

@@ -1,3 +1,4 @@
+import { Session } from "../injector";
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
@@ -8,7 +9,8 @@ function wrapper(): WrapperDef {
       return undefined;
     }
     // Todo: Fix the workaround for `def.record.token`
-    return injector.get(inquirerSession.instance?.def.record.token, inquirerSession.options, inquirerSession.meta, session.parent);
+    const newSession = new Session(undefined, undefined, undefined, inquirerSession.options, inquirerSession.meta, session.parent);
+    return injector.get(inquirerSession.instance?.def.record.token, undefined, newSession);
   }
 }
 

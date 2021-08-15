@@ -33,13 +33,7 @@ export class ProviderRecord<T = any> {
         status: InjectionStatus.UNKNOWN,
       };
       def.values.set(ctx, instance);
-      // if (scope.toCache(options, def, session) === true) {
-      //   ctxRecord.status |= InjectionStatus.CACHED;
-      //   def.values.set(ctx, ctxRecord);
-      // }
     }
-    // remove it when new wrappers will be added
-    session.setInstance(instance);
     return instance;
   }
 

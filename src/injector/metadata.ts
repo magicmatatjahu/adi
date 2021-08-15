@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isNewWrapper } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
@@ -86,7 +86,7 @@ export const InjectorMetadata = new class {
             changed = true;
           }
         }
-        return injector.get(aliasProvider, session.options, session.meta, session);
+        return injector.get(aliasProvider, undefined, session);
       }
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
@@ -233,7 +233,7 @@ export const InjectorMetadata = new class {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
-      if (isNewWrapper(dep)) {
+      if (isWrapper(dep)) {
         converted.push(createInjectionArg(undefined, Cacheable(dep), factory, undefined, i));
       } else {
         converted.push(createInjectionArg(dep, undefined, factory, undefined, i));

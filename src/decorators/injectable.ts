@@ -29,7 +29,7 @@ export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> =
     def.scope = options.scope || def.scope;
     def.options = options;
   }
-  applyInheritance(target, def, paramtypes);  
+  lookupInheritance(target, def, paramtypes);  
   def.factory = InjectorResolver.createFactory(target as Type<any>, def);
   return def as ProviderDef<T>;
 }
@@ -57,7 +57,7 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
 }
 
 // merge def from parent class
-function applyInheritance(target: Object, def: ProviderDef, paramtypes: Array<Type>): void {
+function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<Type>): void {
   let inheritedClass = Object.getPrototypeOf(target);
   // case when base class is not decorated by @Injectable()
   // inheritedClass.length means arguments of constructor

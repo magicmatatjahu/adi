@@ -65,7 +65,7 @@ function standaloneWrapper(injector: Injector, session: Session, next: NextWrapp
       if (def === createdDef) {
         values.push(createdInstance.value);
       } else {
-        values.push((injector as any).__resolveDefinition(def, record, session));
+        values.push(injector.resolveDefinition(def, session));
       }
     }
     return values;

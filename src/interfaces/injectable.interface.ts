@@ -1,5 +1,4 @@
 import { PlainSansProvider, ScopeType, Type } from ".";
-import { Scope } from "../scope";
 
 export type ProvideInType = string | symbol | Type | 'any';
 
@@ -11,8 +10,8 @@ export type InjectableOptions<S> = {
   annotations?: Record<string | symbol, any>;
 } & Partial<PlainSansProvider>;
 
-export type InjectionTokenOptions = {
+export type InjectionTokenOptions<S> = {
   provideIn?: ProvideInType | ProvideInType[];
-  scope?: Scope;
+  scope?: ScopeType<S>;
   annotations?: Record<string | symbol, any>;
 } & Partial<PlainSansProvider>;

@@ -1,9 +1,8 @@
-import { ModuleMetadata } from ".";
-import { Scope } from "../scope";
+import { ScopeType } from ".";
 
-export interface ComponentOptions {
+export interface ComponentOptions<S> {
   // imports?: ModuleMetadata['imports'];
   // providers?: ModuleMetadata['providers'];
-  scope?: Scope;
-  // labels?: Record<string | symbol, any>;
+  scope?: ScopeType<S>;
+  annotations?: Record<string | symbol, any>;
 }

@@ -1,13 +1,13 @@
 import { applyInjectionArg } from "./injectable"; 
 import { Token } from "../types";
-import { Reflection, isNewWrapper } from "../utils";
+import { Reflection, isWrapper } from "../utils";
 import { Wrapper } from "../utils/wrappers";
 
-export function Inject<T = any>(token?: Token<T>, useWrapper?: Wrapper);
-export function Inject<T = any>(useWrapper?: Wrapper);
-export function Inject<T = any>(token?: Token<T> | Wrapper, useWrapper?: Wrapper) {
-  if (isNewWrapper(token)) {
-    useWrapper = token as Wrapper;
+export function Inject<T = any>(token?: Token<T>, wrapper?: Wrapper);
+export function Inject<T = any>(wrapper?: Wrapper);
+export function Inject<T = any>(token?: Token<T> | Wrapper, wrapper?: Wrapper) {
+  if (isWrapper(token)) {
+    wrapper = token as Wrapper;
     token = undefined;
   }
 
@@ -24,7 +24,7 @@ export function Inject<T = any>(token?: Token<T> | Wrapper, useWrapper?: Wrapper
           const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target, key);
           for (let i = 0, l = paramtypes.length; i < l; i++) {
             // TODO: test passing `useWrapper` from main `@Injector` decorator on method
-            const arg = applyInjectionArg(paramtypes[i], useWrapper, target, key, i);
+            const arg = applyInjectionArg(paramtypes[i], wrapper, target, key, i);
             arg.token = arg.token || paramtypes[i];
             arg.options.token = arg.token;
           }
@@ -34,6 +34,6 @@ export function Inject<T = any>(token?: Token<T> | Wrapper, useWrapper?: Wrapper
         }
       }
     }
-    applyInjectionArg(token as Token, useWrapper, target, key, index);
+    applyInjectionArg(token as Token, wrapper, target, key, index);
   }
 }
