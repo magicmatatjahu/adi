@@ -18,7 +18,7 @@ Context.$$prov.scope = Scope.INSTANCE;
 Session.$$prov.scope = Scope.INSTANCE;
 
 export { when } from "./constraint";
-export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS } from "./constants";
+export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
 export { Component, Inject, Injectable, Module, componentMixin, injectableMixin, moduleMixin } from "./decorators";
 export { Context, Session, Injector, InjectionToken, createInjector, InjectorMetadata, InjectorResolver } from "./injector";
 export * from "./interfaces";

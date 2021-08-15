@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ref } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ANNOTATIONS, ref } from "../../src";
 
 // TODO: Fix tests if scope has ability to pass custom options
 describe('Instance scope', function () {
@@ -26,7 +26,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween2 {
@@ -40,7 +40,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween1 {
@@ -54,7 +54,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class Service {
@@ -133,7 +133,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween2 {
@@ -147,7 +147,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween1 {
@@ -161,7 +161,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class Service {
@@ -240,7 +240,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween2 {
@@ -254,7 +254,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween1 {
@@ -268,7 +268,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class Service {
@@ -376,6 +376,63 @@ describe('Instance scope', function () {
     expect(service1.between1.shared1 === service1.between2.shared1).toEqual(false);
   });
 
+  test('should inject shared service in the given scope (using toScope and toAnnotation options)', function () {
+    @Injectable({
+      scope: {
+        which: Scope.LOCAL,
+        options: {
+          toScope: 'test',
+          toAnnotation: '@test/annotation'
+        }
+      }
+    })
+    class SharedService {}
+
+    @Injectable({
+      scope: Scope.TRANSIENT,
+      annotations: {
+        '@test/annotation': 'test',
+      }
+    })
+    class ServiceBetween {
+      constructor(
+        readonly shared1: SharedService,
+        readonly shared2: SharedService,
+      ) {}
+    }
+
+    @Injectable({
+      scope: Scope.TRANSIENT
+    })
+    class Service {
+      constructor(
+        readonly shared: SharedService,
+        readonly between1: ServiceBetween,
+        readonly between2: ServiceBetween,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      ServiceBetween,
+      SharedService,
+    ]);
+
+    const service1 = injector.get(Service);
+    const service2 = injector.get(Service);
+    expect(service1 === service2).toEqual(false);
+    expect(service1.between1).toBeInstanceOf(ServiceBetween);
+    expect(service2.between1).toBeInstanceOf(ServiceBetween);
+    expect(service1.shared).toBeInstanceOf(SharedService);
+    expect(service1.shared === service1.between1.shared1).toEqual(false);
+    expect(service1.shared === service1.between1.shared2).toEqual(false);
+    expect(service1.shared === service1.between2.shared1).toEqual(false);
+    expect(service1.shared === service1.between2.shared2).toEqual(false);
+    expect(service1.between1.shared1 === service1.between1.shared2).toEqual(true);
+    expect(service1.between2.shared1 === service1.between2.shared2).toEqual(true);
+    expect(service1.between1.shared1 === service1.between2.shared1).toEqual(false);
+  });
+
   test('should inject shared service in the given scope when LOCAL scope has not passed any options but scope token exists in subgraph', function () {
     @Injectable({
       scope: Scope.LOCAL,
@@ -385,7 +442,7 @@ describe('Instance scope', function () {
     @Injectable({
       scope: Scope.TRANSIENT,
       annotations: {
-        '$$local.scope': 'test'
+        [ANNOTATIONS.LOCAL_SCOPE]: 'test'
       }
     })
     class ServiceBetween {

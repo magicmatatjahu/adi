@@ -100,10 +100,10 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
   // override/adjust symbols injection
   const symbols = Object.getOwnPropertySymbols(inheritedProps);
   for (let i = 0, l = symbols.length; i < l; i++) {
-    const s = symbols[i] as unknown as string;
-    const inheritedProp = inheritedProps[s];
+    const sym = symbols[i] as unknown as string;
+    const inheritedProp = inheritedProps[sym];
     // shallow copy injection argument and override target
-    props[s] = props[s] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, s);
+    props[sym] = props[sym] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, sym);
   }
 
   const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
@@ -127,10 +127,7 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
 
 function mergeCtorArgs(definedArgs: Array<InjectionArgument>, paramtypes: Array<Type>, target: Object): void {
   for (let i = 0, l = paramtypes.length; i < l; i++) {
-    const param = paramtypes[i], definedArg = definedArgs[i];
-    if (definedArg === undefined) {
-      definedArgs[i] = createInjectionArg(param, undefined, target, undefined, i);
-    }
+    definedArgs[i] = definedArgs[i] || createInjectionArg(paramtypes[i], undefined, target, undefined, i);
   }
 }
 

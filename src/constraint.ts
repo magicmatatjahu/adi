@@ -1,10 +1,10 @@
 import { Context } from "./injector";
 import { ConstraintDef } from "./interfaces";
-import { CONSTRAINTS } from "./constants";
+import { ANNOTATIONS } from "./constants";
 import { Token } from "./types";
 
 export function named(named: Token): ConstraintDef {
-  return (session) => session.options?.labels[CONSTRAINTS.NAMED] === named;
+  return (session) => session.options?.labels[ANNOTATIONS.NAMED] === named;
 }
 
 export function withContext(ctx: Context): ConstraintDef {

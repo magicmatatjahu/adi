@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, createWrapper } from "../src";
+import { Injector, Injectable, Inject, createWrapper, Value } from "../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -237,6 +237,32 @@ describe('Type provider (injectable provider)', function() {
       {
         provide: "token",
         useValue: 'foobar',
+      }
+    ]);
+
+    const service = injector.get(Service);
+    expect(service).toEqual('foobar');
+  });
+
+  describe('should works with wrapper', function() {
+    @Injectable({
+      useWrapper: Value('foo.bar')
+    })
+    class Service {
+      public foo = {
+        bar: 'foobar'
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useValue: {
+          foo: {
+            bar: 'foobar'
+          }
+        },
       }
     ]);
 

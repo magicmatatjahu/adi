@@ -20,6 +20,11 @@ export const CONSTRAINTS = {
   NAMED: '$$named',
 }
 
+export const ANNOTATIONS = {
+  NAMED: '@adi/named',
+  LOCAL_SCOPE: '@adi/local-scope',
+}
+
 export const ALWAYS_CONSTRAINT = () => true;
 export const NEVER_CONSTRAINT = () => false;
 
