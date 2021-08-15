@@ -8,7 +8,7 @@ describe('Token wrapper', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Token(TestService)) readonly service: String,
+        @Inject(Token(TestService)) readonly service: string,
       ) {}
     }
 
@@ -30,10 +30,9 @@ describe('Token wrapper', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(String, Token(TestService)) readonly service: any,
+        @Inject('nonExisting', Token(TestService)) readonly service: any,
       ) {}
     }
-
 
     const injector = new Injector([
       TestService,

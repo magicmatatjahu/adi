@@ -10,4 +10,3 @@ function wrapper(ref: () => Token): WrapperDef {
 }
 
 export const Ref = createWrapper<() => Token, true>(wrapper);
-// export const Ref = createWrapper(wrapper);

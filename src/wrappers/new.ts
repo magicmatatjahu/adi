@@ -14,4 +14,3 @@ function wrapper(ctxData?: any): WrapperDef {
 }
 
 export const New = createWrapper<any, false>(wrapper);
-// export const New = createWrapper(wrapper);

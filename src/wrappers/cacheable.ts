@@ -4,7 +4,7 @@ import { createWrapper } from "../utils";
 
 const cache: Map<Injector, Map<InjectionMetadata, any>> = new Map();
 
-function algorithm(injector: Injector, session: Session, next: NextWrapper) {
+function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   let cachePerInjector = cache.get(injector);
   if (cachePerInjector === undefined) {
     cachePerInjector = new Map<InjectionMetadata, any>();
@@ -24,7 +24,7 @@ function algorithm(injector: Injector, session: Session, next: NextWrapper) {
   return value;
 }
 
-export const Cacheable = createWrapper(() => algorithm);
+export const Cacheable = createWrapper(() => wrapper);
 
 // enum CacheFlags {
 //   // single cached value (provider is used only in one module/injectors)

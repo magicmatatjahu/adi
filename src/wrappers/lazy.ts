@@ -63,4 +63,4 @@ function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
 }
 
 export const Lazy = createWrapper<LazyOptions, true>(wrapper);
-// export const Lazy = createWrapper(wrapper);
+

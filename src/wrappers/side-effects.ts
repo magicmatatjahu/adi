@@ -1,13 +1,11 @@
-import { WrapperDef } from "../interfaces";
+import { Injector, Session } from "../injector";
+import { NextWrapper } from "../interfaces";
 import { createWrapper } from "../utils";
 
-function wrapper(): WrapperDef {
-  return (injector, session, next) => {
-    const value = next(injector, session);
-    session.setSideEffect(true);
-    return value;
-  }
+function wrapper(injector: Injector, session: Session, next: NextWrapper) {
+  const value = next(injector, session);
+  session.setSideEffect(true);
+  return value;
 }
 
-export const SideEffects = createWrapper<undefined, false>(wrapper);
-// export const SideEffects = createWrapper(wrapper);
+export const SideEffects = createWrapper<undefined, false>(() => wrapper);

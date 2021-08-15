@@ -1,9 +1,10 @@
 import { WrapperDef } from "../interfaces";
 import { CONSTRAINTS } from "../constants"
 import { createWrapper } from "../utils";
+import { Token } from "../types";
 
 // TODO: Add possibility to pass not only string but also references | symbols
-function wrapper(name: string): WrapperDef {
+function wrapper(name: Token): WrapperDef {
   return (injector, session, next) => {
     session.addLabels({
       [CONSTRAINTS.NAMED]: name,
@@ -12,5 +13,4 @@ function wrapper(name: string): WrapperDef {
   }
 }
 
-export const Named = createWrapper<undefined, false>(wrapper);
-// export const Named = createWrapper(wrapper);
+export const Named = createWrapper<Token, true>(wrapper);

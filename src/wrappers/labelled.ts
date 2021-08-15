@@ -9,4 +9,3 @@ function wrapper(labels: Record<string | symbol, any>): WrapperDef {
 }
 
 export const Labelled = createWrapper<Record<string | symbol, any>, true>(wrapper);
-// export const Labelled = createWrapper(wrapper);

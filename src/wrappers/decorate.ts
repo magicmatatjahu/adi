@@ -19,7 +19,6 @@ function delegateWrapper(): WrapperDef {
 }
 
 export const Delegate = createWrapper<undefined, false>(delegateWrapper);
-// export const Delegate = createWrapper(delegateWrapper);
 
 /**
  * DECORATE

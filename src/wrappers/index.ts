@@ -19,3 +19,4 @@ export * from "./side-effects";
 export * from "./skip-self";
 export * from "./skip";
 export * from "./token";
+export * from "./value";

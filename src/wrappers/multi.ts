@@ -17,59 +17,28 @@ function getDefinitions(
   return satisfyingDefs.length === 0 ? record.defs : satisfyingDefs;
 }
 
-function wrapper(_: never): WrapperDef {
-  return (injector, session, next) => {
-    // exec wrappers chain to retrieve needed, updated session
-    next(injector, session);
+function wrapper(injector: Injector, session: Session, next: NextWrapper) {
+  // exec wrappers chain to retrieve needed, updated session
+  next(injector, session);
 
-    const options = session.options;
-    const createdInstance = session.instance;
-    const createdDef = createdInstance.def;
-    const token = session.getToken() || createdDef.record.token;
-    const record = (injector as any).records.get(token);
-    const defs = getDefinitions(record, session);
+  const record = session.record;
+  const createdDef = session.definition;
+  const createdInstance = session.instance;
+  const defs = getDefinitions(record, session);
 
-    // TODO: improve function to pass wrappers chain again and copy session
-    // add also check for side effects
-    // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
-    const values = [];
-    for (let i = 0, l = defs.length; i < l; i++) {
-      const def = defs[i];
-      if (def === createdDef) {
-        values.push(createdInstance.value);
-      } else {
-        values.push((injector as any).resolveDef(def, options, session));
-      }
+  // TODO: improve function to pass wrappers chain again and copy session
+  // add also check for side effects
+  // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
+  const values = [];
+  for (let i = 0, l = defs.length; i < l; i++) {
+    const def = defs[i];
+    if (def === createdDef) {
+      values.push(createdInstance.value);
+    } else {
+      values.push(injector.resolveDefinition(def, session));
     }
-    return values;
   }
+  return values;
 }
 
-function standaloneWrapper(injector: Injector, session: Session, next: NextWrapper) {
-    // exec wrappers chain to retrieve needed, updated session
-    next(injector, session);
-
-    const record = session.record;
-    const createdDef = session.definition;
-    const createdInstance = session.instance;
-    const defs = getDefinitions(record, session);
-
-    // console.log(createdInstance.value)
-
-    // TODO: improve function to pass wrappers chain again and copy session
-    // add also check for side effects
-    // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
-    const values = [];
-    for (let i = 0, l = defs.length; i < l; i++) {
-      const def = defs[i];
-      if (def === createdDef) {
-        values.push(createdInstance.value);
-      } else {
-        values.push(injector.resolveDefinition(def, session));
-      }
-    }
-    return values;
-}
-
-export const Multi = createWrapper<undefined, false>(() => standaloneWrapper);
-// export const Multi = createWrapper(wrapper);
+export const Multi = createWrapper<undefined, false>(() => wrapper);

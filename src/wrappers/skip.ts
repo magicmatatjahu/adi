@@ -6,4 +6,3 @@ function wrapper(value?: any): WrapperDef {
 }
 
 export const Skip = createWrapper<any, false>(wrapper);
-// export const Skip = createWrapper(wrapper);

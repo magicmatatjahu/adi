@@ -10,4 +10,3 @@ function wrapper(token: ProviderToken): WrapperDef {
 }
 
 export const Token = createWrapper<ProviderToken, true>(wrapper);
-// export const Token = createWrapper(wrapper);
