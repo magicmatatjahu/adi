@@ -119,16 +119,6 @@ export const InjectorMetadata = new class {
     const records: Map<Token, ProviderRecord> = (host as any).records;
     let record = records.get(token);
     if (record === undefined) {
-      // let useWrapper = undefined;
-      // if (customProvider && hasWrapperProvider(customProvider)) {
-      //   useWrapper = customProvider.useWrapper;
-      // } else {
-      //   // change this statement to something more optimize 
-      //   const def = getProviderDef(token);
-      //   if (def && def.options && hasWrapperProvider(def.options)) {
-      //     useWrapper = def.options.useWrapper;
-      //   }
-      // }
       record = new ProviderRecord(token, host);
       records.set(token, record);
     }
@@ -189,10 +179,6 @@ export const InjectorMetadata = new class {
     if (instance === undefined) {
       instance = this.createComponentInstanceRecord(ctx, undefined, comp);
       comp.values.set(ctx, instance);
-      // if (scope.toCache(options, def, session) === true) {
-      //   ctxRecord.status |= InjectionStatus.CACHED;
-      //   def.values.set(ctx, ctxRecord);
-      // }
     }
 
     // TODO: FIX TYPES!!!

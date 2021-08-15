@@ -1,8 +1,8 @@
 import { InjectionTokenOptions, ProviderDef } from "../interfaces";
 
-export class InjectionToken<T = any> {
+export class InjectionToken<T> {
   constructor(
-    options?: InjectionTokenOptions,
+    options?: InjectionTokenOptions<unknown>,
     // for debug purpose
     private readonly name?: string,
   ) {
