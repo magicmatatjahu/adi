@@ -1,8 +1,9 @@
 import { NilInjector } from "../injector";
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
+import { createWrapper as cr } from "../utils/wrappers.new";
 
-function wrapper(_: never): WrapperDef {
+function wrapper(): WrapperDef {
   return (injector, session, next) => {
     const token = session.getToken();
     let parentInjector = injector.getParentInjector();
@@ -24,4 +25,5 @@ function wrapper(_: never): WrapperDef {
   }
 }
 
+export const NewSkipSelf = cr<undefined, false>(wrapper);
 export const SkipSelf = createWrapper(wrapper);

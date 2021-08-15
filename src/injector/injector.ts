@@ -98,6 +98,7 @@ export class Injector {
   }
 
   __get<T>(options: InjectionOptions, meta?: InjectionMetadata, parentSession?: Session): T | undefined {
+    options = InjectorMetadata.copyOptions(options);
     const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
 
     const wrapper = options.wrapper;

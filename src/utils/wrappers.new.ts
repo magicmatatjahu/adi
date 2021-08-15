@@ -14,7 +14,7 @@ type WrapperFnType<T, R extends boolean> =
     ? (wrapper?: Wrapper) => Wrapper
     : R extends true 
       ? (options: T, wrapper?: Wrapper) => Wrapper
-      : ((options?: T, wrapper?: Wrapper) => Wrapper) | ((wrapper?: Wrapper) => Wrapper)
+      : ((options?: T | Wrapper, wrapper?: Wrapper) => Wrapper)
 
 export function createWrapper<T, R extends boolean>(useWrapper: (options?: T) => WrapperDef): WrapperFnType<T, R> {
   return function(options?: T | Wrapper, wrapper?: Wrapper): Wrapper {

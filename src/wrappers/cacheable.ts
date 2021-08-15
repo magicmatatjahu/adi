@@ -116,7 +116,7 @@ enum CacheFlags {
 
 // export const NewCacheable = lol(() => algorithm);
 
-export const Cacheable = createWrapper((_: never): WrapperDef => {
+function wrapper(): WrapperDef {
   let flags: CacheFlags = CacheFlags.FIRST_RUN;
   let cachedValue: any | Map<Injector, any>;
   let cachedInjector: Injector; 
@@ -173,4 +173,6 @@ export const Cacheable = createWrapper((_: never): WrapperDef => {
       }
     }
   }
-});
+}
+
+export const Cacheable = createWrapper(wrapper);

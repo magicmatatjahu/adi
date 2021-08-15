@@ -45,11 +45,12 @@ export const InjectorResolver = new class {
     provider: Type<T>, 
     def: ProviderDef, 
   ): FactoryDef<T> {
-    const deps = def.args.ctor,
-      props = def.args.props,
-      methods = def.args.methods;
+    const args = def.args;
+    const deps = args.ctor,
+      props = args.props,
+      methods = args.methods;
     
-    return (injector: Injector, session?: Session) => {
+    return (injector: Injector, session: Session) => {
       const instance = new provider(...this.injectDeps(deps, injector, session));
       this.injectProperties(instance, props, injector, session);
       this.injectMethods(instance, methods, injector, session);

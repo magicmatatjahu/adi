@@ -1,5 +1,6 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
+import { createWrapper as cr } from "../utils/wrappers.new";
 
 function wrapper(): WrapperDef {
   return (injector, session) => {
@@ -12,4 +13,5 @@ function wrapper(): WrapperDef {
   }
 }
 
+export const NewInquirer = cr<undefined, false>(wrapper);
 export const Inquirer = createWrapper(wrapper);

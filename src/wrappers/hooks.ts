@@ -1,9 +1,10 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "../utils";
 import { InjectionStatus } from "../enums";
+import { createWrapper as cr } from "../utils/wrappers.new";
 
 // Make it more easier to understand
-export const OnInitHook = createWrapper((_: never): WrapperDef => {
+function onInit(): WrapperDef {
   return (injector, session, next) => {
     const value = next(injector, session);
 
@@ -37,9 +38,9 @@ export const OnInitHook = createWrapper((_: never): WrapperDef => {
     }
     return value;
   }
-});
+}
 
-export const OnDestroyHook = createWrapper((_: never): WrapperDef => {
+function onDestroy(): WrapperDef {
   return (injector, session, next) => {
     const value = next(injector, session);
     if (hasOnDestroyHook(value)) {
@@ -47,7 +48,12 @@ export const OnDestroyHook = createWrapper((_: never): WrapperDef => {
     }
     return value;
   }
-});
+}
+
+export const OnInitHook = createWrapper(onInit);
+export const NewOnInitHook = cr<undefined, false>(onInit);
+export const OnDestroyHook = createWrapper(onDestroy);
+export const NewOnDestroyHook = cr<undefined, false>(onDestroy);
 
 export function useDefaultHooks(wrapper?: WrapperDef): WrapperDef {
   return OnInitHook(wrapper);

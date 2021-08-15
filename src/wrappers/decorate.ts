@@ -3,11 +3,12 @@ import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { NULL_REF } from "../constants";
 import { createWrapper } from "../utils";
+import { createWrapper as cr } from "../utils/wrappers.new";
 
 /**
  * DELEGATE
  */
-function delegateWrapper(_: never): WrapperDef {
+function delegateWrapper(): WrapperDef {
   return (injector, session, next) => {
     const delegate = session.retrieveDeepMeta('$$delegate');
     // delegate isn't set
@@ -18,6 +19,7 @@ function delegateWrapper(_: never): WrapperDef {
   }
 }
 
+export const NewDelegate = cr<undefined, false>(delegateWrapper);
 export const Delegate = createWrapper(delegateWrapper);
 
 /**
@@ -58,6 +60,7 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
   }
 }
 
+export const NewDecorate = cr<Type | DecorateOptions, true>(decorateWrapper);
 export const Decorate = createWrapper(decorateWrapper);
 
 // import { Skip } from './skip';

@@ -31,8 +31,6 @@ describe('New wrappers', function() {
       }
     });
 
-    console.log(NewCtx)
-
     @Injectable()
     class Service {}
 

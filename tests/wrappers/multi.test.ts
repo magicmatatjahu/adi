@@ -104,7 +104,7 @@ describe('Multi wrapper', function () {
     expect(service.multi).toEqual(['multi1', 'multi3']);
   });
 
-  test('should inject multi providers from given token with constraints - injection based useWrapper', function () {
+  test.only('should inject multi providers from given token with constraints - injection based useWrapper', function () {
     @Injectable()
     class Service {
       constructor(

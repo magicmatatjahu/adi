@@ -1,7 +1,8 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
+import { createWrapper as cr } from "../utils/wrappers.new";
 
-function wrapper(_: never): WrapperDef {
+function wrapper(): WrapperDef {
   return (injector, session, next) => {
     const value = next(injector, session);
     session.setSideEffect(true);
@@ -9,4 +10,5 @@ function wrapper(_: never): WrapperDef {
   }
 }
 
+export const NewSideEffects = cr<undefined, false>(wrapper);
 export const SideEffects = createWrapper(wrapper);

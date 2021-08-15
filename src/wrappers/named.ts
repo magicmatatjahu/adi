@@ -1,6 +1,7 @@
 import { WrapperDef } from "../interfaces";
 import { CONSTRAINTS } from "../constants"
 import { createWrapper } from "../utils";
+import { createWrapper as cr } from "../utils/wrappers.new";
 
 // TODO: Add possibility to pass not only string but also references | symbols
 function wrapper(name: string): WrapperDef {
@@ -12,4 +13,5 @@ function wrapper(name: string): WrapperDef {
   }
 }
 
+export const NewNamed = cr<undefined, false>(wrapper);
 export const Named = createWrapper(wrapper);
