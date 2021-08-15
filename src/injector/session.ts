@@ -20,6 +20,7 @@ export class Session<T = any> {
     public readonly parent: Session,
   ) {
     // TODO: Fix options
+    this.options = this.options || {} as any;
     this.options.scope = this.options.scope || {} as ScopeShape;
   }
 

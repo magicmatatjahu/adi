@@ -5,6 +5,7 @@ import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, Cons
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { useDefaultHooks } from "../wrappers";
+import { Wrapper } from "../utils/wrappers.new";
 
 export class ProviderRecord<T = any> {
   readonly defs: Array<DefinitionRecord> = [];
@@ -37,7 +38,7 @@ export class ProviderRecord<T = any> {
       //   def.values.set(ctx, ctxRecord);
       // }
     }
-    // TODO: Should it be here?
+    // remove it when new wrappers will be added
     session.setInstance(instance);
     return instance;
   }
@@ -112,6 +113,19 @@ export class ProviderRecord<T = any> {
       const wrapper = wrappers[i];
       if (wrapper.constraint(session) === true) {
         satisfyingWraps.push(wrapper);
+      }
+    }
+    return satisfyingWraps;
+  }
+
+  filterNewWrappers(
+    session?: Session
+  ): Array<Wrapper> {
+    const wrappers = this.wrappers, satisfyingWraps = [];
+    for (let i = 0, l = wrappers.length; i < l; i++) {
+      const wrapper = wrappers[i];
+      if (wrapper.constraint(session) === true) {
+        satisfyingWraps.push(wrapper.wrapper);
       }
     }
     return satisfyingWraps;

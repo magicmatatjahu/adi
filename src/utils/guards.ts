@@ -1,3 +1,4 @@
+import { NULL_REF } from "../constants";
 import { 
   ClassProvider,
   ExistingProvider,
@@ -9,6 +10,7 @@ import {
   OnDestroy,
   WrapperDef,
 } from "../interfaces";
+import { Wrapper } from "./wrappers.new";
 
 export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
   return typeof (provider as FactoryProvider).useFactory === "function";
@@ -27,7 +29,15 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 }
 
 export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
-  return typeof (provider as WrapperProvider).useWrapper === "function";
+  return (
+    typeof (provider as WrapperProvider).useWrapper === "function"
+    // newHasWrapperProvider(provider)
+  );
+}
+
+export function newHasWrapperProvider(provider: unknown): provider is WrapperProvider {
+  const wrapper = (provider as WrapperProvider).useWrapper;
+  return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
 }
 
 export function isWrapper<T>(wrapper: unknown): wrapper is WrapperDef<T> {

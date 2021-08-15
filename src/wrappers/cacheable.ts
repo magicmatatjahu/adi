@@ -1,5 +1,5 @@
-import { Injector, Session } from "../injector";
-import { InjectionMetadata, NextWrapper, WrapperDef } from "../interfaces";
+import { Injector } from "../injector";
+import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
 enum CacheFlags {
@@ -95,27 +95,26 @@ enum CacheFlags {
 // const cache: Map<Injector, Map<InjectionMetadata, any>> = new Map();
 
 // function algorithm(injector: Injector, session: Session, next: NextWrapper) {
-//   return next(injector, session);
-//   // let cachePerInjector = cache.get(injector);
-//   // if (cachePerInjector === undefined) {
-//   //   cachePerInjector = new Map<InjectionMetadata, any>();
-//   //   cache.set(injector, cachePerInjector);
-//   // }
+//   let cachePerInjector = cache.get(injector);
+//   if (cachePerInjector === undefined) {
+//     cachePerInjector = new Map<InjectionMetadata, any>();
+//     cache.set(injector, cachePerInjector);
+//   }
 
-//   // const metadata = session.getMetadata();
-//   // if (cachePerInjector.has(metadata)) {
-//   //   return cachePerInjector.get(metadata);
-//   // }
+//   const metadata = session.getMetadata();
+//   if (cachePerInjector.has(metadata)) {
+//     return cachePerInjector.get(metadata);
+//   }
 
-//   // const value = next(injector, session);
-//   // if (session.hasSideEffect() === false) {
-//   //   const metadata = session.getMetadata();
-//   //   metadata && cachePerInjector.set(metadata, value);
-//   // }
-//   // return value;
+//   const value = next(injector, session);
+//   if (session.hasSideEffect() === false) {
+//     const metadata = session.getMetadata();
+//     metadata && cachePerInjector.set(metadata, value);
+//   }
+//   return value;
 // }
 
-// export const Cacheable = createWrapper(() => algorithm);
+// export const NewCacheable = lol(() => algorithm);
 
 export const Cacheable = createWrapper((_: never): WrapperDef => {
   let flags: CacheFlags = CacheFlags.FIRST_RUN;

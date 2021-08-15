@@ -6,7 +6,6 @@ import {
   ForwardRef,
 } from "../interfaces"
 import { resolveRef } from "../utils";
-import { EMPTY_ARRAY } from '../constants';
 
 export class Module<T = any> {
   private readonly _id: string;

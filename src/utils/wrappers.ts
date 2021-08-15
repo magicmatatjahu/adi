@@ -1,7 +1,5 @@
 import { Injector, Session } from "../injector";
-import { InjectionSession, NextWrapper, WrapperDef, WrapperOptions } from "../interfaces";
-import { Token } from "../types";
-import { promiseLikify } from "./promise-likify";
+import { NextWrapper, WrapperDef, WrapperOptions } from "../interfaces";
 
 // TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class
 export function createWrapper<T = any>(

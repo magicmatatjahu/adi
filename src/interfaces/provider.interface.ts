@@ -1,6 +1,7 @@
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { ConstraintDef, WrapperDef, Type } from ".";
+import { Wrapper } from "../utils/wrappers.new";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -26,7 +27,7 @@ export interface ClassProvider<T = any> {
   provide: Token<T>;
   useClass: Type<T>;
   scope?: Scope;
-  useWrapper?: WrapperDef;
+  useWrapper?: WrapperDef | Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
@@ -36,15 +37,16 @@ export interface FactoryProvider<T = any> {
   useFactory: (...args: any[]) => T | Promise<T>;
   inject?: Array<Token | WrapperDef>;
   scope?: Scope;
-  useWrapper?: WrapperDef;
+  useWrapper?: WrapperDef | Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
 
+// TODO: Check how `useWrapper` works for ExistingProvider if ADI replaces record to the record of aliases provider
 export interface ExistingProvider<T = any> {
   provide: Token<T>;
   useExisting: Token;
-  useWrapper?: WrapperDef;
+  useWrapper?: WrapperDef | Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
@@ -52,14 +54,14 @@ export interface ExistingProvider<T = any> {
 export interface ValueProvider<T = any> {
   provide: Token<T>;
   useValue: T;
-  useWrapper?: WrapperDef;
+  useWrapper?: WrapperDef | Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
 
 export interface WrapperProvider<T = any> {
   provide: Token<T>;
-  useWrapper: WrapperDef;
+  useWrapper: WrapperDef | Wrapper;
   when?: ConstraintDef;
   // TODO: useWrapper should have also annotations? Think about it
   annotations?: Record<string | symbol, any>;

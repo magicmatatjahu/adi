@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, newHasWrapperProvider } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
