@@ -58,7 +58,7 @@ describe('Transient scope', function () {
     expect(service.service1.context === service.service2.context).toEqual(false);
   });
 
-  test('should always inject passed custom Context', function () {
+  test('should by default inject passed custom Context (should behaves like Default scope)', function () {
     const ctx = new Context();
 
     @Injectable({
@@ -89,6 +89,44 @@ describe('Transient scope', function () {
     expect(service.newService === service.ctxService).toEqual(false);
     expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
     expect(service.ctxService.context === ctx).toEqual(true);
+  });
+
+  test('should not use the passed custom Context if reuseContext option is set to false', function () {
+    const ctx = new Context();
+
+    @Injectable({
+      scope: {
+        which: Scope.TRANSIENT,
+        options: {
+          reuseContext: false,
+        }
+      }
+    })
+    class TestService {
+      constructor(
+        public readonly context: Context,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly newService: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.newService).toBeInstanceOf(TestService);
+    expect(service.ctxService).toBeInstanceOf(TestService);
+    expect(service.newService === service.ctxService).toEqual(false);
+    expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.ctxService.context === ctx).toEqual(false);
   });
 
   test('should be able to be replaced by another scope', function () {

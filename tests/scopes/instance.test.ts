@@ -58,7 +58,7 @@ describe('Instance scope', function () {
     expect(service.service1.context === service.service2.context).toEqual(true);
   });
 
-  test('should always inject passed custom Context (should behaves like Default scope)', function () {
+  test('should by default inject passed custom Context (should behaves like Default scope)', function () {
     const ctx = new Context();
 
     @Injectable({
@@ -93,6 +93,50 @@ describe('Instance scope', function () {
     expect(service.newService1.context === STATIC_CONTEXT).toEqual(false);
     expect(service.newService2.context === STATIC_CONTEXT).toEqual(false);
     expect(service.ctxService.context === ctx).toEqual(true);
+  });
+
+  test('should not use the passed custom Context if reuseContext option is set to false', function () {
+    const ctx = new Context();
+
+    @Injectable({
+      scope: {
+        which: Scope.INSTANCE,
+        options: {
+          reuseContext: false,
+        }
+      }
+    })
+    class TestService {
+      constructor(
+        public readonly context: Context,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly newService1: TestService,
+        readonly newService2: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.newService1).toBeInstanceOf(TestService);
+    expect(service.newService2).toBeInstanceOf(TestService);
+    expect(service.ctxService).toBeInstanceOf(TestService);
+    expect(service.newService1 === service.newService2).toEqual(true);
+    expect(service.newService1 === service.ctxService).toEqual(true);
+    expect(service.newService1.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService2.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.ctxService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService1.context === service.ctxService.context).toEqual(true);
+    expect(service.ctxService.context === ctx).toEqual(false);
   });
 
   test('should be able to be replaced by another scope', function () {

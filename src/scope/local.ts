@@ -15,15 +15,10 @@ export interface LocalScopeOptions {
 
 const defaultOptions: LocalScopeOptions = {
   toToken: undefined,
-  // remove it
-  toScope: 'test',
-  depth: 'farthest',
+  toScope: undefined,
+  depth: 'nearest',
   reuseContext: true,
 }
-
-/**
- * Add fallback to the checked first `$$local.scope` if isn't defined as option
- */
 
 export class LocalScope extends Scope<LocalScopeOptions> {
   private instances = new Map<InstanceRecord, Context>();
@@ -69,7 +64,6 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return ctx;
   }
 
-  // TODO: implement and test it
   private retrieveInstanceByDepth(session: Session, goal: number, toToken: Token, toScope: string | symbol, depth: number = 0, instance?: InstanceRecord | undefined): InstanceRecord | undefined {
     // if depth goal is achieved or parent session doesn't exist
     if (depth === goal || session === undefined) {
@@ -86,8 +80,13 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
   private retrieveInstance(session: Session, toToken?: Token, toScope?: string | symbol): InstanceRecord | undefined {
     const isRecordToken = session.record.token === toToken;
-    const isAnnotation = (session.definition.annotations['$$local.scope'] || EMPTY_ARRAY).includes(toScope);
+    const annotation = session.definition.annotations['$$local.scope'];
+    const isAnnotation = (annotation || EMPTY_ARRAY).includes(toScope);
 
+    // if annotations exists but scope hasn't any options
+    if (toScope === undefined && toToken === undefined && annotation !== undefined) {
+      return session.instance;
+    }
     if (isRecordToken === false && isAnnotation === false) {
       return undefined;
     }
