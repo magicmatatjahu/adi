@@ -12,7 +12,7 @@ describe('Decorate wrapper', function () {
     const functionDecorator = {
       decorator(decoratee: TestService) { return decoratee.method() + 'bar' },
       inject: [Delegate()],
-    }
+    } as any
 
     @Injectable()
     class Service {
@@ -41,7 +41,7 @@ describe('Decorate wrapper', function () {
     const functionDecorator = {
       decorator(bar: string, decoratee: TestService) { return bar + decoratee.method() },
       inject: ['bar', Delegate()],
-    }
+    } as any;
 
     @Injectable()
     class Service {
@@ -81,12 +81,12 @@ describe('Decorate wrapper', function () {
     const decorator1 = {
       decorator(service: AwesomeService, decoratee: TestService) { return decoratee.method() + 'bar' + service.addAwesome() },
       inject: [AwesomeService, Delegate()],
-    }
+    } as any;
 
     const decorator2 = {
       decorator(value: string, exclamation: string) { return `(${value + exclamation})` },
       inject: [Delegate(), 'exclamation'],
-    }
+    } as any;
 
     @Injectable()
     class Service {
@@ -132,7 +132,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Decorate(DecoratorService)) readonly service: TestService,
+        @Inject(Decorate(DecoratorService as any)) readonly service: TestService,
       ) {}
     }
 
@@ -176,7 +176,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Decorate(DecoratorService)) readonly service: TestService,
+        @Inject(Decorate(DecoratorService as any)) readonly service: TestService,
       ) {}
     }
 
@@ -237,7 +237,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Decorate(DecoratorService2, Decorate(DecoratorService1))) readonly service: TestService,
+        @Inject(Decorate(DecoratorService2 as any, Decorate(DecoratorService1 as any))) readonly service: TestService,
       ) {}
     }
 
@@ -282,7 +282,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: Decorate(functionDecorator),
+        useWrapper: Decorate(functionDecorator as any),
       }
     ]);
 
@@ -324,7 +324,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: Decorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService as any),
       },
       {
         provide: 'exclamation',
@@ -381,7 +381,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: Decorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService as any),
       },
       {
         provide: 'exclamation',
@@ -427,7 +427,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: Decorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService as any),
       },
       {
         provide: 'exclamation',
@@ -507,7 +507,7 @@ describe('Decorate wrapper', function () {
       },
       {
         provide: Service,
-        useWrapper: Fallback('test', Decorate(DecoratorService)),
+        useWrapper: Fallback('test', Decorate(DecoratorService as any)),
       },
     ]);
 

@@ -1,70 +1,81 @@
+import { NULL_REF } from "../constants";
+import { NextWrapper, WrapperDef, InjectionMetadata } from "../interfaces";
 import { Injector, Session } from "../injector";
-import { NextWrapper, WrapperDef, WrapperOptions } from "../interfaces";
 
-// TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class
-export function createWrapper<T = any>(
-  useWrapper: (options?: T) => WrapperDef,
-  wrapperOptions?: WrapperOptions,
-): (options?: T | WrapperDef, next?: WrapperDef) => WrapperDef {
-  const wr = (optionsOrWrapper?: T | WrapperDef, next?: WrapperDef): WrapperDef => {
-    // case when defined wrapper
-    if (optionsOrWrapper && optionsOrWrapper.hasOwnProperty('$$nextWrapper')) {
-      const v = useWrapper();
-      v['$$wrapperDef'] = useWrapper;
-      v['$$nextWrapper'] = optionsOrWrapper;
-      v['$$options'] = undefined;
-      return v;
+export interface Wrapper {
+  prev?: Wrapper;
+  func: WrapperDef;
+  next?: Wrapper;
+  $$wr: object;
+}
+
+type WrapperFnType<T, R extends boolean> = any
+  // T extends undefined
+  //   ? (wrapper?: Wrapper) => Wrapper
+  //   : R extends true 
+  //     ? (options: T, wrapper?: Wrapper) => Wrapper
+  //     : ((options?: T | Wrapper, wrapper?: Wrapper) => Wrapper)
+
+export function createWrapper<T, R extends boolean>(useWrapper: (options?: T) => WrapperDef): WrapperFnType<T, R> {
+  return function(options?: T | Wrapper, wrapper?: Wrapper): Wrapper {
+    if (options && (options as Wrapper).$$wr === NULL_REF) {
+      const w: Wrapper = {
+        prev: undefined,
+        func: useWrapper(undefined),
+        next: options as Wrapper,
+        $$wr: NULL_REF,
+      };
+      (options as Wrapper).prev = w;
+      return w;
     }
-    const v = (useWrapper as any)(optionsOrWrapper) as WrapperDef;
-    v['$$wrapperDef'] = useWrapper;
-    v['$$nextWrapper'] = next;
-    v['$$options'] = optionsOrWrapper;
-    return v;
+    const w: Wrapper = {
+      prev: undefined,
+      func: useWrapper(options as T),
+      next: wrapper,
+      $$wr: NULL_REF,
+    };
+    wrapper && ((wrapper as Wrapper).prev = w);
+    return w;
+  } as WrapperFnType<T, R>
+}
+
+// TODO: optimize it by adding to the Wrapper $$next - optimized nextWrapper function
+export function runWrappers<T>(wrapper: Wrapper, injector: Injector, session: Session, lastWrapper: NextWrapper): T {
+  const next: NextWrapper = wrapper.next ? (inj: Injector, s: Session) => runWrappers(wrapper.next, inj, s, lastWrapper) : lastWrapper;
+  return wrapper.func(injector, session, next);
+}
+
+// TODO: optimize it by adding to the Wrapper $$next - optimized nextWrapper function
+export function runArrayOfWrappers<T>(wrappers: Wrapper[], injector: Injector, session: Session, lastWrapper: NextWrapper): T {
+  const length = wrappers.length;
+  const nextWrappers = (i = 0) => (inj1: Injector, s1: Session) => {
+    i++;
+    const next: NextWrapper = i === length ? lastWrapper : (inj2: Injector, s2: Session) => nextWrappers(i)(inj2, s2);
+    return runWrappers(wrappers[i-1], inj1, s1, next);
   }
-  return wr;
+  return nextWrappers()(injector, session) as T;
 }
 
-// change the lastWrapper `next` function to custom function passed by function argument
-// export function execWrapper<T>(nextWrapper: WrapperDef, lastWrapper: NextWrapper): (...args: any[]) => PromiseLike<T> {
-//   return promiseLikify((injector: Injector, s: InjectionSession) => {
-//     const $$nextWrapper = nextWrapper['$$nextWrapper'];
-//     if ($$nextWrapper !== undefined) {
-//       const next: NextWrapper = execWrapper($$nextWrapper, lastWrapper);
-//       return nextWrapper(injector, s, next);
-//     }
-//     // fix passing options
-//     // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
-//     return nextWrapper(injector, s, lastWrapper);
-//   });
-// }
+const cache: Map<Injector, Map<InjectionMetadata, any>> = new Map();
 
-// change the lastWrapper `next` function to custom function passed by function argument
-export function execWrapper(nextWrapper: WrapperDef, lastWrapper: NextWrapper) {
-  return (injector: Injector, session: Session) => {
-    const $$nextWrapper = nextWrapper['$$nextWrapper'];
-    if ($$nextWrapper !== undefined) {
-      const next: NextWrapper = execWrapper($$nextWrapper, lastWrapper);
-      return nextWrapper(injector, session, next);
-    }
-    // fix passing options
-    // const next: NextWrapper = (i: Injector, s: InjectionSession) => (i as any).retrieveRecord(s.options.token || token, s.options, s);
-    return nextWrapper(injector, session, lastWrapper);
+function algorithm(injector: Injector, session: Session, next: NextWrapper) {
+  let cachePerInjector = cache.get(injector);
+  if (cachePerInjector === undefined) {
+    cachePerInjector = new Map<InjectionMetadata, any>();
+    cache.set(injector, cachePerInjector);
   }
-}
 
-// copy wrapper chain in an inheritance case
-export function copyWrapper<T = any>(wrapper: ReturnType<typeof createWrapper>) {
-
-}
-
-export function extendWrapper(wrapper: WrapperDef | undefined, nextWrapper: WrapperDef): WrapperDef {
-  if (wrapper) {
-    let next = wrapper;
-    while (next['$$nextWrapper'] !== undefined) {
-      next = next['$$nextWrapper'];
-    }
-    next['$$nextWrapper'] = nextWrapper;
-    return wrapper;
+  const metadata = session.getMetadata();
+  if (cachePerInjector.has(metadata)) {
+    return cachePerInjector.get(metadata);
   }
-  return nextWrapper;
+
+  const value = next(injector, session);
+  if (session.hasSideEffect() === false) {
+    const metadata = session.getMetadata();
+    metadata && cachePerInjector.set(metadata, value);
+  }
+  return value;
 }
+
+export const NewCacheable = createWrapper(() => algorithm);

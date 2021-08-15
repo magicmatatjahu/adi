@@ -2,7 +2,6 @@ import { Context } from "../injector";
 import { WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 function wrapper(ctxData?: any): WrapperDef {
   return (injector, session, next) => {
@@ -14,5 +13,5 @@ function wrapper(ctxData?: any): WrapperDef {
   }
 }
 
-export const NewNew = cr<any, false>(wrapper);
-export const New = createWrapper(wrapper);
+export const New = createWrapper<any, false>(wrapper);
+// export const New = createWrapper(wrapper);

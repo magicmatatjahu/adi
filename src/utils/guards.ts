@@ -10,7 +10,7 @@ import {
   OnDestroy,
   WrapperDef,
 } from "../interfaces";
-import { Wrapper } from "./wrappers.new";
+import { Wrapper } from "./wrappers";
 
 export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
   return typeof (provider as FactoryProvider).useFactory === "function";
@@ -29,10 +29,12 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 }
 
 export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
-  return (
-    typeof (provider as WrapperProvider).useWrapper === "function"
-    // newHasWrapperProvider(provider)
-  );
+  const wrapper = (provider as WrapperProvider).useWrapper;
+  return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
+  // return (
+  //   typeof (provider as WrapperProvider).useWrapper === "function"
+  //   // newHasWrapperProvider(provider)
+  // );
 }
 
 export function newHasWrapperProvider(provider: unknown): provider is WrapperProvider {
@@ -42,6 +44,10 @@ export function newHasWrapperProvider(provider: unknown): provider is WrapperPro
 
 export function isWrapper<T>(wrapper: unknown): wrapper is WrapperDef<T> {
   return wrapper && wrapper.hasOwnProperty('$$nextWrapper');
+}
+
+export function isNewWrapper(wrapper: unknown): wrapper is Wrapper {
+  return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
 }
 
 export function hasOnInitHook(instance: unknown): instance is OnInit {

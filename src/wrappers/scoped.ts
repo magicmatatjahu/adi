@@ -1,7 +1,6 @@
 import { ScopeShape, ScopeType, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 function wrapper(scope: Scope): WrapperDef {
   return (injector, session, next) => {
@@ -22,5 +21,5 @@ function newWrapper(scope: ScopeType): WrapperDef {
   }
 }
 
-export const NewScoped = cr<ScopeType, true>(newWrapper);
-export const Scoped = createWrapper(wrapper);
+export const Scoped = createWrapper<ScopeType, true>(newWrapper);
+// export const Scoped = createWrapper(wrapper);

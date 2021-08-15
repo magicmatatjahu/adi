@@ -1,11 +1,11 @@
 import { Context, Session, Injector } from ".";
 import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
-  Provider, TypeProvider, DefinitionRecord,
+  Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, WrapperDef, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
+  InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, newHasWrapperProvider } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isNewWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
@@ -15,6 +15,7 @@ import { Cacheable } from "../wrappers/cacheable";
 import { NilInjector } from "./injector";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
+import { Wrapper } from "../utils/wrappers";
 
 export const InjectorMetadata = new class {
   /**
@@ -150,7 +151,7 @@ export const InjectorMetadata = new class {
   toComponentRecord<T>(
     comp: Type<T>,
     host: Injector,
-    useWrapper?: WrapperDef,
+    useWrapper?: Wrapper,
   ): ComponentRecord<T> {
     const def = this.getProviderDef(comp);
     useWrapper = useDefaultHooks(useWrapper);
@@ -228,11 +229,11 @@ export const InjectorMetadata = new class {
     return providerDef.factory;
   }
 
-  convertDependencies(deps: Array<Token | WrapperDef>, factory: Function): InjectionArgument[] {
+  convertDependencies(deps: Array<Token | Wrapper>, factory: Function): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
-      if (isWrapper(dep)) {
+      if (isNewWrapper(dep)) {
         converted.push(createInjectionArg(undefined, Cacheable(dep), factory, undefined, i));
       } else {
         converted.push(createInjectionArg(dep, undefined, factory, undefined, i));

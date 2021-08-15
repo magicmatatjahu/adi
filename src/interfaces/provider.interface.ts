@@ -1,7 +1,7 @@
 import { Scope } from "../scope";
 import { Token } from "../types";
-import { ConstraintDef, WrapperDef, Type } from ".";
-import { Wrapper } from "../utils/wrappers.new";
+import { ConstraintDef, Type } from ".";
+import { Wrapper } from "../utils/wrappers";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -27,7 +27,7 @@ export interface ClassProvider<T = any> {
   provide: Token<T>;
   useClass: Type<T>;
   scope?: Scope;
-  useWrapper?: WrapperDef | Wrapper;
+  useWrapper?: Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
@@ -35,9 +35,9 @@ export interface ClassProvider<T = any> {
 export interface FactoryProvider<T = any> {
   provide: Token<T>;
   useFactory: (...args: any[]) => T | Promise<T>;
-  inject?: Array<Token | WrapperDef>;
+  inject?: Array<Token | Wrapper>;
   scope?: Scope;
-  useWrapper?: WrapperDef | Wrapper;
+  useWrapper?: Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
@@ -46,7 +46,7 @@ export interface FactoryProvider<T = any> {
 export interface ExistingProvider<T = any> {
   provide: Token<T>;
   useExisting: Token;
-  useWrapper?: WrapperDef | Wrapper;
+  useWrapper?: Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
@@ -54,14 +54,14 @@ export interface ExistingProvider<T = any> {
 export interface ValueProvider<T = any> {
   provide: Token<T>;
   useValue: T;
-  useWrapper?: WrapperDef | Wrapper;
+  useWrapper?: Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
 }
 
 export interface WrapperProvider<T = any> {
   provide: Token<T>;
-  useWrapper: WrapperDef | Wrapper;
+  useWrapper: Wrapper;
   when?: ConstraintDef;
   // TODO: useWrapper should have also annotations? Think about it
   annotations?: Record<string | symbol, any>;

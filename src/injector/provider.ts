@@ -5,7 +5,7 @@ import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, Cons
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { useDefaultHooks } from "../wrappers";
-import { Wrapper } from "../utils/wrappers.new";
+import { Wrapper } from "../utils/wrappers";
 
 export class ProviderRecord<T = any> {
   readonly defs: Array<DefinitionRecord> = [];
@@ -47,7 +47,7 @@ export class ProviderRecord<T = any> {
     factory?: FactoryDef,
     scope?: ScopeShape<S>,
     constraint?: ConstraintDef,
-    wrapper?: WrapperDef,
+    wrapper?: Wrapper,
     annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): void {
@@ -80,7 +80,7 @@ export class ProviderRecord<T = any> {
   }
 
   addWrapper(
-    wrapper: WrapperDef,
+    wrapper: Wrapper,
     constraint: ConstraintDef,
   ): void {
     this.wrappers.push({
@@ -106,19 +106,6 @@ export class ProviderRecord<T = any> {
   }
 
   filterWrappers(
-    session?: Session
-  ): Array<WrapperRecord> {
-    const wrappers = this.wrappers, satisfyingWraps = [];
-    for (let i = 0, l = wrappers.length; i < l; i++) {
-      const wrapper = wrappers[i];
-      if (wrapper.constraint(session) === true) {
-        satisfyingWraps.push(wrapper);
-      }
-    }
-    return satisfyingWraps;
-  }
-
-  filterNewWrappers(
     session?: Session
   ): Array<Wrapper> {
     const wrappers = this.wrappers, satisfyingWraps = [];

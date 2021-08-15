@@ -1,13 +1,13 @@
 import { applyInjectionArg } from "./injectable"; 
-import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { Reflection, isWrapper } from "../utils";
+import { Reflection, isNewWrapper } from "../utils";
+import { Wrapper } from "../utils/wrappers";
 
-export function Inject<T = any>(token?: Token<T>, useWrapper?: WrapperDef);
-export function Inject<T = any>(useWrapper?: WrapperDef);
-export function Inject<T = any>(token?: Token<T> | WrapperDef, useWrapper?: WrapperDef) {
-  if (isWrapper(token)) {
-    useWrapper = token as WrapperDef;
+export function Inject<T = any>(token?: Token<T>, useWrapper?: Wrapper);
+export function Inject<T = any>(useWrapper?: Wrapper);
+export function Inject<T = any>(token?: Token<T> | Wrapper, useWrapper?: Wrapper) {
+  if (isNewWrapper(token)) {
+    useWrapper = token as Wrapper;
     token = undefined;
   }
 
@@ -34,6 +34,6 @@ export function Inject<T = any>(token?: Token<T> | WrapperDef, useWrapper?: Wrap
         }
       }
     }
-    applyInjectionArg(token, useWrapper, target, key, index);
+    applyInjectionArg(token as Token, useWrapper, target, key, index);
   }
 }

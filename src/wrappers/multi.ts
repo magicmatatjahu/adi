@@ -1,7 +1,6 @@
 import { Session, ProviderRecord, Injector } from "../injector";
 import { NextWrapper, WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 function getDefinitions(
   record: ProviderRecord,
@@ -50,14 +49,12 @@ function standaloneWrapper(injector: Injector, session: Session, next: NextWrapp
     // exec wrappers chain to retrieve needed, updated session
     next(injector, session);
 
-    const options = session.options;
+    const record = session.record;
+    const createdDef = session.definition;
     const createdInstance = session.instance;
-    const createdDef = createdInstance.def;
-    const token = session.getToken() || createdDef.record.token;
-    const record = (injector as any).records.get(token);
     const defs = getDefinitions(record, session);
 
-    console.log(createdInstance.value)
+    // console.log(createdInstance.value)
 
     // TODO: improve function to pass wrappers chain again and copy session
     // add also check for side effects
@@ -68,11 +65,11 @@ function standaloneWrapper(injector: Injector, session: Session, next: NextWrapp
       if (def === createdDef) {
         values.push(createdInstance.value);
       } else {
-        values.push((injector as any).resolveDef(def, options, session));
+        values.push((injector as any).__resolveDefinition(def, record, session));
       }
     }
     return values;
 }
 
-export const NewMulti = cr<undefined, false>(() => standaloneWrapper);
-export const Multi = createWrapper(wrapper);
+export const Multi = createWrapper<undefined, false>(() => standaloneWrapper);
+// export const Multi = createWrapper(wrapper);

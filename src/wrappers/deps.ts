@@ -1,7 +1,6 @@
 import { Injector, InjectorMetadata } from "../injector";
 import { Provider, WrapperDef } from "../interfaces";
-import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
+import { createWrapper } from "../utils/wrappers";
 
 function wrapper(providers: Provider[]): WrapperDef {
   return (injector, session) => {
@@ -17,7 +16,4 @@ function wrapper(providers: Provider[]): WrapperDef {
   }
 }
 
-export const NewDeps = cr<Provider[], true>(wrapper);
-export const Deps = createWrapper(wrapper);
-
-// @Inject(Deps([], Named()))
+export const Deps = createWrapper<Provider[], true>(wrapper);

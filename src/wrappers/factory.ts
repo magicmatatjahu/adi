@@ -1,7 +1,6 @@
 import { WrapperDef } from "../interfaces";
 import { NULL_REF } from "../constants";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 /**
  * Factory
@@ -20,8 +19,8 @@ function factoryWrapper(): WrapperDef {
   }
 }
 
-export const NewFactory = cr<undefined, false>(factoryWrapper);
-export const Factory = createWrapper(factoryWrapper);
+export const Factory = createWrapper<undefined, false>(factoryWrapper);
+// export const Factory = createWrapper(factoryWrapper);
 
 /**
  * Assisted
@@ -38,5 +37,5 @@ function assistedWrapper(index: number): WrapperDef {
   }
 }
 
-export const NewAssisted = cr<number, true>(assistedWrapper);
-export const Assisted = createWrapper(assistedWrapper);
+export const Assisted = createWrapper<number, true>(assistedWrapper);
+// export const Assisted = createWrapper(assistedWrapper);

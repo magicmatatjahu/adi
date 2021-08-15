@@ -2,7 +2,6 @@ import { NilInjectorError } from "../errors";
 import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 function wrapper(token: Token): WrapperDef {
   return (injector, session, next) => {
@@ -20,6 +19,6 @@ function wrapper(token: Token): WrapperDef {
   }
 }
 
-export const NewFallback = cr<Token, true>(wrapper);
-export const Fallback = createWrapper(wrapper);
+export const Fallback = createWrapper<Token, true>(wrapper);
+// export const Fallback = createWrapper(wrapper);
 

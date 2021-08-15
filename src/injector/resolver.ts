@@ -7,7 +7,8 @@ export const InjectorResolver = new class {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(injector.get(arg.token, arg.options, arg.metadata, session));
+      // args.push(injector.get(arg.token, arg.options, arg.metadata, session));
+      args.push(injector.__get(arg.options, arg.metadata, session));
     };
     return args;
   }
@@ -15,12 +16,14 @@ export const InjectorResolver = new class {
   injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session?: Session): void {
     for (const name in props) {
       const prop = props[name];
-      instance[name] = injector.get(prop.token, prop.options, prop.metadata, session);
+      // instance[name] = injector.get(prop.token, prop.options, prop.metadata, session);
+      instance[name] = injector.__get(prop.options, prop.metadata, session);
     }
     // inject symbols
     for (const sb of Object.getOwnPropertySymbols(props)) {
       const prop = props[sb as any as string];
-      instance[sb] = injector.get(prop.token, prop.options, prop.metadata, session);
+      // instance[sb] = injector.get(prop.token, prop.options, prop.metadata, session);
+      instance[sb] = injector.__get(prop.options, prop.metadata, session);
     }
   }
 
@@ -33,7 +36,8 @@ export const InjectorResolver = new class {
         let methodProp = undefined;
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            args[i] = injector.get(methodProp.token, methodProp.options, methodProp.metadata, session);
+            // args[i] = injector.get(methodProp.token, methodProp.options, methodProp.metadata, session);
+            args[i] = injector.__get(methodProp.options, methodProp.metadata, session);
           }
         }
         return originalMethod.apply(instance, args);

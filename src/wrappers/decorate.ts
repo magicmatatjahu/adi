@@ -1,9 +1,8 @@
-import { InjectorMetadata, InjectorResolver, Session } from "../injector";
+import { InjectorMetadata, InjectorResolver } from "../injector";
 import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { NULL_REF } from "../constants";
-import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
+import { createWrapper, Wrapper } from "../utils/wrappers";
 
 /**
  * DELEGATE
@@ -19,15 +18,15 @@ function delegateWrapper(): WrapperDef {
   }
 }
 
-export const NewDelegate = cr<undefined, false>(delegateWrapper);
-export const Delegate = createWrapper(delegateWrapper);
+export const Delegate = createWrapper<undefined, false>(delegateWrapper);
+// export const Delegate = createWrapper(delegateWrapper);
 
 /**
  * DECORATE
  */
 interface DecorateOptions {
   decorator: (...args: any[]) => any;
-  inject?: Array<Token | WrapperDef>;
+  inject?: Array<Token | Wrapper>;
 }
 
 function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
@@ -60,8 +59,8 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
   }
 }
 
-export const NewDecorate = cr<Type | DecorateOptions, true>(decorateWrapper);
-export const Decorate = createWrapper(decorateWrapper);
+export const Decorate = createWrapper<DecorateOptions, true>(decorateWrapper);
+// export const Decorate = createWrapper(decorateWrapper);
 
 // import { Skip } from './skip';
 

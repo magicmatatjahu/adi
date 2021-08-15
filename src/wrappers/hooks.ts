@@ -1,7 +1,7 @@
 import { WrapperDef } from "../interfaces";
-import { createWrapper, hasOnInitHook, hasOnDestroyHook } from "../utils";
+import { hasOnInitHook, hasOnDestroyHook } from "../utils";
 import { InjectionStatus } from "../enums";
-import { createWrapper as cr } from "../utils/wrappers.new";
+import { createWrapper, Wrapper } from "../utils";
 
 // Make it more easier to understand
 function onInit(): WrapperDef {
@@ -50,11 +50,11 @@ function onDestroy(): WrapperDef {
   }
 }
 
-export const OnInitHook = createWrapper(onInit);
-export const NewOnInitHook = cr<undefined, false>(onInit);
-export const OnDestroyHook = createWrapper(onDestroy);
-export const NewOnDestroyHook = cr<undefined, false>(onDestroy);
+// export const OnInitHook = createWrapper(onInit);
+export const OnInitHook = createWrapper<undefined, false>(onInit);
+// export const OnDestroyHook = createWrapper(onDestroy);
+export const OnDestroyHook = createWrapper<undefined, false>(onDestroy);
 
-export function useDefaultHooks(wrapper?: WrapperDef): WrapperDef {
+export function useDefaultHooks(wrapper?: Wrapper): Wrapper {
   return OnInitHook(wrapper);
 }

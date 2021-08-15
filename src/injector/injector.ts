@@ -2,14 +2,14 @@ import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionMetadata,
   WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
-  Provider, ProviderDef, NextWrapper, Type, ForwardRef, WrapperDef,
+  Provider, ProviderDef, NextWrapper, Type, ForwardRef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
-import { resolveRef, execWrapper } from "../utils";
-import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers.new";
+import { resolveRef } from "../utils";
+import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
 
 import { InjectorMetadata } from "./metadata";
 import { ProviderRecord } from "./provider";
@@ -120,24 +120,27 @@ export class Injector {
     }
     
     session.setRecord(record);
-    const providerWrappers = record.filterNewWrappers(session);
+    const providerWrappers = record.filterWrappers(session);
 
     if (providerWrappers.length > 0) {
-      const last = (i: Injector, s: Session) => i.__resolveDefinition(record, s);
+      const last = (i: Injector, s: Session) => i.__getDef(record, s);
       return runArrayOfWrappers(providerWrappers, this, session, last);
     }
 
-    return this.__resolveDefinition(record, session);
+    return this.__getDef(record, session);
   }
 
-  private __resolveDefinition<T>(record: ProviderRecord<T>, session: Session): T | undefined {
+  private __getDef<T>(record: ProviderRecord<T>, session: Session): T | undefined {
     const def = record.getDefinition(session);
     if (def === undefined) {
       // Reuse session in the parent
       return this.parent.__resolveRecord(session);
     }
     session.setDefinition(def);
+    return this.__resolveDefinition(def, record, session);
+  }
 
+  private __resolveDefinition<T>(def: DefinitionRecord<T>, record: ProviderRecord<T>, session: Session): T | undefined {
     let scope = def.scope.which,
       scopeOptions = def.scope.options;
     const options = session.options;
@@ -153,71 +156,72 @@ export class Injector {
   }
 
   get<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, parentSession?: Session): Promise<T | undefined> | T | undefined {
+    return this._get(token, undefined, parentSession);
     // Passing copy of options is for wrapper. Inside them we can change shape of these options.
-    options = InjectorMetadata.copyOptions(options);
-    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
+    // options = InjectorMetadata.copyOptions(options);
+    // const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
 
-    const wrapper = options.wrapper;
-    if (wrapper) {
-      const last = (i: Injector, s: Session) => i.retrieveRecord(s.options.token || token, s.options, meta, s);
-      return execWrapper(wrapper as any, last)(this, newSession);
-    }
+    // const wrapper = options.wrapper;
+    // if (wrapper) {
+    //   const last = (i: Injector, s: Session) => i.retrieveRecord(s.options.token || token, s.options, meta, s);
+    //   return execWrapper(wrapper as any, last)(this, newSession);
+    // }
 
-    return this.retrieveRecord(token, options, meta, newSession);
+    // return this.retrieveRecord(token, options, meta, newSession);
   }
 
-  private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
-    const record = this.getRecord(token);
-    if (record !== undefined) {
-      const providerWrappers = record.filterWrappers(session);
-      session.setRecord(record);
+  // private retrieveRecord<T>(token: Token<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
+  //   const record = this.getRecord(token);
+  //   if (record !== undefined) {
+  //     const providerWrappers = record.filterWrappers(session);
+  //     session.setRecord(record);
 
-      if (providerWrappers !== undefined) {
-        const length = providerWrappers.length;
-        const nextWrapper = (i = 0) => (injector: Injector, s: Session) => {
-          if (i === length) {
-            return this.getDef(token, record, s.options, s.meta, s);
-          }
-          const next: NextWrapper = nextWrapper(i + 1);
-          return providerWrappers[i].wrapper(injector, s, next);
-        }
-        return nextWrapper()(this, session);
-      }
+  //     if (providerWrappers !== undefined) {
+  //       const length = providerWrappers.length;
+  //       const nextWrapper = (i = 0) => (injector: Injector, s: Session) => {
+  //         if (i === length) {
+  //           return this.getDef(token, record, s.options, s.meta, s);
+  //         }
+  //         const next: NextWrapper = nextWrapper(i + 1);
+  //         return providerWrappers[i].wrapper(injector, s, next);
+  //       }
+  //       return nextWrapper()(this, session);
+  //     }
       
-      return this.getDef(token, record, options, meta, session);
-    }
-    // TODO: reuse session
-    return this.getParentInjector().get(token, options, meta, session);
-  }
+  //     return this.getDef(token, record, options, meta, session);
+  //   }
+  //   // TODO: reuse session
+  //   return this.getParentInjector().get(token, options, meta, session);
+  // }
 
-  private getDef<T>(token: Token<T>, record: ProviderRecord<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
-    const def = record.getDefinition(session);
-    if (def === undefined) {
-      // TODO: reuse session
-      return this.getParentInjector().get(token, options, meta, session);
-    }
-    session.setDefinition(def);
-    return this.resolveDef(def, options, session);
-  }
+  // private getDef<T>(token: Token<T>, record: ProviderRecord<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
+  //   const def = record.getDefinition(session);
+  //   if (def === undefined) {
+  //     // TODO: reuse session
+  //     return this.getParentInjector().get(token, options, meta, session);
+  //   }
+  //   session.setDefinition(def);
+  //   return this.resolveDef(def, options, session);
+  // }
 
-  private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: Session): Promise<T | undefined> | T | undefined {
-    // Optimize it
-    let scope = def.scope.which;
-    let scopeOptions = def.scope.options;
-    if (scope.canBeOverrided() === true) {
-      scope = (options.scope && options.scope.which) || scope;
-      scopeOptions = (options.scope && options.scope.options) || scopeOptions;
-    }
-    const instance = def.record.getInstance(def, scope, scopeOptions, session);
-    return this.resolveInstance(def.record, def, instance, session);
-  }
+  // private resolveDef<T>(def: DefinitionRecord<T>, options?: InjectionOptions, session?: Session): Promise<T | undefined> | T | undefined {
+  //   // Optimize it
+  //   let scope = def.scope.which;
+  //   let scopeOptions = def.scope.options;
+  //   if (scope.canBeOverrided() === true) {
+  //     scope = (options.scope && options.scope.which) || scope;
+  //     scopeOptions = (options.scope && options.scope.options) || scopeOptions;
+  //   }
+  //   const instance = def.record.getInstance(def, scope, scopeOptions, session);
+  //   return this.resolveInstance(def.record, def, instance, session);
+  // }
 
   private resolveInstance<T>(
     record: ProviderRecord<T>,
     def: DefinitionRecord<T>,
     instance: InstanceRecord<T>,
     session?: Session,
-  ): Promise<T> | T {
+  ): T {
     if (instance.status & InjectionStatus.RESOLVED) {
       return instance.value;
     }
@@ -229,7 +233,7 @@ export class Injector {
       if (def.wrapper === undefined) {
         value = def.factory(record.host, session) as T;
       } else {
-        value = execWrapper(def.wrapper, def.factory as any)(record.host, session) as any;
+        value = runWrappers(def.wrapper, record.host, session, def.factory) as any;
       }
 
       if (instance.status & InjectionStatus.CIRCULAR) {
@@ -314,8 +318,8 @@ export class Injector {
 
     const wrapper = options && options.wrapper;
     if (wrapper) {
-      const lastNext = (i: Injector, s: Session) => i.resolveComponent(component, s.options, s);
-      return execWrapper(wrapper as any, lastNext)(this, newSession);
+      const last = (i: Injector, s: Session) => i.resolveComponent(component, s.options, s);
+      return runWrappers(wrapper, this, session, last);
     }
 
     return this.resolveComponent(component, options, newSession);
@@ -614,6 +618,7 @@ export const NilInjector = new class {
     throw new NilInjectorError(token);
   }
   retrieveRecord = this.get;
+  __resolveRecord = this.get;
 
   getParentInjector() {
     return null;

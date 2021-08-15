@@ -4,7 +4,7 @@ import { Scope } from "../scope";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cacheable } from "../wrappers/cacheable";
-import { Wrapper } from "../utils/wrappers.new";
+import { Wrapper } from "../utils/wrappers";
 
 export function Injectable<S>(options?: InjectableOptions<S>) {
   return function(target: Object) {
@@ -136,7 +136,7 @@ function mergeCtorArgs(definedArgs: Array<InjectionArgument>, paramtypes: Array<
 
 export function applyInjectionArg(
   token: Token,
-  wrapper: WrapperDef,
+  wrapper: Wrapper,
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
@@ -155,7 +155,7 @@ export function applyInjectionArg(
   return args.ctor[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, wrapper: WrapperDef | Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+export function createInjectionArg(token: Token, wrapper: Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   return {
     token,
     options: {
@@ -163,7 +163,7 @@ export function createInjectionArg(token: Token, wrapper: WrapperDef | Wrapper, 
       ctx: undefined,
       scope: undefined,
       labels: {},
-      wrapper: Cacheable(wrapper as any),
+      wrapper: Cacheable(wrapper),
     },
     metadata: {
       target,

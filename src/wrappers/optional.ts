@@ -1,7 +1,6 @@
 import { WrapperDef } from "../interfaces";
 import { NilInjectorError } from "../errors";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 function wrapper(defaultValue?: any): WrapperDef {
   return (injector, session, next) => {
@@ -14,5 +13,5 @@ function wrapper(defaultValue?: any): WrapperDef {
   }
 }
 
-export const NewOptional = cr<any, false>(wrapper);
-export const Optional = createWrapper(wrapper);
+export const Optional = createWrapper<any, false>(wrapper);
+// export const Optional = createWrapper(wrapper);

@@ -1,14 +1,14 @@
 import { Context } from "../injector";
-import { InstanceRecord, ScopeShape, WrapperDef } from ".";
+import { InstanceRecord, ScopeShape } from ".";
 import { Token } from "../types";
-import { Wrapper } from "../utils/wrappers.new";
+import { Wrapper } from "../utils/wrappers";
 
 export interface InjectionOptions<T = any> {
   token: Token<T>;
   ctx?: Context;
   scope?: ScopeShape;
   labels?: Record<string | symbol, any>;
-  wrapper?: WrapperDef | Wrapper,
+  wrapper?: Wrapper,
 }
 
 export interface InjectionMetadata {

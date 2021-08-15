@@ -1,6 +1,5 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
-import { createWrapper as cr } from "../utils/wrappers.new";
 
 interface LazyOptions {
   proxy?: boolean;
@@ -63,5 +62,5 @@ function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
   }
 }
 
-export const NewLazy = cr<LazyOptions, true>(wrapper);
-export const Lazy = createWrapper(wrapper);
+export const Lazy = createWrapper<LazyOptions, true>(wrapper);
+// export const Lazy = createWrapper(wrapper);
