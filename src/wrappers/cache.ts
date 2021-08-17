@@ -2,12 +2,12 @@ import { Injector, Session } from "../injector";
 import { InjectionMetadata, NextWrapper } from "../interfaces";
 import { createWrapper } from "../utils";
 
-const cache: Map<Injector, Map<InjectionMetadata, any>> = new Map();
+const cache: WeakMap<Injector, WeakMap<InjectionMetadata, any>> = new WeakMap();
 
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   let cachePerInjector = cache.get(injector);
   if (cachePerInjector === undefined) {
-    cachePerInjector = new Map<InjectionMetadata, any>();
+    cachePerInjector = new WeakMap<InjectionMetadata, any>();
     cache.set(injector, cachePerInjector);
   }
 
@@ -24,7 +24,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   return value;
 }
 
-export const Cacheable = createWrapper(() => wrapper);
+export const Cache = createWrapper(() => wrapper);
 
 // enum CacheFlags {
 //   // single cached value (provider is used only in one module/injectors)

@@ -36,6 +36,10 @@ export interface InstanceRecord<T = any> {
   value: T;
   status: InjectionStatus;
   def: DefinitionRecord;
+  // // what is injected to instance
+  // children: Set<InstanceRecord>;
+  // // where instance is injected
+  // parents: Set<InstanceRecord>;
 }
 
 export interface ComponentRecord<T = any> {
@@ -51,4 +55,8 @@ export interface ComponentInstanceRecord<T = any> {
   ctx: Context;
   value: T;
   comp: ComponentRecord;
+  // // what is injected to instance
+  // children: Set<InstanceRecord>;
+  // // where instance is injected
+  // parents: Set<InstanceRecord>;
 }

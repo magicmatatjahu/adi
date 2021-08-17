@@ -139,15 +139,12 @@ export class Injector {
   }
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
-    let scope = def.scope.which,
-      scopeOptions = def.scope.options;
-    const options = session.options;
-    if (scope.canBeOverrided() === true) {
-      scope = (options.scope && options.scope.which) || scope;
-      scopeOptions = (options.scope && options.scope.options) || scopeOptions;
+    let scope = def.scope;
+    if (scope.which.canBeOverrided() === true) {
+      scope = session.options.scope.which ? session.options.scope : scope;
     }
 
-    const instance = def.record.getInstance(def, scope, scopeOptions, session);
+    const instance = def.record.getInstance(def, scope, session);
     session.setInstance(instance);
 
     return this.resolveInstance(def.record, def, instance, session);

@@ -24,7 +24,7 @@ const defaultOptions: LocalScopeOptions = {
 }
 
 export class LocalScope extends Scope<LocalScopeOptions> {
-  private instances = new Map<InstanceRecord, Context>();
+  private instances = new WeakMap<InstanceRecord, Context>();
 
   get name() {
     return 'Local';

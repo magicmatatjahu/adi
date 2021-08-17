@@ -1,7 +1,7 @@
 import { Injector, Context, Session } from ".";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
 import { InjectionStatus } from "../enums";
-import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, WrapperDef, ScopeShape } from "../interfaces";
+import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { useDefaultHooks } from "../wrappers";
@@ -19,11 +19,10 @@ export class ProviderRecord<T = any> {
 
   getInstance<S>(
     def: DefinitionRecord<T>, 
-    scope: Scope<S>,
-    scopeOptions: S,
+    scope: ScopeShape<S>,
     session: Session,
   ): InstanceRecord<T> {
-    const ctx = scope.getContext(session, scopeOptions, this.host) || STATIC_CONTEXT;
+    const ctx = scope.which.getContext(session, scope.options, this.host) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = {
@@ -31,9 +30,25 @@ export class ProviderRecord<T = any> {
         value: undefined,
         def,
         status: InjectionStatus.UNKNOWN,
+        // scope,
+        // scopeOptions,
+        // children: new Set(),
+        // parents: new Set(),
       };
       def.values.set(ctx, instance);
     }
+
+    // // add links
+    // const parent = session.getParent();
+    // if (parent !== undefined) {
+    //   const parentInstance = parent.instance;
+    //   // TODO: retrieve first instance
+    //   if (parentInstance !== undefined) {
+    //     parentInstance.children.add(instance);
+    //     instance.parents.add(parentInstance);
+    //   }
+    // }
+
     return instance;
   }
 
@@ -45,7 +60,6 @@ export class ProviderRecord<T = any> {
     annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): void {
-    // console.log(scope)
     if (scope === undefined) {
       scope = {
         which: Scope.DEFAULT,

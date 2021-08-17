@@ -12,7 +12,7 @@ const defaultOptions: InstanceScopeOptions = {
 }
 
 export class InstanceScope extends Scope<InstanceScopeOptions> {
-  private instances = new Map<InstanceRecord, Context>();
+  private instances = new WeakMap<InstanceRecord, Context>();
 
   get name() {
     return 'Instance';

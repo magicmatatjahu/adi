@@ -9,13 +9,14 @@ import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
-import { useDefaultHooks } from "../wrappers";
-import { Cacheable } from "../wrappers/cacheable";
 
 import { NilInjector } from "./injector";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
+
 import { Wrapper } from "../utils/wrappers";
+import { useDefaultHooks } from "../wrappers";
+import { Cache } from "../wrappers/cache";
 
 export const InjectorMetadata = new class {
   /**
@@ -164,6 +165,8 @@ export const InjectorMetadata = new class {
       ctx,
       value,
       comp,
+      // children: new Set(),
+      // parents: new Set(),
     };
   }
 
@@ -220,7 +223,7 @@ export const InjectorMetadata = new class {
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
       if (isWrapper(dep)) {
-        converted.push(createInjectionArg(undefined, Cacheable(dep), factory, undefined, i));
+        converted.push(createInjectionArg(undefined, Cache(dep), factory, undefined, i));
       } else {
         converted.push(createInjectionArg(dep, undefined, factory, undefined, i));
       }
