@@ -8,7 +8,6 @@ export interface InjectionOptions<T = any> {
   ctx?: Context;
   scope?: ScopeShape;
   labels?: Record<string | symbol, any>;
-  wrapper?: Wrapper,
 }
 
 export interface InjectionMetadata {
@@ -20,7 +19,7 @@ export interface InjectionMetadata {
 export interface InjectionArgument<T = any> {
   // argument and options have token, it (token) should be only in one place
   token: Token<T>;
-  options: InjectionOptions;
+  wrapper: Wrapper,
   metadata: InjectionMetadata;
 }
 

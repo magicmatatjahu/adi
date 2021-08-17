@@ -88,21 +88,19 @@ export class Injector {
    * PROVIDERS
    */
   get<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): T | undefined {
-    return this.privateGet({ token, wrapper }, undefined, session) as T | undefined;
+    return this.privateGet(token, wrapper, undefined, session) as T | undefined;
   }
 
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): Promise<T | undefined> {
-    return this.privateGet({ token, wrapper }, undefined, session) as T | undefined;
+    return this.privateGet(token, wrapper, undefined, session) as T | undefined;
   }
 
-  privateGet<T>(options: InjectionOptions, meta?: InjectionMetadata, parentSession?: Session): T | undefined {
-    options = InjectorMetadata.copyOptions(options);
+  privateGet<T>(token: Token, wrapper: Wrapper, meta?: InjectionMetadata, parentSession?: Session): T | undefined {
+    const options = InjectorMetadata.createOptions(token);
     const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
 
-    const wrapper = options.wrapper;
     if (wrapper !== undefined) {
-      const last = (inj: Injector, s: Session) => inj.resolveRecord(s);
-      return runWrappers(wrapper as any, this, newSession, last);
+      return runWrappers(wrapper as any, this, newSession, lastInjectionWrapper);
     }
 
     return this.resolveRecord(newSession);
@@ -121,14 +119,14 @@ export class Injector {
     const providerWrappers = record.filterWrappers(session);
 
     if (providerWrappers.length > 0) {
-      const last = (i: Injector, s: Session) => i.getDefinition(record, s);
-      return runArrayOfWrappers(providerWrappers, this, session, last);
+      return runArrayOfWrappers(providerWrappers, this, session, lastProviderWrapper);
     }
 
-    return this.getDefinition(record, session);
+    return this.getDefinition(session);
   }
 
-  getDefinition<T>(record: ProviderRecord<T>, session: Session): T | undefined {
+  getDefinition<T>(session: Session): T | undefined {
+    const record = session.record;
     const def = record.getDefinition(session);
     if (def === undefined) {
       // Reuse session in the parent
@@ -140,8 +138,8 @@ export class Injector {
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
     let scope = def.scope;
-    if (scope.which.canBeOverrided() === true) {
-      scope = session.options.scope.which ? session.options.scope : scope;
+    if (scope.kind.canBeOverrided() === true) {
+      scope = session.options.scope ? session.options.scope : scope;
     }
 
     const instance = def.record.getInstance(def, scope, session);
@@ -247,14 +245,14 @@ export class Injector {
       throw Error(`Given component of ${token} type doesn't exists`);
     }
 
-    options = InjectorMetadata.copyOptions(options);
+    options = InjectorMetadata.createOptions(token);
     const newSession = new Session(undefined, undefined, undefined, options, meta, session);
 
-    const wrapper = options && options.wrapper;
-    if (wrapper) {
-      const last = (i: Injector, s: Session) => i.resolveComponent(component, s.options, s);
-      return runWrappers(wrapper, this, session, last);
-    }
+    // const wrapper = options && options.wrapper;
+    // if (wrapper) {
+    //   const last = (i: Injector, s: Session) => i.resolveComponent(component, s.options, s);
+    //   return runWrappers(wrapper, this, session, last);
+    // }
 
     return this.resolveComponent(component, options, newSession);
   }
@@ -545,6 +543,14 @@ export class Injector {
     this.addProvider({ provide: Injector, useValue: this });
     this.addProvider({ provide: MODULE_INITIALIZERS, useWrapper: Multi() });
   }
+}
+
+function lastInjectionWrapper(injector: Injector, session: Session) {
+  return injector.resolveRecord(session);
+}
+
+function lastProviderWrapper(injector: Injector, session: Session) {
+  return injector.getDefinition(session);
 }
 
 export const NilInjector = new class {

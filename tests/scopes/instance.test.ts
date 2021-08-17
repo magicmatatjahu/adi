@@ -100,7 +100,7 @@ describe('Instance scope', function () {
 
     @Injectable({
       scope: {
-        which: Scope.INSTANCE,
+        kind: Scope.INSTANCE,
         options: {
           reuseContext: false,
         }

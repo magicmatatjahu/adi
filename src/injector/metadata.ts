@@ -127,9 +127,9 @@ export const InjectorMetadata = new class {
   }
 
   getScopeShape(scope: ScopeType): ScopeShape {
-    if (scope && (scope as ScopeShape).which === undefined) {
+    if (scope && (scope as ScopeShape).kind === undefined) {
       scope = {
-        which: scope as unknown as Scope,
+        kind: scope as Scope,
         options: undefined,
       }
     }
@@ -192,8 +192,13 @@ export const InjectorMetadata = new class {
   /**
    * HELPERS
    */
-  copyOptions(options: InjectionOptions = {} as InjectionOptions): InjectionOptions {
-    return { ...options, labels: { ...options.labels } };
+  createOptions(token: Token): InjectionOptions {
+    return {
+      token,
+      ctx: undefined,
+      scope: undefined,
+      labels: {},
+    };
   }
 
   getProviderDef<T>(token: Token<T>, throwError: boolean = true): ProviderDef {

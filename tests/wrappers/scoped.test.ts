@@ -27,4 +27,33 @@ describe('Scoped wrapper', function () {
     expect(service.service === service.newService2).toEqual(false);
     expect(service.newService1 === service.newService2).toEqual(false);
   });
+
+  test('should override default scope of provider', function () {
+    @Injectable({
+      scope: Scope.INSTANCE
+    })
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly localService1: TestService,
+        readonly localService2: TestService,
+        @Inject(Scoped(Scope.TRANSIENT)) readonly newService: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service) as Service;
+    expect(service.localService1).toBeInstanceOf(TestService);
+    expect(service.localService2).toBeInstanceOf(TestService);
+    expect(service.newService).toBeInstanceOf(TestService);
+    expect(service.localService1 === service.newService).toEqual(false);
+    expect(service.localService2 === service.newService).toEqual(false);
+    expect(service.localService1 === service.localService2).toEqual(true);
+  });
 });

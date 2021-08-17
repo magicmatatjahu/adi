@@ -2,33 +2,11 @@ import { ScopeShape, ScopeType, WrapperDef } from "../interfaces";
 import { Scope } from "../scope";
 import { createWrapper } from "../utils";
 
-interface ScopedOptions {
-  reuseParentScope: true;
-}
-
-function wrapper(scope: Scope | ScopeType | ScopedOptions): WrapperDef {
-  let options: any;
-  let reuseParentScope: boolean = false;
-  if ((scope as ScopeShape).which !== undefined) {
-    options = (scope as ScopeShape).options;
-    scope = (scope as ScopeShape).which;
-  } else if ((scope as ScopedOptions).reuseParentScope === true) {
-    reuseParentScope = true;
-  }
+function wrapper(scope: Scope | ScopeType): WrapperDef {
   return (injector, session, next) => {
-    if (reuseParentScope === true) {
-      const parent = session.parent;
-      const def = parent.definition;
-      const options = parent.options;
-
-      let reusedScope = def.scope;
-      if (reusedScope.which.canBeOverrided() === true) {
-        reusedScope = options.scope.which ? options.scope : reusedScope;
-      }
-      session.setScope(reusedScope.which, reusedScope.options);
-    } else {
-      session.setScope(scope as Scope, options);
-    }
+    const options = (scope as ScopeShape).kind && (scope as ScopeShape).options;
+    scope = (scope as ScopeShape).kind ? (scope as ScopeShape).kind : scope;
+    session.setScope(scope as Scope, options);
     return next(injector, session);
   }
 }

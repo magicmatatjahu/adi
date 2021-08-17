@@ -22,7 +22,7 @@ export class ProviderRecord<T = any> {
     scope: ScopeShape<S>,
     session: Session,
   ): InstanceRecord<T> {
-    const ctx = scope.which.getContext(session, scope.options, this.host) || STATIC_CONTEXT;
+    const ctx = scope.kind.getContext(session, scope.options, this.host) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = {
@@ -60,12 +60,6 @@ export class ProviderRecord<T = any> {
     annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): void {
-    if (scope === undefined) {
-      scope = {
-        which: Scope.DEFAULT,
-        options: undefined,
-      }
-    }
     // if provider is a class provider, then apply hooks wrappers
     if (proto !== undefined) {
       wrapper = useDefaultHooks(wrapper);
@@ -73,7 +67,10 @@ export class ProviderRecord<T = any> {
     const def: DefinitionRecord = {
       record: this as any,
       factory,
-      scope,
+      scope: scope || {
+        kind: Scope.DEFAULT,
+        options: undefined,
+      },
       constraint,
       wrapper,
       annotations,

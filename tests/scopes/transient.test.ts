@@ -96,7 +96,7 @@ describe('Transient scope', function () {
 
     @Injectable({
       scope: {
-        which: Scope.TRANSIENT,
+        kind: Scope.TRANSIENT,
         options: {
           reuseContext: false,
         }

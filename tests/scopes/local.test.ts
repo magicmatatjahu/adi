@@ -5,7 +5,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope option) - nearest case', function () {
     @Injectable({
       scope: {
-        which: Scope.LOCAL,
+        kind: Scope.LOCAL,
         options: {
           toScope: 'test',
         }
@@ -111,7 +111,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope option) - farthest case', function () {
     @Injectable({
       scope: {
-        which: Scope.LOCAL,
+        kind: Scope.LOCAL,
         options: {
           toScope: 'test',
           depth: 'farthest',
@@ -218,7 +218,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope option) - custom depth case', function () {
     @Injectable({
       scope: {
-        which: Scope.LOCAL,
+        kind: Scope.LOCAL,
         options: {
           toScope: 'test',
           depth: 2,
@@ -326,7 +326,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toToken option)', function () {
     @Injectable({
       scope: {
-        which: Scope.LOCAL,
+        kind: Scope.LOCAL,
         options: {
           toToken: ref(() => ServiceBetween),
         }
@@ -379,7 +379,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope and toAnnotation options)', function () {
     @Injectable({
       scope: {
-        which: Scope.LOCAL,
+        kind: Scope.LOCAL,
         options: {
           toScope: 'test',
           toAnnotation: '@test/annotation'
@@ -560,7 +560,7 @@ describe('Instance scope', function () {
 
     @Injectable({
       scope: {
-        which: Scope.LOCAL,
+        kind: Scope.LOCAL,
         options: {
           reuseContext: false,
         }

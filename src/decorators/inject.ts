@@ -26,7 +26,6 @@ export function Inject<T = any>(token?: Token<T> | Wrapper, wrapper?: Wrapper) {
             // TODO: test passing `useWrapper` from main `@Injector` decorator on method
             const arg = applyInjectionArg(paramtypes[i], wrapper, target, key, i);
             arg.token = arg.token || paramtypes[i];
-            arg.options.token = arg.token;
           }
           return;
         } else { // setter injection

@@ -16,13 +16,9 @@ export class Session<T = any> {
     public definition: DefinitionRecord<T>,
     public instance: InstanceRecord<T>,
     public options: InjectionOptions,
-    public meta: InjectionMetadata,
+    public readonly meta: InjectionMetadata,
     public readonly parent: Session,
-  ) {
-    // TODO: Fix options
-    this.options = this.options || {} as any;
-    this.options.scope = this.options.scope || {} as ScopeShape;
-  }
+  ) {}
 
   getToken(): Token {
     return this.options.token;
@@ -45,7 +41,8 @@ export class Session<T = any> {
   }
 
   setScope<T>(scope: Scope<T>, options?: T) {
-    this.options.scope.which = scope;
+    this.options.scope = this.options.scope || {} as ScopeShape;
+    this.options.scope.kind = scope;
     this.options.scope.options = options;
   }
 
@@ -106,11 +103,8 @@ export class Session<T = any> {
   }
 
   // TODO: maybe `leaveInstance` argument is unnecessary, or not...
-  copy(leaveInstance: boolean = false): Session {
+  copy(): Session {
     const newOptions = { ...this.options, labels: { ...this.options.labels } };
-    // if (leaveInstance === false) {
-    //   return new Session(undefined, newOptions, this.meta, this.parent);
-    // }
     return new Session(this.record, this.definition, this.instance, newOptions, this.meta, this.parent);
   }
 

@@ -85,7 +85,7 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
     const inheritedArgs = inheritedDefArgs.ctor;
     for (let i = 0, l = inheritedArgs.length; i < l; i++) {
       const arg = inheritedArgs[i]
-      ctor[i] = createInjectionArg(arg.token, arg.options.wrapper, target, undefined, i);
+      ctor[i] = createInjectionArg(arg.token, arg.wrapper, target, undefined, i);
     }
   }
 
@@ -95,7 +95,7 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
   for (let key in inheritedProps) {
     const inheritedProp = inheritedProps[key];
     // shallow copy injection argument and override target
-    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, key);
+    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.wrapper, target, key);
   }
   // override/adjust symbols injection
   const symbols = Object.getOwnPropertySymbols(inheritedProps);
@@ -103,7 +103,7 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
     const sym = symbols[i] as unknown as string;
     const inheritedProp = inheritedProps[sym];
     // shallow copy injection argument and override target
-    props[sym] = props[sym] || createInjectionArg(inheritedProp.token, inheritedProp.options.wrapper, target, sym);
+    props[sym] = props[sym] || createInjectionArg(inheritedProp.token, inheritedProp.wrapper, target, sym);
   }
 
   const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
@@ -118,7 +118,7 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
       for (let i = 0, l = method.length; i < l; i++) {
         const arg = method[i];
         // shallow copy injection argument and override target
-        copiedMethod[i] = createInjectionArg(arg.token, arg.options.wrapper, target, key, i);
+        copiedMethod[i] = createInjectionArg(arg.token, arg.wrapper, target, key, i);
       }
       defArgs.methods[key] = copiedMethod;
     }
@@ -155,13 +155,7 @@ export function applyInjectionArg(
 export function createInjectionArg(token: Token, wrapper: Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   return {
     token,
-    options: {
-      token,
-      ctx: undefined,
-      scope: undefined,
-      labels: {},
-      wrapper: Cache(wrapper),
-    },
+    wrapper: Cache(wrapper),
     metadata: {
       target,
       propertyKey,
