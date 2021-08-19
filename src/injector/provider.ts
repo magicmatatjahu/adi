@@ -1,5 +1,5 @@
 import { Injector, Context, Session } from ".";
-import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
+import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, EMPTY_ARRAY } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
@@ -86,11 +86,13 @@ export class ProviderRecord<T = any> {
 
   addWrapper(
     wrapper: Wrapper,
-    constraint: ConstraintDef,
+    constraint?: ConstraintDef,
+    annotations?: Record<string | symbol, any>,
   ): void {
     this.wrappers.push({
       wrapper,
       constraint: constraint || ALWAYS_CONSTRAINT,
+      annotations,
     });
   }
 
@@ -113,13 +115,17 @@ export class ProviderRecord<T = any> {
   filterWrappers(
     session?: Session
   ): Array<Wrapper> {
-    const wrappers = this.wrappers, satisfyingWraps = [];
+    const wrappers = this.wrappers, satisfyingWraps: WrapperRecord[] = [];
     for (let i = 0, l = wrappers.length; i < l; i++) {
       const wrapper = wrappers[i];
       if (wrapper.constraint(session) === true) {
-        satisfyingWraps.push(wrapper.wrapper);
+        satisfyingWraps.push(wrapper);
       }
     }
-    return satisfyingWraps;
+    return satisfyingWraps.sort(compareOrder).map(record => record.wrapper);
   }
+}
+
+function compareOrder(a: WrapperRecord, b: WrapperRecord): number {
+  return (a.annotations[ANNOTATIONS.ORDER] as number || 0) - (b.annotations[ANNOTATIONS.ORDER] as number || 0);
 }

@@ -63,7 +63,6 @@ export interface WrapperProvider<T = any> {
   provide: Token<T>;
   useWrapper: Wrapper;
   when?: ConstraintDef;
-  // TODO: useWrapper should have also annotations? Think about it
   annotations?: Record<string | symbol, any>;
 }
 

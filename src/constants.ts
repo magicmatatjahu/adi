@@ -16,12 +16,9 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({}, "MODULE_INITIALIZERS");
 
-export const CONSTRAINTS = {
-  NAMED: '$$named',
-}
-
 export const ANNOTATIONS = {
   NAMED: '@adi/named',
+  ORDER: '@adi/order',
   LOCAL_SCOPE: '@adi/local-scope',
 }
 

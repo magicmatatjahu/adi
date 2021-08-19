@@ -26,9 +26,10 @@ export interface DefinitionRecord<T = any, S = any> {
   // original: Provider;
 }
 
-export interface WrapperRecord<T = any> {
+export interface WrapperRecord {
   wrapper: Wrapper,
   constraint: ConstraintDef;
+  annotations: Record<string | symbol, any>;
 }
 
 export interface InstanceRecord<T = any> {

@@ -1,4 +1,4 @@
-import { Injector, Injectable, OnInit, Component } from "../src";
+import { Injector, Injectable, OnInit } from "../src";
 
 describe('Hooks', function() {
   describe('onInit', function() {

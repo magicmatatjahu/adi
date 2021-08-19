@@ -41,19 +41,18 @@ export const InjectorMetadata = new class {
     const options = provDef.options || EMPTY_OBJECT as InjectableOptions<any>;
 
     if (
-      'useWrapper' in options || 
       'useFactory' in options ||
       'useValue' in options ||
       'useExisting' in options ||
       'useClass' in options
     ) {
       // shallow copy provDef
-      const customProvider = { ...options, useClass: provider } as PlainProvider;
+      const customProvider = { ...options as any, useClass: provider } as PlainProvider;
       return this.customProviderToRecord(provider, customProvider, host);
     }
 
     const record = this.getRecord(provider, host);
-    record.addDefinition(provDef.factory, this.getScopeShape(provDef.scope), undefined, undefined, options.annotations || EMPTY_OBJECT, provider.prototype);
+    record.addDefinition(provDef.factory, this.getScopeShape(provDef.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -104,7 +103,7 @@ export const InjectorMetadata = new class {
 
       // case with standalone `useWrapper`
       if (factory === undefined) {
-        record.addWrapper(wrapper, constraint)
+        record.addWrapper(wrapper, constraint, annotations);
         return record;
       }
     }

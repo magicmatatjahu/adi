@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Token, Optional, Scope, createWrapper } from "../../src";
+import { Injector, Injectable, Inject, Token, Optional, Scope, Value, createWrapper, ANNOTATIONS } from "../../src";
 
 describe('Wrappers', function() {
   describe('should can use useWrapper in injectable as option', function() {
@@ -135,6 +135,77 @@ describe('Wrappers', function() {
 
     const values = injector.get(Service);
     expect(values).toEqual(['foobar', undefined]);
+  });
+
+  describe('should works as Injectable metadata', function() {
+    @Injectable({
+      useWrapper: Value('foo.bar')
+    })
+    class Service {
+      public foo = {
+        bar: 'foobar'
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useValue: {
+          foo: {
+            bar: 'foobar'
+          }
+        },
+      }
+    ]);
+
+    const service = injector.get(Service);
+    expect(service).toEqual('foobar');
+  });
+
+  test('should works with order annotation', function () {
+    const injector = new Injector([
+      {
+        provide: 'useValue',
+        useValue: {
+          a: {
+            b: {
+              c: {
+                d: {
+                  e: {
+                    f: 'foobar',
+                  }
+                }
+              }
+            }
+          }
+        },
+      },
+      {
+        provide: 'useValue',
+        useWrapper: Value('a.b'),
+        annotations: {
+          [ANNOTATIONS.ORDER]: 3
+        }
+      },
+      {
+        provide: 'useValue',
+        useWrapper: Value('e.f'),
+        annotations: {
+          [ANNOTATIONS.ORDER]: 1
+        }
+      },
+      {
+        provide: 'useValue',
+        useWrapper: Value('c.d'),
+        annotations: {
+          [ANNOTATIONS.ORDER]: 2
+        }
+      },
+    ]);
+
+    const foobar = injector.get<string>('useValue');
+    expect(foobar).toEqual('foobar');
   });
 
   test('testing async await', async function () {

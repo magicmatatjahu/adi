@@ -243,30 +243,4 @@ describe('Type provider (injectable provider)', function() {
     const service = injector.get(Service);
     expect(service).toEqual('foobar');
   });
-
-  describe('should works with wrapper', function() {
-    @Injectable({
-      useWrapper: Value('foo.bar')
-    })
-    class Service {
-      public foo = {
-        bar: 'foobar'
-      }
-    }
-
-    const injector = new Injector([
-      Service,
-      {
-        provide: "token",
-        useValue: {
-          foo: {
-            bar: 'foobar'
-          }
-        },
-      }
-    ]);
-
-    const service = injector.get(Service);
-    expect(service).toEqual('foobar');
-  });
 });
