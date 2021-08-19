@@ -10,7 +10,7 @@ function onInit(): WrapperDef {
 
     // when resolution chain has circular reference
     // TODO: optimize it
-    if (session['$$circular'] ) {
+    if (session['$$circular']) {
       if (
         session.instance.status & InjectionStatus.CIRCULAR &&
         session['$$startCircular'] === session.instance.value
@@ -33,7 +33,7 @@ function onInit(): WrapperDef {
         }
         session.parent['$$startCircular'] = session.parent['$$startCircular'] || session['$$startCircular'];
       }
-    } else if (hasOnInitHook(value)) {
+    } else if (hasOnInitHook(value) && session.parent?.['$$circular'] === undefined) {
       value.onInit();
     }
     return value;

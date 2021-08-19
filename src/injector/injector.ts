@@ -100,7 +100,7 @@ export class Injector {
     const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
 
     if (wrapper !== undefined) {
-      return runWrappers(wrapper as any, this, newSession, lastInjectionWrapper);
+      return runWrappers(wrapper, this, newSession, lastInjectionWrapper);
     }
 
     return this.resolveRecord(newSession);
@@ -114,12 +114,11 @@ export class Injector {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
-    
     session.setRecord(record);
-    const providerWrappers = record.filterWrappers(session);
 
+    const providerWrappers = record.filterWrappers(session);
     if (providerWrappers.length > 0) {
-      return runArrayOfWrappers(providerWrappers, this, session, lastProviderWrapper);
+      return runArrayOfWrappers(providerWrappers, record.host, session, lastProviderWrapper);
     }
 
     return this.getDefinition(session);
@@ -128,11 +127,17 @@ export class Injector {
   getDefinition<T>(session: Session): T | undefined {
     const record = session.record;
     const def = record.getDefinition(session);
+
     if (def === undefined) {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
     session.setDefinition(def);
+
+    if (def.wrapper !== undefined) {
+      return runWrappers(def.wrapper, this, session, (inj, s) => inj.resolveDefinition(def, s));
+    }
+
     return this.resolveDefinition(def, session);
   }
 
@@ -161,12 +166,12 @@ export class Injector {
     if (instance.status === InjectionStatus.UNKNOWN) {
       instance.status |= InjectionStatus.PENDING;
 
-      let value: T;
-      if (def.wrapper === undefined) {
-        value = def.factory(record.host, session) as T;
-      } else {
-        value = runWrappers(def.wrapper, record.host, session, def.factory) as any;
-      }
+      const value: T = def.factory(record.host, session) as T;
+      // if (def.wrapper === undefined) {
+      //   value = def.factory(record.host, session) as T;
+      // } else {
+      //   value = runWrappers(def.wrapper, record.host, session, def.factory) as any;
+      // }
 
       if (instance.status & InjectionStatus.CIRCULAR) {
         // merge of instance is done in OnInitHook wrapper
@@ -175,7 +180,7 @@ export class Injector {
         instance.value = value;
       }
 
-      instance.status = InjectionStatus.RESOLVED;
+      instance.status |= InjectionStatus.RESOLVED;
       return instance.value;
     }
 
@@ -183,6 +188,7 @@ export class Injector {
     if (instance.status & InjectionStatus.CIRCULAR) {
       return instance.value;
     }
+
     const proto = def.proto;
     if (!proto) {
       throw new Error("Circular Dependency");

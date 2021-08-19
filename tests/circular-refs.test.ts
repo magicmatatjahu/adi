@@ -220,8 +220,8 @@ describe('Circular refs', function() {
         // check that serviceC is created and has some properties
         if (
           Object.keys(this.serviceC).length && 
-          Object.keys(this.serviceC.serviceD).length && 
-          Object.keys(this.serviceC.serviceE).length
+          Object.keys(this.serviceC?.serviceD).length && 
+          Object.keys(this.serviceC?.serviceE).length
         ) {
           onInitOrder.push('ServiceG');
         }
