@@ -1,6 +1,7 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, FactoryDef, ProviderDef, Type } from "../interfaces";
+import { InjectionArgument, FactoryDef, ProviderDef, Type, InstanceRecord } from "../interfaces";
+import { InjectionStatus } from "../enums";
 
 export const InjectorResolver = new class {
   injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session): Array<any> {
@@ -46,15 +47,33 @@ export const InjectorResolver = new class {
     def: ProviderDef, 
   ): FactoryDef<T> {
     const args = def.args;
-    const deps = args.ctor,
-      props = args.props,
+    const parameters = args.parameters,
+      properties = args.properties,
       methods = args.methods;
     
     return (injector: Injector, session: Session) => {
-      const instance = new provider(...this.injectDeps(deps, injector, session));
-      this.injectProperties(instance, props, injector, session);
+      const instance = new provider(...this.injectDeps(parameters, injector, session));
+      this.injectProperties(instance, properties, injector, session);
       this.injectMethods(instance, methods, injector, session);
       return instance;
     }
+  }
+
+  handleCircularRefs(instance: InstanceRecord, session: Session): any {
+    if (instance.status & InjectionStatus.CIRCULAR) {
+      return instance.value;
+    }
+    
+    const proto = instance.def.proto;
+    if (!proto) {
+      throw new Error("Circular Dependency");
+    }
+    (instance as InstanceRecord).status |= InjectionStatus.CIRCULAR;
+    // add flag that resolution session has circular reference. 
+    // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
+    instance.value = Object.create(proto);
+    session.parent['$$circular'] = session.parent['$$circular'] || true;
+    session.parent['$$startCircular'] = instance.value;
+    return instance.value;
   }
 }

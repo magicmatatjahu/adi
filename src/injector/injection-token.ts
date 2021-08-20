@@ -12,8 +12,6 @@ export class InjectionToken<T> {
         ...options,
         token: this,
         factory: undefined,
-        scope: options.scope,
-        provideIn: options.provideIn,
         options: options,
       } as ProviderDef;
     }

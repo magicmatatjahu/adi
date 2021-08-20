@@ -14,8 +14,8 @@ Scope.INSTANCE = new InstanceScope();
 Scope.LOCAL = new LocalScope();
 
 // Circular references between Scope and Context
-Context.$$prov.scope = Scope.INSTANCE;
-Session.$$prov.scope = Scope.INSTANCE;
+Context.$$prov.options.scope = Scope.INSTANCE;
+Session.$$prov.options.scope = Scope.INSTANCE;
 
 export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";

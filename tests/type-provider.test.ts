@@ -225,7 +225,7 @@ describe('Type provider (injectable provider)', function() {
     expect(service).toBeInstanceOf(Service);
   });
 
-  describe('should works with custom provider inside options', function() {
+  describe('should works with custom provider inside options (useFactory case)', function() {
     @Injectable({
       useFactory(foobar: string) { return foobar },
       inject: ["token"],
@@ -242,5 +242,22 @@ describe('Type provider (injectable provider)', function() {
 
     const service = injector.get(Service);
     expect(service).toEqual('foobar');
+  });
+
+  describe('should works with custom provider inside options (useClass case)', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable({
+      useClass: TestService,
+    })
+    class Service {}
+
+    const injector = new Injector([
+      Service,
+    ]);
+
+    const service = injector.get(Service);
+    expect(service).toBeInstanceOf(TestService);
   });
 });

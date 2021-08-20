@@ -47,12 +47,12 @@ export const InjectorMetadata = new class {
       'useClass' in options
     ) {
       // shallow copy provDef
-      const customProvider = { ...options as any, useClass: provider } as PlainProvider;
+      const customProvider = { ...options as any, useClass: (options as any).useClass || provider } as PlainProvider;
       return this.customProviderToRecord(provider, customProvider, host);
     }
 
     const record = this.getRecord(provider, host);
-    record.addDefinition(provDef.factory, this.getScopeShape(provDef.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+    record.addDefinition(provDef.factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -125,16 +125,6 @@ export const InjectorMetadata = new class {
     return record;
   }
 
-  getScopeShape(scope: ScopeType): ScopeShape {
-    if (scope && (scope as ScopeShape).kind === undefined) {
-      scope = {
-        kind: scope as Scope,
-        options: undefined,
-      }
-    }
-    return scope as ScopeShape;
-  }
-
   /**
    * COMPONENTS
    */
@@ -198,6 +188,16 @@ export const InjectorMetadata = new class {
       scope: undefined,
       labels: {},
     };
+  }
+
+  getScopeShape(scope: ScopeType): ScopeShape {
+    if (scope && (scope as ScopeShape).kind === undefined) {
+      scope = {
+        kind: scope as Scope,
+        options: undefined,
+      }
+    }
+    return scope as ScopeShape;
   }
 
   getProviderDef<T>(token: Token<T>, throwError: boolean = true): ProviderDef {

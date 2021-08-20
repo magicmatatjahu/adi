@@ -14,8 +14,8 @@ export interface ProviderDef<T = any, S = any> {
   scope?: ScopeType<S>;
   options?: InjectableOptions<S>;
   args?: {
-    ctor: Array<InjectionArgument>;
-    props: Record<string | symbol, InjectionArgument>;
+    parameters: Array<InjectionArgument>;
+    properties: Record<string | symbol, InjectionArgument>;
     methods: Record<string, InjectionArgument[]>;
   };
 }

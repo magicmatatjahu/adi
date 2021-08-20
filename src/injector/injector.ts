@@ -1,8 +1,8 @@
 import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionMetadata,
-  WrapperRecord, DefinitionRecord, InstanceRecord, ComponentRecord,
-  Provider, ProviderDef, NextWrapper, Type, ForwardRef,
+  DefinitionRecord, InstanceRecord, ComponentRecord,
+  Provider, ProviderDef, Type, ForwardRef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
@@ -12,6 +12,7 @@ import { resolveRef } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
 
 import { InjectorMetadata } from "./metadata";
+import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
 import { Multi } from "../wrappers";
@@ -144,7 +145,7 @@ export class Injector {
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
     let scope = def.scope;
     if (scope.kind.canBeOverrided() === true) {
-      scope = session.options.scope ? session.options.scope : scope;
+      scope = session.options.scope || scope;
     }
 
     const instance = def.record.getInstance(def, scope, session);
@@ -166,13 +167,7 @@ export class Injector {
     if (instance.status === InjectionStatus.UNKNOWN) {
       instance.status |= InjectionStatus.PENDING;
 
-      const value: T = def.factory(record.host, session) as T;
-      // if (def.wrapper === undefined) {
-      //   value = def.factory(record.host, session) as T;
-      // } else {
-      //   value = runWrappers(def.wrapper, record.host, session, def.factory) as any;
-      // }
-
+      const value = def.factory(record.host, session) as T;
       if (instance.status & InjectionStatus.CIRCULAR) {
         // merge of instance is done in OnInitHook wrapper
         Object.assign(instance.value, value);
@@ -185,21 +180,7 @@ export class Injector {
     }
 
     // Circular case
-    if (instance.status & InjectionStatus.CIRCULAR) {
-      return instance.value;
-    }
-
-    const proto = def.proto;
-    if (!proto) {
-      throw new Error("Circular Dependency");
-    }
-    (instance as InstanceRecord).status |= InjectionStatus.CIRCULAR;
-    // add flag that resolution session has circular reference. 
-    // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
-    instance.value = Object.create(proto);
-    session.parent['$$circular'] = session.parent['$$circular'] || true;
-    session.parent['$$startCircular'] = instance.value;
-    return instance.value;
+    return InjectorResolver.handleCircularRefs(instance, session);
   }
 
   private getRecord<T>(
@@ -234,11 +215,11 @@ export class Injector {
 
   // TODO: add case with imported modules
   private isProviderInScope(def: ProviderDef): boolean {
-    if (def === undefined || def.provideIn === undefined) {
+    const provideIn = def && def.options && def.options.provideIn;
+    if (provideIn === undefined) {
       return false;
     }
-    const providedIn = def.provideIn;
-    const provideInArray = Array.isArray(providedIn) ? providedIn : [providedIn];
+    const provideInArray = Array.isArray(provideIn) ? provideIn : [provideIn];
     return provideInArray.some(s => this.scopes.includes(s));
   }
 
