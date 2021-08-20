@@ -15,7 +15,7 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { Multi } from "../wrappers";
+import { Multi, Optional, Self } from "../wrappers";
 import { NilInjectorError } from "../errors";
 
 export class Injector {
@@ -136,7 +136,7 @@ export class Injector {
     session.setDefinition(def);
 
     if (def.wrapper !== undefined) {
-      return runWrappers(def.wrapper, this, session, (inj, s) => inj.resolveDefinition(def, s));
+      return runWrappers(def.wrapper, this, session, lastDefinitionWrapper);
     }
 
     return this.resolveDefinition(def, session);
@@ -514,7 +514,7 @@ export class Injector {
 
   private configureScope(scopes?: InjectorScopeType | Array<InjectorScopeType>): void {
     this.scopes = ["any", this.injector as any];
-    scopes = scopes || this.get(INJECTOR_SCOPE) as Array<InjectorScopeType>;
+    scopes = scopes || this.get(INJECTOR_SCOPE, Optional(Self())) as Array<InjectorScopeType>;
     if (scopes === undefined) return;
     if (Array.isArray(scopes)) {
       for (let i = 0, l = scopes.length; i < l; i++) {
@@ -538,6 +538,11 @@ function lastInjectionWrapper(injector: Injector, session: Session) {
 
 function lastProviderWrapper(injector: Injector, session: Session) {
   return injector.getDefinition(session);
+}
+
+function lastDefinitionWrapper(injector: Injector, session: Session) {
+  const def = session.definition;
+  return injector.resolveDefinition(def, session);
 }
 
 export const NilInjector = new class {

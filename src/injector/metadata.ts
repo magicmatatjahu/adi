@@ -78,6 +78,7 @@ export const InjectorMetadata = new class {
       const aliasProvider = provider.useExisting;
       let changed = false;
       factory = (injector: Injector, session?: Session) => {
+        // TODO: Improve that
         // change record from useExisting provider to record pointed by useExisting token
         if (changed === false) {
           const deepRecord = this.retrieveDeepRecord(aliasProvider, injector);
