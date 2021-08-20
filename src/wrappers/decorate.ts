@@ -1,28 +1,8 @@
 import { InjectorMetadata, InjectorResolver } from "../injector";
 import { InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { NULL_REF } from "../constants";
 import { createWrapper, Wrapper } from "../utils/wrappers";
 
-/**
- * DELEGATE
- */
-function delegateWrapper(): WrapperDef {
-  return (injector, session, next) => {
-    const delegate = session.retrieveDeepMeta('$$delegate');
-    // delegate isn't set
-    if (delegate === NULL_REF) {
-      return next(injector, session);
-    }
-    return delegate;
-  }
-}
-
-export const Delegate = createWrapper<undefined, false>(delegateWrapper);
-
-/**
- * DECORATE
- */
 interface DecorateOptions {
   decorator: (...args: any[]) => any;
   inject?: Array<Token | Wrapper>;
@@ -44,7 +24,10 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
     const decoratee = next(injector, session);
 
     // add delegation
-    newSession['$$delegate'] = decoratee;
+    newSession['$$delegate'] = {
+      type: 'single',
+      values: decoratee,
+    };
 
     // function based decorator
     if (token === undefined) {

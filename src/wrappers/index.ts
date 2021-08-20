@@ -1,5 +1,6 @@
 export * from "./ctx";
 export * from "./decorate";
+export * from "./delegate";
 export * from "./deps";
 export * from "./factory";
 export * from "./fallback";

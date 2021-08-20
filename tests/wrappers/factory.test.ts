@@ -1,4 +1,4 @@
-import { Injector, Inject, Injectable, Factory, New, Assisted, createWrapper } from "../../src";
+import { Injector, Inject, Injectable, Factory, New, Delegate, createWrapper } from "../../src";
 
 describe('Factory wrapper', function () {
   test('should works (injection based wrapper) - using the New wrapper', function () {
@@ -26,13 +26,13 @@ describe('Factory wrapper', function () {
     expect(testService2 === testService3).toEqual(false);
   });
 
-  test('should works as assisted injection (injection based wrapper) - with Assisted wrapper', function () {
+  test('should works as assisted injection (injection based wrapper) - with Delegate wrapper', function () {
     @Injectable()
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject(Assisted(0)) readonly stringValue: string,
-        @Inject(Assisted(1)) readonly numberValue: number,
+        @Inject(Delegate(0)) readonly stringValue: string,
+        @Inject(Delegate(1)) readonly numberValue: number,
       ) {}
     }
 
@@ -64,7 +64,7 @@ describe('Factory wrapper', function () {
     expect(testService2.numberValue).toEqual(2);
   });
 
-  test('Assisted wrapper should works without Factory', function () {
+  test('Delegate wrapper should works without Factory', function () {
     let called: boolean = false;
     const TestWrapper = createWrapper((_: never) => {
       return (injector, session, next) => {
@@ -80,7 +80,7 @@ describe('Factory wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Assisted(TestWrapper())) readonly service: TestService,
+        @Inject(Delegate(TestWrapper())) readonly service: TestService,
       ) {}
     }
 
