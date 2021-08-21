@@ -10,6 +10,7 @@ import { ProviderRecord } from "./provider";
 
 export class Session<T = any> {
   private sideEffect: boolean = false;
+  public async: boolean = false;
 
   constructor(
     public record: ProviderRecord<T>,

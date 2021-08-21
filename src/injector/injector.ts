@@ -96,7 +96,7 @@ export class Injector {
     return this.privateGet(token, wrapper, undefined, session) as T | undefined;
   }
 
-  privateGet<T>(token: Token, wrapper: Wrapper, meta?: InjectionMetadata, parentSession?: Session): T | undefined {
+  privateGet<T>(token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined {
     const options = InjectorMetadata.createOptions(token);
     const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
 
@@ -107,7 +107,7 @@ export class Injector {
     return this.resolveRecord(newSession);
   }
 
-  resolveRecord<T>(session?: Session): T | undefined {
+  resolveRecord<T>(session: Session): T | undefined {
     const token = session.getToken();
     const record = this.getRecord(token);
 

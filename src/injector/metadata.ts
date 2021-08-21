@@ -8,7 +8,7 @@ import {
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
+import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
 
 import { NilInjector } from "./injector";
 import { ProviderRecord } from "./provider";
@@ -68,10 +68,7 @@ export const InjectorMetadata = new class {
       proto = undefined;
 
     if (isFactoryProvider(provider)) {
-      const deps = this.convertDependencies(provider.inject || [], provider.useFactory);
-      factory = (injector: Injector, session?: Session) => {
-        return provider.useFactory(...InjectorResolver.injectDeps(deps, injector, session));
-      }
+      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY);
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
@@ -92,7 +89,7 @@ export const InjectorMetadata = new class {
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
-      factory = InjectorResolver.createFactory(classRef, providerDef);
+      factory = InjectorResolver.createProviderFactory(classRef, providerDef);
       scope = scope || this.getScopeShape(providerDef.scope);
       proto = classRef;
     }

@@ -1,5 +1,6 @@
+import { EMPTY_ARRAY } from "../constants";
 import { InjectorMetadata, InjectorResolver } from "../injector";
-import { InjectionArgument, Type, WrapperDef } from "../interfaces";
+import { FactoryDef, InjectionArgument, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper, Wrapper } from "../utils/wrappers";
 
@@ -9,13 +10,15 @@ interface DecorateOptions {
 }
 
 function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
-  let token: Type, factory: (...args: any[]) => any, deps: InjectionArgument[];
+  let type: 'factory' | 'class', factory: FactoryDef;
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
-    factory = (decorator as DecorateOptions).decorator;
-    deps = InjectorMetadata.convertDependencies((decorator as DecorateOptions).inject || [], factory);
+    const fn = (decorator as DecorateOptions).decorator;
+    type = 'factory';
+    factory = InjectorResolver.createFactory(fn, (decorator as DecorateOptions).inject || EMPTY_ARRAY);
   } else { // type based decorator
-    token = decorator as Type;
+    type = 'class';
+    factory = InjectorMetadata.getFactoryDef(decorator as Token);
   }
 
   return (injector, session, next) => {
@@ -30,14 +33,13 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
     };
 
     // function based decorator
-    if (token === undefined) {
-      return factory(...InjectorResolver.injectDeps(deps, injector, newSession));
+    if (type === 'factory') {
+      return factory(injector, newSession);
     }
 
     // class based decorator
-    const factoryDef = InjectorMetadata.getFactoryDef(token);
     // TODO: should the wrappers from wrappers chain be running here?
-    return factoryDef(injector, newSession);
+    return factory(injector, newSession);
   }
 }
 

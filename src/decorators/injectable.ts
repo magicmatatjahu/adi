@@ -1,6 +1,5 @@
 import { InjectableOptions, InjectionArgument, ProviderDef, Type } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
-import { Scope } from "../scope";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
@@ -26,7 +25,7 @@ export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> =
   const def = ensureProviderDef(target);
   def.options = options;
   lookupInheritance(target, def, paramtypes);  
-  def.factory = InjectorResolver.createFactory(target as Type<any>, def);
+  def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def);
   return def as ProviderDef<T>;
 }
 
@@ -41,8 +40,6 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
   return {
     token: provider,
     factory: undefined,
-    scope: Scope.DEFAULT,
-    provideIn: undefined,
     options: {},
     args: {
       parameters: [],
