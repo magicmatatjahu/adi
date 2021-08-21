@@ -102,7 +102,6 @@ export class Session<T = any> {
     return this.parent;
   }
 
-  // TODO: maybe `leaveInstance` argument is unnecessary, or not...
   copy(): Session {
     const newOptions = { ...this.options, labels: { ...this.options.labels } };
     return new Session(this.record, this.definition, this.instance, newOptions, this.meta, this.parent);
@@ -128,7 +127,6 @@ export class Session<T = any> {
       }
       return parentSession;
     },
-    provideIn: 'any',
     options: {
       provideIn: 'any',
     }

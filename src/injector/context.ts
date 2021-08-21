@@ -16,7 +16,6 @@ export class Context<T = any> {
       }
       return parentSession.getInstance().ctx;
     },
-    provideIn: 'any',
     options: {
       provideIn: 'any',
     }
