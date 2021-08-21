@@ -84,7 +84,7 @@ export const InjectorMetadata = new class {
             changed = true;
           }
         }
-        return injector.get(aliasProvider, undefined, session);
+        return injector.privateGet(aliasProvider, undefined, session.meta, session);
       }
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;

@@ -76,7 +76,7 @@ export const InjectorResolver = new class {
       methods = args.methods;
     
     return (injector: Injector, session: Session) => {
-      if (session.async === true) {
+      if (session.isAsync() === true) {
         return this.providerFactoryAsync(provider, parameters, properties, methods, injector, session);
       }
       const instance = new provider(...this.injectDeps(parameters, injector, session));
@@ -106,7 +106,7 @@ export const InjectorResolver = new class {
   ) {
     const convertedDeps = InjectorMetadata.convertDependencies(deps, factory);
     return (injector: Injector, session: Session) => {
-      if (session.async === true) {
+      if (session.isAsync() === true) {
         return this.injectDepsAsync(convertedDeps, injector, session).then(args => factory(...args));
       }
       return factory(...this.injectDeps(convertedDeps, injector, session));

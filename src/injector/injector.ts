@@ -89,22 +89,30 @@ export class Injector {
    * PROVIDERS
    */
   get<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): T | undefined {
-    return this.privateGet(token, wrapper, undefined, session) as T | undefined;
+    const options = InjectorMetadata.createOptions(token);
+    session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
+    session.setAsync(false);
+    return this.resolveToken(wrapper, session);
   }
 
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): Promise<T | undefined> {
-    return this.privateGet(token, wrapper, undefined, session) as T | undefined;
+    const options = InjectorMetadata.createOptions(token);
+    session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
+    session.setAsync(true);
+    return this.resolveToken(wrapper, session);
   }
 
   privateGet<T>(token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined {
     const options = InjectorMetadata.createOptions(token);
     const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
+    return this.resolveToken(wrapper, newSession);
+  }
 
+  resolveToken<T>(wrapper: Wrapper, session: Session): T | undefined {
     if (wrapper !== undefined) {
-      return runWrappers(wrapper, this, newSession, lastInjectionWrapper);
+      return runWrappers(wrapper, this, session, lastInjectionWrapper);
     }
-
-    return this.resolveRecord(newSession);
+    return this.resolveRecord(session);
   }
 
   resolveRecord<T>(session: Session): T | undefined {

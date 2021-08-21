@@ -19,3 +19,9 @@ export enum InjectionPlace {
   METHOD_ARGUMENT = 4,
   CUSTOM = 8,
 }
+
+export enum SessionStatus {
+  NONE = 0,
+  ASYNC = 1,
+  SIDE_EFFECTS = 2,
+}

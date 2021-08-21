@@ -7,10 +7,10 @@ import { Context } from "./context";
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { ProviderRecord } from "./provider";
+import { SessionStatus } from "../enums";
 
 export class Session<T = any> {
-  private sideEffect: boolean = false;
-  public async: boolean = false;
+  private status: SessionStatus = SessionStatus.NONE;
 
   constructor(
     public record: ProviderRecord<T>,
@@ -19,7 +19,12 @@ export class Session<T = any> {
     public options: InjectionOptions,
     public readonly meta: InjectionMetadata,
     public readonly parent: Session,
-  ) {}
+  ) {
+    if (parent !== undefined) {
+      // infer `ASYNC` status from parent
+      this.status |= (parent.status & SessionStatus.ASYNC);
+    }
+  }
 
   getToken(): Token {
     return this.options.token;
@@ -60,11 +65,27 @@ export class Session<T = any> {
   }
 
   setSideEffect(sideEffect: boolean) {
-    this.sideEffect = sideEffect;
+    if (sideEffect === true) {
+      this.status |= SessionStatus.SIDE_EFFECTS;
+    } else {
+      this.status &= ~SessionStatus.SIDE_EFFECTS;
+    }
   }
 
   hasSideEffect(): boolean {
-    return this.sideEffect;
+    return (this.status & SessionStatus.SIDE_EFFECTS) > 0;
+  }
+
+  setAsync(async: boolean) {
+    if (async === true) {
+      this.status |= SessionStatus.ASYNC;
+    } else {
+      this.status &= ~SessionStatus.ASYNC;
+    }
+  }
+
+  isAsync(): boolean {
+    return (this.status & SessionStatus.ASYNC) > 0;
   }
 
   getRecord() {
@@ -105,7 +126,9 @@ export class Session<T = any> {
 
   copy(): Session {
     const newOptions = { ...this.options, labels: { ...this.options.labels } };
-    return new Session(this.record, this.definition, this.instance, newOptions, this.meta, this.parent);
+    const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.meta, this.parent);
+    newSession.status = this.status;
+    return newSession;
   }
 
   retrieveDeepMeta(key: string) {
