@@ -255,6 +255,13 @@ describe('Wrappers', function() {
       Service,
       {
         provide: "token",
+        useFactory: async (value: object) => {
+          return value;
+        },
+        inject: ['value'],
+      },
+      {
+        provide: "value",
         useFactory: async () => {
           return {
             a: {
