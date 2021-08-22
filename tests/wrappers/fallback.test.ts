@@ -48,7 +48,7 @@ describe('Fallback wrapper', function () {
     expect(service.service).toBeInstanceOf(TestService);
   });
 
-  test('should throw error when fallback doesnt exists', function () {
+  test('should throw error when fallback does not exist', function () {
     @Injectable()
     class TestService {}
 
