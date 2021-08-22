@@ -64,6 +64,13 @@ export class Injector {
     return this.parent;
   }
 
+  createChild(
+    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    options?: InjectorOptions,
+  ): Injector {
+    return createInjector(injector, this, options);
+  }
+
   async compile(): Promise<Injector> {
     if (Array.isArray(this.injector)) return;
 
@@ -100,12 +107,6 @@ export class Injector {
     session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
     session.setAsync(true);
     return this.resolveToken(wrapper, session);
-  }
-
-  privateGet<T>(token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined {
-    const options = InjectorMetadata.createOptions(token);
-    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
-    return this.resolveToken(wrapper, newSession);
   }
 
   resolveToken<T>(wrapper: Wrapper, session: Session): T | undefined {
@@ -194,7 +195,7 @@ export class Injector {
           } else {
             instance.value = value;
           }
-    
+  
           instance.status |= InjectionStatus.RESOLVED;
           return instance.value;
         }

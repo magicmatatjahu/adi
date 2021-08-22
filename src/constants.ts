@@ -28,3 +28,8 @@ export const NEVER_CONSTRAINT = () => false;
 export const NULL_REF = {};
 export const EMPTY_OBJECT = {};
 export const EMPTY_ARRAY = [];
+
+export const CIRCULAR = {
+  ANNOTATION: '$$circular',
+  START_ANNOTATION: '$$startCircular',
+}

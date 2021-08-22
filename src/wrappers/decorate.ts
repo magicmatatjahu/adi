@@ -23,7 +23,7 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
     // copy session and resolve the value to decorate
     const newSession = session.copy();
     
-    return thenable(next)(injector, session).then(
+    return thenable(next, injector, session).then(
       decoratee => {
         // add delegation
         newSession['$$delegate'] = {

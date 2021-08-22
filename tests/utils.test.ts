@@ -1,4 +1,4 @@
-import { thenable } from "../src/utils/thenable";
+import { applyThenable } from "../src/utils/thenable";
 
 describe('Utils function', function() {
   describe('thenable', function() {
@@ -6,7 +6,7 @@ describe('Utils function', function() {
       function next(str: string) {
         return str + ' works!';
       }  
-      const wrapper = thenable(next);
+      const wrapper = applyThenable(next);
   
       const result = wrapper('thenable').then(val => {
         return val
@@ -18,7 +18,7 @@ describe('Utils function', function() {
       function next(str: string) {
         throw new Error('Error!');
       }  
-      const wrapper = thenable(next);
+      const wrapper = applyThenable(next);
   
       let error: undefined;
       const result = wrapper('thenable').then(
@@ -38,7 +38,7 @@ describe('Utils function', function() {
       function next(str: string) {
         return Promise.resolve(str + ' works!');
       }  
-      const wrapper = thenable(next);
+      const wrapper = applyThenable(next);
   
       const result = wrapper('thenable').then(val => {
         return val
@@ -50,7 +50,7 @@ describe('Utils function', function() {
       async function next(str: string) {
         return Promise.reject(new Error('Error!'));
       }  
-      const wrapper = thenable(next);
+      const wrapper = applyThenable(next);
   
       let error: undefined;
       const result = await wrapper('thenable').then(
@@ -70,7 +70,7 @@ describe('Utils function', function() {
       async function next(str: string) {
         return str + ' works!';
       }  
-      const wrapper = thenable(next);
+      const wrapper = applyThenable(next);
   
       const result = wrapper('thenable').then(val => {
         return val
@@ -82,7 +82,7 @@ describe('Utils function', function() {
       async function next(str: string) {
         throw new Error('Error!');
       }  
-      const wrapper = thenable(next);
+      const wrapper = applyThenable(next);
   
       let error: undefined;
       const result = await wrapper('thenable').then(

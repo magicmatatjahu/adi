@@ -1,5 +1,5 @@
 import { Session, ProviderRecord, Injector } from "../injector";
-import { NextWrapper, WrapperDef } from "../interfaces";
+import { NextWrapper } from "../interfaces";
 import { createWrapper } from "../utils";
 
 function getDefinitions(

@@ -1,17 +1,23 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, FactoryDef, ProviderDef, Type, InstanceRecord } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, ProviderDef, Type, InstanceRecord } from "../interfaces";
 import { InjectionStatus } from "../enums";
 import { Wrapper } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
 
 export const InjectorResolver = new class {
+  inject<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
+    const options = InjectorMetadata.createOptions(token);
+    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
+    return injector.resolveToken(wrapper, newSession);
+  }
+
   injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session): Array<any> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(injector.privateGet(arg.token, arg.wrapper, arg.metadata, session));
+      args.push(this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
     };
     return args;
   }
@@ -20,36 +26,36 @@ export const InjectorResolver = new class {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
-      args.push(await injector.privateGet(arg.token, arg.wrapper, arg.metadata, session));
+      args.push(await this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
     };
     return args;
   }
 
-  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session?: Session): void {
+  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): void {
     for (const name in props) {
       const prop = props[name];
-      instance[name] = injector.privateGet(prop.token, prop.wrapper, prop.metadata, session);
+      instance[name] = this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
     }
     // inject symbols
     for (const sb of Object.getOwnPropertySymbols(props)) {
       const prop = props[sb as any as string];
-      instance[sb] = injector.privateGet(prop.token, prop.wrapper, prop.metadata, session);
+      instance[sb] = this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
     }
   }
 
-  async injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session?: Session): Promise<void> {
+  async injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
     for (const name in props) {
       const prop = props[name];
-      instance[name] = await injector.privateGet(prop.token, prop.wrapper, prop.metadata, session);
+      instance[name] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
     }
     // inject symbols
     for (const sb of Object.getOwnPropertySymbols(props)) {
       const prop = props[sb as any as string];
-      instance[sb] = await injector.privateGet(prop.token, prop.wrapper, prop.metadata, session);
+      instance[sb] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
     }
   }
 
-  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session?: Session): void {
+  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session: Session): void {
     for (const name in methods) {
       const methodDeps = methods[name];
       const originalMethod = instance[name];
@@ -58,7 +64,7 @@ export const InjectorResolver = new class {
         let methodProp: InjectionArgument = undefined;
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            args[i] = injector.privateGet(methodProp.token, methodProp.wrapper, methodProp.metadata, session);
+            args[i] = this.inject(injector, methodProp.token, methodProp.wrapper, methodProp.metadata, session);
           }
         }
         return originalMethod.apply(instance, args);
@@ -76,7 +82,6 @@ export const InjectorResolver = new class {
       methods = args.methods;
     
     return (injector: Injector, session: Session) => {
-      // console.log('lol')
       if (session.isAsync() === true) {
         return this.providerFactoryAsync(provider, parameters, properties, methods, injector, session);
       }

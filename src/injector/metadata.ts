@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, thenable } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, applyThenable } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
@@ -52,9 +52,7 @@ export const InjectorMetadata = new class {
     }
 
     const record = this.getRecord(provider, host);
-    const factory = thenable(provDef.factory);
-    // const factory = provDef.factory;
-    record.addDefinition(factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+    record.addDefinition(applyThenable(provDef.factory), this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -87,7 +85,7 @@ export const InjectorMetadata = new class {
             changed = true;
           }
         }
-        return injector.privateGet(aliasProvider, undefined, session.meta, session);
+        return InjectorResolver.inject(injector, aliasProvider, undefined, session.meta, session);
       }
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
@@ -109,8 +107,7 @@ export const InjectorMetadata = new class {
       }
     }
 
-    factory = thenable(factory);
-    record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
+    record.addDefinition(applyThenable(factory), scope, constraint, wrapper, annotations, proto);
     return record;
   }
 

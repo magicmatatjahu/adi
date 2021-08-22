@@ -16,7 +16,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     return cachePerInjector.get(metadata);
   }
 
-  return thenable(next)(injector, session).then(
+  return thenable(next, injector, session).then(
     value => {
       if (session.hasSideEffect() === false) {
         const metadata = session.getMetadata();

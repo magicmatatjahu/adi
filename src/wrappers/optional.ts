@@ -4,7 +4,7 @@ import { createWrapper, thenable } from "../utils";
 
 function wrapper(defaultValue?: any): WrapperDef {
   return (injector, session, next) => {
-    return thenable(next)(injector, session).then(
+    return thenable(next, injector, session).then(
       val => val,
       err => {
         if ((err as NilInjectorError).isNilInjectorError) return defaultValue;

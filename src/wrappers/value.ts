@@ -7,7 +7,7 @@ function index(obj: any, i: string) {
 
 function wrapper(path: string): WrapperDef {
   return (injector, session, next) => {
-    return thenable(next)(injector, session).then(
+    return thenable(next, injector, session).then(
       value => path.split('.').reduce(index, value)
     );
     // const value = next(injector, session);
