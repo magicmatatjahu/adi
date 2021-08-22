@@ -1,6 +1,6 @@
 import { Injector, Session } from "../injector";
 import { InjectionMetadata, NextWrapper } from "../interfaces";
-import { createWrapper } from "../utils";
+import { createWrapper, thenable } from "../utils";
 
 const cache: WeakMap<Injector, WeakMap<InjectionMetadata, any>> = new WeakMap();
 
@@ -16,6 +16,15 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     return cachePerInjector.get(metadata);
   }
 
+  // return thenable(next)(injector, session).then(
+  //   value => {
+  //     if (session.hasSideEffect() === false) {
+  //       const metadata = session.getMetadata();
+  //       metadata && cachePerInjector.set(metadata, value);
+  //     }
+  //     return value;
+  //   }
+  // );
   const value = next(injector, session);
   if (session.hasSideEffect() === false) {
     const metadata = session.getMetadata();

@@ -5,6 +5,7 @@ import { createWrapper } from "../utils";
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   const token = session.getToken();
   let parentInjector = injector.getParentInjector();
+  
   // check for treeshakable provider
   (injector as any).getRecord(token);
   const ownRecord = (injector as any).records.get(token);

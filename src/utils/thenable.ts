@@ -6,6 +6,7 @@ export function thenable<T>(fn: (...args: any[]) => T | Promise<T>): (...args: a
     try {
       result = fn(...args);
     } catch(err) {
+      // it's needed only in sync resolution
       error = err;
     }
 
@@ -21,6 +22,8 @@ export function thenable<T>(fn: (...args: any[]) => T | Promise<T>): (...args: a
         if (error !== undefined) {
           if (typeof onrejected === 'function') {
             return onrejected(error) as PromiseLike<TResult1 | TResult2>;
+          } else {
+            throw error;
           }
         }
         try {
@@ -31,6 +34,8 @@ export function thenable<T>(fn: (...args: any[]) => T | Promise<T>): (...args: a
         } catch(err) {
           if (typeof onrejected === 'function') {
             return onrejected(err) as PromiseLike<TResult1 | TResult2>;
+          } else {
+            throw err;
           }
         }
       }

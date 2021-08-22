@@ -1,5 +1,5 @@
 import { WrapperDef } from "../interfaces";
-import { createWrapper } from "../utils";
+import { createWrapper, thenable } from "../utils";
 
 function index(obj: any, i: string) {
   return obj[i]
@@ -7,8 +7,11 @@ function index(obj: any, i: string) {
 
 function wrapper(path: string): WrapperDef {
   return (injector, session, next) => {
-    const value = next(injector, session);
-    return path.split('.').reduce(index, value);
+    return thenable(next)(injector, session).then(
+      value => path.split('.').reduce(index, value)
+    );
+    // const value = next(injector, session);
+    // return path.split('.').reduce(index, value);
   }
 }
 

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Token, Optional, Scope, Value, createWrapper, ANNOTATIONS } from "../../src";
+import { Injector, Injectable, Inject, Token, Optional, Scope, Value, createWrapper, ANNOTATIONS, Memo } from "../../src";
 
 describe('Wrappers', function() {
   describe('should can use useWrapper in injectable as option', function() {
@@ -208,8 +208,69 @@ describe('Wrappers', function() {
     expect(foobar).toEqual('foobar');
   });
 
-  test('testing async await', async function () {
-    const promise = new Promise(resolve => resolve(true));
-    // console.log(await promise);
+  test('should works with multiple "thenable" wrappers - sync resolution', function () {
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class Service {
+      constructor(
+        @Inject('token', Memo(Value('a.b'))) readonly value: object,  
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useFactory: () => {
+          return {
+            a: {
+              b: {
+                c: 'foobar',
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    const service1 = injector.get(Service);
+    const service2 = injector.get(Service);
+    expect(service1.value).toEqual({ c: 'foobar' });
+    expect(service2.value).toEqual({ c: 'foobar' });
+    expect(service1.value === service2.value).toEqual(true);
+  });
+
+  test('should works with multiple "thenable" wrappers - async resolution', async function () {
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class Service {
+      constructor(
+        @Inject('token', Memo(Value('a.b'))) readonly value: object,  
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useFactory: async () => {
+          return {
+            a: {
+              b: {
+                c: 'foobar',
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    const service1 = await injector.getAsync(Service);
+    const service2 = await injector.getAsync(Service);
+    expect(service1.value).toEqual({ c: 'foobar' });
+    expect(service2.value).toEqual({ c: 'foobar' });
+    expect(service1.value === service2.value).toEqual(true);
   });
 });

@@ -17,6 +17,7 @@ function getDefinitions(
   return satisfyingDefs.length === 0 ? record.defs : satisfyingDefs;
 }
 
+// TODO: Add async resolution
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   // exec wrappers chain to retrieve needed, updated session
   next(injector, session);
