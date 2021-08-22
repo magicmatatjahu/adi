@@ -15,7 +15,6 @@ import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
 import { Wrapper } from "../utils/wrappers";
-import { useDefaultHooks } from "../wrappers";
 import { Cache } from "../wrappers/cache";
 
 export const InjectorMetadata = new class {
@@ -133,7 +132,6 @@ export const InjectorMetadata = new class {
     useWrapper?: Wrapper,
   ): ComponentRecord<T> {
     const def = this.getProviderDef(comp);
-    useWrapper = useDefaultHooks(useWrapper);
     return {
       comp,
       host,

@@ -8,7 +8,7 @@ import {
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
-import { resolveRef } from "../utils";
+import { resolveRef, handleOnInit } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
 
 import { InjectorMetadata } from "./metadata";
@@ -195,6 +195,8 @@ export class Injector {
           } else {
             instance.value = value;
           }
+
+          handleOnInit(instance, session);
   
           instance.status |= InjectionStatus.RESOLVED;
           return instance.value;

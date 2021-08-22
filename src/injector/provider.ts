@@ -4,7 +4,6 @@ import { InjectionStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { useDefaultHooks } from "../wrappers";
 import { Wrapper, compareOrder } from "../utils";
 
 export class ProviderRecord<T = any> {
@@ -60,10 +59,6 @@ export class ProviderRecord<T = any> {
     annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): void {
-    // if provider is a class provider, then apply hooks wrappers
-    if (proto !== undefined) {
-      wrapper = useDefaultHooks(wrapper);
-    }
     const def: DefinitionRecord = {
       record: this as any,
       factory,

@@ -54,7 +54,3 @@ function onDestroy(): WrapperDef {
 
 export const OnInitHook = createWrapper<undefined, false>(onInit);
 export const OnDestroyHook = createWrapper<undefined, false>(onDestroy);
-
-export function useDefaultHooks(wrapper?: Wrapper): Wrapper {
-  return OnInitHook(wrapper);
-}
