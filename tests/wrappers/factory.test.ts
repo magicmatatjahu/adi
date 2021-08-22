@@ -64,35 +64,6 @@ describe('Factory wrapper', function () {
     expect(testService2.numberValue).toEqual(2);
   });
 
-  test('Delegate wrapper should works without Factory', function () {
-    let called: boolean = false;
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
-        called = true;
-        return value;
-      }
-    });
-
-    @Injectable()
-    class TestService {}
-
-    @Injectable()
-    class Service {
-      constructor(
-        @Inject(Delegate(TestWrapper())) readonly service: TestService,
-      ) {}
-    }
-
-    const injector = new Injector([
-      Service,
-      TestService,
-    ]);
-
-    const service = injector.get(Service) as Service;
-    expect(service.service).toBeInstanceOf(TestService);
-  });
-
   test('should preserve injection session', function () {
     @Injectable()
     class A {
@@ -135,5 +106,34 @@ describe('Factory wrapper', function () {
     const service = injector.get(Service) as Service;
     expect(service.serviceA.foobarFactory()).toEqual('foobar');
     expect(service.serviceB.foobarFactory()).toEqual('barfoo');
+  });
+
+  test('should works in async resolution', async function () {
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(TestService, Factory(New())) readonly factory: () => TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: TestService,
+        useFactory: async () => {
+          return new TestService();
+        }
+      },
+    ]);
+
+    const service = await injector.getAsync(Service);
+    const testService1 = service.factory();
+    const testService2 = service.factory();
+    const testService3 = service.factory();
+    expect(testService1 === testService2).toEqual(false);
+    expect(testService1 === testService3).toEqual(false);
+    expect(testService2 === testService3).toEqual(false);
   });
 });

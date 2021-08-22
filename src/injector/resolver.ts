@@ -76,6 +76,7 @@ export const InjectorResolver = new class {
       methods = args.methods;
     
     return (injector: Injector, session: Session) => {
+      // console.log('lol')
       if (session.isAsync() === true) {
         return this.providerFactoryAsync(provider, parameters, properties, methods, injector, session);
       }

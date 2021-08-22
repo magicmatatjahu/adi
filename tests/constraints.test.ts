@@ -110,4 +110,26 @@ describe('Constraint', function() {
       expect(foobar[1]).toEqual('bar');
     });
   });
+
+  test('should works with hierarchical wrappers', function () {
+    const parentInjector = new Injector([
+      {
+        provide: 'foobar',
+        useValue: 'foo',
+        when: when.named('foo'),
+      },
+    ]);
+    const childInjector = new Injector([
+      {
+        provide: 'foobar',
+        useValue: 'bar',
+        when: when.named('bar'),
+      },
+    ], parentInjector);
+
+    const childValue = childInjector.get<string>('foobar', Named('bar'));
+    const parentValue = childInjector.get<string>('foobar', Named('foo'));
+    expect(childValue).toEqual('bar');
+    expect(parentValue).toEqual('foo');
+  });
 });

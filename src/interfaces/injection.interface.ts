@@ -17,7 +17,6 @@ export interface InjectionMetadata {
 }
 
 export interface InjectionArgument<T = any> {
-  // argument and options have token, it (token) should be only in one place
   token: Token<T>;
   wrapper: Wrapper,
   metadata: InjectionMetadata;
