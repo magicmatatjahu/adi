@@ -253,4 +253,48 @@ describe('Circular refs', function() {
     // ServiceC first go to Service D (as first argument in constructor) and then go to Service E -> F -> G -> C
     expect(onInitOrder).toEqual(['ServiceG', 'ServiceF', 'ServiceE', 'ServiceD', 'ServiceC', 'ServiceB', 'ServiceA']);
   });
+
+  test('should handle simple case, when one class needs second and vice versa (with onInit hooks to assert proper order of initialization) - async resolution', async function() {
+    let onInitOrder = [];
+
+    @Injectable()
+    class ServiceA {
+      constructor(
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+      ) {}
+
+      onInit() {
+        // check that serviceB is created and has serviceA property
+        if (Object.keys(this.serviceB).length) {
+          onInitOrder.push('ServiceA');
+        }
+      }
+    }
+
+    @Injectable()
+    class ServiceB {
+      constructor(
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+      ) {}
+
+      onInit() {
+        // check that serviceA is created and has serviceB property
+        if (Object.keys(this.serviceA).length) {
+          onInitOrder.push('ServiceB');
+        }
+      }
+    }
+
+    const injector = new Injector([
+      ServiceA,
+      ServiceB,
+    ]);
+
+    const service = await injector.getAsync(ServiceA);
+    expect(service).toBeInstanceOf(ServiceA);
+    expect(service.serviceB).toBeInstanceOf(ServiceB);
+    expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
+    expect(service === service.serviceB.serviceA).toEqual(true);
+    expect(onInitOrder).toEqual(['ServiceB', 'ServiceA']);
+  });
 });

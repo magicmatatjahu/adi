@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, thenable } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
@@ -52,7 +52,9 @@ export const InjectorMetadata = new class {
     }
 
     const record = this.getRecord(provider, host);
-    record.addDefinition(provDef.factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+    const factory = thenable(provDef.factory);
+    // const factory = provDef.factory;
+    record.addDefinition(factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -80,6 +82,7 @@ export const InjectorMetadata = new class {
         if (changed === false) {
           const deepRecord = this.retrieveDeepRecord(aliasProvider, injector);
           if (deepRecord !== undefined) {
+            // it won't work with Multi wrapper
             (injector as any).records.set(provider.provide, deepRecord);
             changed = true;
           }
@@ -106,6 +109,7 @@ export const InjectorMetadata = new class {
       }
     }
 
+    factory = thenable(factory);
     record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
     return record;
   }

@@ -175,16 +175,30 @@ export class Injector {
     if (instance.status === InjectionStatus.UNKNOWN) {
       instance.status |= InjectionStatus.PENDING;
 
-      const value = def.factory(record.host, session) as T;
-      if (instance.status & InjectionStatus.CIRCULAR) {
-        // merge of instance is done in OnInitHook wrapper
-        Object.assign(instance.value, value);
-      } else {
-        instance.value = value;
-      }
+      // const value = def.factory(record.host, session) as T;
+      // if (instance.status & InjectionStatus.CIRCULAR) {
+      //   // merge of instance is done in OnInitHook wrapper
+      //   Object.assign(instance.value, value);
+      // } else {
+      //   instance.value = value;
+      // }
 
-      instance.status |= InjectionStatus.RESOLVED;
-      return instance.value;
+      // instance.status |= InjectionStatus.RESOLVED;
+      // return instance.value;
+
+      return (def.factory(record.host, session) as PromiseLike<T>).then(
+        value => {
+          if (instance.status & InjectionStatus.CIRCULAR) {
+            // merge of instance is done in OnInitHook wrapper
+            Object.assign(instance.value, value);
+          } else {
+            instance.value = value;
+          }
+    
+          instance.status |= InjectionStatus.RESOLVED;
+          return instance.value;
+        }
+      ) as unknown as T;
     }
 
     // Circular case
