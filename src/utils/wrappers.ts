@@ -1,5 +1,5 @@
 import { NULL_REF } from "../constants";
-import { NextWrapper, WrapperDef, InjectionMetadata } from "../interfaces";
+import { NextWrapper, WrapperDef } from "../interfaces";
 import { Injector, Session } from "../injector";
 
 export interface Wrapper {
@@ -55,27 +55,3 @@ export function runArrayOfWrappers<T>(wrappers: Wrapper[], injector: Injector, s
   }
   return nextWrappers()(injector, session) as T;
 }
-
-const cache: Map<Injector, Map<InjectionMetadata, any>> = new Map();
-
-function algorithm(injector: Injector, session: Session, next: NextWrapper) {
-  let cachePerInjector = cache.get(injector);
-  if (cachePerInjector === undefined) {
-    cachePerInjector = new Map<InjectionMetadata, any>();
-    cache.set(injector, cachePerInjector);
-  }
-
-  const metadata = session.getMetadata();
-  if (cachePerInjector.has(metadata)) {
-    return cachePerInjector.get(metadata);
-  }
-
-  const value = next(injector, session);
-  if (session.hasSideEffect() === false) {
-    const metadata = session.getMetadata();
-    metadata && cachePerInjector.set(metadata, value);
-  }
-  return value;
-}
-
-export const NewCacheable = createWrapper(() => algorithm);

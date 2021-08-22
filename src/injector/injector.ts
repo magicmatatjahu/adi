@@ -231,6 +231,24 @@ export class Injector {
     return provideInArray.some(s => this.scopes.includes(s));
   }
 
+  private configureScope(scopes?: InjectorScopeType | Array<InjectorScopeType>): void {
+    this.scopes = ["any", this.injector as any];
+    scopes = scopes || this.get(INJECTOR_SCOPE, Optional(Self())) as Array<InjectorScopeType>;
+    if (scopes === undefined) return;
+    if (Array.isArray(scopes)) {
+      for (let i = 0, l = scopes.length; i < l; i++) {
+        this.scopes.push(scopes[i]);
+      }  
+    } else {
+      this.scopes.push(scopes);
+    }
+  }
+
+  private addCoreProviders() {
+    this.addProvider({ provide: Injector, useValue: this });
+    this.addProvider({ provide: MODULE_INITIALIZERS, useWrapper: Multi() });
+  }
+
   /**
    * COMPONENTS
    */
@@ -518,25 +536,6 @@ export class Injector {
       parentInjector = parentInjector.getParentInjector();
     }
     return undefined;
-  }
-
-  private configureScope(scopes?: InjectorScopeType | Array<InjectorScopeType>): void {
-    this.scopes = ["any", this.injector as any];
-    scopes = scopes || this.get(INJECTOR_SCOPE, Optional(Self())) as Array<InjectorScopeType>;
-    if (scopes === undefined) return;
-    if (Array.isArray(scopes)) {
-      for (let i = 0, l = scopes.length; i < l; i++) {
-        this.scopes.push(scopes[i]);
-      }  
-    } else {
-      this.scopes.push(scopes);
-    }
-  }
-
-  private addCoreProviders() {
-    // add Injector as self provider
-    this.addProvider({ provide: Injector, useValue: this });
-    this.addProvider({ provide: MODULE_INITIALIZERS, useWrapper: Multi() });
   }
 }
 

@@ -23,6 +23,10 @@ function createHandler<T>(delayedObject: () => T): ProxyHandler<object> {
   const handler: ProxyHandler<object> = {};
   const install = (name: keyof ProxyHandler<any>): void => {
     handler[name] = (...args: any[]) => {
+      // methods are called after resolution due to problem in Cache wrapper (checking if value has `then` function in the `thenable` util) - skip for that below trap
+      if (name === 'get' && args[1] === 'then') {
+        return;
+      }
       args[0] = delayedObject();
       const method = Reflect[name];
       return (method as any)(...args);
@@ -48,7 +52,9 @@ function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
   return (injector, session, next) => {
     if (proxy === true) {
       // works only with objects
-      return createProxy(() => next(injector, session));
+      return createProxy(() => {
+        return next(injector, session)
+      });
     }
 
     let value: any, resolved = false;

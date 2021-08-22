@@ -16,21 +16,21 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     return cachePerInjector.get(metadata);
   }
 
-  // return thenable(next)(injector, session).then(
-  //   value => {
-  //     if (session.hasSideEffect() === false) {
-  //       const metadata = session.getMetadata();
-  //       metadata && cachePerInjector.set(metadata, value);
-  //     }
-  //     return value;
-  //   }
-  // );
-  const value = next(injector, session);
-  if (session.hasSideEffect() === false) {
-    const metadata = session.getMetadata();
-    metadata && cachePerInjector.set(metadata, value);
-  }
-  return value;
+  return thenable(next)(injector, session).then(
+    value => {
+      if (session.hasSideEffect() === false) {
+        const metadata = session.getMetadata();
+        metadata && cachePerInjector.set(metadata, value);
+      }
+      return value;
+    }
+  );
+  // const value = next(injector, session);
+  // if (session.hasSideEffect() === false) {
+  //   const metadata = session.getMetadata();
+  //   metadata && cachePerInjector.set(metadata, value);
+  // }
+  // return value;
 }
 
 export const Cache = createWrapper(() => wrapper);

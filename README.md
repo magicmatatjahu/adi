@@ -15,5 +15,5 @@
 - Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers
 - Add `PROVIDER` Injection Token which will be used to wrap all defined providers
 - Check if `instance` property in the session should be copied or not - check in all wrappers
-- Implement this https://autofac.readthedocs.io/en/latest/advanced/pooled-instances.html scope - note about custom hooks like `OnGetFromPool`, probably in the Scope ADI should create the new instance of given provider (definition), or maybe not - ADi can always change reference to the definition in the session
+- Implement this https://autofac.readthedocs.io/en/latest/advanced/pooled-instances.html scope - note about custom hooks like `OnGetFromPool`, probably in the Scope ADI should create the new instance of given provider (definition), or maybe not - ADI can always change reference to the definition in the session
 - Implement the `onDestroy` hook

@@ -1,11 +1,11 @@
 import { Injector, Context, Session } from ".";
-import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, EMPTY_ARRAY } from "../constants";
+import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { useDefaultHooks } from "../wrappers";
-import { Wrapper } from "../utils/wrappers";
+import { Wrapper, compareOrder } from "../utils";
 
 export class ProviderRecord<T = any> {
   readonly defs: Array<DefinitionRecord> = [];
@@ -124,8 +124,4 @@ export class ProviderRecord<T = any> {
     }
     return satisfyingWraps.sort(compareOrder).map(record => record.wrapper);
   }
-}
-
-function compareOrder(a: WrapperRecord, b: WrapperRecord): number {
-  return (a.annotations[ANNOTATIONS.ORDER] as number || 0) - (b.annotations[ANNOTATIONS.ORDER] as number || 0);
 }
