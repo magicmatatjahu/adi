@@ -692,4 +692,30 @@ describe('Module', function() {
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
   });
+
+  describe('MODULE_INITIALIZERS', function() {
+    test('should works', async function() {
+      let foobar: string = '';
+
+      @Module({ 
+        providers: [
+          {
+            provide: 'foobar',
+            useValue: 'foobar',
+          },
+          {
+            provide: MODULE_INITIALIZERS,
+            useFactory: async (value: string) => {
+              foobar = value;
+            },
+            inject: ['foobar'],
+          }
+        ],
+      })
+      class AppModule {}
+
+      const injector = await new Injector(AppModule).compile();
+      expect(foobar).toEqual('foobar');
+    })
+  });
 });
