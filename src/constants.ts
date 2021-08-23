@@ -1,6 +1,5 @@
 import { Context, InjectionToken } from "./injector";
 import { InjectorOptions, InjectorScopeType } from "./interfaces";
-import { Multi } from "./wrappers";
 
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");
 
@@ -17,6 +16,7 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
 export const MODULE_INITIALIZERS = new InjectionToken<any>({}, "MODULE_INITIALIZERS");
 
 export const ANNOTATIONS = {
+  NAME: '@adi/name',
   NAMED: '@adi/named',
   ORDER: '@adi/order',
   LOCAL_SCOPE: '@adi/local-scope',
@@ -29,7 +29,8 @@ export const NULL_REF = {};
 export const EMPTY_OBJECT = {};
 export const EMPTY_ARRAY = [];
 
-export const CIRCULAR = {
-  ANNOTATION: '$$circular',
-  START_ANNOTATION: '$$startCircular',
+export const SESSION_INTERNAL = {
+  CIRCULAR: '$$circular',
+  START_CIRCULAR: '$$startCircular',
+  ON_INIT_HOOKS: '$$onInitHooks'
 }

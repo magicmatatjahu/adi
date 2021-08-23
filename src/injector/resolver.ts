@@ -5,6 +5,7 @@ import { InjectionStatus } from "../enums";
 import { Wrapper } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
+import { SESSION_INTERNAL } from "../constants";
 
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
@@ -132,8 +133,8 @@ export const InjectorResolver = new class {
     // add flag that resolution session has circular reference. 
     // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
     instance.value = Object.create(proto);
-    session.parent['$$circular'] = session.parent['$$circular'] || true;
-    session.parent['$$startCircular'] = instance.value;
+    session.parent[SESSION_INTERNAL.CIRCULAR] = session.parent[SESSION_INTERNAL.CIRCULAR] || true;
+    session.parent[SESSION_INTERNAL.START_CIRCULAR] = instance;
     return instance.value;
   }
 }
