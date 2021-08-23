@@ -573,7 +573,10 @@ export const NilInjector = new class {
   get(token: Token): never {
     throw new NilInjectorError(token);
   }
-  resolveRecord = this.get;
+  resolveRecord(session: Session) {
+    const token = session.getToken();
+    this.get(token);
+  };
 
   getParentInjector() {
     return null;

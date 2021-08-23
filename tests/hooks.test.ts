@@ -1,4 +1,4 @@
-import { Injector, Injectable, OnInit, OnInitHook, Inject, Scope } from "../src";
+import { Injector, Injectable, OnInit, OnInitHook, Inject, Scope, Delegate, StandaloneOnInit } from "../src";
 
 describe('Hooks', function() {
   describe('onInit', function() {
@@ -213,7 +213,6 @@ describe('Hooks', function() {
         onInitCalls++;
       }
 
-
       @Injectable({
         scope: Scope.TRANSIENT,
         useWrapper: OnInitHook(hook),
@@ -241,6 +240,36 @@ describe('Hooks', function() {
       const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
       expect(onInitCalls).toEqual(6);
+    });
+
+    test('should call hook with dependencies', function() {
+      let checkInit = false;
+
+      const hook: StandaloneOnInit = {
+        onInit(foobar: string, value: Service) {
+          if (foobar === 'foobar' && value instanceof Service) {
+            checkInit = true;
+          } 
+        },
+        inject: ['foobar', Delegate()]
+      }
+
+      @Injectable({
+        useWrapper: OnInitHook(hook),
+      })
+      class Service {}
+  
+      const injector = new Injector([
+        Service,
+        {
+          provide: 'foobar',
+          useValue: 'foobar',
+        }
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+      expect(checkInit).toEqual(true);
     });
   });
 });

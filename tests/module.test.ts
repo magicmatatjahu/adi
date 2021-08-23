@@ -602,6 +602,7 @@ describe('Module', function() {
     const moduleC = injector.select(C);
     const serviceC = moduleC.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
+    expect(serviceC.serviceB).toBeInstanceOf(ServiceB);
   });
 
   test('should handle falsed imports', async function() {

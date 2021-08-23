@@ -4,6 +4,6 @@ export class NilInjectorError extends Error {
   public isNilInjectorError = true;
 
   constructor(token: Token) {
-    super(`NilInjector: No provider for ${(token as any)?.name}!`);
+    super(`NilInjector: No provider for ${(token as any).name ? (token as any).name : token}!`);
   }
 }

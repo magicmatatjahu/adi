@@ -1,4 +1,4 @@
-import { Session } from "../injector";
+import { InjectorResolver, Session } from "../injector";
 import { InstanceRecord, StandaloneOnInit } from "../interfaces";
 import { InjectionStatus } from "../enums";
 import { EMPTY_ARRAY, SESSION_INTERNAL } from "../constants";
@@ -10,9 +10,6 @@ function handleCircular(instance: InstanceRecord, session: Session) {
     instance.status & InjectionStatus.CIRCULAR &&
     session[SESSION_INTERNAL.START_CIRCULAR] === instance
   ) {
-    // merge circular object
-    // Object.assign(instance.value, value);
-  
     const circulars = session[SESSION_INTERNAL.CIRCULAR] as InstanceRecord[];
     for (let i = 0, l = circulars.length; i < l; i++) {
       const circularInstance = circulars[i];
@@ -37,10 +34,22 @@ export function handleOnInit(instance: InstanceRecord, session: Session) {
     handleCircular(instance, session);
   } else if (session.parent?.[SESSION_INTERNAL.CIRCULAR] === undefined) {
     hasOnInitHook(value) && value.onInit();
-    const onInitHooks = session[SESSION_INTERNAL.ON_INIT_HOOKS] as StandaloneOnInit[] || EMPTY_ARRAY;
+    const onInitHooks = (session[SESSION_INTERNAL.ON_INIT_HOOKS] || EMPTY_ARRAY) as StandaloneOnInit[];
     if (onInitHooks.length > 0) {
       for (let i = onInitHooks.length - 1; i > -1; i--) {
-        onInitHooks[i](value);
+        const hook = onInitHooks[i];
+        if (typeof hook === 'function') {
+          hook(value);
+        } else {
+          const factory = InjectorResolver.createFactory(hook.onInit, hook.inject);
+          const newSession = session.copy();
+          // add delegation
+          newSession['$$delegate'] = {
+            type: 'single',
+            values: value,
+          };
+          factory(instance.def.record.host, newSession);
+        }
       }
       delete session[SESSION_INTERNAL.ON_INIT_HOOKS];
     }
