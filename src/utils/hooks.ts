@@ -5,10 +5,10 @@ import { CIRCULAR } from "../constants";
 import { hasOnInitHook } from "../utils";
 
 export function handleOnInit(instance: InstanceRecord, session: Session) {
-  // when resolution chain has circular reference
-  // TODO: optimize it
   const value = instance.value;
+  
   if (session[CIRCULAR.ANNOTATION]) {
+    // when resolution chain has circular reference
     if (
       instance.status & InjectionStatus.CIRCULAR &&
       session[CIRCULAR.START_ANNOTATION] === value

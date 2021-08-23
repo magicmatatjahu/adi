@@ -25,12 +25,6 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
       return value;
     }
   );
-  // const value = next(injector, session);
-  // if (session.hasSideEffect() === false) {
-  //   const metadata = session.getMetadata();
-  //   metadata && cachePerInjector.set(metadata, value);
-  // }
-  // return value;
 }
 
 export const Cache = createWrapper(() => wrapper);

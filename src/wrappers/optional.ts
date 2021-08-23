@@ -11,12 +11,6 @@ function wrapper(defaultValue?: any): WrapperDef {
         throw err;
       }
     );
-    // try {
-    //   return next(injector, session);
-    // } catch(err) {
-    //   if ((err as NilInjectorError).isNilInjectorError) return defaultValue;
-    //   throw err;
-    // }
   }
 }
 

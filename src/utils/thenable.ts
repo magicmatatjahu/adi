@@ -1,6 +1,6 @@
 import { isPromiseLike } from "./guards";
 
-export function thenable<T>(fn: (...args: any[]) => T | Promise<T>, ...args: any[]): PromiseLike<T> {
+export function thenable<T, F extends (...args: any[]) => T | Promise<T>>(fn: F, ...args: Parameters<F>): PromiseLike<T> {
   let result: T | Promise<T>, error: Error | undefined;
   try {
     result = fn(...args);
@@ -41,6 +41,6 @@ export function thenable<T>(fn: (...args: any[]) => T | Promise<T>, ...args: any
   }
 }
 
-export function applyThenable<T>(fn: (...args: any[]) => T | Promise<T>): (...args: any[]) => PromiseLike<T> {
-  return (...args: any[]) => thenable(fn, ...args);
+export function applyThenable<T, F extends (...args: any[]) => T | Promise<T>>(fn: F): (...args: Parameters<F>) => PromiseLike<T> {
+  return (...args: Parameters<F>) => thenable(fn, ...args);
 }

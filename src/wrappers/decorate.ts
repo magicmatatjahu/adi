@@ -34,17 +34,6 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
         return factory(injector, newSession);
       }
     )
-    
-    // const decoratee = next(injector, session);
-
-    // // add delegation
-    // newSession['$$delegate'] = {
-    //   type: 'single',
-    //   values: decoratee,
-    // };
-
-    // // TODO: should the wrappers from wrappers chain be running here?
-    // return factory(injector, newSession);
   }
 }
 

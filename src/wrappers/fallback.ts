@@ -18,16 +18,6 @@ function wrapper(token: Token): WrapperDef {
         throw err;
       }
     );
-    // try {
-    //   return next(injector, session);
-    // } catch(err) {
-    //   if ((err as NilInjectorError).isNilInjectorError) {
-    //     const newSession = new Session(undefined, undefined, undefined, { ...copiedSession.options, token }, copiedSession.meta, copiedSession.parent);
-    //     return injector.get(token, undefined, newSession);
-    //     // return next(injector, newSession);
-    //   }
-    //   throw err;
-    // }
   }
 }
 

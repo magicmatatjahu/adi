@@ -208,7 +208,7 @@ export class Injector {
     return InjectorResolver.handleCircularRefs(instance, session);
   }
 
-  private getRecord<T>(
+  getRecord<T>(
     token: Token<T>,
   ): ProviderRecord {
     let record = this.records.get(token) || this.importedRecords.get(token);

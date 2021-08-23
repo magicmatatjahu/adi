@@ -5,13 +5,13 @@ import { createWrapper } from "../utils";
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   const token = session.getToken();
   let parentInjector = injector.getParentInjector();
-  
+
   // check for treeshakable provider
-  (injector as any).getRecord(token);
+  injector.getRecord(token);
   const ownRecord = (injector as any).records.get(token);
 
   while (parentInjector !== NilInjector) {
-    (parentInjector as any).getRecord(token);
+    parentInjector.getRecord(token);
     if (
       (parentInjector as any).records.get(token) ||
       (parentInjector as any).importedRecords.get(token) !== ownRecord

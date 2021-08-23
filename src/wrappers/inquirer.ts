@@ -6,8 +6,9 @@ function wrapper(injector: Injector, session: Session) {
   if (inquirerSession === undefined) {
     return undefined;
   }
-  const token = inquirerSession.instance?.def.record.token;
+  const token = inquirerSession.instance.def.record.token;
   const newSession = new Session(undefined, undefined, undefined, inquirerSession.options, inquirerSession.meta, session.parent);
+  // Be aware, here is created circular refs between inquirer provider and provider on injection 
   return injector.get(token, undefined, newSession);
 }
 

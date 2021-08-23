@@ -10,8 +10,6 @@ function wrapper(path: string): WrapperDef {
     return thenable(next, injector, session).then(
       value => path.split('.').reduce(index, value)
     );
-    // const value = next(injector, session);
-    // return path.split('.').reduce(index, value);
   }
 }
 

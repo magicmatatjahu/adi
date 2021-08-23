@@ -9,9 +9,6 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
       return value;
     }
   );
-  // const value = next(injector, session);
-  // session.setSideEffect(true);
-  // return value;
 }
 
 export const SideEffects = createWrapper<undefined, false>(() => wrapper);
