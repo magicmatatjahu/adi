@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ref, OnInit } from "../src";
+import { Injector, Injectable, Inject, Ref, OnInit, OnInitHook } from "../src";
 
 describe('Circular refs', function() {
   test('should handle simple case, when one class needs second and vice versa (with onInit hooks to assert proper order of initialization)', function() {
@@ -296,5 +296,61 @@ describe('Circular refs', function() {
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
     expect(service === service.serviceB.serviceA).toEqual(true);
     expect(onInitOrder).toEqual(['ServiceB', 'ServiceA']);
+  });
+
+  test('should handle simple case with multiple onInit hooks', async function() {
+    let onInitOrder = [];
+
+    @Injectable({
+      useWrapper: OnInitHook(_ => {
+        onInitOrder.push('ServiceA useWrapper');
+      }),
+    })
+    class ServiceA {
+      constructor(
+        @Inject(Ref(() => ServiceB, OnInitHook(_ => {
+          onInitOrder.push('ServiceB injection');
+        }))) readonly serviceB: ServiceB,
+      ) {}
+
+      onInit() {
+        // check that serviceB is created and has serviceA property
+        if (Object.keys(this.serviceB).length) {
+          onInitOrder.push('ServiceA');
+        }
+      }
+    }
+
+    @Injectable({
+      useWrapper: OnInitHook(_ => {
+        onInitOrder.push('ServiceB useWrapper');
+      }),
+    })
+    class ServiceB {
+      constructor(
+        @Inject(Ref(() => ServiceA, OnInitHook(_ => {
+          onInitOrder.push('ServiceA injection');
+        }))) readonly serviceA: ServiceA,
+      ) {}
+
+      onInit() {
+        // check that serviceA is created and has serviceB property
+        if (Object.keys(this.serviceA).length) {
+          onInitOrder.push('ServiceB');
+        }
+      }
+    }
+
+    const injector = new Injector([
+      ServiceA,
+      ServiceB,
+    ]);
+
+    const service = await injector.getAsync(ServiceA);
+    expect(service).toBeInstanceOf(ServiceA);
+    expect(service.serviceB).toBeInstanceOf(ServiceB);
+    expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
+    expect(service === service.serviceB.serviceA).toEqual(true);
+    expect(onInitOrder).toEqual(['ServiceB', 'ServiceB useWrapper', 'ServiceB injection', 'ServiceA', 'ServiceA useWrapper']);
   });
 });
