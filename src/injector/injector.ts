@@ -173,29 +173,27 @@ export class Injector {
       return instance.value;
     }
 
-    if (instance.status === InjectionStatus.UNKNOWN) {
-      instance.status |= InjectionStatus.PENDING;
-
-      return thenable(
-        () => def.factory(record.host, session) as T,
-        value => {
-          if (instance.status & InjectionStatus.CIRCULAR) {
-            // merge of instance is done in OnInitHook wrapper
-            Object.assign(instance.value, value);
-          } else {
-            instance.value = value;
-          }
-
-          handleOnInit(instance, session);
-  
-          instance.status |= InjectionStatus.RESOLVED;
-          return instance.value;
-        }
-      ) as unknown as T;;
+    if (instance.status > InjectionStatus.UNKNOWN) {
+      // Circular case
+      return InjectorResolver.handleCircularRefs(instance, session);
     }
 
-    // Circular case
-    return InjectorResolver.handleCircularRefs(instance, session);
+    instance.status |= InjectionStatus.PENDING;
+    return thenable(
+      () => def.factory(record.host, session) as T,
+      value => {
+        if (instance.status & InjectionStatus.CIRCULAR) {
+          Object.assign(instance.value, value);
+        } else {
+          instance.value = value;
+        }
+
+        handleOnInit(instance, session);
+
+        instance.status |= InjectionStatus.RESOLVED;
+        return instance.value;
+      }
+    ) as unknown as T;
   }
 
   getRecord<T>(

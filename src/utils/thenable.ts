@@ -1,11 +1,12 @@
 import { isPromiseLike } from "./guards";
 
-const noopError = (err: unknown) => { throw err; }
+const noopThen = <T>(value: T) => { return value; }
+const noopCatch = (err: unknown) => { throw err; }
 
 export function thenable<T>(
   action: () => T,
-  thenAction: (value: T) => T | never,
-  catchAction: (err: unknown) => T | never = noopError,
+  thenAction: (value: T) => T | never = noopThen,
+  catchAction: (err: unknown) => T | never = noopCatch,
 ) {
   let result: T | never;
   try {

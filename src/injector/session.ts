@@ -131,6 +131,8 @@ export class Session<T = any> {
     return newSession;
   }
 
+  fork = this.copy;
+
   retrieveDeepMeta(key: string) {
     let tempSession: Session = this;
     while (tempSession.hasOwnProperty(key) === false && tempSession.parent) {

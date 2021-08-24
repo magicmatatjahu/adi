@@ -10,7 +10,11 @@ import { Scope } from "./index";
 export interface LocalScopeOptions {
   toToken?: Token | ForwardRef;
   toScope?: string | symbol;
-  toAnnotation?: string | symbol;
+  customAnnotation?: string | symbol;
+  /**
+   * 1 - nearest
+   * Number.POSITIVE_INFINITY - farthest
+   */
   depth?: 'nearest' | 'farthest' | number;
   reuseContext?: boolean;
 }
@@ -18,7 +22,7 @@ export interface LocalScopeOptions {
 const defaultOptions: LocalScopeOptions = {
   toToken: undefined,
   toScope: undefined,
-  toAnnotation: undefined,
+  customAnnotation: undefined,
   depth: 'nearest',
   reuseContext: true,
 }
@@ -46,7 +50,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     const depth = options.depth || 'nearest';
     const toToken = resolveRef(options.toToken) as Token;
     const toScope = options.toScope;
-    const toAnnotation = options.toAnnotation || ANNOTATIONS.LOCAL_SCOPE;
+    const toAnnotation = options.customAnnotation || ANNOTATIONS.LOCAL_SCOPE;
     if (depth === 'nearest') {
       instance = this.retrieveInstanceByDepth(parent, 1, toToken, toScope, toAnnotation);
     } else if (depth === 'farthest') {

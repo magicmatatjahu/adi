@@ -382,7 +382,7 @@ describe('Instance scope', function () {
         kind: Scope.LOCAL,
         options: {
           toScope: 'test',
-          toAnnotation: '@test/annotation'
+          customAnnotation: '@test/annotation'
         }
       }
     })
