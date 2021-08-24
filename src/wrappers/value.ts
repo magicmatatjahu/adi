@@ -1,20 +1,23 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
 
+function getDeepValue(value: object, props: string[]) {
+  let result = value;
+  for (const p of props) {
+    if (result === null || result === undefined) {
+      return result;
+    }
+    result = result[p];
+  }
+  return result;
+}
+
 function wrapper(path: string): WrapperDef {
+  const props = path.split('.').filter(Boolean);
   return (injector, session, next) => {
-    return thenable(next, injector, session).then(
-      value => {
-        let result = value;
-        const props = path.split('.').filter(Boolean);
-        for (const p of props) {
-          if (result === null || result === undefined) {
-            return result;
-          }
-          result = result[p];
-        }
-        return result;
-      }
+    return thenable(
+      () => next(injector, session),
+      value => getDeepValue(value, props),
     );
   }
 }

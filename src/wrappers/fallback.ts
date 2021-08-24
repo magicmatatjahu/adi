@@ -7,7 +7,8 @@ import { createWrapper, thenable } from "../utils";
 function wrapper(token: Token): WrapperDef {
   return (injector, session, next) => {
     const copiedSession = session.copy();
-    return thenable(next, injector, session).then(
+    return thenable(
+      () => next(injector, session),
       val => val,
       err => {
         if ((err as NilInjectorError).isNilInjectorError) {

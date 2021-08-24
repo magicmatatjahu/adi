@@ -57,4 +57,20 @@ describe('Optional wrapper', function () {
     const service = injector.get(Service) as Service;
     expect(service.service).toEqual('testService');
   });
+
+  test('should works in async resolution', async function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Optional()) readonly service: string = 'defaultValue'
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+    ]);
+
+    const service = await injector.getAsync(Service);
+    expect(service.service).toEqual('defaultValue');
+  });
 });

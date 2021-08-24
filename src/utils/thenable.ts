@@ -1,46 +1,20 @@
 import { isPromiseLike } from "./guards";
 
-export function thenable<T, F extends (...args: any[]) => T | Promise<T>>(fn: F, ...args: Parameters<F>): PromiseLike<T> {
-  let result: T | Promise<T>, error: Error | undefined;
+const noopError = (err: unknown) => { throw err; }
+
+export function thenable<T>(
+  action: () => T,
+  thenAction: (value: T) => T | never,
+  catchAction: (err: unknown) => T | never = noopError,
+) {
+  let result: T | never;
   try {
-    result = fn(...args);
+    result = action();
   } catch(err) {
-    // it's needed only in sync resolution
-    error = err;
+    result = catchAction(err);
   }
-
   if (isPromiseLike(result)) {
-    return result as PromiseLike<T>;
+    return result.then(thenAction, catchAction);
   }
-
-  return {
-    then<TResult1 = T, TResult2 = never>(
-      onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null,
-      onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null,
-    ): PromiseLike<TResult1 | TResult2> {
-      if (error !== undefined) {
-        if (typeof onrejected === 'function') {
-          return onrejected(error) as PromiseLike<TResult1 | TResult2>;
-        } else {
-          throw error;
-        }
-      }
-      try {
-        if (typeof onfulfilled === 'function') {
-          return onfulfilled(result as T) as PromiseLike<TResult1 | TResult2>;
-        }
-        return onfulfilled;
-      } catch(err) {
-        if (typeof onrejected === 'function') {
-          return onrejected(err) as PromiseLike<TResult1 | TResult2>;
-        } else {
-          throw err;
-        }
-      }
-    }
-  }
-}
-
-export function applyThenable<T, F extends (...args: any[]) => T | Promise<T>>(fn: F): (...args: Parameters<F>) => PromiseLike<T> {
-  return (...args: Parameters<F>) => thenable(fn, ...args);
+  return thenAction(result);
 }

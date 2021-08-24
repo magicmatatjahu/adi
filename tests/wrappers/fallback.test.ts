@@ -71,7 +71,7 @@ describe('Fallback wrapper', function () {
     }
 
     expect(service === undefined).toEqual(true);
-    expect(err !== undefined).toEqual(true);
+    expect(err === undefined).toEqual(false);
   });
 
   test('should works in definition based useWrapper', function () {
@@ -90,5 +90,28 @@ describe('Fallback wrapper', function () {
 
     const service = injector.get(Service) as Service;
     expect(service).toEqual("foobar");
+  });
+
+  test('should works in async resolution', async function () {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Fallback("token")) readonly service: TestService
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useValue: "foobar"
+      }
+    ]);
+
+    const service = await injector.getAsync(Service);
+    expect(service.service).toEqual("foobar");
   });
 });

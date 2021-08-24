@@ -24,6 +24,7 @@ function createHandler<T>(delayedObject: () => T): ProxyHandler<object> {
   const install = (name: keyof ProxyHandler<any>): void => {
     handler[name] = (...args: any[]) => {
       // methods are called after resolution due to problem in Cache wrapper (checking if value has `then` function in the `thenable` util) - skip for that below trap
+      // TODO: change it
       if (name === 'get' && args[1] === 'then') {
         return;
       }

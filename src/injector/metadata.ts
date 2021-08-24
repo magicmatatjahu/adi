@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, applyThenable } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
@@ -51,7 +51,7 @@ export const InjectorMetadata = new class {
     }
 
     const record = this.getRecord(provider, host);
-    record.addDefinition(applyThenable(provDef.factory), this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+    record.addDefinition(provDef.factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -106,7 +106,7 @@ export const InjectorMetadata = new class {
       }
     }
 
-    record.addDefinition(applyThenable(factory), scope, constraint, wrapper, annotations, proto);
+    record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
     return record;
   }
 

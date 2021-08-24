@@ -8,7 +8,7 @@ import {
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
-import { resolveRef, handleOnInit } from "../utils";
+import { resolveRef, handleOnInit, thenable } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
 
 import { InjectorMetadata } from "./metadata";
@@ -176,18 +176,8 @@ export class Injector {
     if (instance.status === InjectionStatus.UNKNOWN) {
       instance.status |= InjectionStatus.PENDING;
 
-      // const value = def.factory(record.host, session) as T;
-      // if (instance.status & InjectionStatus.CIRCULAR) {
-      //   // merge of instance is done in OnInitHook wrapper
-      //   Object.assign(instance.value, value);
-      // } else {
-      //   instance.value = value;
-      // }
-
-      // instance.status |= InjectionStatus.RESOLVED;
-      // return instance.value;
-
-      return (def.factory(record.host, session) as PromiseLike<T>).then(
+      return thenable(
+        () => def.factory(record.host, session) as T,
         value => {
           if (instance.status & InjectionStatus.CIRCULAR) {
             // merge of instance is done in OnInitHook wrapper
@@ -201,7 +191,7 @@ export class Injector {
           instance.status |= InjectionStatus.RESOLVED;
           return instance.value;
         }
-      ) as unknown as T;
+      ) as unknown as T;;
     }
 
     // Circular case
@@ -569,10 +559,8 @@ export const NilInjector = new class {
     throw new NilInjectorError(token);
   }
   resolveRecord(session: Session) {
-    const token = session.getToken();
-    this.get(token);
+    this.get(session.getToken());
   };
-
   getParentInjector() {
     return null;
   }
