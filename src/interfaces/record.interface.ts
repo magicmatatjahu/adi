@@ -29,6 +29,9 @@ export interface InstanceRecord<T = any> {
   value: T;
   status: InjectionStatus;
   def: DefinitionRecord;
+  // for pararell resolution
+  donePromise: Promise<T>;
+  doneResolve: (value: T) => void;
   // // what is injected to instance
   // children: Set<InstanceRecord>;
   // // where instance is injected

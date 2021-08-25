@@ -8,9 +8,8 @@ import {
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { EMPTY_ARRAY, EMPTY_OBJECT, NULL_REF, STATIC_CONTEXT } from "../constants";
+import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
 
-import { NilInjector } from "./injector";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 

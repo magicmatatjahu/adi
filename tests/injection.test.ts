@@ -47,7 +47,7 @@ describe('Injection', function() {
     @Injectable()
     class TestService {
       constructor(
-        @Inject(Token) readonly asyncProvider: Promise<string>,
+        @Inject(Token) readonly asyncProvider: string,
       ) {}
     }
 
@@ -80,13 +80,55 @@ describe('Injection', function() {
     expect(service.testService.asyncProvider).toEqual('test value');
   });
 
+  test('should works in async mode - injection properties case', async function() {
+    const Token = new InjectionToken<string>();
+
+    @Injectable()
+    class DeepTestService {
+      @Inject(Token) readonly asyncProvider: string;
+    }
+
+    @Injectable()
+    class TestService {
+      @Inject() readonly deepTestService: DeepTestService;
+    }
+
+    @Injectable()
+    class Service {
+      @Inject() readonly testService: TestService;
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+      DeepTestService,
+      {
+        provide: Token,
+        useFactory: async (value: string) => {
+          return value;
+        },
+        inject: ['value'],
+      },
+      {
+        provide: 'value',
+        useFactory: async () => 'test value',
+      },
+    ]);
+  
+    const service = await injector.getAsync(Service);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.testService).toBeInstanceOf(TestService);
+    expect(service.testService.deepTestService).toBeInstanceOf(DeepTestService);
+    expect(service.testService.deepTestService.asyncProvider).toEqual('test value');
+  });
+
   test('should works in async mode - deep case', async function() {
     const Token = new InjectionToken<string>();
 
     @Injectable()
     class DeepTestService {
       constructor(
-        @Inject(Token) readonly asyncProvider: Promise<string>,
+        @Inject(Token) readonly asyncProvider: string,
       ) {}
     }
 

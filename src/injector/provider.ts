@@ -29,6 +29,8 @@ export class ProviderRecord<T = any> {
         value: undefined,
         def,
         status: InjectionStatus.UNKNOWN,
+        donePromise: undefined,
+        doneResolve: undefined,
         // scope,
         // scopeOptions,
         // children: new Set(),

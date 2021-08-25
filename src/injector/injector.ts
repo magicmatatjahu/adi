@@ -173,9 +173,9 @@ export class Injector {
       return instance.value;
     }
 
+    // parallel or circular injection
     if (instance.status > InjectionStatus.UNKNOWN) {
-      // Circular case
-      return InjectorResolver.handleCircularRefs(instance, session);
+      return InjectorResolver.handleParallelInjection(instance, session) as T;
     }
 
     instance.status |= InjectionStatus.PENDING;
@@ -183,7 +183,7 @@ export class Injector {
       () => def.factory(record.host, session) as T,
       value => {
         if (instance.status & InjectionStatus.CIRCULAR) {
-          Object.assign(instance.value, value);
+          value = Object.assign(instance.value, value);
         } else {
           instance.value = value;
         }
@@ -191,6 +191,7 @@ export class Injector {
         handleOnInit(instance, session);
 
         instance.status |= InjectionStatus.RESOLVED;
+        instance.doneResolve && instance.doneResolve(value);
         return instance.value;
       }
     ) as unknown as T;
