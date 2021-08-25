@@ -17,7 +17,7 @@ describe('Skip wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toEqual(undefined);
   });
 });

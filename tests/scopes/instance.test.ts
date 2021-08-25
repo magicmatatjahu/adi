@@ -20,7 +20,7 @@ describe('Instance scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -49,7 +49,7 @@ describe('Instance scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -84,7 +84,7 @@ describe('Instance scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
@@ -126,7 +126,7 @@ describe('Instance scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
@@ -162,7 +162,7 @@ describe('Instance scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.singletonService).toBeInstanceOf(TestService);
     expect(service.service === service.singletonService).toEqual(false);

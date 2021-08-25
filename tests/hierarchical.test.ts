@@ -10,7 +10,7 @@ describe('Hierarchical injectors', function() {
     ]);
     const childInjector = new Injector([], parentInjector);
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 });

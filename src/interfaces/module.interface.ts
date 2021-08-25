@@ -36,6 +36,15 @@ export interface CompiledModule {
   isFacade: boolean;
 }
 
+export interface CompiledModule2 {
+  type: Type;
+  moduleDef: ModuleDef;
+  dynamicDef: DynamicModule;
+  injector: Injector;
+  exportTo: Injector;
+  isProxy: boolean;
+}
+
 export interface ExportedModule {
   module: Type;
   id?: ModuleID; 

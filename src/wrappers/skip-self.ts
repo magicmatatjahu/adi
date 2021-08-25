@@ -4,7 +4,7 @@ import { createWrapper } from "../utils";
 
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   const token = session.getToken();
-  let parentInjector = injector.getParentInjector();
+  let parentInjector = injector.getParent();
 
   // check for treeshakable provider
   injector.getRecord(token);
@@ -18,7 +18,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     ) {
       return next(parentInjector, session);
     }
-    parentInjector = parentInjector.getParentInjector();
+    parentInjector = parentInjector.getParent();
   }
   return next(NilInjector, session);
 }

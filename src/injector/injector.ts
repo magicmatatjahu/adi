@@ -5,7 +5,7 @@ import {
   Provider, ProviderDef, Type, ForwardRef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
-import { INJECTOR_SCOPE, MODULE_INITIALIZERS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
+import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
@@ -60,7 +60,7 @@ export class Injector {
   /**
    * INJECTOR
    */
-  getParentInjector(): Injector {
+  getParent(): Injector {
     return this.parent;
   }
 
@@ -298,7 +298,7 @@ export class Injector {
   /**
    * EXPORTS
    */
-  private processExports(exps: Array<
+  processExports(exps: Array<
     | Token
     | Provider
     | ExportedModule
@@ -481,7 +481,7 @@ export class Injector {
     // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
     this.configureScope();
 
-    const initializers = (await this.get(MODULE_INITIALIZERS, Optional(Self()))) || [];
+    const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
     let initializer = undefined;
     for (let i = 0, l = initializers.length; i < l; i++) {
       if (typeof (initializer = initializers[i]) === "function") {
@@ -517,7 +517,7 @@ export class Injector {
       }
     }
 
-    let parentInjector = injector.getParentInjector();
+    let parentInjector = injector.getParent();
     // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
     while (parentInjector !== NilInjector) {
       // TODO: Check this statement - maybe it's needed
@@ -533,7 +533,7 @@ export class Injector {
           return foundedModule as Injector;
         }
       }
-      parentInjector = parentInjector.getParentInjector();
+      parentInjector = parentInjector.getParent();
     }
     return undefined;
   }

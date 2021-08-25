@@ -23,7 +23,7 @@ describe('SkipSelf wrapper', function () {
       },
     ], parentInjector);
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.get(Service) ;
     expect(service.useValue).toEqual('foobar');
   });
 
@@ -44,7 +44,7 @@ describe('SkipSelf wrapper', function () {
       },
     ], parentInjector);
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.get(Service) ;
     expect(service.useValue).toEqual(undefined);
   });
 });

@@ -9,6 +9,8 @@ import {
   OnInit,
   OnDestroy,
   WrapperDef,
+  DynamicModule,
+  Type,
 } from "../interfaces";
 import { Wrapper } from "./wrappers";
 
@@ -35,6 +37,10 @@ export function hasWrapperProvider(provider: unknown): provider is WrapperProvid
 
 export function isWrapper(wrapper: unknown): wrapper is Wrapper {
   return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
+}
+
+export function isDynamicModule(module: Type | DynamicModule): module is DynamicModule {
+  return typeof (module as DynamicModule).module === 'function';
 }
 
 export function hasOnInitHook(instance: unknown): instance is OnInit {

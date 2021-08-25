@@ -28,9 +28,9 @@ describe('Cacheable wrapper', function () {
       TestService,
     ]);
 
-    const service1 = injector.get(Service) as Service;
-    const service2 = injector.get(Service) as Service;
-    const service3 = injector.get(Service) as Service;
+    const service1 = injector.get(Service) ;
+    const service2 = injector.get(Service) ;
+    const service3 = injector.get(Service) ;
 
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service1.service).toEqual(service2.service);
@@ -65,9 +65,9 @@ describe('Cacheable wrapper', function () {
       TestService,
     ]);
 
-    const service1 = injector.get(Service) as Service;
-    const service2 = injector.get(Service) as Service;
-    const service3 = injector.get(Service) as Service;
+    const service1 = injector.get(Service) ;
+    const service2 = injector.get(Service) ;
+    const service3 = injector.get(Service) ;
 
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service1.service === service2.service).toEqual(false);
@@ -107,12 +107,12 @@ describe('Cacheable wrapper', function () {
       TestService,
     ]);
 
-    const service1 = injector1.get(Service) as Service;
-    injector1.get(Service) as Service;
-    injector1.get(Service) as Service;
-    const service2 = injector2.get(Service) as Service;
-    injector2.get(Service) as Service;
-    injector2.get(Service) as Service;
+    const service1 = injector1.get(Service) ;
+    injector1.get(Service) ;
+    injector1.get(Service) ;
+    const service2 = injector2.get(Service) ;
+    injector2.get(Service) ;
+    injector2.get(Service) ;
 
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service2.service).toBeInstanceOf(TestService);
@@ -151,12 +151,12 @@ describe('Cacheable wrapper', function () {
       TestService,
     ]);
 
-    const service1 = injector1.get(Service) as Service;
-    injector1.get(Service) as Service;
-    injector1.get(Service) as Service;
-    const service2 = injector2.get(Service) as Service;
-    injector2.get(Service) as Service;
-    injector2.get(Service) as Service;
+    const service1 = injector1.get(Service) ;
+    injector1.get(Service) ;
+    injector1.get(Service) ;
+    const service2 = injector2.get(Service) ;
+    injector2.get(Service) ;
+    injector2.get(Service) ;
 
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service2.service).toBeInstanceOf(TestService);
@@ -195,12 +195,12 @@ describe('Cacheable wrapper', function () {
       TestService,
     ], parentInjector);
 
-    const parentService = parentInjector.get(Service) as Service;
-    parentInjector.get(Service) as Service;
-    parentInjector.get(Service) as Service;
-    const childService = childInjector.get(Service) as Service;
-    childInjector.get(Service) as Service;
-    childInjector.get(Service) as Service;
+    const parentService = parentInjector.get(Service) ;
+    parentInjector.get(Service) ;
+    parentInjector.get(Service) ;
+    const childService = childInjector.get(Service) ;
+    childInjector.get(Service) ;
+    childInjector.get(Service) ;
 
     expect(parentService.service).toBeInstanceOf(TestService);
     expect(childService.service).toBeInstanceOf(TestService);
@@ -239,12 +239,12 @@ describe('Cacheable wrapper', function () {
       TestService,
     ], parentInjector);
 
-    const parentService = parentInjector.get(Service) as Service;
-    const parentService2 = parentInjector.get(Service) as Service;
-    const parentService3 = parentInjector.get(Service) as Service;
-    const childService = childInjector.get(Service) as Service;
-    const childService2 = childInjector.get(Service) as Service;
-    const childService3 = childInjector.get(Service) as Service;
+    const parentService = parentInjector.get(Service) ;
+    const parentService2 = parentInjector.get(Service) ;
+    const parentService3 = parentInjector.get(Service) ;
+    const childService = childInjector.get(Service) ;
+    const childService2 = childInjector.get(Service) ;
+    const childService3 = childInjector.get(Service) ;
 
     expect(parentService.service).toBeInstanceOf(TestService);
     expect(childService.service).toBeInstanceOf(TestService);

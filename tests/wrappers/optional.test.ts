@@ -16,7 +16,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toEqual(undefined);
   });
 
@@ -35,7 +35,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toEqual('testService');
   });
 
@@ -54,7 +54,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toEqual('testService');
   });
 

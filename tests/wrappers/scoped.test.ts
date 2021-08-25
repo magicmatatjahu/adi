@@ -19,7 +19,7 @@ describe('Scoped wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);
@@ -48,7 +48,7 @@ describe('Scoped wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.localService1).toBeInstanceOf(TestService);
     expect(service.localService2).toBeInstanceOf(TestService);
     expect(service.newService).toBeInstanceOf(TestService);

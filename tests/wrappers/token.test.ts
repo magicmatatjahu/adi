@@ -18,7 +18,7 @@ describe('Token wrapper', function() {
       Service,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });
@@ -39,7 +39,7 @@ describe('Token wrapper', function() {
       Service,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });

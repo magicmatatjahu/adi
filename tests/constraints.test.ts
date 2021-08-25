@@ -111,7 +111,7 @@ describe('Constraint', function() {
     });
   });
 
-  test('should works with hierarchical wrappers', function () {
+  test('should works with hierarchical injectors', function () {
     const parentInjector = new Injector([
       {
         provide: 'foobar',

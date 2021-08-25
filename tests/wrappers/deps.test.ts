@@ -33,7 +33,7 @@ describe('Deps wrapper', function () {
       }
     ]);
 
-    // const service = injector.get(Service) as Service;
+    // const service = injector.get(Service) ;
     // expect(service.service1).toBeInstanceOf(TestService);
   });
 });

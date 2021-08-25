@@ -308,9 +308,7 @@ describe('Circular refs', function() {
     })
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB, OnInitHook(_ => {
-          onInitOrder.push('ServiceB injection');
-        }))) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
 
       onInit() {
@@ -328,9 +326,7 @@ describe('Circular refs', function() {
     })
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA, OnInitHook(_ => {
-          onInitOrder.push('ServiceA injection');
-        }))) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
       ) {}
 
       onInit() {
@@ -351,6 +347,6 @@ describe('Circular refs', function() {
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
     expect(service === service.serviceB.serviceA).toEqual(true);
-    expect(onInitOrder).toEqual(['ServiceB', 'ServiceB useWrapper', 'ServiceB injection', 'ServiceA', 'ServiceA useWrapper']);
+    expect(onInitOrder).toEqual(['ServiceB', 'ServiceB useWrapper', 'ServiceA', 'ServiceA useWrapper']);
   });
 });

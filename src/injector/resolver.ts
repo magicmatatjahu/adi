@@ -110,8 +110,9 @@ export const InjectorResolver = new class {
   createFactory(
     factory: Function,
     deps: Array<Token | Wrapper>,
+    options?: { cache: boolean },
   ) {
-    const convertedDeps = InjectorMetadata.convertDependencies(deps, factory);
+    const convertedDeps = InjectorMetadata.convertDependencies(deps, factory, options);
     return (injector: Injector, session: Session) => {
       if (session.isAsync() === true) {
         return this.injectDepsAsync(convertedDeps, injector, session).then(args => factory(...args));

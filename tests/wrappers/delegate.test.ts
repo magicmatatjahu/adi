@@ -26,7 +26,7 @@ describe('Delegate wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.service).toBeInstanceOf(TestService);
     expect(called).toEqual(true);
   });

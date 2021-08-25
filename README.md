@@ -19,3 +19,6 @@
 - Implement the `onDestroy` hook
 - Create `Facade` wrapper to support case written in the https://github.com/inversify/InversifyJS/issues/1156 issue
 - Handle onInit chain in the circular reference case
+- Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
+- Handle useWrappers in the definition (currently they are evaluated each time for instance, even for singleton). For appropriate instance it should evaluates only one time.
+- Override injectable options in the `useClass` provider case

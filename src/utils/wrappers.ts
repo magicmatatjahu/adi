@@ -55,3 +55,14 @@ export function runArrayOfWrappers<T>(wrappers: Wrapper[], injector: Injector, s
   }
   return nextWrappers()(injector, session) as T;
 }
+
+export function copyWrappers(wrapper: Wrapper): Wrapper {
+  const newWrapper = wrapper ? { ...wrapper } : undefined;
+  if (newWrapper) {
+    newWrapper.next = copyWrappers(wrapper.next);
+    if (newWrapper.next && newWrapper.next.prev) {
+      (newWrapper.next.prev = newWrapper);
+    }
+  }
+  return newWrapper;
+}

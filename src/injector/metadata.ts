@@ -8,14 +8,15 @@ import {
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
+import { EMPTY_ARRAY, EMPTY_OBJECT, NULL_REF, STATIC_CONTEXT } from "../constants";
 
 import { NilInjector } from "./injector";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
-import { Wrapper } from "../utils/wrappers";
+import { copyWrappers, Wrapper } from "../utils/wrappers";
 import { Cache } from "../wrappers/cache";
+import { UseExisting } from "../wrappers/internal";
 
 export const InjectorMetadata = new class {
   /**
@@ -61,49 +62,52 @@ export const InjectorMetadata = new class {
     host: Injector,
   ): ProviderRecord {
     const record = this.getRecord(token, host);
+    const constraint = provider.when;
     let factory: FactoryDef = undefined,
+      wrapper: Wrapper = undefined,
       scope: ScopeShape = this.getScopeShape((provider as any).scope),
       annotations: Record<string | symbol, any> = provider.annotations || EMPTY_OBJECT,
       proto = undefined;
 
+    if (hasWrapperProvider(provider)) {
+      wrapper = provider.useWrapper;
+    }
+
     if (isFactoryProvider(provider)) {
-      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY);
+      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY, { cache: true });
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
       const aliasProvider = provider.useExisting;
-      let changed = false;
-      factory = (injector: Injector, session?: Session) => {
-        // TODO: Improve that
-        // change record from useExisting provider to record pointed by useExisting token
-        if (changed === false) {
-          const deepRecord = this.retrieveDeepRecord(aliasProvider, injector);
-          if (deepRecord !== undefined) {
-            // it won't work with Multi wrapper
-            (injector as any).records.set(provider.provide, deepRecord);
-            changed = true;
-          }
+      // copy wrapper and add to the end the new one 
+      if (wrapper) {
+        wrapper = copyWrappers(wrapper);
+        while (wrapper.next) {
+          wrapper = wrapper.next;
         }
-        return InjectorResolver.inject(injector, aliasProvider, undefined, session.meta, session);
+        wrapper.next = UseExisting(aliasProvider);
+        wrapper.next.prev = wrapper.next;
+      } else {
+        wrapper = UseExisting(aliasProvider);
       }
+      factory = () => {};
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
       factory = InjectorResolver.createProviderFactory(classRef, providerDef);
-      scope = scope || this.getScopeShape(providerDef.scope);
       proto = classRef;
+
+      // override scope if can be overrided
+      const targetScope = this.getScopeShape(providerDef.options?.scope);
+      if (targetScope && targetScope.kind.canBeOverrided() === false) {
+        scope = targetScope;
+      }
     }
 
-    const constraint = provider.when;
-    let wrapper = undefined;
-    if (hasWrapperProvider(provider)) {
-      wrapper = provider.useWrapper;
-
-      // case with standalone `useWrapper`
-      if (factory === undefined) {
-        record.addWrapper(wrapper, constraint, annotations);
-        return record;
-      }
+    // case with standalone `useWrapper`
+    if (factory === undefined && wrapper !== undefined) {
+      record.addWrapper(wrapper, constraint, annotations);
+      return record;
     }
 
     record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
@@ -219,12 +223,12 @@ export const InjectorMetadata = new class {
     return providerDef.factory;
   }
 
-  convertDependencies(deps: Array<Token | Wrapper>, factory: Function): InjectionArgument[] {
+  convertDependencies(deps: Array<Token | Wrapper>, factory: Function, options: { cache: boolean } = { cache: false }): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
       if (isWrapper(dep)) {
-        converted.push(createInjectionArg(undefined, Cache(dep), factory, undefined, i));
+        converted.push(createInjectionArg(undefined, options.cache ? Cache(dep) : dep, factory, undefined, i));
       } else {
         converted.push(createInjectionArg(dep, undefined, factory, undefined, i));
       }
@@ -238,12 +242,12 @@ export const InjectorMetadata = new class {
       return record;
     }
 
-    let parentInjector = injector.getParentInjector();
+    let parentInjector = injector.getParent();
     while (parentInjector !== NilInjector) {
       if (record = (parentInjector as any).getRecord(token)) {
         return record;
       }
-      parentInjector = parentInjector.getParentInjector();
+      parentInjector = parentInjector.getParent();
     }
     return record;
   }

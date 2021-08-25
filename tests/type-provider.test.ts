@@ -35,8 +35,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    // TODO: Don;t return promise from get
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -67,8 +66,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    // TODO: Don;t return promise from get
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -105,8 +103,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    // TODO: Don;t return promise from get
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -149,8 +146,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    // TODO: Don;t return promise from get
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -180,7 +176,7 @@ describe('Type provider (injectable provider)', function() {
       }
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
     expect(service.method()).toEqual(['stringArg', 'stringArg', 2137]);
   });
 
@@ -209,7 +205,7 @@ describe('Type provider (injectable provider)', function() {
       }
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
     expect(service.method()).toEqual(['foobar', 'stringArg', 2137]);
   });
 

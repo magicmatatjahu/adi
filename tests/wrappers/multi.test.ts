@@ -32,7 +32,7 @@ describe('Multi wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -63,7 +63,7 @@ describe('Multi wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -100,7 +100,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.multi).toEqual(['multi1', 'multi3']);
   });
 
@@ -134,7 +134,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service) ;
     expect(service.multi).toEqual(['multi1', 'multi2']);
   });
 });

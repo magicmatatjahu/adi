@@ -15,7 +15,7 @@ describe('Module', function() {
 
     const injector = await new Injector(MainModule).compile();
 
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -101,25 +101,6 @@ describe('Module', function() {
     const injector = await new Injector(MainModule).compile();
     expect(injector).toBeInstanceOf(Injector);
   });
-
-  // test('should call MODULE_INITIALIZERS on init', async function() {
-  //   @Module({
-  //     providers: [
-  //       {
-  //         provide: MODULE_INITIALIZERS,
-  //         useValue: 1,
-  //       },
-  //       {
-  //         provide: MODULE_INITIALIZERS,
-  //         useValue: 2,
-  //       }
-  //     ],
-  //   })
-  //   class MainModule {}
-
-  //   const injector = await new Injector(MainModule).compile();
-  //   expect(injector).toBeInstanceOf(Injector);
-  // });
 
   test('should resolve simple modules graph', async function() {
     @Module()
@@ -633,7 +614,7 @@ describe('Module', function() {
 
     const injector = await new Injector(A).compile();
     const moduleB = injector.select(B);
-    const service = moduleB.get(ServiceB) as ServiceB;
+    const service = moduleB.get(ServiceB);
     expect(service).toBeInstanceOf(ServiceB);
   });
 
@@ -647,7 +628,7 @@ describe('Module', function() {
     class Service {}
 
     const injector = await new Injector(A).compile();
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -668,7 +649,7 @@ describe('Module', function() {
     class A {}
 
     const injector = await new Injector(A).compile();
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -689,7 +670,7 @@ describe('Module', function() {
     class A {}
 
     const injector = await new Injector(A).compile();
-    const service = injector.get(Service) as Service;
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
