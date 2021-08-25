@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject } from "../src";
+import { Injector, Injectable, Inject } from "../../src";
 
 describe('Inheritance', function() {
   test('should use parent arguments', function() {

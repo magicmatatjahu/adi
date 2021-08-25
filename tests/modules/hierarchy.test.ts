@@ -1,78 +1,7 @@
-import { Injector, Injectable, Component, Module, MODULE_INITIALIZERS, INJECTOR_SCOPE } from "../src";
-import { ref } from "../src/utils";
+import { Injector, Injectable, Module } from "../../src";
+import { ref } from "../../src/utils";
 
-describe('Module', function() {
-  test('should be able to create injector from module', async function() {
-    @Injectable()
-    class Service {}
-
-    @Module({
-      providers: [
-        Service,
-      ]
-    })
-    class MainModule {}
-
-    const injector = await new Injector(MainModule).compile();
-
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-  });
-
-  test('should inject given providers in constructor', async function() {
-    @Injectable()
-    class Service {}
-
-    let createdService: Service = undefined;
-
-    @Module({
-      providers: [
-        Service,
-      ]
-    })
-    class MainModule {
-      constructor(
-        readonly service: Service,
-      ) {
-        createdService = service;
-      }
-    }
-
-    const _ = await new Injector(MainModule).compile();
-    expect(createdService).toBeInstanceOf(Service);
-  });
-
-  test('should be able to create components', async function() {
-    @Injectable()
-    class Service {}
-
-    @Component()
-    class Controller {
-      constructor(
-        readonly service: Service,
-      ) {}
-    }
-
-    @Module({
-      components: [
-        Controller,
-      ],
-      providers: [
-        Service,
-      ],
-    })
-    class MainModule {
-      constructor(
-        readonly service: Service,
-      ) {}
-    }
-
-    const injector = await new Injector(MainModule).compile();
-    const component = injector.getComponent(Controller) as Controller;
-    expect(component).toBeInstanceOf(Controller);
-    expect(component.service).toBeInstanceOf(Service);
-  });
-
+describe('Module hierarchy', function() {
   test('should be able to imports another modules', async function() {
     @Injectable()
     class Service {}
@@ -580,7 +509,7 @@ describe('Module', function() {
     class A {}
 
     const injector = await new Injector(A).compile();
-    const moduleC = injector.select(C);
+    const moduleC = injector.selectChild(C);
     const serviceC = moduleC.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
     expect(serviceC.serviceB).toBeInstanceOf(ServiceB);
@@ -613,90 +542,8 @@ describe('Module', function() {
     class A {}
 
     const injector = await new Injector(A).compile();
-    const moduleB = injector.select(B);
+    const moduleB = injector.selectChild(B);
     const service = moduleB.get(ServiceB);
     expect(service).toBeInstanceOf(ServiceB);
-  });
-
-  test('should work with treeshakable providers with module scops (reference to module)', async function() {
-    @Module()
-    class A {}
-
-    @Injectable({
-      provideIn: A,
-    })
-    class Service {}
-
-    const injector = await new Injector(A).compile();
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-  });
-
-  test('should work with treeshakable providers with custom modules scopes (single scope)', async function() {
-    @Injectable({
-      provideIn: 'FOOBAR',
-    })
-    class Service {}
-
-    @Module({ 
-      providers: [
-        {
-          provide: INJECTOR_SCOPE,
-          useValue: 'FOOBAR',
-        }
-      ],
-    })
-    class A {}
-
-    const injector = await new Injector(A).compile();
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-  });
-
-  test('should work with treeshakable providers with custom modules scopes (multiple scopes)', async function() {
-    @Injectable({
-      provideIn: 'BARFOO',
-    })
-    class Service {}
-
-    @Module({ 
-      providers: [
-        {
-          provide: INJECTOR_SCOPE,
-          useValue: ['FOOBAR', 'BARFOO'],
-        }
-      ],
-    })
-    class A {}
-
-    const injector = await new Injector(A).compile();
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-  });
-
-  describe('MODULE_INITIALIZERS', function() {
-    test('should works', async function() {
-      let foobar: string = '';
-
-      @Module({ 
-        providers: [
-          {
-            provide: 'foobar',
-            useValue: 'foobar',
-          },
-          {
-            provide: MODULE_INITIALIZERS,
-            useFactory: async (value: string) => {
-              foobar = value;
-            },
-            inject: ['foobar'],
-          }
-        ],
-      })
-      class AppModule {}
-
-      const injector = await new Injector(AppModule).compile();
-      expect(foobar).toEqual('foobar');
-    })
   });
 });

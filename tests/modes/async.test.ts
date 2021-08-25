@@ -1,47 +1,7 @@
-import { Injector, Injectable, InjectionToken, Inject, Scope } from "../src";
+import { Injector, Injectable, InjectionToken, Inject } from "../../src";
 
-describe('Injection', function() {
-  test('should works in sync mode', async function() {
-    const Token = new InjectionToken<string>();
-
-    @Injectable()
-    class TestService {
-      constructor(
-        @Inject(Token) readonly asyncProvider: Promise<string>,
-      ) {}
-    }
-
-    @Injectable()
-    class Service {
-      constructor(
-        readonly testService: TestService,
-      ) {}
-    }
-
-    const injector = new Injector([
-      Service,
-      TestService,
-      {
-        provide: Token,
-        useFactory: async (value: string) => {
-          return value;
-        },
-        inject: ['value'],
-      },
-      {
-        provide: 'value',
-        useValue: 'test value',
-      },
-    ]);
-  
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-    expect(service.testService).toBeInstanceOf(TestService);
-    expect(service.testService.asyncProvider).toBeInstanceOf(Promise);
-    expect(await service.testService.asyncProvider).toEqual('test value');
-  });
-
-  test('should works in async mode', async function() {
+describe('Async mode injection', function() {
+  test('should works', async function() {
     const Token = new InjectionToken<string>();
 
     @Injectable()
@@ -80,7 +40,7 @@ describe('Injection', function() {
     expect(service.testService.asyncProvider).toEqual('test value');
   });
 
-  test('should works in async mode - injection properties case', async function() {
+  test('should works with property injection', async function() {
     const Token = new InjectionToken<string>();
 
     @Injectable()
@@ -122,7 +82,7 @@ describe('Injection', function() {
     expect(service.testService.deepTestService.asyncProvider).toEqual('test value');
   });
 
-  test('should works in async mode - deep case', async function() {
+  test('should works with deep injection graph', async function() {
     const Token = new InjectionToken<string>();
 
     @Injectable()
@@ -170,8 +130,11 @@ describe('Injection', function() {
     expect(service.testService.deepTestService.asyncProvider).toEqual('test value');
   });
 
-  test('should works in async mode - parallel injection case', async function() {
-    class TestService {}
+  test('should works with parallel injection', async function() {
+    @Injectable()
+    class TestService {
+      @Inject('useFactory') proto: TestService;
+    }
 
     @Injectable()
     class Service {
@@ -202,10 +165,10 @@ describe('Injection', function() {
 
     const injector = new Injector([
       Service,
+      TestService,
       {
-        provide: TestService,
+        provide: 'useFactory',
         useFactory: async () => { return Object.create(TestService.prototype) },
-        scope: Scope.SINGLETON,
       }
     ]);
   
@@ -233,6 +196,16 @@ describe('Injection', function() {
     expect(service.testService1 === service.testService9).toEqual(true);
     expect(service.testService1 === service.testService10).toEqual(true);
 
+    expect(service.testService1.proto === service.testService2.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService3.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService4.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService5.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService6.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService7.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService8.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService9.proto).toEqual(true);
+    expect(service.testService1.proto === service.testService10.proto).toEqual(true);
+
     expect(service.propTestService1).toBeInstanceOf(TestService);
     expect(service.propTestService2).toBeInstanceOf(TestService);
     expect(service.propTestService3).toBeInstanceOf(TestService);
@@ -254,5 +227,16 @@ describe('Injection', function() {
     expect(service.testService1 === service.propTestService8).toEqual(true);
     expect(service.testService1 === service.propTestService9).toEqual(true);
     expect(service.testService1 === service.propTestService10).toEqual(true);
+
+    expect(service.testService1.proto === service.propTestService1.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService2.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService3.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService4.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService5.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService6.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService7.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService8.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService9.proto).toEqual(true);
+    expect(service.testService1.proto === service.propTestService10.proto).toEqual(true);
   });
 });

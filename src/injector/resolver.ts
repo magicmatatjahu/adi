@@ -7,8 +7,6 @@ import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
 import { SESSION_INTERNAL } from "../constants";
 
-let nr: number = 0;
-
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
     const options = InjectorMetadata.createOptions(token);
@@ -24,15 +22,6 @@ export const InjectorResolver = new class {
     };
     return args;
   }
-
-  // async injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<Array<any>> {
-  //   const args: Array<any> = [];
-  //   for (let i = 0, l = deps.length; i < l; i++) {
-  //     const arg = deps[i];
-  //     args.push(await this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
-  //   };
-  //   return args;
-  // }
 
   injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<any[]> {
     const args: Array<Promise<any>> = [];
@@ -56,18 +45,6 @@ export const InjectorResolver = new class {
       this.injectProperty(instance, sb, props[sb as any as string], injector, session);
     }
   }
-
-  // async injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
-  //   for (const propName in props) {
-  //     const prop = props[propName];
-  //     instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-  //   }
-  //   // inject to symbols
-  //   for (const sb of Object.getOwnPropertySymbols(props)) {
-  //     const prop = props[sb as any as string];
-  //     instance[sb] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-  //   }
-  // }
 
   async injectPropertyAsync<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): Promise<void> {
     instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
@@ -113,7 +90,7 @@ export const InjectorResolver = new class {
     
     return (injector: Injector, session: Session) => {
       if (session.isAsync() === true) {
-        return this.providerFactoryAsync(provider, parameters, properties, methods, injector, session);
+        return this.createProviderAsync(provider, parameters, properties, methods, injector, session);
       }
       const instance = new provider(...this.injectDeps(parameters, injector, session));
       this.injectProperties(instance, properties, injector, session);
@@ -122,7 +99,7 @@ export const InjectorResolver = new class {
     }
   }
 
-  async providerFactoryAsync<T>(
+  async createProviderAsync<T>(
     provider: Type<T>,
     parameters: Array<InjectionArgument>,
     properties: Record<string, InjectionArgument>,
@@ -169,35 +146,35 @@ export const InjectorResolver = new class {
 
     // if circular injection detected then handle it
     if (isCircular === true) {
-      return this.handleCircularRefs(instance, session);
+      return handleCircularRefs(instance, session);
     }
 
     // parallel injection detected (in async resolution)
-    return instance.donePromise || this.applyParallelHook(instance);
+    return instance.donePromise || applyParallelHook(instance);
   }
+}
 
-  applyParallelHook<T>(instance: InstanceRecord<T>) {
-    return instance.donePromise = new Promise<T>(resolve => {
-      instance.doneResolve = resolve;
-    });
-  }
+function applyParallelHook<T>(instance: InstanceRecord<T>) {
+  return instance.donePromise = new Promise<T>(resolve => {
+    instance.doneResolve = resolve;
+  });
+}
 
-  handleCircularRefs<T>(instance: InstanceRecord<T>, session: Session): T {
-    if (instance.status & InjectionStatus.CIRCULAR) {
-      return instance.value;
-    }
-    instance.status |= InjectionStatus.CIRCULAR;
-    
-    const proto = instance.def.proto;
-    if (!proto) {
-      throw new Error("Circular Dependency");
-    }
-
-    // add flag that resolution session has circular reference. 
-    // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
-    instance.value = Object.create(proto);
-    session.parent[SESSION_INTERNAL.CIRCULAR] = session.parent[SESSION_INTERNAL.CIRCULAR] || true;
-    session.parent[SESSION_INTERNAL.START_CIRCULAR] = instance;
+function handleCircularRefs<T>(instance: InstanceRecord<T>, session: Session): T {
+  if (instance.status & InjectionStatus.CIRCULAR) {
     return instance.value;
   }
+  instance.status |= InjectionStatus.CIRCULAR;
+  
+  const proto = instance.def.proto;
+  if (!proto) {
+    throw new Error("Circular Dependency");
+  }
+
+  // add flag that resolution session has circular reference. 
+  // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
+  instance.value = Object.create(proto);
+  session.parent[SESSION_INTERNAL.CIRCULAR] = session.parent[SESSION_INTERNAL.CIRCULAR] || true;
+  session.parent[SESSION_INTERNAL.START_CIRCULAR] = instance;
+  return instance.value;
 }

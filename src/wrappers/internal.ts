@@ -1,9 +1,9 @@
-import { Context } from "../injector";
+import { Context, Injector, Session } from "../injector";
 import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper } from "../utils/wrappers";
 
-function wrapper(token: Token): WrapperDef {
+function useExisting(token: Token): WrapperDef {
   return (injector, session) => {
     const newSession = session.copy();
     newSession.setToken(token);
@@ -11,4 +11,24 @@ function wrapper(token: Token): WrapperDef {
   }
 }
 
-export const UseExisting = createWrapper<Token, true>(wrapper);
+export const UseExisting = createWrapper<Token, true>(useExisting);
+
+function getContext(_: Injector, session: Session) {
+  const parent = session.parent;
+  if (parent === undefined) {
+    throw new Error('Context provider can be only used in other providers');
+  }
+  return parent.instance.ctx;
+}
+
+export const GetContext = createWrapper<undefined, false>(() => getContext);
+
+function getSession(_: Injector, session: Session) {
+  const parent = session.parent;
+  if (parent === undefined) {
+    throw new Error('Session provider can be only used in other providers');
+  }
+  return parent;
+}
+
+export const GetSession = createWrapper<undefined, false>(() => getSession);

@@ -84,7 +84,7 @@ export class Injector {
     return this;
   }
 
-  select(mod: Type, id: ModuleID = 'static'): Injector | undefined {
+  selectChild(mod: Type, id: ModuleID = 'static'): Injector | undefined {
     let founded = this.imports.get(mod);
     if (founded instanceof Map) {
       return founded.get(id);
@@ -331,8 +331,8 @@ export class Injector {
     }
 
     // operate on DynamicModule
-    if ((exp as unknown as DynamicModule).module) {
-      const { module, id, providers } = (exp as unknown as DynamicModule);
+    if ((exp as ExportedModule).module) {
+      const { module, id, providers } = (exp as ExportedModule);
       this.processModuleExport(module, id || 'static', providers, from, to);
       return;
     }
@@ -374,7 +374,7 @@ export class Injector {
    * IMPORTS
    */
   private async processModule<T>({ moduleDef, dynamicDef, injector, exportTo, isFacade }: CompiledModule, stack: Array<Injector>) {
-    // for facade performs only acitions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
+    // for facade performs only actions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
     const compiledModules: Array<CompiledModule> = [];
 
     // first iterate in all imports and create injectors for given modules
@@ -561,7 +561,7 @@ export const NilInjector = new class {
   resolveRecord(session: Session) {
     this.get(session.getToken());
   };
-  getParentInjector() {
+  getParent() {
     return null;
   }
 } as unknown as Injector;
