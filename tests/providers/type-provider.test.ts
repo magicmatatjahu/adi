@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, createWrapper, Value } from "../src";
+import { Injector, Injectable, Inject, createWrapper, Value } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {

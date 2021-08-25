@@ -4,14 +4,6 @@ import { Scope } from "../scope";
 import { ConstraintDef, FactoryDef, ScopeShape, Type } from ".";
 import { Wrapper } from "../utils/wrappers";
 
-// export interface ProviderRecord<T = any> {
-//   token: Token<T>;
-//   hostInjector: Injector;
-//   defs: Array<DefinitionRecord>;
-//   constraintDefs: Array<DefinitionRecord>;
-//   wrappers: Array<WrapperRecord>;
-// }
-
 export interface DefinitionRecord<T = any, S = any> {
   record: ProviderRecord<T>;
   factory: FactoryDef<T> | undefined;

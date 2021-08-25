@@ -19,8 +19,9 @@ export const MODULE_INITIALIZERS = new InjectionToken<any>({}, "MODULE_INITIALIZ
 export const ANNOTATIONS = {
   NAME: '@adi/name',
   NAMED: '@adi/named',
-  ORDER: '@adi/order',
+  EAGER: '@adi/eager',
   LOCAL_SCOPE: '@adi/local-scope',
+  ORDER: '@adi/order',
 }
 
 export const ALWAYS_CONSTRAINT = () => true;

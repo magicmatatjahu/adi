@@ -484,7 +484,8 @@ export class Injector {
     const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
     let initializer = undefined;
     for (let i = 0, l = initializers.length; i < l; i++) {
-      if (typeof (initializer = initializers[i]) === "function") {
+      initializer = await initializers[i];
+      if (typeof initializer === "function") {
         await initializer();
       }
     }

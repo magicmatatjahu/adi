@@ -1,5 +1,5 @@
 import { Injector, Context, Session } from ".";
-import { STATIC_CONTEXT, ALWAYS_CONSTRAINT } from "../constants";
+import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, MODULE_INITIALIZERS } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
@@ -58,7 +58,7 @@ export class ProviderRecord<T = any> {
     wrapper?: Wrapper,
     annotations?: Record<string | symbol, any>,
     proto?: Type,
-  ): void {
+  ): DefinitionRecord {
     const def: DefinitionRecord = {
       record: this as any,
       factory,
@@ -72,11 +72,21 @@ export class ProviderRecord<T = any> {
       proto: proto || undefined,
       values: new Map<Context, InstanceRecord<T>>(),
     };
+
+    // add definition to the defs/constraintDefs array
     if (constraint === undefined) {
       this.defs.push(def);
     } else {
       this.constraintDefs.push(def);  
     }
+
+    // check if definition must be resolved with MODULE_INITIALIZERS
+    if (annotations[ANNOTATIONS.EAGER] === true) {
+      const moduleInitializers = this.host.getRecord(MODULE_INITIALIZERS);
+      moduleInitializers.defs.push(def);
+    }
+
+    return def;
   }
 
   addWrapper(

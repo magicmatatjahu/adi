@@ -1,4 +1,4 @@
-import { Injector, Injectable, InjectionToken } from "../src";
+import { Injector, Injectable, InjectionToken } from "../../src";
 
 describe('InjectionToken', function() {
   describe('should works as normal provider in providers array', function() {

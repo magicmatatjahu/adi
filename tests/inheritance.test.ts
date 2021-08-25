@@ -21,9 +21,9 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.parentService).toBeInstanceOf(TestService);
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.parentService).toBeInstanceOf(TestService);
   });
 
   test('should override constructor arguments', function() {
@@ -61,11 +61,11 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.service).toBeInstanceOf(TestService);
-    expect(service.parentService).toEqual(undefined);
-    expect(service.additionalArg).toEqual(undefined);
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.service).toBeInstanceOf(TestService);
+    expect(extendedService.parentService).toEqual(undefined);
+    expect(extendedService.additionalArg).toEqual(undefined);
   });
 
   test('should override parent constructor arguments with empty constructor', function() {
@@ -97,10 +97,10 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.stringArg).toEqual(undefined);
-    expect(service.numberArg).toEqual(undefined);
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.stringArg).toEqual(undefined);
+    expect(extendedService.numberArg).toEqual(undefined);
   });
 
   test('should override property injection', function() {
@@ -125,9 +125,9 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.parentService).toBeInstanceOf(TestService);
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.parentService).toBeInstanceOf(TestService);
   });
 
   test('should override setter injection', function() {
@@ -158,9 +158,9 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.prop).toBeInstanceOf(TestService);
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.prop).toBeInstanceOf(TestService);
   });
 
   test('should override method', function() {
@@ -193,9 +193,11 @@ describe('Inheritance', function() {
       },
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.method()).toBeInstanceOf(TestService);
+    const extendedService = injector.get(ExtendedService);
+    const service = injector.get(Service);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.method()).toBeInstanceOf(TestService);
+    expect(service.method()).toEqual(2137);
   });
 
   test('should override method injection to pure function after inheritance', function() {
@@ -213,7 +215,7 @@ describe('Inheritance', function() {
     @Injectable()
     class ExtendedService extends Service {
       method() {
-        return "overrided";
+        return "extendedService";
       }
     }
 
@@ -223,8 +225,10 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const service = injector.get(ExtendedService) as ExtendedService;
-    expect(service).toBeInstanceOf(ExtendedService);
-    expect(service.method()).toEqual('overrided');
+    const extendedService = injector.get(ExtendedService);
+    const service = injector.get(Service);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.method()).toEqual('extendedService');
+    expect(service.method()).toBeInstanceOf(TestService);
   });
 });

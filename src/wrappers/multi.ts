@@ -34,7 +34,11 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   for (let i = 0, l = defs.length; i < l; i++) {
     const def = defs[i];
     if (def === createdDef) {
-      values.push(createdInstance.value);
+      if (createdInstance) {
+        values.push(createdInstance.value);
+      } else {
+        values.push(injector.resolveDefinition(def, session));
+      }
     } else {
       values.push(injector.resolveDefinition(def, session));
     }

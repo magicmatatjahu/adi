@@ -235,20 +235,4 @@ export const InjectorMetadata = new class {
     }
     return converted;
   }
-
-  retrieveDeepRecord(token: Token, injector: Injector): ProviderRecord | undefined {
-    let record: ProviderRecord = (injector as any).getRecord(token); 
-    if (record !== undefined) {
-      return record;
-    }
-
-    let parentInjector = injector.getParent();
-    while (parentInjector !== NilInjector) {
-      if (record = (parentInjector as any).getRecord(token)) {
-        return record;
-      }
-      parentInjector = parentInjector.getParent();
-    }
-    return record;
-  }
 }
