@@ -48,4 +48,26 @@ describe('Inquirer wrapper', function () {
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });
+
+  test('should works in async/parallel injection', async function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('test') readonly service: any,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'test',
+        async useFactory(inquirer: Service) { return { inquirer } },
+        inject: [Inquirer()],
+      },
+    ]);
+
+    const service = await injector.getAsync(Service) ;
+    expect(service.service.inquirer).toBeInstanceOf(Service);
+    expect(service.service.inquirer).toEqual(service);
+  });
 });

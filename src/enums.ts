@@ -2,7 +2,7 @@ export enum InjectionStatus {
   UNKNOWN = 1,
   PENDING = 2,
   RESOLVED = 4,
-  CIRCULAR = 8,
+  CIRCULAR = 16,
 }
 
 export enum ScopeFlags {

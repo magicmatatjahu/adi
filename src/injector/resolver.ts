@@ -7,6 +7,8 @@ import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
 import { SESSION_INTERNAL } from "../constants";
 
+let nr: number = 0;
+
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
     const options = InjectorMetadata.createOptions(token);
@@ -23,22 +25,26 @@ export const InjectorResolver = new class {
     return args;
   }
 
-  async injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<Array<any>> {
-    const args: Array<any> = [];
-    for (let i = 0, l = deps.length; i < l; i++) {
-      const arg = deps[i];
-      args.push(await this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
-    };
-    return args;
-  }
+  // async injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<Array<any>> {
+  //   const args: Array<any> = [];
+  //   for (let i = 0, l = deps.length; i < l; i++) {
+  //     const arg = deps[i];
+  //     args.push(await this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
+  //   };
+  //   return args;
+  // }
 
-  injectDepsAsync2(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<any[]> {
+  injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<any[]> {
     const args: Array<Promise<any>> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
       args.push(this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
     };
     return Promise.all(args);
+  }
+
+  injectProperty<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): void {
+    instance[propName] = this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
   }
 
   injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): void {
@@ -51,19 +57,23 @@ export const InjectorResolver = new class {
     }
   }
 
-  async injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
-    for (const propName in props) {
-      const prop = props[propName];
-      instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-    }
-    // inject to symbols
-    for (const sb of Object.getOwnPropertySymbols(props)) {
-      const prop = props[sb as any as string];
-      instance[sb] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-    }
+  // async injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
+  //   for (const propName in props) {
+  //     const prop = props[propName];
+  //     instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
+  //   }
+  //   // inject to symbols
+  //   for (const sb of Object.getOwnPropertySymbols(props)) {
+  //     const prop = props[sb as any as string];
+  //     instance[sb] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
+  //   }
+  // }
+
+  async injectPropertyAsync<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): Promise<void> {
+    instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
   }
 
-  async injectPropertiesAsync2<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
+  injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
     const args: Array<Promise<void>> = [];
     for (const propName in props) {
       args.push(this.injectPropertyAsync(instance, propName, props[propName], injector, session));
@@ -73,14 +83,6 @@ export const InjectorResolver = new class {
       args.push(this.injectPropertyAsync(instance, sb, props[sb as any as string], injector, session));
     }
     return Promise.all(args) as unknown as Promise<void>;
-  }
-
-  injectProperty<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): void {
-    instance[propName] = this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-  }
-
-  async injectPropertyAsync<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): Promise<void> {
-    instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
   }
 
   injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session: Session): void {
@@ -154,7 +156,11 @@ export const InjectorResolver = new class {
       return instance.value;
     }
 
-    // check circular injection
+    /**
+     * check circular injection:
+     * isCircular=true means that circular injection is detected
+     * isCircular=false means that parallel injection is detected
+     */
     let tempSession = session, isCircular: boolean = false;
     while (tempSession) {
       tempSession = tempSession.parent;
