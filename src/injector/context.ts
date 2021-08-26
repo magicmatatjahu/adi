@@ -1,4 +1,6 @@
+import { NOOP_FN } from "../constants";
 import { ProviderDef } from "../interfaces";
+import { Session } from "./session";
 
 export class Context<T = any> {
   constructor(
@@ -9,16 +11,19 @@ export class Context<T = any> {
 
   static $$prov: ProviderDef = {
     token: Context,
-    factory: (_, session) => {
-      const parentSession = session.getParent();
-      if (parentSession === undefined) {
-        throw new Error('Context provider can be only used in other providers');
-      }
-      return parentSession.getInstance().ctx;
-    },
+    factory: NOOP_FN,
     options: {
       provideIn: 'any',
+      useWrapper: {
+        func: (_, session: Session) => {
+          const parent = session.parent;
+          if (parent === undefined) {
+            throw new Error('Context provider can be only used in other providers');
+          }
+          session.setSideEffect(true);
+          return parent.instance.ctx;
+        }
+      } as any,
     }
-    // scope: Scope.INSTANCE is added in `index.ts` file due to circular references between `injector` dir and `scope` file  
   };
 }

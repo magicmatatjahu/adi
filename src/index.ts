@@ -1,4 +1,3 @@
-import { Context, Session } from "./injector";
 import { Scope } from "./scope";
 
 import { DefaultScope } from "./scope/default";
@@ -12,10 +11,6 @@ Scope.SINGLETON = new SingletonScope();
 Scope.TRANSIENT = new TransientScope();
 Scope.INSTANCE = new InstanceScope();
 Scope.LOCAL = new LocalScope();
-
-// Circular references between Scope and Context
-Context.$$prov.options.scope = Scope.INSTANCE;
-Session.$$prov.options.scope = Scope.INSTANCE;
 
 export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";

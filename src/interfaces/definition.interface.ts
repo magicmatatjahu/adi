@@ -10,14 +10,14 @@ export interface ComponentDef {
 export interface ProviderDef<T = any, S = any> {
   token: unknown;
   factory: FactoryDef<T>;
-  provideIn?: ProvideInType | ProvideInType[];
-  scope?: ScopeType<S>;
   options?: InjectableOptions<S>;
-  args?: {
-    parameters: Array<InjectionArgument>;
-    properties: Record<string | symbol, InjectionArgument>;
-    methods: Record<string, InjectionArgument[]>;
-  };
+  injections?: InjectionArguments;
+}
+
+export interface InjectionArguments {
+  parameters: Array<InjectionArgument>;
+  properties: Record<string | symbol, InjectionArgument>;
+  methods: Record<string, InjectionArgument[]>;
 }
 
 export type FactoryDef<T = any> = (

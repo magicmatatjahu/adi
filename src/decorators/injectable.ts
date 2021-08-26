@@ -23,9 +23,9 @@ export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined
 
 export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions<S>): ProviderDef<T> {
   const def = ensureProviderDef(target);
-  def.options = options;
+  def.options = options || def.options;
   lookupInheritance(target, def, paramtypes);  
-  def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def);
+  def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def.injections);
   return def as ProviderDef<T>;
 }
 
@@ -41,7 +41,7 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
     token: provider,
     factory: undefined,
     options: {},
-    args: {
+    injections: {
       parameters: [],
       properties: {},
       methods: {},
@@ -61,21 +61,21 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
 
   // when inheritedDef doesn't exist, then merge constructor params
   if (!inheritedDef) {
-    mergeParameters(def.args.parameters, paramtypes, target);
+    mergeParameters(def.injections.parameters, paramtypes, target);
     return;
   }
 
-  const defArgs = def.args;
-  const inheritedDefArgs = inheritedDef.args;
+  const injections = def.injections;
+  const inheritedInjection = inheritedDef.injections;
 
   // override/adjust constructor injection
   // if class has defined paramtypes, then skip overriding parameters from parent class
-  const parameters = defArgs.parameters;
+  const parameters = injections.parameters;
   if (paramtypes.length > 0) {
     mergeParameters(parameters, paramtypes, target);
   } else {
     // definedArgs is empty array in case of merging parent ctor arguments
-    const inheritedParameters = inheritedDefArgs.parameters;
+    const inheritedParameters = inheritedInjection.parameters;
     for (let i = 0, l = inheritedParameters.length; i < l; i++) {
       const param = inheritedParameters[i]
       parameters[i] = createInjectionArg(param.token, param.wrapper, target, undefined, i);
@@ -83,8 +83,8 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
   }
 
   // override/adjust properties injection
-  const props = defArgs.properties;
-  const inheritedProps = inheritedDefArgs.properties;
+  const props = injections.properties;
+  const inheritedProps = inheritedInjection.properties;
   for (let key in inheritedProps) {
     const inheritedProp = inheritedProps[key];
     // shallow copy injection argument and override target
@@ -101,19 +101,19 @@ function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<T
 
   const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
   // override/adjust methods injection
-  for (let key in inheritedDefArgs.methods) {
+  for (let key in inheritedInjection.methods) {
     // check if target has method.
     // if yes, dev could make it injectable from scratch or override to pure (without injection) function in extended class.
     // if not, copy injections from parent class
     if (targetMethods.includes(key) === false) {
       const copiedMethod: InjectionArgument[] = [];
-      const method = inheritedDefArgs.methods[key];
+      const method = inheritedInjection.methods[key];
       for (let i = 0, l = method.length; i < l; i++) {
         const arg = method[i];
         // shallow copy injection argument and override target
         copiedMethod[i] = createInjectionArg(arg.token, arg.wrapper, target, key, i);
       }
-      defArgs.methods[key] = copiedMethod;
+      injections.methods[key] = copiedMethod;
     }
   }
 }
@@ -134,18 +134,18 @@ export function applyInjectionArg(
   if (key !== undefined) {
     target = target.constructor;
   }
-  let args = ensureProviderDef(target).args;
+  let injections = ensureProviderDef(target).injections;
   if (key !== undefined) {
     if (typeof index === "number") {
       // methods
-      const method = (args.methods[key as string] || (args.methods[key as string] = []));
+      const method = (injections.methods[key as string] || (injections.methods[key as string] = []));
       return method[index] || (method[index] = createInjectionArg(token, wrapper, target, key, index));
     }
     // properties
-    return args.properties[key as string] = createInjectionArg(token, wrapper, target, key);
+    return injections.properties[key as string] = createInjectionArg(token, wrapper, target, key);
   }
   // constructor parameters
-  return args.parameters[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
+  return injections.parameters[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
 }
 
 export function createInjectionArg(token: Token, wrapper: Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {

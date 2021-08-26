@@ -86,7 +86,7 @@ export class ModuleCompiler {
 
   }
 
-  compileMetadata<T>(
+  private compileMetadata<T>(
     metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
   ) {
     let mod = resolveRef(metatype);

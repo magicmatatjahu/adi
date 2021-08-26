@@ -93,7 +93,7 @@ export const InjectorMetadata = new class {
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
-      factory = InjectorResolver.createProviderFactory(classRef, providerDef);
+      factory = InjectorResolver.createProviderFactory(classRef, providerDef.injections);
       proto = classRef;
 
       // override scope if can be overrided
@@ -139,7 +139,7 @@ export const InjectorMetadata = new class {
       comp,
       host,
       factory: def.factory,
-      scope: (def.scope || Scope.SINGLETON) as any,
+      scope: (def.options.scope || Scope.SINGLETON) as any,
       useWrapper,
       values: new Map<Context, ComponentInstanceRecord>(),
     };

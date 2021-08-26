@@ -1,6 +1,6 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, ProviderDef, Type, InstanceRecord } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, ProviderDef, Type, InstanceRecord, InjectionArguments } from "../interfaces";
 import { InjectionStatus } from "../enums";
 import { Wrapper } from "../utils";
 import { Token } from "../types";
@@ -81,35 +81,28 @@ export const InjectorResolver = new class {
 
   createProviderFactory<T>(
     provider: Type<T>, 
-    def: ProviderDef, 
-  ): FactoryDef<T> {
-    const args = def.args;
-    const parameters = args.parameters,
-      properties = args.properties,
-      methods = args.methods;
-    
+    injections: InjectionArguments, 
+  ): FactoryDef<T> {    
     return (injector: Injector, session: Session) => {
       if (session.isAsync() === true) {
-        return this.createProviderAsync(provider, parameters, properties, methods, injector, session);
+        return this.createProviderAsync(provider, injections, injector, session);
       }
-      const instance = new provider(...this.injectDeps(parameters, injector, session));
-      this.injectProperties(instance, properties, injector, session);
-      this.injectMethods(instance, methods, injector, session);
+      const instance = new provider(...this.injectDeps(injections.parameters, injector, session));
+      this.injectProperties(instance, injections.properties, injector, session);
+      this.injectMethods(instance, injections.methods, injector, session);
       return instance;
     }
   }
 
   async createProviderAsync<T>(
     provider: Type<T>,
-    parameters: Array<InjectionArgument>,
-    properties: Record<string, InjectionArgument>,
-    methods: Record<string, InjectionArgument[]>,
+    injections: InjectionArguments,
     injector: Injector,
     session: Session,
   ) {
-    const instance = new provider(...await this.injectDepsAsync(parameters, injector, session));
-    await this.injectPropertiesAsync(instance, properties, injector, session);
-    this.injectMethods(instance, methods, injector, session);
+    const instance = new provider(...await this.injectDepsAsync(injections.parameters, injector, session));
+    await this.injectPropertiesAsync(instance, injections.properties, injector, session);
+    this.injectMethods(instance, injections.methods, injector, session);
     return instance;
   }
 
@@ -128,11 +121,6 @@ export const InjectorResolver = new class {
   }
 
   handleParallelInjection<T>(instance: InstanceRecord<T>, session: Session): T | Promise<T> {
-    // if circular injection detected return empty prototype instance
-    if (instance.status & InjectionStatus.CIRCULAR) {
-      return instance.value;
-    }
-
     /**
      * check circular injection:
      * isCircular=true means that circular injection is detected
@@ -161,6 +149,7 @@ function applyParallelHook<T>(instance: InstanceRecord<T>) {
 }
 
 function handleCircularRefs<T>(instance: InstanceRecord<T>, session: Session): T {
+  // if circular injection detected return empty prototype instance
   if (instance.status & InjectionStatus.CIRCULAR) {
     return instance.value;
   }

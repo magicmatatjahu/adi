@@ -1,7 +1,7 @@
 import { 
   InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord, ScopeShape,
 } from "../interfaces";
-import { NULL_REF } from "../constants";
+import { NOOP_FN, NULL_REF } from "../constants";
 
 import { Context } from "./context";
 import { Scope } from "../scope";
@@ -146,16 +146,19 @@ export class Session<T = any> {
 
   static $$prov: ProviderDef = {
     token: Session,
-    factory: (_, session) => {
-      const parentSession = session.getParent();
-      if (parentSession === undefined) {
-        throw new Error('Session provider can be only used in other providers');
-      }
-      return parentSession;
-    },
+    factory: NOOP_FN,
     options: {
       provideIn: 'any',
+      useWrapper: {
+        func: (_, session: Session) => {
+          const parent = session.parent;
+          if (parent === undefined) {
+            throw new Error('Session provider can be only used in other providers');
+          }
+          session.setSideEffect(true);
+          return parent;
+        }
+      } as any,
     }
-    // scope: Scope.INSTANCE is added in `index.ts` file due to circular references between `injector` dir and `scope` file  
   };
 }
