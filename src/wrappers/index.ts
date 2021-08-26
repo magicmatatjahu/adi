@@ -2,6 +2,7 @@ export * from "./async";
 export * from "./ctx";
 export * from "./decorate";
 export * from "./delegate";
+export * from "./delegations";
 export * from "./deps";
 export * from "./factory";
 export * from "./fallback";

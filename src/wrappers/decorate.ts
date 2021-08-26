@@ -16,23 +16,23 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
     const fn = (decorator as DecorateOptions).decorator;
     factory = InjectorResolver.createFactory(fn, (decorator as DecorateOptions).inject || EMPTY_ARRAY);
   } else { // type based decorator
-    factory = InjectorMetadata.getFactoryDef(decorator as Token);
+    factory = InjectorMetadata.getProviderDef(decorator as Token).factory;
   }
 
   return (injector, session, next) => {
     // copy session and resolve the value to decorate
-    const newSession = session.copy();
+    const forkedSession = session.fork();
 
     return thenable(
       () => next(injector, session),
       decoratee => {
         // add delegation
-        newSession['$$delegate'] = {
+        forkedSession['$$delegate'] = {
           type: 'single',
           values: decoratee,
         };
         // resolve decorator
-        return factory(injector, newSession);
+        return factory(injector, forkedSession);
       }
     );
   }

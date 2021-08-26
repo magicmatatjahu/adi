@@ -1,7 +1,7 @@
 import { Injector, Inject, Injectable, Delegate, createWrapper } from "../../src";
 
 describe('Delegate wrapper', function () {
-  test('should works without Factory or Decorate wrapper', function () {
+  test('should works without Factory, Decorate or Delegations wrapper', function () {
     let called: boolean = false;
     const TestWrapper = createWrapper((_: never) => {
       return (injector, session, next) => {

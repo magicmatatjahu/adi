@@ -214,14 +214,6 @@ export const InjectorMetadata = new class {
     return providerDef;
   }
 
-  getFactoryDef<T>(token: Token<T>): FactoryDef<T> {
-    const providerDef = this.getProviderDef(token);
-    if (providerDef.factory === undefined) {
-      throw new Error('Cannot get factory def')
-    }
-    return providerDef.factory;
-  }
-
   convertDependencies(deps: Array<Token | Wrapper>, factory: Function, options: { cache: boolean } = { cache: false }): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {

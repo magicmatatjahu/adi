@@ -121,12 +121,9 @@ export const InjectorResolver = new class {
   }
 
   handleParallelInjection<T>(instance: InstanceRecord<T>, session: Session): T | Promise<T> {
-    /**
-     * check circular injection:
-     * isCircular=true means that circular injection is detected
-     * isCircular=false means that parallel injection is detected
-     */
     let tempSession = session, isCircular: boolean = false;
+
+    // check circular injection
     while (tempSession) {
       tempSession = tempSession.parent;
       if (instance === tempSession?.instance) isCircular = true;
