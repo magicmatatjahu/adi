@@ -3,7 +3,7 @@ import { createInjectionArg, getProviderDef, injectableMixin } from "../decorato
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType,
+  InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
@@ -93,9 +93,11 @@ export const InjectorMetadata = new class {
     } else if (isClassProvider(provider)) {
       const classRef = provider.useClass;
       const providerDef = this.getProviderDef(classRef, true);
-      factory = InjectorResolver.createProviderFactory(classRef, providerDef.injections);
       proto = classRef;
 
+      const injections = this.combineDependencies(provider.inject, providerDef.injections);
+      factory = InjectorResolver.createProviderFactory(classRef, injections);
+      
       // override scope if can be overrided
       const targetScope = this.getScopeShape(providerDef.options?.scope);
       if (targetScope && targetScope.kind.canBeOverrided() === false) {
@@ -225,5 +227,77 @@ export const InjectorMetadata = new class {
       }
     }
     return converted;
+  }
+
+  newConvertDependencies(deps: Array<Token | Wrapper>, target: Object, methodName?: string | symbol): InjectionArgument[] {
+    const converted: InjectionArgument[] = [];
+    for (let i = 0, l = deps.length; i < l; i++) {
+      converted.push(this.convertDependency(deps[i], target, methodName, i))
+    }
+    return converted;
+  }
+
+  convertDependency(dep: Token | Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+    if (isWrapper(dep)) {
+      return createInjectionArg(undefined, dep, target, propertyKey, index);
+    }
+    return createInjectionArg(dep, undefined, target, propertyKey, index);
+  }
+
+  combineDependencies(
+    toCombine: Array<Token | Wrapper> | Partial<PlainInjections>,
+    original: InjectionArguments,
+    target?: Object,
+  ): InjectionArguments {
+    if (toCombine === undefined) {
+      return original;
+    }
+    const newDeps: InjectionArguments = {
+      parameters: [...original.parameters],
+      properties: { ...original.properties },
+      methods: { ...original.methods },
+    };
+
+    if (Array.isArray(toCombine)) {
+      for (let i = 0, l = toCombine.length; i < l; i++) {
+        if (toCombine[i] !== undefined) {
+          newDeps.parameters[i] = this.convertDependency(toCombine[i], target, undefined, i);
+        }
+      }
+      return newDeps;
+    }
+
+    const { parameters, properties, methods } = toCombine;
+
+    // parameters
+    for (let i = 0, l = parameters.length; i < l; i++) {
+      if (parameters[i] !== undefined) {
+        newDeps.parameters[i] = this.convertDependency(parameters[i], target, undefined, i);
+      }
+    }
+
+    // properties
+    for (const propName in properties) {
+      newDeps.properties[propName] = this.convertDependency(properties[propName], target, propName);
+    }
+    // inject to symbols
+    for (const sb of Object.getOwnPropertySymbols(properties)) {
+      newDeps.properties[sb as any as string] = this.convertDependency(properties[sb as any as string], target, sb);
+    }
+
+    // methods
+    for (const methodName in methods) {
+      const methodDeps = methods[methodName];
+      // copy injections
+      const newMethodDeps = [...(newDeps.methods[methodName] || [])];
+      for (let i = 0, l = methodDeps.length; i < l; i++) {
+        if (methodDeps[i] !== undefined) {
+          newMethodDeps[i] = this.convertDependency(methodDeps[i], target, methodName, i);
+        }
+      }
+      newDeps.methods[methodName] = newMethodDeps;
+    }
+
+    return newDeps;
   }
 }

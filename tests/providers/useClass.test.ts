@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Scope } from "../../src";
+import { Injector, Injectable, Inject, Scope, Token } from "../../src";
 
 describe('useClass', function() {
   test('should works without injection arguments', function() {
@@ -81,5 +81,118 @@ describe('useClass', function() {
     expect(service1).toBeInstanceOf(Service);
     expect(service2).toBeInstanceOf(Service);
     expect(service1 === service2).toEqual(true);
+  });
+
+  test('should have possibility to inject custom injections', function() {
+    @Injectable()
+    class Service {
+      property: string;
+
+      constructor(
+        readonly parameter: string,
+      ) {}
+
+      method(argument?: string) {
+        return argument;
+      }
+    }
+
+    const injector = new Injector([
+      {
+        provide: 'parameter',
+        useValue: 'parameter injection',
+      },
+      {
+        provide: 'property',
+        useValue: 'property injection',
+      },
+      {
+        provide: 'argument',
+        useValue: 'argument injection',
+      },
+      {
+        provide: 'useClass',
+        useClass: Service,
+        inject: {
+          parameters: [Token('parameter')],
+          properties: {
+            property: 'property',
+          },
+          methods: {
+            method: [Token('argument')],
+          }
+        }
+      },
+    ]);
+
+    const service = injector.get<Service>('useClass');
+    expect(service).toBeInstanceOf(Service);
+    expect(service.parameter).toEqual('parameter injection');
+    expect(service.property).toEqual('property injection');
+    expect(service.method()).toEqual('argument injection');
+  });
+
+  test('should have possibility to override injection by custom injections', function() {
+    @Injectable()
+    class HelperService {}
+
+    @Injectable()
+    class Service {
+      @Inject() property: HelperService;
+      @Inject() propertyService: HelperService;
+
+      constructor(
+        readonly service: HelperService,
+        readonly parameter: string,
+      ) {}
+
+      @Inject()
+      method(service?: HelperService, argument?: string) {
+        return [service, argument];
+      }
+    }
+
+    const injector = new Injector([
+      {
+        provide: 'parameter',
+        useValue: 'parameter injection',
+      },
+      {
+        provide: 'property',
+        useValue: 'property injection',
+      },
+      {
+        provide: 'argument',
+        useValue: 'argument injection',
+      },
+      HelperService,
+      {
+        provide: 'useClass',
+        useClass: Service,
+        inject: {
+          parameters: [undefined, Token('parameter')],
+          properties: {
+            property: 'property',
+          },
+          methods: {
+            method: [undefined, Token('argument')],
+          }
+        }
+      },
+    ]);
+
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.service).toBeInstanceOf(HelperService);
+    expect(service.service).toEqual(helpService);
+    expect(service.parameter).toEqual('parameter injection');
+    expect(service.propertyService).toEqual(helpService);
+    expect(service.propertyService).toBeInstanceOf(HelperService);
+    expect(service.property).toEqual('property injection');
+    const args = service.method();
+    expect(args[0]).toEqual(helpService);
+    expect(args[0]).toBeInstanceOf(HelperService);
+    expect(args[1]).toEqual('argument injection');
   });
 });

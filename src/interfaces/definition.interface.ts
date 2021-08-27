@@ -1,5 +1,7 @@
 import { Injector, Session } from "../injector";
-import { InjectionArgument, InjectableOptions, ModuleMetadata, ScopeType, ProvideInType } from ".";
+import { InjectionArgument, InjectableOptions, ModuleMetadata } from ".";
+import { Wrapper } from "../utils";
+import { Token } from "../types";
 
 export type ModuleDef = ModuleMetadata;
 
@@ -18,6 +20,12 @@ export interface InjectionArguments {
   parameters: Array<InjectionArgument>;
   properties: Record<string | symbol, InjectionArgument>;
   methods: Record<string, InjectionArgument[]>;
+}
+
+export interface PlainInjections {
+  parameters: Array<Token | Wrapper>;
+  properties: Record<string | symbol, Token | Wrapper>;
+  methods: Record<string, Array<Token | Wrapper>>;
 }
 
 export type FactoryDef<T = any> = (
