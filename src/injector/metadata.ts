@@ -232,16 +232,27 @@ export const InjectorMetadata = new class {
   newConvertDependencies(deps: Array<Token | Wrapper>, target: Object, methodName?: string | symbol): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
-      converted.push(this.convertDependency(deps[i], target, methodName, i))
+      converted.push(this.convertDependency(deps[i], target, methodName, i));
     }
     return converted;
   }
 
-  convertDependency(dep: Token | Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
-    if (isWrapper(dep)) {
-      return createInjectionArg(undefined, dep, target, propertyKey, index);
+  combineArrayDependencies(
+    toCombine: Array<Token | Wrapper>,
+    original: Array<InjectionArgument>,
+    target?: Object,
+    methodName?: string,
+  ): Array<InjectionArgument> {
+    if (toCombine === undefined) {
+      return original;
     }
-    return createInjectionArg(dep, undefined, target, propertyKey, index);
+    const newDeps = original ? [...original] : [];
+    for (let i = 0, l = toCombine.length; i < l; i++) {
+      if (toCombine[i] !== undefined) {
+        newDeps[i] = this.convertDependency(toCombine[i], target, methodName, i);
+      }
+    }
+    return newDeps;
   }
 
   combineDependencies(
@@ -259,23 +270,13 @@ export const InjectorMetadata = new class {
     };
 
     if (Array.isArray(toCombine)) {
-      for (let i = 0, l = toCombine.length; i < l; i++) {
-        if (toCombine[i] !== undefined) {
-          newDeps.parameters[i] = this.convertDependency(toCombine[i], target, undefined, i);
-        }
-      }
+      newDeps.parameters = this.combineArrayDependencies(toCombine, newDeps.parameters, target);
       return newDeps;
     }
 
     const { parameters, properties, methods } = toCombine;
-
     // parameters
-    for (let i = 0, l = parameters.length; i < l; i++) {
-      if (parameters[i] !== undefined) {
-        newDeps.parameters[i] = this.convertDependency(parameters[i], target, undefined, i);
-      }
-    }
-
+    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, target);
     // properties
     for (const propName in properties) {
       newDeps.properties[propName] = this.convertDependency(properties[propName], target, propName);
@@ -284,20 +285,18 @@ export const InjectorMetadata = new class {
     for (const sb of Object.getOwnPropertySymbols(properties)) {
       newDeps.properties[sb as any as string] = this.convertDependency(properties[sb as any as string], target, sb);
     }
-
     // methods
     for (const methodName in methods) {
-      const methodDeps = methods[methodName];
-      // copy injections
-      const newMethodDeps = [...(newDeps.methods[methodName] || [])];
-      for (let i = 0, l = methodDeps.length; i < l; i++) {
-        if (methodDeps[i] !== undefined) {
-          newMethodDeps[i] = this.convertDependency(methodDeps[i], target, methodName, i);
-        }
-      }
-      newDeps.methods[methodName] = newMethodDeps;
+      newDeps.methods[methodName] = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName], target, methodName);
     }
 
     return newDeps;
+  }
+
+  convertDependency(dep: Token | Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+    if (isWrapper(dep)) {
+      return createInjectionArg(undefined, dep, target, propertyKey, index);
+    }
+    return createInjectionArg(dep, undefined, target, propertyKey, index);
   }
 }
