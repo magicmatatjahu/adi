@@ -84,12 +84,13 @@ export const InjectorResolver = new class {
     injections: InjectionArguments, 
   ): FactoryDef<T> {    
     return (injector: Injector, session: Session) => {
+      const deps = InjectorMetadata.combineDependencies(session.options.injections, injections, provider);
       if (session.isAsync() === true) {
         return this.createProviderAsync(provider, injections, injector, session);
       }
-      const instance = new provider(...this.injectDeps(injections.parameters, injector, session));
-      this.injectProperties(instance, injections.properties, injector, session);
-      this.injectMethods(instance, injections.methods, injector, session);
+      const instance = new provider(...this.injectDeps(deps.parameters, injector, session));
+      this.injectProperties(instance, deps.properties, injector, session);
+      this.injectMethods(instance, deps.methods, injector, session);
       return instance;
     }
   }
@@ -126,7 +127,10 @@ export const InjectorResolver = new class {
     // check circular injection
     while (tempSession) {
       tempSession = tempSession.parent;
-      if (instance === tempSession?.instance) isCircular = true;
+      if (instance === tempSession?.instance) {
+        isCircular = true;
+        break;
+      }
     }
 
     // if circular injection detected then handle it

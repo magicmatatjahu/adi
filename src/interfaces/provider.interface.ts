@@ -27,7 +27,7 @@ export interface TypeProvider<T = any> extends Type<T> {}
 export interface ClassProvider<T = any> {
   provide: Token<T>;
   useClass: Type<T>;
-  inject?: Array<Token | Wrapper> | Partial<PlainInjections>;
+  inject?: Array<Token | Wrapper> | PlainInjections;
   scope?: Scope;
   useWrapper?: Wrapper;
   when?: ConstraintDef;

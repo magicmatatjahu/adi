@@ -23,9 +23,10 @@ export interface InjectionArguments {
 }
 
 export interface PlainInjections {
-  parameters: Array<Token | Wrapper>;
-  properties: Record<string | symbol, Token | Wrapper>;
-  methods: Record<string, Array<Token | Wrapper>>;
+  parameters?: Array<Token | Wrapper>;
+  properties?: Record<string | symbol, Token | Wrapper>;
+  methods?: Record<string, Array<Token | Wrapper>>;
+  dynamic?: (injectionArg: InjectionArgument) => Token | Wrapper | undefined;
 }
 
 export type FactoryDef<T = any> = (

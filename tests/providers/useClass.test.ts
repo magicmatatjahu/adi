@@ -132,6 +132,43 @@ describe('useClass', function() {
     expect(service.method()).toEqual('argument injection');
   });
 
+  test('should have possibility to inject custom constructor injections', function() {
+    @Injectable()
+    class HelperService {}
+
+    @Injectable()
+    class Service {
+      @Inject() property: HelperService;
+
+      constructor(
+        readonly service: HelperService,
+        readonly parameter: HelperService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      {
+        provide: 'parameter',
+        useValue: 'parameter injection',
+      },
+      HelperService,
+      {
+        provide: 'useClass',
+        useClass: Service,
+        inject: [undefined, Token('parameter')],
+      },
+    ]);
+
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.service).toBeInstanceOf(HelperService);
+    expect(service.service).toEqual(helpService);
+    expect(service.parameter).toEqual('parameter injection');
+    expect(service.property).toEqual(helpService);
+    expect(service.property).toBeInstanceOf(HelperService);
+  });
+
   test('should have possibility to override injection by custom injections', function() {
     @Injectable()
     class HelperService {}
@@ -143,11 +180,11 @@ describe('useClass', function() {
 
       constructor(
         readonly service: HelperService,
-        readonly parameter: string,
+        readonly parameter: HelperService,
       ) {}
 
       @Inject()
-      method(service?: HelperService, argument?: string) {
+      method(service?: HelperService, argument?: HelperService) {
         return [service, argument];
       }
     }
@@ -194,5 +231,157 @@ describe('useClass', function() {
     expect(args[0]).toEqual(helpService);
     expect(args[0]).toBeInstanceOf(HelperService);
     expect(args[1]).toEqual('argument injection');
+  });
+
+  test('should have possibility to inject custom injections by "dynamic" function', function() {
+    @Injectable()
+    class HelperService {}
+
+    @Injectable()
+    class Service {
+      @Inject() property: string;
+      @Inject() propertyService: HelperService;
+
+      constructor(
+        readonly service: HelperService,
+        readonly parameter: string,
+      ) {}
+
+      @Inject()
+      method(service?: HelperService, argument?: string) {
+        return [service, argument];
+      }
+    }
+    const injector = new Injector([
+      {
+        provide: 'parameter',
+        useValue: 'parameter injection',
+      },
+      {
+        provide: 'property',
+        useValue: 'property injection',
+      },
+      {
+        provide: 'argument',
+        useValue: 'argument injection',
+      },
+      HelperService,
+      {
+        provide: 'useClass',
+        useClass: Service,
+        inject: {
+          dynamic(arg) {
+            const { propertyKey, index } = arg.metadata;
+            // constructor injection
+            if (!propertyKey && index === 1) {
+              return 'parameter';
+            }
+            // property injection
+            if (propertyKey === 'property') {
+              return 'property';
+            }
+            // method injection
+            if (propertyKey === 'method' && index === 1) {
+              return 'argument';
+            }
+          }
+        }
+      },
+    ]);
+
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.service).toBeInstanceOf(HelperService);
+    expect(service.service).toEqual(helpService);
+    expect(service.parameter).toEqual('parameter injection');
+    expect(service.propertyService).toEqual(helpService);
+    expect(service.propertyService).toBeInstanceOf(HelperService);
+    expect(service.property).toEqual('property injection');
+    const args = service.method();
+    expect(args[0]).toEqual(helpService);
+    expect(args[0]).toBeInstanceOf(HelperService);
+    expect(args[1]).toEqual('argument injection');
+  });
+
+  test('should have possibility to inject custom injections by "dynamic" function - case with plain injections', function() {
+    @Injectable()
+    class HelperService {}
+
+    @Injectable()
+    class Service {
+      @Inject() property: string;
+      @Inject() propertyService: HelperService;
+
+      constructor(
+        readonly service: HelperService,
+        readonly parameter: string,
+      ) {}
+
+      @Inject()
+      method(service?: HelperService, argument?: string) {
+        return [service, argument];
+      }
+    }
+    const injector = new Injector([
+      {
+        provide: 'parameter',
+        useValue: 'parameter injection',
+      },
+      {
+        provide: 'property',
+        useValue: 'property injection',
+      },
+      {
+        provide: 'argument',
+        useValue: 'argument injection',
+      },
+      HelperService,
+      {
+        provide: 'useClass',
+        useClass: Service,
+        inject: {
+          parameters: [undefined, HelperService],
+          properties: {
+            property: HelperService,
+          },
+          methods: {
+            method: [undefined, HelperService],
+          },
+          dynamic(arg) {
+            const { propertyKey, index } = arg.metadata;
+            // constructor injection
+            if (!propertyKey && index === 1) {
+              return 'parameter';
+            }
+            // property injection
+            if (propertyKey === 'property') {
+              return 'property';
+            }
+            // method injection
+            if (propertyKey === 'method' && index === 1) {
+              return 'argument';
+            }
+          }
+        }
+      },
+    ]);
+
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.service).toBeInstanceOf(HelperService);
+    expect(service.service).toEqual(helpService);
+    expect(service.parameter).toBeInstanceOf(HelperService);
+    expect(service.parameter).toEqual(helpService);
+    expect(service.propertyService).toEqual(helpService);
+    expect(service.propertyService).toBeInstanceOf(HelperService);
+    expect(service.property).toBeInstanceOf(HelperService);
+    expect(service.property).toEqual(helpService);
+    const args = service.method();
+    expect(args[0]).toEqual(helpService);
+    expect(args[0]).toBeInstanceOf(HelperService);
+    expect(args[1]).toEqual(helpService);
+    expect(args[1]).toBeInstanceOf(HelperService);
   });
 });

@@ -207,15 +207,15 @@ describe('Inheritance', function() {
     @Injectable()
     class Service {
       @Inject()
-      method(service?: TestService) {
+      method(service: TestService = 'baseService') {
         return service;
       }
     }
 
     @Injectable()
     class ExtendedService extends Service {
-      method() {
-        return "extendedService";
+      method(service: TestService = 'extendedService') {
+        return service;
       }
     }
 
