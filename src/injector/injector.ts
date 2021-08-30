@@ -5,7 +5,7 @@ import {
   Provider, ProviderDef, Type, ForwardRef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
 } from "../interfaces";
-import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, EMPTY_OBJECT, EMPTY_ARRAY } from "../constants";
+import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, EMPTY_OBJECT, EMPTY_ARRAY, ANNOTATIONS } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
@@ -184,9 +184,8 @@ export class Injector {
       value => {
         if (instance.status & InjectionStatus.CIRCULAR) {
           value = Object.assign(instance.value, value);
-        } else {
-          instance.value = value;
         }
+        instance.value = value;
 
         handleOnInit(instance, session);
 
@@ -205,12 +204,38 @@ export class Injector {
     // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
       const def = getProviderDef(token);
-      if (this.isProviderInScope(def)) {
+      const provideIn = def?.options?.provideIn;
+      if (provideIn === undefined) {
+        return;
+      }
+
+      if (this.isProviderInScope(provideIn)) {
         if (typeof token === "function") { // type provider case
           record = InjectorMetadata.typeProviderToRecord(token as Type, this);
         } else { // injection token case
           record = InjectorMetadata.customProviderToRecord(token, def as any, this);
         }
+      } else { // imports case
+        const annotations = def?.options?.annotations;
+        if (annotations[ANNOTATIONS.EXPORT] !== true) {
+          return;
+        }
+
+        this.imports.forEach(imp => {
+          if (imp instanceof Map) {
+            // TODO: implement this
+          } else {
+            if (imp.isProviderInScope(provideIn)) {
+              if (typeof token === "function") { // type provider case
+                record = InjectorMetadata.typeProviderToRecord(token as Type, imp);
+              } else { // injection token case
+                record = InjectorMetadata.customProviderToRecord(token, def as any, imp);
+              }
+              this.importedRecords.set(token, record);
+            }
+          }
+        });
+        return record;
       }
     }
 
@@ -228,18 +253,40 @@ export class Injector {
   }
 
   // TODO: add case with imported modules
-  private isProviderInScope(def: ProviderDef): boolean {
-    const provideIn = def && def.options && def.options.provideIn;
-    if (provideIn === undefined) {
-      return false;
+  private isProviderInScope(provideIn?: InjectorScopeType | InjectorScopeType[]): boolean {
+    if (Array.isArray(provideIn)) {
+      return provideIn.some(scope => this.scopes.includes(scope));
     }
-    const provideInArray = Array.isArray(provideIn) ? provideIn : [provideIn];
-    return provideInArray.some(s => this.scopes.includes(s));
+    return this.scopes.includes(provideIn);
   }
+
+  // on imports part
+  // private handleTreeShakable(def: ProviderDef): boolean {
+  //   const annotations = def && def.options && def.options.annotations;
+  //   if (annotations[ANNOTATIONS.EXPORT] !== true) {
+  //     return;
+  //   }
+  //   this.imports.forEach(imp => {
+  //     if (imp instanceof Map) {
+  //       // implement
+  //     } else {
+  //       record = imp.
+  //     }
+  //   });
+  //   return record
+  //   const provideIn = def && def.options && def.options.provideIn;
+  //   if (provideIn === undefined) {
+  //     return false;
+  //   }
+  //   if (Array.isArray(provideIn)) {
+  //     return provideIn.some(scope => this.scopes.includes(scope));
+  //   }
+  //   return this.scopes.includes(provideIn);
+  // }
 
   private configureScope(scopes?: InjectorScopeType | Array<InjectorScopeType>): void {
     this.scopes = ["any", this.injector as any];
-    scopes = scopes || this.get(INJECTOR_SCOPE, Optional(Self())) as Array<InjectorScopeType>;
+    scopes = scopes || this.get(INJECTOR_SCOPE, COMMON_HOOKS.OptionalSelf) as Array<InjectorScopeType>;
     if (scopes === undefined) return;
     if (Array.isArray(scopes)) {
       for (let i = 0, l = scopes.length; i < l; i++) {

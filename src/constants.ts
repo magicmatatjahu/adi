@@ -20,8 +20,9 @@ export const ANNOTATIONS = {
   NAME: '@adi/name',
   NAMED: '@adi/named',
   EAGER: '@adi/eager',
-  LOCAL_SCOPE: '@adi/local-scope',
+  EXPORT: '@adi/export',
   ORDER: '@adi/order',
+  LOCAL_SCOPE: '@adi/local-scope',
 }
 
 export const ALWAYS_CONSTRAINT = () => true;

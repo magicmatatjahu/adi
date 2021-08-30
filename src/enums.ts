@@ -2,6 +2,7 @@ export enum InjectionStatus {
   UNKNOWN = 1,
   PENDING = 2,
   RESOLVED = 4,
+  INITIALIZED = 8,
   CIRCULAR = 16,
 }
 

@@ -1,4 +1,4 @@
-import { Injector, Injectable, InjectionToken } from "../../src";
+import { Injector, Injectable, InjectionToken, Module, ANNOTATIONS, INJECTOR_SCOPE, createInjector } from "../../src";
 
 describe('InjectionToken', function() {
   describe('should works as normal provider in providers array', function() {
@@ -55,9 +55,6 @@ describe('InjectionToken', function() {
     });
 
     test('with useExisting', function() {
-      @Injectable()
-      class Service {}
-
       const Token = new InjectionToken<string>();
 
       const injector = new Injector([
@@ -125,9 +122,6 @@ describe('InjectionToken', function() {
     });
 
     test('with useExisting', function() {
-      @Injectable()
-      class Service {}
-
       const Token = new InjectionToken<string>({
         provideIn: 'any',
         useExisting: 'useValue',
@@ -153,7 +147,7 @@ describe('InjectionToken', function() {
       const injector = new Injector([
         {
           provide: token,
-          useFactory: () => "barfoo"
+          useValue: "barfoo",
         }
       ]);
   
@@ -177,6 +171,37 @@ describe('InjectionToken', function() {
   
       const injector = new Injector();
   
+      const value = injector.get(token);
+      expect(value).toEqual("foobar");
+    });
+
+    test('should works with EXPORT annotation', async () => {
+      @Module({
+        providers: [
+          {
+            provide: INJECTOR_SCOPE,
+            useValue: 'child',
+          }
+        ]
+      })
+      class ChildModule {}
+
+      @Module({
+        imports: [
+          ChildModule,
+        ]
+      })
+      class ParentModule {}
+
+      const token = new InjectionToken<string>({
+        provideIn: "child",
+        useValue: "foobar",
+        annotations: {
+          [ANNOTATIONS.EXPORT]: true,
+        }
+      });
+
+      const injector = await createInjector(ParentModule).compile();
       const value = injector.get(token);
       expect(value).toEqual("foobar");
     });

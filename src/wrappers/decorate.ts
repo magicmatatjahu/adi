@@ -9,6 +9,8 @@ interface DecorateOptions {
   inject?: Array<Token | Wrapper>;
 }
 
+const DECORATED_STATUS = 1024; // 10 bit
+
 function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
   let factory: FactoryDef;
 
@@ -26,13 +28,25 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
     return thenable(
       () => next(injector, session),
       decoratee => {
+        // if it has been decorated before, return value.
+        if (session.instance?.status & DECORATED_STATUS) {
+          return decoratee;
+        }
+
         // add delegation
         forkedSession['$$delegate'] = {
           type: 'single',
           values: decoratee,
         };
-        // resolve decorator
-        return factory(injector, forkedSession);
+
+        // resolve decorator and save decorated value to the instance value
+        return thenable(
+          () => factory(injector, forkedSession),
+          value => {
+            session.instance.value = value;
+            return value;
+          }
+        )
       }
     );
   }

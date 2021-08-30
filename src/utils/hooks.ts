@@ -9,6 +9,7 @@ function runHook(instance: InstanceRecord, session: Session) {
   hasOnInitHook(value) && value.onInit();
   const onInitHooks = (session[SESSION_INTERNAL.ON_INIT_HOOKS] || EMPTY_ARRAY) as StandaloneOnInit[];
   if (onInitHooks.length > 0) {
+    const injector = instance.def.record.host;
     for (let i = onInitHooks.length - 1; i > -1; i--) {
       const hook = onInitHooks[i];
       if (typeof hook === 'function') {
@@ -21,7 +22,7 @@ function runHook(instance: InstanceRecord, session: Session) {
           type: 'single',
           values: value,
         };
-        factory(instance.def.record.host, newSession);
+        factory(injector, newSession);
       }
     }
     delete session[SESSION_INTERNAL.ON_INIT_HOOKS];

@@ -4,6 +4,10 @@ import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper, thenable } from "../utils";
 
+interface FallbackProvider {
+  
+}
+
 function wrapper(token: Token): WrapperDef {
   return (injector, session, next) => {
     const copiedSession = session.copy();
@@ -12,6 +16,7 @@ function wrapper(token: Token): WrapperDef {
       val => val,
       err => {
         if ((err as NilInjectorError).isNilInjectorError) {
+          // TODO: Change to `session.fork()` and set undefined to the record, definition and instance
           const newSession = new Session(undefined, undefined, undefined, { ...copiedSession.options, token }, copiedSession.meta, copiedSession.parent);
           return injector.get(token, undefined, newSession);
           // return next(injector, newSession);

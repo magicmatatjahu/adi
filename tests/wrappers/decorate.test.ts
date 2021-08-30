@@ -484,4 +484,60 @@ describe('Decorate wrapper', function () {
     const service = injector.get(Service) as DecoratorService;
     expect(service).toEqual('foobar');
   });
+
+  test('Decorate wrapper should decorates only once', function () {
+    let calledTimes = 0;
+
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    @Injectable()
+    class DecoratorService implements TestService {
+      @Inject(Delegate())
+      public decoratee: TestService;
+
+      constructor(
+        @Inject('exclamation') readonly exclamation: string,
+      ) {
+        calledTimes++;
+      }
+
+      method() {
+        return this.decoratee.method() + 'bar' + this.exclamation;
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly service1: TestService,
+        readonly service2: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        useWrapper: Decorate(DecoratorService as any),
+      },
+      {
+        provide: 'exclamation',
+        useValue: '!',
+      }
+    ]);
+
+    const service = injector.get(Service);
+    expect(service.service1).toBeInstanceOf(DecoratorService);
+    // expect(service.service1 === service.service2).toEqual(true);
+    expect((service.service1 as DecoratorService).decoratee).toBeInstanceOf(TestService);
+    expect(service.service1.method()).toEqual('foobar!');
+
+    console.log(calledTimes)
+  });
 });

@@ -44,7 +44,6 @@ export interface FactoryProvider<T = any> {
   annotations?: Record<string | symbol, any>;
 }
 
-// TODO: Check how `useWrapper` works for ExistingProvider if ADI replaces record to the record of aliases provider
 export interface ExistingProvider<T = any> {
   provide: Token<T>;
   useExisting: Token;
@@ -66,9 +65,4 @@ export interface WrapperProvider<T = any> {
   useWrapper: Wrapper;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
-}
-
-export interface ForwardRef<T = any> {
-  ref: () => T;
-  _$ref: Function;
 }

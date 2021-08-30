@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, createWrapper, Value } from "../../src";
+import { Injector, Injectable, Inject, createWrapper, Value, Module, INJECTOR_SCOPE, ANNOTATIONS, createInjector } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -210,50 +210,117 @@ describe('Type provider (injectable provider)', function() {
   });
 
   describe('should works as tree shakable provider', function() {
-    @Injectable({
-      provideIn: 'any',
-    })
-    class Service {}
+    test('when provideIn scope is this same as injector', function() {
+      @Injectable({
+        provideIn: 'any',
+      })
+      class Service {}
+  
+      const injector = new Injector();
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+    });
 
-    const injector = new Injector();
+    test('should works with EXPORT annotation', async () => {
+      @Module({
+        providers: [
+          {
+            provide: INJECTOR_SCOPE,
+            useValue: 'child',
+          }
+        ]
+      })
+      class ChildModule {}
 
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
+      @Module({
+        imports: [
+          ChildModule,
+        ]
+      })
+      class ParentModule {}
+
+      @Injectable({
+        provideIn: 'child',
+        annotations: {
+          [ANNOTATIONS.EXPORT]: true,
+        }
+      })
+      class Service {}
+
+      const injector = await createInjector(ParentModule).compile();
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+    });
   });
+  
+  describe('should works with custom providers', function() {
+    test('with useValue', function() {
+      @Injectable({
+        useValue: "foobar",
+      })
+      class Service {}
+  
+      const injector = new Injector([
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toEqual('foobar');
+    });
 
-  describe('should works with custom provider inside options (useFactory case)', function() {
-    @Injectable({
-      useFactory(foobar: string) { return foobar },
-      inject: ["token"],
-    })
-    class Service {}
+    test('with useFactory', function() {
+      @Injectable({
+        useFactory(foobar: string) { return foobar },
+        inject: ["useValue"],
+      })
+      class Service {}
+  
+      const injector = new Injector([
+        Service,
+        {
+          provide: "useValue",
+          useValue: 'foobar',
+        }
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toEqual('foobar');
+    });
+  
+    test('with useClass', function() {
+      @Injectable()
+      class TestService {}
+  
+      @Injectable({
+        useClass: TestService,
+      })
+      class Service {}
+  
+      const injector = new Injector([
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(TestService);
+    });
 
-    const injector = new Injector([
-      Service,
-      {
-        provide: "token",
-        useValue: 'foobar',
-      }
-    ]);
+    test('with useExisting', function() {
+      @Injectable({
+        useExisting: 'useValue',
+      })
+      class Service {}
 
-    const service = injector.get(Service);
-    expect(service).toEqual('foobar');
-  });
-
-  describe('should works with custom provider inside options (useClass case)', function() {
-    @Injectable()
-    class TestService {}
-
-    @Injectable({
-      useClass: TestService,
-    })
-    class Service {}
-
-    const injector = new Injector([
-      Service,
-    ]);
-
-    const service = injector.get(Service);
-    expect(service).toBeInstanceOf(TestService);
+      const injector = new Injector([
+        Service,
+        {
+          provide: 'useValue',
+          useValue: 'foobar',
+        },
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toEqual('foobar');
+    });
   });
 });
