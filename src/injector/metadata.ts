@@ -98,11 +98,14 @@ export const InjectorMetadata = new class {
       const injections = this.combineDependencies(provider.inject, providerDef.injections, classRef);
       factory = InjectorResolver.createProviderFactory(classRef, injections);
       
+      const options = providerDef.options || EMPTY_OBJECT as InjectableOptions<any>;
       // override scope if can be overrided
-      const targetScope = this.getScopeShape(providerDef.options?.scope);
+      const targetScope = this.getScopeShape(options.scope);
       if (targetScope && targetScope.kind.canBeOverrided() === false) {
         scope = targetScope;
       }
+      // override annotations
+      annotations = Object.assign(annotations === EMPTY_OBJECT ? {} : annotations, options.annotations);
     }
 
     // case with standalone `useWrapper`

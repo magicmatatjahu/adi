@@ -1,4 +1,4 @@
-import { Injector } from "../../src";
+import { Injector, Token } from "../../src";
 
 describe('useFactory', function() {
   test('should works with simple provider', function() {
@@ -69,6 +69,27 @@ describe('useFactory', function() {
     ]);
 
     const resolvedToken = await injector.getAsync<string[]>('useFactory');
+    expect(resolvedToken).toEqual(['foobar', 'barfoo']);
+  });
+
+  test('should works with wrappers and extended injection item', function() {
+    const injector = new Injector([
+      {
+        provide: 'useValue1',
+        useValue: 'foobar',
+      },
+      {
+        provide: 'useValue2',
+        useValue: 'barfoo',
+      },
+      {
+        provide: 'useFactory',
+        useFactory(foobar, barfoo) { return [foobar, barfoo] },
+        inject: [Token('useValue1'), { token: 'useValue2' }]
+      },
+    ]);
+
+    const resolvedToken = injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
   });
 });
