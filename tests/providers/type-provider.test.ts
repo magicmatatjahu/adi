@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, createWrapper, Value, Module, INJECTOR_SCOPE, ANNOTATIONS, createInjector } from "../../src";
+import { Injector, Injectable, Inject, createWrapper, Value, Module, INJECTOR_SCOPE, ANNOTATIONS, createInjector, Token, StaticInjectable, Scope } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -321,6 +321,126 @@ describe('Type provider (injectable provider)', function() {
   
       const service = injector.get(Service);
       expect(service).toEqual('foobar');
+    });
+  });
+
+  describe('should works with inlined provider def', function() {
+    test('simple `injections` property', function() {
+      class HelperService1 {}
+      class HelperService2 {}
+  
+      class Service {
+        static provider = {
+          injections: {
+            parameters: [Token(HelperService1)],
+            properties: {
+              service2: HelperService1,
+              service3: Token(HelperService2),
+            }
+          }
+        }
+        
+        // check if property injection with setter injection isn't broken
+        readonly service2: HelperService1;
+  
+        public _service3: HelperService2;
+  
+        set service3(value: HelperService2) { this._service3 = value; }
+  
+        constructor(
+          // check if constructor injection with setter injection isn't broken
+          readonly service1: HelperService1,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        HelperService1,
+        HelperService2,
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+  
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service1).toBeInstanceOf(HelperService1);
+      expect(service.service2).toBeInstanceOf(HelperService1);
+      expect(service._service3).toBeInstanceOf(HelperService2);
+    });
+
+    test('simple `options` property', function() {
+      class HelperService {
+        static provider: StaticInjectable = {
+          options: {
+            scope: Scope.TRANSIENT,
+          },
+        }
+      }
+  
+      class Service {
+        static provider: StaticInjectable = {
+          injections: {
+            parameters: [Token(HelperService), HelperService],
+          }
+        }
+  
+        constructor(
+          readonly service1: HelperService,
+          readonly service2: HelperService,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        HelperService,
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+  
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service1).toBeInstanceOf(HelperService);
+      expect(service.service2).toBeInstanceOf(HelperService);
+      expect(service.service1 === service.service2).toEqual(false);
+    });
+
+    test('should injections and options in the `provider` field has highter priority', function() {
+      class HelperService2 {}
+
+      @Injectable({
+        scope: Scope.SINGLETON,
+      })
+      class HelperService {
+        static provider: StaticInjectable = {
+          options: {
+            scope: Scope.TRANSIENT,
+          },
+        }
+      }
+  
+      @Injectable()
+      class Service {
+        static provider: StaticInjectable = {
+          injections: {
+            parameters: [undefined, HelperService],
+          }
+        }
+  
+        constructor(
+          readonly service1: HelperService,
+          readonly service2: HelperService2,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        HelperService,
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+  
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service1).toBeInstanceOf(HelperService);
+      expect(service.service2).toBeInstanceOf(HelperService);
+      expect(service.service1 === service.service2).toEqual(false);
     });
   });
 });

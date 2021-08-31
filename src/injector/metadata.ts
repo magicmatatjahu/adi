@@ -95,7 +95,7 @@ export const InjectorMetadata = new class {
       const providerDef = this.getProviderDef(classRef, true);
       proto = classRef;
 
-      const injections = this.combineDependencies(provider.inject, providerDef.injections);
+      const injections = this.combineDependencies(provider.inject, providerDef.injections, classRef);
       factory = InjectorResolver.createProviderFactory(classRef, injections);
       
       // override scope if can be overrided
@@ -273,7 +273,7 @@ export const InjectorMetadata = new class {
   combineDependencies(
     toCombine: Array<InjectionItem> | PlainInjections,
     original: InjectionArguments,
-    target?: Object,
+    target: Object,
   ): InjectionArguments {
     if (toCombine === undefined) {
       return original;

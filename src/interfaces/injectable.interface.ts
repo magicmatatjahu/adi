@@ -1,5 +1,4 @@
-import { PlainSansProvider, ScopeType, Type } from ".";
-import { InjectionArguments } from "./definition.interface";
+import { PlainSansProvider, PlainInjections, ScopeType, Type } from ".";
 
 export type ProvideInType = string | symbol | Type | 'any';
 
@@ -17,7 +16,7 @@ export type InjectionTokenOptions<S> = {
   annotations?: Record<string | symbol, any>;
 } & Partial<PlainSansProvider>;
 
-export interface StaticInjectable<S> {
-  options?: InjectableOptions<S>,
-  injections?: InjectionArguments 
+export interface StaticInjectable<S = any> {
+  options?: InjectableOptions<S>;
+  injections?: Omit<PlainInjections, 'dynamic'>;
 }

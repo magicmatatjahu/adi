@@ -1,9 +1,10 @@
-import { InjectableOptions, InjectionArgument, ProviderDef, Type } from "../interfaces";
+import { InjectableOptions, InjectionArgument, PlainInjections, ProviderDef, StaticInjectable, Type } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
 import { Wrapper } from "../utils/wrappers";
+import { InjectorMetadata } from "../injector";
 
 export function Injectable<S>(options?: InjectableOptions<S>) {
   return function(target: Object) {
@@ -12,9 +13,9 @@ export function Injectable<S>(options?: InjectableOptions<S>) {
   }
 }
 
-export function injectableMixin<T, S>(clazz: Type<T>, options?: InjectableOptions<S>): Type<T> {
-  Injectable(options)(clazz);
-  return clazz;
+export function injectableMixin<T, S>(target: Type<T>, options?: InjectableOptions<S>): Type<T> {
+  Injectable(options)(target);
+  return target;
 }
 
 export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined {
@@ -23,8 +24,17 @@ export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined
 
 export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions<S>): ProviderDef<T> {
   const def = ensureProviderDef(target);
-  def.options = options || def.options;
-  lookupInheritance(target, def, paramtypes);  
+  def.options = Object.assign(def.options, options);
+
+  // merge inline definition
+  const provider = (target as any).provider as StaticInjectable<S>;
+  if (provider !== undefined) {
+    def.injections = InjectorMetadata.combineDependencies(provider.injections, def.injections, target);
+    def.options = Object.assign(def.options, provider.options);
+  }
+
+  // check inheritance
+  lookupInheritance(target, def, paramtypes);
   def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def.injections);
   return def as ProviderDef<T>;
 }
@@ -52,6 +62,7 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
 // merge def from parent class
 function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<Type>): void {
   let inheritedClass = Object.getPrototypeOf(target);
+
   // case when base class is not decorated by @Injectable()
   // inheritedClass.length means arguments of constructor
   if (inheritedClass && inheritedClass.length > 0) {
