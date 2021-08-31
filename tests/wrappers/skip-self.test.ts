@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Optional, SkipSelf } from "../../src";
+import { Injector, Injectable, Inject, Optional, SkipSelf, Module, createInjector, Token, ref } from "../../src";
 
 describe('SkipSelf wrapper', function () {
   test('should inject service from parent injector', function () {
@@ -23,7 +23,7 @@ describe('SkipSelf wrapper', function () {
       },
     ], parentInjector);
 
-    const service = childInjector.get(Service) ;
+    const service = childInjector.get(Service);
     expect(service.useValue).toEqual('foobar');
   });
 
@@ -44,7 +44,53 @@ describe('SkipSelf wrapper', function () {
       },
     ], parentInjector);
 
-    const service = childInjector.get(Service) ;
+    const service = childInjector.get(Service);
     expect(service.useValue).toEqual(undefined);
+  });
+
+  test('should inject service from particular parent injector', async function () {
+    @Module({
+      providers: [
+        {
+          provide: 'useFactory',
+          useFactory(value: string) {
+            return value;
+          },
+          inject: [Token('useValue', SkipSelf(ref(() => ParentModule)))]
+        },
+      ],
+    })
+    class GrantChildModule {}
+
+    @Module({
+      imports: [
+        GrantChildModule,
+      ],
+      providers: [
+        {
+          provide: 'useValue',
+          useValue: 'child',
+        },
+      ],
+    })
+    class ChildModule {}
+
+    @Module({
+      imports: [
+        ChildModule,
+      ],
+      providers: [
+        {
+          provide: 'useValue',
+          useValue: 'parent',
+        },
+      ],
+    })
+    class ParentModule {}
+
+    const injector = await createInjector(ParentModule).compile();
+    const grandChildInjector = injector.selectChild(ChildModule).selectChild(GrantChildModule)
+    const value = grandChildInjector.get<string>("useFactory");
+    expect(value).toEqual('parent');
   });
 });

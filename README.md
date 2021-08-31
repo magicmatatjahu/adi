@@ -6,7 +6,6 @@
 - Add tree-shakable wrappers, eg for Multi purpose
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector
 - Create `Request` scope
-- Reuse the wrappers in the Decorate wrappers - in other words, pass the defined wrappers for decorated injection before `Skip(value)` wrapper - fixed by `Delegate` wrapper
 - Add fallback to the providers like in https://github.com/angular/angular/issues/13854
 - Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers
 - Add `PROVIDER` Injection Token which will be used to wrap all defined providers
@@ -26,9 +25,8 @@
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
-- Ability to request injection from a specific parent injector - https://github.com/angular/angular/issues/40974 // SkipSelf() wrapper can have option to pass the specific reference to the parent injector
 - Add Custom metadata reader - https://github.com/inversify/InversifyJS/blob/master/wiki/middleware.md#custom-metadata-reader
-- Host and visibility in the old ANgular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
+- Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
 - Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention
 
 ## IMPLEMENTED
@@ -39,3 +37,5 @@ Links:
 - TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class - it's not needed at the moment, but maybe...
 - Put wrappers as a separate collection in injector - `wrappers` - at the moment not needed, but maybe...
 - Add `useCustom` provider... - it's not needed - we can create the custom Wrapper like `UseProvider()` with provider shape
+- Ability to request injection from a specific parent injector - https://github.com/angular/angular/issues/40974 // SkipSelf() wrapper can have option to pass the specific reference to the parent injector - implemented by SkipSelf wrapper
+- Reuse the wrappers in the Decorate wrappers - in other words, pass the defined wrappers for decorated injection before `Skip(value)` wrapper - fixed by `Delegate` wrapper
