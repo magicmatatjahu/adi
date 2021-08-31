@@ -2,7 +2,7 @@ import { Scope } from "../scope";
 import { Token } from "../types";
 import { ConstraintDef, Type } from ".";
 import { Wrapper } from "../utils/wrappers";
-import { PlainInjections } from "./definition.interface";
+import { InjectionItem, PlainInjections } from "./definition.interface";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -27,7 +27,7 @@ export interface TypeProvider<T = any> extends Type<T> {}
 export interface ClassProvider<T = any> {
   provide: Token<T>;
   useClass: Type<T>;
-  inject?: Array<Token | Wrapper> | PlainInjections;
+  inject?: Array<InjectionItem> | PlainInjections;
   scope?: Scope;
   useWrapper?: Wrapper;
   when?: ConstraintDef;
@@ -37,7 +37,7 @@ export interface ClassProvider<T = any> {
 export interface FactoryProvider<T = any> {
   provide: Token<T>;
   useFactory: (...args: any[]) => T | Promise<T>;
-  inject?: Array<Token | Wrapper>;
+  inject?: Array<InjectionItem>;
   scope?: Scope;
   useWrapper?: Wrapper;
   when?: ConstraintDef;

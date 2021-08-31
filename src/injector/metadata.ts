@@ -3,7 +3,7 @@ import { createInjectionArg, getProviderDef, injectableMixin } from "../decorato
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections,
+  InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
@@ -216,20 +216,22 @@ export const InjectorMetadata = new class {
     return providerDef;
   }
 
-  convertDependencies(deps: Array<Token | Wrapper>, factory: Function, options: { cache: boolean } = { cache: false }): InjectionArgument[] {
+  convertDependencies(deps: Array<InjectionItem>, factory: Function, options: { cache: boolean } = { cache: false }): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const dep = deps[i];
       if (isWrapper(dep)) {
         converted.push(createInjectionArg(undefined, options.cache ? Cache(dep) : dep, factory, undefined, i));
+      } else if ((dep as any).token !== undefined) {
+        converted.push(createInjectionArg((dep as any).token, (dep as any).wrapper, factory, undefined, i));
       } else {
-        converted.push(createInjectionArg(dep, undefined, factory, undefined, i));
+        converted.push(createInjectionArg(dep as Token, undefined, factory, undefined, i));
       }
     }
     return converted;
   }
 
-  newConvertDependencies(deps: Array<Token | Wrapper>, target: Object, methodName?: string | symbol): InjectionArgument[] {
+  newConvertDependencies(deps: Array<InjectionItem>, target: Object, methodName?: string | symbol): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       converted.push(this.convertDependency(deps[i], target, methodName, i));
@@ -238,11 +240,11 @@ export const InjectorMetadata = new class {
   }
 
   combineArrayDependencies(
-    toCombine: Array<Token | Wrapper>,
+    toCombine: Array<InjectionItem>,
     original: Array<InjectionArgument>,
     target?: Object,
     methodName?: string,
-    dynamic?: (injectionArg: InjectionArgument) => Token | Wrapper | undefined,
+    dynamic?: (injectionArg: InjectionArgument) => InjectionItem | undefined,
   ): Array<InjectionArgument> {
     if (toCombine === undefined && dynamic === undefined) {
       return original;
@@ -250,7 +252,7 @@ export const InjectorMetadata = new class {
     const newDeps = original ? [...original] : [];
 
     if (typeof dynamic === 'function') {
-      let inject: Token | Wrapper;
+      let inject: InjectionItem;
       for (let i = 0, l = newDeps.length; i < l; i++) {
         inject = dynamic(newDeps[i]);
         inject && (newDeps[i] = this.convertDependency(inject, target, methodName, i));
@@ -269,7 +271,7 @@ export const InjectorMetadata = new class {
 
   // split this function to separate ones and optimize it
   combineDependencies(
-    toCombine: Array<Token | Wrapper> | PlainInjections,
+    toCombine: Array<InjectionItem> | PlainInjections,
     original: InjectionArguments,
     target?: Object,
   ): InjectionArguments {
@@ -292,7 +294,7 @@ export const InjectorMetadata = new class {
     newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, target, undefined, dynamic);
     // properties and symbols 
     if (typeof dynamic === 'function') {
-      let inject: Token | Wrapper;
+      let inject: InjectionItem;
       for (const propName in newDeps.properties) {
         inject = dynamic(newDeps.properties[propName]);
         inject && (newDeps.properties[propName] = this.convertDependency(inject, target, propName));
@@ -325,10 +327,13 @@ export const InjectorMetadata = new class {
     return newDeps;
   }
 
-  convertDependency(dep: Token | Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+  convertDependency(dep: InjectionItem, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
     if (isWrapper(dep)) {
       return createInjectionArg(undefined, dep, target, propertyKey, index);
     }
-    return createInjectionArg(dep, undefined, target, propertyKey, index);
+    if ((dep as any).token !== undefined) {
+      return createInjectionArg((dep as any).token, (dep as any).wrapper, target, propertyKey, index);
+    }
+    return createInjectionArg(dep as Token, undefined, target, propertyKey, index);
   }
 }

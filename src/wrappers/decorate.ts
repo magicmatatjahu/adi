@@ -1,12 +1,12 @@
 import { EMPTY_ARRAY } from "../constants";
 import { InjectorMetadata, InjectorResolver } from "../injector";
-import { FactoryDef, Type, WrapperDef } from "../interfaces";
+import { FactoryDef, InjectionItem, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { createWrapper, Wrapper, thenable } from "../utils";
+import { createWrapper, thenable } from "../utils";
 
 interface DecorateOptions {
   decorator: (...args: any[]) => any;
-  inject?: Array<Token | Wrapper>;
+  inject?: Array<InjectionItem>;
 }
 
 const DECORATED_STATUS = 1024; // 10 bit

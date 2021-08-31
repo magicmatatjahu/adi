@@ -1,5 +1,5 @@
 import { Context } from "../injector";
-import { InstanceRecord, ScopeShape, PlainInjections } from ".";
+import { InjectionItem, InstanceRecord, ScopeShape, PlainInjections } from ".";
 import { Token } from "../types";
 import { Wrapper } from "../utils/wrappers";
 
@@ -9,7 +9,7 @@ export interface InjectionOptions<T = any> {
   scope?: ScopeShape;
   labels?: Record<string | symbol, any>;
   // TOOD: Think about this... Maybe it's unnecessary
-  injections?: Array<Token | Wrapper> | PlainInjections;
+  injections?: Array<InjectionItem> | PlainInjections;
 }
 
 export interface InjectionMetadata {

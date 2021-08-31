@@ -22,11 +22,13 @@ export interface InjectionArguments {
   methods: Record<string, InjectionArgument[]>;
 }
 
+export type InjectionItem = Token | Wrapper | { token: Token, wrapper: Wrapper };
+
 export interface PlainInjections {
-  parameters?: Array<Token | Wrapper>;
-  properties?: Record<string | symbol, Token | Wrapper>;
-  methods?: Record<string, Array<Token | Wrapper>>;
-  dynamic?: (injectionArg: InjectionArgument) => Token | Wrapper | undefined;
+  parameters?: Array<InjectionItem>;
+  properties?: Record<string | symbol, InjectionItem>;
+  methods?: Record<string, Array<InjectionItem>>;
+  dynamic?: (injectionArg: InjectionArgument) => InjectionItem | undefined;
 }
 
 export type FactoryDef<T = any> = (

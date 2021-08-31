@@ -1,5 +1,6 @@
 import { Token } from "../types";
 import { Wrapper } from "../utils";
+import { InjectionItem } from "./definition.interface";
 
 export interface OnInit {
   onInit(): void | Promise<void>;
@@ -7,7 +8,7 @@ export interface OnInit {
 
 export type StandaloneOnInit<T = any> = 
   | ((value: T) => void | Promise<void>)
-  | { onInit: (...args: any[]) => void | Promise<void>, inject: Array<Token | Wrapper> };
+  | { onInit: (...args: any[]) => void | Promise<void>, inject: Array<InjectionItem> };
 
 export interface OnDestroy {
   onDestroy(): void | Promise<void>;
@@ -15,4 +16,4 @@ export interface OnDestroy {
 
 export type StandaloneOnDestroy<T = any> = 
   | ((value: T) => void | Promise<void>)
-  | { onDestroy: (...args: any[]) => void | Promise<void>, inject: Array<Token | Wrapper> };
+  | { onDestroy: (...args: any[]) => void | Promise<void>, inject: Array<InjectionItem> };

@@ -1,6 +1,6 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, ProviderDef, Type, InstanceRecord, InjectionArguments } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, ProviderDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
 import { InjectionStatus } from "../enums";
 import { Wrapper } from "../utils";
 import { Token } from "../types";
@@ -109,7 +109,7 @@ export const InjectorResolver = new class {
 
   createFactory(
     factory: Function,
-    deps: Array<Token | Wrapper>,
+    deps: Array<InjectionItem>,
     options?: { cache: boolean },
   ) {
     const convertedDeps = InjectorMetadata.convertDependencies(deps, factory, options);
