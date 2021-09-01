@@ -22,7 +22,7 @@ export interface InjectionArguments {
   methods: Record<string, InjectionArgument[]>;
 }
 
-export type InjectionItem = Token | Wrapper | { token: Token, wrapper: Wrapper };
+export type InjectionItem<T = any> = Token<T> | Wrapper | { token: Token<T>, wrapper: Wrapper };
 
 export interface PlainInjections {
   parameters?: Array<InjectionItem>;

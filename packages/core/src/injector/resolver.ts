@@ -1,6 +1,6 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, ProviderDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
 import { InjectionStatus } from "../enums";
 import { Wrapper } from "../utils";
 import { Token } from "../types";
