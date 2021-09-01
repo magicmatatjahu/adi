@@ -1,10 +1,8 @@
-import { PlainSansProvider, PlainInjections, ScopeType, Type } from ".";
+import { PlainSansProvider, PlainInjections, ScopeType, ModuleMetadata, Type } from ".";
 
 export type ProvideInType = string | symbol | Type | 'any';
 
 export type InjectableOptions<S> = {
-  // imports?: ModuleMetadata['imports'];
-  // providers?: ModuleMetadata['providers'];
   provideIn?: ProvideInType | ProvideInType[];
   scope?: ScopeType<S>;
   annotations?: Record<string | symbol, any>;

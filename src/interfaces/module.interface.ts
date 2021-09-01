@@ -28,15 +28,6 @@ export interface DynamicModule<T = any> extends ModuleMetadata {
 export type ModuleID = string | symbol;
 
 export interface CompiledModule {
-  mod: Type;
-  moduleDef: ModuleDef;
-  dynamicDef: DynamicModule;
-  injector: Injector;
-  exportTo: Injector;
-  isFacade: boolean;
-}
-
-export interface CompiledModule2 {
   type: Type;
   moduleDef: ModuleDef;
   dynamicDef: DynamicModule;

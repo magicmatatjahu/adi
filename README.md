@@ -19,7 +19,7 @@
 - Implement Facades injectors as custom Wrapper like in DryIOC - https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/KindsOfChildContainer.md#facade
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
 - Add `deep` config for `Delegate` wrapper
-- Add Pipe, Interceptor and Error Handler functionality/decorators
+- Add Pipe, Interceptor and ErrorHandler functionality/decorators
 - Add rebind/remove/clear functionality
 
 Links:

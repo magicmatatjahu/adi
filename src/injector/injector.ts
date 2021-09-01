@@ -2,23 +2,26 @@ import { getProviderDef, getModuleDef } from "../decorators";
 import { 
   InjectionOptions, InjectionMetadata,
   DefinitionRecord, InstanceRecord, ComponentRecord,
-  Provider, ProviderDef, Type, ForwardRef,
-  InjectorOptions, InjectorScopeType, ModuleMetadata, DynamicModule, ModuleID, CompiledModule, ExportedModule, PlainProvider,
+  Provider, Type, ForwardRef,
+  InjectorOptions, InjectorScopeType, ModuleMetadata, ModuleID, ExportedModule, PlainProvider,
 } from "../interfaces";
-import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, EMPTY_OBJECT, EMPTY_ARRAY, ANNOTATIONS } from "../constants";
+import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
 import { InjectionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
 
+import { Compiler } from "./module-compiler";
 import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { Multi, Optional, Self } from "../wrappers";
+import { Multi } from "../wrappers";
 import { NilInjectorError } from "../errors";
 
 export class Injector {
+  static create = createInjector;
+
   // TODO: Change to Array not Map<ModuleID, Injector> 
   // imported modules
   private imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
@@ -34,8 +37,8 @@ export class Injector {
   private id: ModuleID = 'static';
 
   constructor(
-    private readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
-    private readonly parent: Injector = NilInjector,
+    readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    readonly parent: Injector = NilInjector,
     private readonly options: InjectorOptions = {},
   ) {
     if (options !== undefined) {
@@ -73,14 +76,7 @@ export class Injector {
 
   async compile(): Promise<Injector> {
     if (Array.isArray(this.injector)) return;
-
-    const compiledModule = await this.compileModuleMetadata(this.injector);
-    compiledModule.injector = this;
-    compiledModule.exportTo = this.parent;
-    const stack: Array<Injector> = [this];
-    await this.processModule(compiledModule, stack);
-
-    await this.initModules(stack);
+    await Compiler.compileAsync(this.injector, this);
     return this;
   }
 
@@ -260,30 +256,6 @@ export class Injector {
     return this.scopes.includes(provideIn);
   }
 
-  // on imports part
-  // private handleTreeShakable(def: ProviderDef): boolean {
-  //   const annotations = def && def.options && def.options.annotations;
-  //   if (annotations[ANNOTATIONS.EXPORT] !== true) {
-  //     return;
-  //   }
-  //   this.imports.forEach(imp => {
-  //     if (imp instanceof Map) {
-  //       // implement
-  //     } else {
-  //       record = imp.
-  //     }
-  //   });
-  //   return record
-  //   const provideIn = def && def.options && def.options.provideIn;
-  //   if (provideIn === undefined) {
-  //     return false;
-  //   }
-  //   if (Array.isArray(provideIn)) {
-  //     return provideIn.some(scope => this.scopes.includes(scope));
-  //   }
-  //   return this.scopes.includes(provideIn);
-  // }
-
   private configureScope(scopes?: InjectorScopeType | Array<InjectorScopeType>): void {
     this.scopes = ["any", this.injector as any];
     scopes = scopes || this.get(INJECTOR_SCOPE, COMMON_HOOKS.OptionalSelf) as Array<InjectorScopeType>;
@@ -417,114 +389,6 @@ export class Injector {
     }
   }
 
-  /**
-   * IMPORTS
-   */
-  private async processModule<T>({ moduleDef, dynamicDef, injector, exportTo, isFacade }: CompiledModule, stack: Array<Injector>) {
-    // for facade performs only actions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
-    const compiledModules: Array<CompiledModule> = [];
-
-    // first iterate in all imports and create injectors for given modules
-    let imports = moduleDef.imports || EMPTY_ARRAY;
-    if (isFacade === false) {
-      for (let i = 0, l = imports.length; i < l; i++) {
-        await this.processImport(imports[i], compiledModules, injector, stack);
-      }
-    }
-    imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
-    for (let i = 0, l = imports.length; i < l; i++) {
-      await this.processImport(imports[i], compiledModules, injector, stack);
-    }
-
-    // first process all imports and go more depper in modules graph
-    for (let i = 0, l = compiledModules.length; i < l; i++) {
-      await this.processModule(compiledModules[i], stack);
-    }
-
-    if (isFacade === false) {
-      injector.addProviders(moduleDef.providers);
-      injector.addComponents(moduleDef.components);
-      injector.processExports(moduleDef.exports, injector, exportTo);
-    }
-    if (dynamicDef !== undefined) {
-      injector.addProviders(dynamicDef.providers);
-      injector.addComponents(dynamicDef.components);
-      injector.processExports(dynamicDef.exports, injector, exportTo);
-    }
-  }
-
-  private async processImport<T = any>(
-    imp: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
-    compiledModules: Array<CompiledModule>,
-    parentInjector: Injector,
-    stack: Array<Injector>,
-  ) {
-    const processedModule = await this.compileModuleMetadata(imp);
-    if (processedModule === undefined) return;
-
-    const { mod, dynamicDef } = processedModule;
-    const id = (dynamicDef && dynamicDef.id) || 'static';
-    
-    let injector: Injector, foundedInjector = this.findModule(parentInjector, mod, id);
-    if (foundedInjector === undefined) {
-      injector = createInjector(mod, parentInjector, { id });
-
-      processedModule.injector = injector;
-      processedModule.exportTo = parentInjector;
-
-      stack.push(injector);
-    } else {
-      // check also here circular references between modules
-
-      // make facade
-      const facadeInjector = createInjector(mod, foundedInjector, { id });
-      processedModule.injector = facadeInjector;
-      processedModule.exportTo = parentInjector;
-      processedModule.isFacade = true;
-      injector = facadeInjector;
-
-      // don't push facade to the `stack` array
-    }
-    compiledModules.push(processedModule as any);
-
-    if (parentInjector.imports.has(mod)) {
-      const modules = parentInjector.imports.get(mod);
-
-      // when modules is a map not a single injector
-      if (modules instanceof Map) {
-        modules.set(id, injector);
-      } else {
-        const map = new Map();
-        parentInjector.imports.set(mod, map);
-        map.set(modules.id, modules)
-      }
-    } else {
-      parentInjector.imports.set(mod, injector);
-    }
-
-    // TODO: Checks also exported modules in imports
-  }
-
-  private async compileModuleMetadata<T>(mod: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>): Promise<CompiledModule> {
-    mod = resolveRef(mod);
-    if (!mod) return;
-
-    // retrieve module metadata
-    // if it's dynamic module, first try to resolve the module metadata
-    let moduleDef = getModuleDef(mod), 
-      dynamicDef: DynamicModule<T> = undefined;
-    if (moduleDef === undefined) {
-      dynamicDef = await (mod as Promise<DynamicModule>);
-      mod = dynamicDef.module;
-      if (mod !== undefined) moduleDef = getModuleDef(mod);
-    }
-
-    if (moduleDef === undefined && dynamicDef === undefined) {
-      throw new Error(`Given value/type ${mod} cannot be used as ADI Module`);
-    }
-    return { mod: mod as Type, moduleDef: moduleDef || EMPTY_OBJECT, dynamicDef, injector: undefined, exportTo: undefined, isFacade: false };
-  }
-
   private async initModule(): Promise<void> {
     // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
     this.configureScope();
@@ -540,51 +404,6 @@ export class Injector {
 
     // at the end init given module
     typeof this.injector === 'function' && this.getComponent(this.injector as any);
-  }
-
-  private async initModules(stack: Array<Injector>): Promise<void> {
-    for (let i = 0, l = stack.length; i < l; i++) {
-      await stack[i].initModule();
-    }
-  }
-
-  // injector is here for searching in his parent and more depper
-  private findModule(injector: Injector, mod: Type, id: ModuleID): Injector | undefined {
-    if (mod === injector.injector) {
-      // TODO: Check this statement - maybe error isn't needed
-      // throw Error('Cannot import this same module to injector');
-      console.log('Cannot import this same module to injector');
-      return undefined;
-    }
-
-    let foundedModule = injector.imports.get(mod);
-    if (foundedModule) {
-      if (foundedModule instanceof Map && foundedModule.has(id)) {
-        return foundedModule.get(id);
-      } else if ((foundedModule as Injector).id === id) {
-        return foundedModule as Injector;
-      }
-    }
-
-    let parentInjector = injector.getParent();
-    // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
-    while (parentInjector !== NilInjector) {
-      // TODO: Check this statement - maybe it's needed
-      if (mod === parentInjector.injector) {
-        return parentInjector as Injector;
-      }
-      foundedModule = parentInjector.imports.get(mod);
-
-      if (foundedModule) {
-        if (foundedModule instanceof Map && foundedModule.has(id)) {
-          return foundedModule.get(id);
-        } else if ((foundedModule as Injector).id === id) {
-          return foundedModule as Injector;
-        }
-      }
-      parentInjector = parentInjector.getParent();
-    }
-    return undefined;
   }
 }
 
