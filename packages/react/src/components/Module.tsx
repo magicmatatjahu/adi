@@ -1,6 +1,8 @@
-import { useContext, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Injector, InjectorOptions, ModuleMetadata, Provider, Type } from "@adi/core";
-import { InjectorContext } from "../context";
+
+import { useInjector } from "../hooks";
+import { InjectorContext } from "../constants";
 
 export interface ModuleProps {
   module: Type<any> | ModuleMetadata | Array<Provider>;
@@ -9,7 +11,7 @@ export interface ModuleProps {
 
 export const Module: React.FunctionComponent<ModuleProps> = (props) => {
   const injectorRef = useRef<Injector>(null);
-  const parentInjector = useContext(InjectorContext);
+  const parentInjector = useInjector();
 
   useEffect(() => {
     // TODO: make cleanup

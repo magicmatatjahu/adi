@@ -1,14 +1,8 @@
 import { useContext } from "react";
 import { Injector } from "@adi/core";
 
-import { InjectorContext } from "../context";
+import { InjectorContext } from "../constants";
 
 export function useInjector(): Injector {
-  const injector = useContext(InjectorContext);
-
-  if (injector === null) {
-    throw new Error();
-  }
-
-  return injector;
+  return useContext(InjectorContext);
 }

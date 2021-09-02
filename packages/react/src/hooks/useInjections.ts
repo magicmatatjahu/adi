@@ -1,13 +1,13 @@
-import { useContext, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { InjectionItem } from "@adi/core";
 
-import { InjectorContext } from "../context";
 import { injectArray } from "../utils";
+import { useInjector } from "./useInjector";
 
 export function useInjections<T>(...injections: Array<InjectionItem>): T {
   const instances = useRef(null);
-  const injector = useContext(InjectorContext);
+  const injector = useInjector();
 
   useEffect(() => {
     // TODO: make cleanup

@@ -1,8 +1,8 @@
-import { useRef, useContext, useEffect, createElement } from "react";
+import { useRef, useEffect, createElement } from "react";
 
 import { InjectionItem } from "@adi/core";
 
-import { InjectorContext } from "../context";
+import { useInjector } from "../hooks";
 import { injectMap } from "../utils";
 
 export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
@@ -10,7 +10,7 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
   injections: Record<keyof Pick<TProps, TInjectedKeys>, InjectionItem>,
 ) {
   const instances = useRef(null);
-  const injector = useContext(InjectorContext);
+  const injector = useInjector();
 
   useEffect(() => {
     // TODO: make cleanup

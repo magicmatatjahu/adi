@@ -1,4 +1,4 @@
 export * from "./components";
-export * from "./context"
+export * from "./constants"
 export * from "./hoc";
 export * from "./hooks";

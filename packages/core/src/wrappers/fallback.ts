@@ -18,6 +18,7 @@ function wrapper(token: Token): WrapperDef {
         if ((err as NilInjectorError).isNilInjectorError) {
           // TODO: Change to `session.fork()` and set undefined to the record, definition and instance
           const newSession = new Session(undefined, undefined, undefined, { ...copiedSession.options, token }, copiedSession.meta, copiedSession.parent);
+          // TODO: use the return next(injector, newSession); case - fix the bugs in two tests - in Decorate wrapper and Fallback wrapper
           return injector.get(token, undefined, newSession);
           // return next(injector, newSession);
         }
