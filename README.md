@@ -27,6 +27,9 @@ Links:
 - Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
 - Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention
 
+React:
+- Implement ProtoInjector and think how to reuse the created modules from the scope, it means how to reuse the modules that will be create in the hierarchy one time and then reuse - the main problem is with `exports` - probably in react (and in other front-end tools) exports isn't good solution
+
 ## IMPLEMENTED
 
 - Create `Facade` wrapper to support case written in the https://github.com/inversify/InversifyJS/issues/1156 issue and https://github.com/nestjs/nest/issues/7631 issue - implemented by `Facade` wrapper

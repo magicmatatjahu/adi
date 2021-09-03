@@ -1,27 +1,19 @@
 import { createInjector, Injector } from "../injector";
 import { InjectionArgument, InjectionItem, Provider, WrapperDef } from "../interfaces";
-import { Token as TokenWrapper } from "./token";
-import { Token } from "../types";
-import { createWrapper, Wrapper } from "../utils/wrappers";
+import { WithInjector } from "./with-injector";
+import { createWrapper } from "../utils/wrappers";
 
 interface FacadeOptions {
   providers?: Provider[];
   deep?: boolean;
 } 
 
-function withInjector(injector: Injector): WrapperDef {
-  return (_, session, next) => {
-    return next(injector, session);
-  }
-}
-
-export const WithInjector = createWrapper<Injector, true>(withInjector);
-
 function dynamicInjection(injector: Injector, deep: boolean) {
   return function dynamic(arg: InjectionArgument): InjectionItem {
+    const basicWrapper = WithInjector(injector, arg.wrapper);
     return deep === true
-      ? Facade({ deep: true, injector } as any, TokenWrapper(arg.token, WithInjector(injector, arg.wrapper)))
-      : TokenWrapper(arg.token, WithInjector(injector, arg.wrapper));
+      ? { token: arg.token, wrapper: Facade({ deep: true, injector } as any, basicWrapper) }
+      : { token: arg.token, wrapper: basicWrapper };
   }
 }
 

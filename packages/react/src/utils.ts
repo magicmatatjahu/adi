@@ -1,6 +1,18 @@
-import { InjectionItem, Injector } from "@adi/core";
+import { InjectionItem, Injector, ValueProvider, when } from "@adi/core";
 import { Token } from "@adi/core/lib/types";
 import { isWrapper } from "@adi/core/lib/utils";
+
+import { ComponentProvider } from "./interfaces";
+import { COMPONENT_TOKEN } from "./constants";
+
+export function createComponentProvider(componentProvider: ComponentProvider): ValueProvider {
+  return {
+    provide: COMPONENT_TOKEN,
+    useValue: componentProvider.component,
+    useWrapper: componentProvider.wrapper,
+    when: when.named(componentProvider.name),
+  };
+}
 
 export function injectArray(injector: Injector, injections: Array<InjectionItem>): any[] {
   return injections.map(injectionItem => inject(injector, injectionItem));

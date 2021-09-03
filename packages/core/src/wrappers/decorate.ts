@@ -9,8 +9,6 @@ interface DecorateOptions {
   inject?: Array<InjectionItem>;
 }
 
-const DECORATED_STATUS = 1024; // 10 bit
-
 function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
   let factory: FactoryDef;
 
@@ -29,7 +27,7 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
       () => next(injector, session),
       decoratee => {
         // if it has been decorated before, return value.
-        if (session.instance?.status & DECORATED_STATUS) {
+        if (session.instance?.status & 1024) {
           return decoratee;
         }
 

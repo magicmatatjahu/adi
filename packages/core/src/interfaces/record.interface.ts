@@ -13,6 +13,7 @@ export interface DefinitionRecord<T = any, S = any> {
   annotations: Record<string | symbol, any>;
   proto: Type<T> | undefined;
   values: Map<Context, InstanceRecord<T>>;
+  name?: string;
   // weakValues: WeakMap<Context, InstanceRecord<T>>;
   // flags: InjectionRecordFlags;
   // original: Provider;
@@ -29,9 +30,10 @@ export interface InstanceRecord<T = any> {
   value: T;
   status: InjectionStatus;
   def: DefinitionRecord;
+  scope: ScopeShape;
   // for pararell resolution
-  donePromise: Promise<T>;
-  doneResolve: (value: T) => void;
+  donePromise?: Promise<T>;
+  doneResolve?: (value: T) => void;
   // // what is injected to instance
   // children: Set<InstanceRecord>;
   // // where instance is injected

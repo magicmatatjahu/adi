@@ -10,11 +10,11 @@ export function useInject<T>(token: Token<T>, wrapper?: Wrapper): T {
   const injector = useInjector();
 
   useEffect(() => {
-    // TODO: make cleanup
-    return () => {
-      console.log("cleaned up");
-      instance.current = null;
-    };
+    // // TODO: make cleanup
+    // return () => {
+    //   console.log("cleaned up useInject");
+    //   instance.current = null;
+    // };
   }, []);
 
   if (injector === null) {

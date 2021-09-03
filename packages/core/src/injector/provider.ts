@@ -29,10 +29,9 @@ export class ProviderRecord<T = any> {
         value: undefined,
         def,
         status: InjectionStatus.UNKNOWN,
+        scope,
         donePromise: undefined,
         doneResolve: undefined,
-        // scope,
-        // scopeOptions,
         // children: new Set(),
         // parents: new Set(),
       };
@@ -73,6 +72,7 @@ export class ProviderRecord<T = any> {
       annotations,
       proto: proto || undefined,
       values: new Map<Context, InstanceRecord<T>>(),
+      name: annotations[ANNOTATIONS.NAME]
     };
 
     // add definition to the defs/constraintDefs array
@@ -83,7 +83,8 @@ export class ProviderRecord<T = any> {
     }
 
     // check if definition must be resolved with MODULE_INITIALIZERS
-    if (annotations[ANNOTATIONS.EAGER] === true) {
+    // add def only to the MODULE_INITIALIZERS definitions when injector isn't initialized
+    if (annotations[ANNOTATIONS.EAGER] === true && this.host.initialized === false) {
       const moduleInitializers = this.host.getRecord(MODULE_INITIALIZERS);
       moduleInitializers.defs.push(def);
     }

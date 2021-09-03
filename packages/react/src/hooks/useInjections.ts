@@ -10,11 +10,11 @@ export function useInjections<T>(...injections: Array<InjectionItem>): T {
   const injector = useInjector();
 
   useEffect(() => {
-    // TODO: make cleanup
-    return () => {
-      console.log("cleaned up");
-      instances.current = null;
-    };
+    // // TODO: make cleanup
+    // return () => {
+    //   console.log("cleaned up useInjections");
+    //   instances.current = null;
+    // };
   }, []);
 
   if (injector === null) {

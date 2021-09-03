@@ -25,3 +25,4 @@ export * from "./sync";
 export * from "./token";
 export * from "./value";
 export * from "./with-dependencies";
+export * from "./with-injector";

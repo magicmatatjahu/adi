@@ -36,6 +36,22 @@ export class Injector {
   // id of injector/module
   private id: ModuleID = 'static';
 
+  /**
+   * Flag indicating that this injector was previously initialized.
+   */
+  get initialized(): boolean {
+    return this._initialized;
+  }
+  private _initialized: boolean = false;
+
+  /**
+   * Flag indicating that this injector was previously destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+  private _destroyed = false;
+
   constructor(
     readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
     readonly parent: Injector = NilInjector,
@@ -43,7 +59,7 @@ export class Injector {
   ) {
     if (options !== undefined) {
       const { setupProviders, scope } = options;
-      setupProviders !== undefined && this.addProviders(options.setupProviders);
+      setupProviders && this.addProviders(options.setupProviders);
       this.id = options.id || this.id;
       scope && this.configureScope(scope);
     }
@@ -74,6 +90,12 @@ export class Injector {
     return createInjector(injector, this, options);
   }
 
+  // compile(): Injector {
+  //   if (Array.isArray(this.injector)) return;
+  //   Compiler.compile(this.injector, this);
+  //   return this;
+  // }
+
   async compile(): Promise<Injector> {
     if (Array.isArray(this.injector)) return;
     await Compiler.compileAsync(this.injector, this);
@@ -88,13 +110,53 @@ export class Injector {
     return founded.id === id ? founded : undefined;
   }
 
+  private async initModule(): Promise<void> {
+    // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
+    this.configureScope();
+
+    const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
+    let initializer = undefined;
+    for (let i = 0, l = initializers.length; i < l; i++) {
+      initializer = await initializers[i];
+      if (typeof initializer === "function") {
+        await initializer();
+      }
+    }
+
+    // at the end init given module
+    typeof this.injector === 'function' && this.getComponent(this.injector as any);
+    this._initialized = true;
+  }
+
+  init() {
+    if (this._initialized === true) return; 
+    this._initialized = true;
+
+    // try {
+    //   // Call all the lifecycle hooks.
+    //   this.onDestroy.forEach(service => service.ngOnDestroy());
+    // } finally {
+    //   // Release all references.
+    //   this.records.clear();
+    //   this.onDestroy.clear();
+    //   this.injectorDefTypes.clear();
+    // }
+  }
+
+  destroy() {
+    if (this._destroyed === true) return; 
+    this._destroyed = true;
+
+
+  }
+
+
   /**
    * PROVIDERS
    */
   get<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): T | undefined {
     const options = InjectorMetadata.createOptions(token);
     session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
-    session.setAsync(false);
     return this.resolveToken(wrapper, session);
   }
 
@@ -135,6 +197,8 @@ export class Injector {
     const def = record.getDefinition(session);
 
     if (def === undefined) {
+      // Remove assigned record from session 
+      session.setRecord(null);
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
@@ -270,8 +334,10 @@ export class Injector {
   }
 
   private addCoreProviders() {
-    this.addProvider({ provide: Injector, useValue: this });
-    this.addProvider({ provide: MODULE_INITIALIZERS, useWrapper: Multi() });
+    this.addProviders([
+      { provide: Injector, useValue: this },
+      { provide: MODULE_INITIALIZERS, useWrapper: Multi() }
+    ]);
   }
 
   /**
@@ -387,23 +453,6 @@ export class Injector {
         }
       });
     }
-  }
-
-  private async initModule(): Promise<void> {
-    // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
-    this.configureScope();
-
-    const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
-    let initializer = undefined;
-    for (let i = 0, l = initializers.length; i < l; i++) {
-      initializer = await initializers[i];
-      if (typeof initializer === "function") {
-        await initializer();
-      }
-    }
-
-    // at the end init given module
-    typeof this.injector === 'function' && this.getComponent(this.injector as any);
   }
 }
 

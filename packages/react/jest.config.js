@@ -4,9 +4,11 @@ module.exports = {
     'lcov',
     'text'
   ],
-  preset: 'ts-jest',
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.ts$',
-  moduleFileExtensions: ['ts', 'js'],
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest'
+  },
+  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$',
+  moduleFileExtensions: ['ts', 'tsx', 'js'],
   setupFiles: ["./tests/jest.setup.ts"],
   testTimeout: 1000,
 };

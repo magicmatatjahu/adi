@@ -11,9 +11,6 @@ function wrapper(token: Token): WrapperDef {
     // }
     // return injector.get(token, undefined, newSession);
     session.setToken(token);
-    if (session.isAsync() === true) {
-      return injector.getAsync(token, undefined, session);
-    }
     return injector.get(token, undefined, session);
   }
 }
