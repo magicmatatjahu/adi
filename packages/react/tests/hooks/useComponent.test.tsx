@@ -1,4 +1,4 @@
-import { Injectable, InjectionToken, Provider, when } from "@adi/core";
+import { Injectable, InjectionToken, Provider, Transform, Delegate, when } from "@adi/core";
 import { render, screen } from '@testing-library/react';
 
 import { COMPONENT_TOKEN, Module, useComponent, useInject } from "../../src";
@@ -241,5 +241,68 @@ describe('useComponent hook', function() {
 
     // any for error: Argument of type 'string' is not assignable to parameter of type 'SelectorMatcherOptions'
     expect(screen.getByText('useComponent with InjectionToken works!' as any)).toBeDefined();
+  });
+
+  test('should works with wrapper (with Transform wrapper)', async function() {
+    interface Props {
+      prop: string;
+    }
+
+    const CommonComponent = new InjectionToken<Props>();
+
+    const ProviderComponent: React.FunctionComponent<Props> = ({
+      prop,
+      children,
+    }) => {
+      return (
+        <div>
+          <span>{prop}</span>
+          {children}
+        </div>
+      );
+    }
+
+    const components: ComponentProvider[] = [
+      {
+        name: CommonComponent,
+        component: ProviderComponent,
+        useWrapper: Transform({
+          transform(PreviousComponent: React.FunctionComponent<Props>): React.FunctionComponent<Props> {
+            const WrappedComponent: React.FunctionComponent<Props> = (props) => {
+              return (
+                <div>
+                  <span>{props.prop}</span>
+                  <PreviousComponent {...props} />
+                </div>
+              );
+            }
+            return WrappedComponent;
+          },
+          inject: [Delegate()]
+        })
+      },
+    ];
+
+    const TestComponent: React.FunctionComponent = () => {
+      const Component = useComponent(CommonComponent);
+
+      return (
+        <div>
+          <Component prop="useWrapper works!">
+            <span>useWrapper works!</span>
+          </Component>
+        </div>
+      );
+    }
+
+    render(
+      <Module components={components}>
+        <TestComponent />
+      </Module>
+    )
+
+    // any for error: Argument of type 'string' is not assignable to parameter of type 'SelectorMatcherOptions'
+    expect(screen.queryAllByText('useWrapper works!' as any)).toBeDefined();
+    expect(screen.queryAllByText('useWrapper works!' as any)).toHaveLength(3);
   });
 });

@@ -4,6 +4,6 @@ import { Named, Wrapper } from "@adi/core";
 import { COMPONENT_TOKEN } from "../constants";
 import { useInject } from "./useInject";
 
-export function useComponent<T = any>(component: Token<T>, wrapper?: Wrapper): React.JSXElementConstructor<T> {
+export function useComponent<T = any>(component: Token<T>, wrapper?: Wrapper): React.JSXElementConstructor<React.PropsWithChildren<T>> {
   return useInject(COMPONENT_TOKEN, Named(component, wrapper)) as any;
 }

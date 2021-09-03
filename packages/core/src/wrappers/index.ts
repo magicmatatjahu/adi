@@ -23,6 +23,7 @@ export * from "./skip-self";
 export * from "./skip";
 export * from "./sync";
 export * from "./token";
+export * from "./transform";
 export * from "./value";
 export * from "./with-dependencies";
 export * from "./with-injector";

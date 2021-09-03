@@ -1,4 +1,3 @@
-import { EMPTY_ARRAY } from "../constants";
 import { InjectorMetadata, InjectorResolver } from "../injector";
 import { FactoryDef, InjectionItem, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
@@ -9,12 +8,11 @@ interface DecorateOptions {
   inject?: Array<InjectionItem>;
 }
 
-function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
+function wrapper(decorator: Type | DecorateOptions): WrapperDef {
   let factory: FactoryDef;
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
-    const fn = (decorator as DecorateOptions).decorator;
-    factory = InjectorResolver.createFactory(fn, (decorator as DecorateOptions).inject || EMPTY_ARRAY);
+    factory = InjectorResolver.createFactory((decorator as DecorateOptions).decorator, (decorator as DecorateOptions).inject || []);
   } else { // type based decorator
     factory = InjectorMetadata.getProviderDef(decorator as Token).factory;
   }
@@ -50,4 +48,4 @@ function decorateWrapper(decorator: Type | DecorateOptions): WrapperDef {
   }
 }
 
-export const Decorate = createWrapper<DecorateOptions, true>(decorateWrapper);
+export const Decorate = createWrapper<DecorateOptions, true>(wrapper);

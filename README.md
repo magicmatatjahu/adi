@@ -21,6 +21,7 @@
 - Add `deep` config for `Delegate` wrapper
 - Add Pipe, Interceptor and ErrorHandler functionality/decorators
 - Add rebind/remove/clear functionality
+- Remove Delegate() wrapper in Transform and Decorate when in custom function's hasn't defined injection array
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442

@@ -9,7 +9,7 @@ export function createComponentProvider(componentProvider: ComponentProvider): V
   return {
     provide: COMPONENT_TOKEN,
     useValue: componentProvider.component,
-    useWrapper: componentProvider.wrapper,
+    useWrapper: componentProvider.useWrapper,
     when: when.named(componentProvider.name),
   };
 }
