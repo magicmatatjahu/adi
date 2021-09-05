@@ -540,4 +540,32 @@ describe('Decorate wrapper', function () {
 
     console.log(calledTimes)
   });
+
+  test('should work without inject array - function decorator case', function () {
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    const functionDecorator = {
+      decorator(decoratee: TestService) { return decoratee.method() + 'bar' },
+    };
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Decorate(functionDecorator)) readonly service: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service) ;
+    expect(service.service).toEqual('foobar');
+  });
 });

@@ -42,7 +42,7 @@ describe('useInject hook', function() {
     class Service {}
 
     const TestComponent: React.FunctionComponent = () => {
-      const service = useInject<Service>(Service, Optional()) || "wrapper works!";
+      const service = useInject<Service>(Service, Optional("wrapper works!"));
 
       return (
         <div>

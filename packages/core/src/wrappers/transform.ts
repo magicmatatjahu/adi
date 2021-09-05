@@ -1,6 +1,7 @@
 import { InjectorResolver } from "../injector";
 import { InjectionItem, WrapperDef } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
+import { Delegate } from "./delegate";
 
 interface TransformOptions {
   transform: (...args: any[]) => any | Promise<any>;
@@ -8,7 +9,7 @@ interface TransformOptions {
 }
 
 function wrapper(transform: TransformOptions): WrapperDef {
-  const factory = InjectorResolver.createFactory(transform.transform, transform.inject || []);
+  const factory = InjectorResolver.createFactory(transform.transform, transform.inject || [Delegate()]);
 
   return (injector, session, next) => {
     // copy session

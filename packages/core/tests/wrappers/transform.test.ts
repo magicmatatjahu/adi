@@ -161,4 +161,32 @@ describe('Transform wrapper', function () {
     const t = injector.get('test') as string;
     expect(t).toEqual('foobar!');
   });
+
+  test('should work without inject array', function () {
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    const transformer = {
+      transform(value: TestService) { return value.method() + 'bar' },
+    };
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Transform(transformer)) readonly service: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service) ;
+    expect(service.service).toEqual('foobar');
+  });
 });

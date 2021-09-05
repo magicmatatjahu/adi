@@ -2,6 +2,7 @@ import { InjectorMetadata, InjectorResolver } from "../injector";
 import { FactoryDef, InjectionItem, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper, thenable } from "../utils";
+import { Delegate } from "./delegate";
 
 interface DecorateOptions {
   decorator: (...args: any[]) => any;
@@ -12,7 +13,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
   let factory: FactoryDef;
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
-    factory = InjectorResolver.createFactory((decorator as DecorateOptions).decorator, (decorator as DecorateOptions).inject || []);
+    factory = InjectorResolver.createFactory((decorator as DecorateOptions).decorator, (decorator as DecorateOptions).inject || [Delegate()]);
   } else { // type based decorator
     factory = InjectorMetadata.getProviderDef(decorator as Token).factory;
   }
