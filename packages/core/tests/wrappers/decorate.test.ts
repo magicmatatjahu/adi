@@ -534,11 +534,10 @@ describe('Decorate wrapper', function () {
 
     const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(DecoratorService);
-    // expect(service.service1 === service.service2).toEqual(true);
     expect((service.service1 as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service1.method()).toEqual('foobar!');
-
-    console.log(calledTimes)
+    expect(service.service1 === service.service2).toEqual(true);
+    expect(calledTimes).toEqual(1);
   });
 
   test('should work without inject array - function decorator case', function () {

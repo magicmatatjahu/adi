@@ -90,13 +90,13 @@ export class Injector {
     return createInjector(injector, this, options);
   }
 
-  // compile(): Injector {
-  //   if (Array.isArray(this.injector)) return;
-  //   Compiler.compile(this.injector, this);
-  //   return this;
-  // }
+  compile(): Injector {
+    if (Array.isArray(this.injector)) return;
+    Compiler.compile(this.injector, this);
+    return this;
+  }
 
-  async compile(): Promise<Injector> {
+  async compileAsync(): Promise<Injector> {
     if (Array.isArray(this.injector)) return;
     await Compiler.compileAsync(this.injector, this);
     return this;

@@ -9,7 +9,11 @@ interface DecorateOptions {
   inject?: Array<InjectionItem>;
 }
 
+// DECORATOR_ID is added to the every instances with `true` value to avoid redecorate the given instance
+let DECORATOR_ID = 0;
+
 function wrapper(decorator: Type | DecorateOptions): WrapperDef {
+  const decoratorID = DECORATOR_ID++;
   let factory: FactoryDef;
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
@@ -26,7 +30,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
       () => next(injector, session),
       decoratee => {
         // if it has been decorated before, return value.
-        if (session.instance?.status & 1024) {
+        if (session.instance['$$decorator' + decoratorID] === true) {
           return decoratee;
         }
 
@@ -41,6 +45,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
           () => factory(injector, forkedSession),
           value => {
             session.instance.value = value;
+            session.instance['$$decorator' + decoratorID] = true;
             return value;
           }
         )

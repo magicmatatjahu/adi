@@ -16,7 +16,7 @@ export class ModuleCompiler {
     metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
     injector: Injector,
   ): void {
-    const compiledModule = this.compileMetadata(metatype);
+    const compiledModule = this.compileMetadata(metatype) as CompiledModule;
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -77,12 +77,12 @@ export class ModuleCompiler {
     let imports = moduleDef.imports || EMPTY_ARRAY;
     if (isProxy === false) {
       for (let i = 0, l = imports.length; i < l; i++) {
-        await this.processImport(imports[i], compiledModules, injector, stack);
+        await this.processImportAsync(imports[i], compiledModules, injector, stack);
       }
     }
     imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
     for (let i = 0, l = imports.length; i < l; i++) {
-      await this.processImport(imports[i], compiledModules, injector, stack);
+      await this.processImportAsync(imports[i], compiledModules, injector, stack);
     }
 
     // first process all imports and go more depper in modules graph
@@ -109,7 +109,60 @@ export class ModuleCompiler {
     stack: Array<Injector>,
   ) {
     // const processedModule = await this.compileMetadata(imp);
-    const processedModule = this.compileMetadata(imp);
+    const processedModule = this.compileMetadata(imp) as CompiledModule;
+    if (processedModule === undefined) return;
+
+    const { type, dynamicDef } = processedModule;
+    const id = (dynamicDef && dynamicDef.id) || 'static';
+    
+    let injector: Injector, foundedInjector = this.findModule(parentInjector, type, id);
+    if (foundedInjector === undefined) {
+      injector = Injector.create(type, parentInjector, { id });
+
+      processedModule.injector = injector;
+      processedModule.exportTo = parentInjector;
+
+      stack.push(injector);
+    } else {
+      // check also here circular references between modules
+
+      // make facade
+      const proxyInjector = Injector.create(type, foundedInjector, { id });
+      processedModule.injector = proxyInjector;
+      processedModule.exportTo = parentInjector;
+      processedModule.isProxy = true;
+      injector = proxyInjector;
+
+      // don't push facade to the `stack` array
+    }
+    compiledModules.push(processedModule as any);
+
+    if ((parentInjector as any).imports.has(type)) {
+      const modules = (parentInjector as any).imports.get(type);
+
+      // when modules is a map not a single injector
+      if (modules instanceof Map) {
+        modules.set(id, injector);
+      } else {
+        const map = new Map();
+        (parentInjector as any).imports.set(type, map);
+        map.set(modules.id, modules)
+      }
+    } else {
+      (parentInjector as any).imports.set(type, injector);
+    }
+
+    // TODO: Checks also exported modules in imports
+  }
+
+  private async processImportAsync<T = any>(
+    imp: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+    compiledModules: Array<CompiledModule>,
+    parentInjector: Injector,
+    stack: Array<Injector>,
+  ) {
+    // const processedModule = await this.compileMetadata(imp);
+    const processedModule = await this.compileMetadata(imp);
     if (processedModule === undefined) return;
 
     const { type, dynamicDef } = processedModule;
@@ -157,7 +210,7 @@ export class ModuleCompiler {
 
   compileMetadata<T>(
     metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
-  ): CompiledModule {
+  ): CompiledModule | Promise<CompiledModule> {
     let mod = resolveRef(metatype);
     if (!mod) {
       return;
