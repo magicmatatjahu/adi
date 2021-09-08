@@ -23,7 +23,12 @@ export const ANNOTATIONS = {
   EXPORT: '@adi/export',
   ORDER: '@adi/order',
   LOCAL_SCOPE: '@adi/local-scope',
-}
+};
+
+export const DELEGATION = {
+  KEY: '@adi/delegation',
+  DECORATOR: '@adi/delegation-decorator',
+};
 
 export const ALWAYS_CONSTRAINT = () => true;
 export const NEVER_CONSTRAINT = () => false;

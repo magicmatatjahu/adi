@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Multi, Named, when, InjectionToken } from "../../src";
+import { Injector, Injectable, Inject, Multi, Named, when, ANNOTATIONS, DefinitionRecord } from "../../src";
 
 describe('Multi wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -136,5 +136,261 @@ describe('Multi wrapper', function () {
 
     const service = injector.get(Service) ;
     expect(service.multi).toEqual(['multi1', 'multi2']);
+  });
+
+  test('should inject multi providers from given token with provided meta key', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi({ metaKey: "metaKey" })) readonly multi: Array<string>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: 'multi1',
+        annotations: {
+          metaKey: 'foobar',
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi2',
+      },
+      {
+        provide: 'token',
+        useValue: 'multi3',
+        annotations: {
+          metaKey: 'barfoo',
+        }
+      }
+    ]);
+
+    const service = injector.get(Service) ;
+    expect(service.multi).toEqual({
+      foobar: 'multi1',
+      barfoo: 'multi3'
+    });
+  });
+
+  test('should inject multi providers from given token with provided meta key and with constraints', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi({ metaKey: "metaKey" }, Named('multi'))) readonly multi: Array<string>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: 'multi1',
+        annotations: {
+          metaKey: 'foobar',
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi2',
+      },
+      {
+        provide: 'token',
+        useValue: 'multi2',
+        when: when.named('multi'),
+        annotations: {
+          metaKey: 'foobar',
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi3',
+        when: when.named('multi'),
+      },
+      {
+        provide: 'token',
+        useValue: 'multi4',
+        when: when.named('multi'),
+        annotations: {
+          metaKey: 'barfoo',
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi5',
+        annotations: {
+          metaKey: 'barfoo',
+        }
+      }
+    ]);
+
+    const service = injector.get(Service) ;
+    expect(service.multi).toEqual({
+      foobar: 'multi2',
+      barfoo: 'multi4'
+    });
+  });
+
+  test('should inject multi providers from given token with proper order', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi()) readonly multi: Array<string>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: 'multi1',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 3,
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi2',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 4,
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi3',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 1,
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi4',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 2,
+        }
+      }
+    ]);
+
+    const service = injector.get(Service) ;
+    expect(service.multi).toEqual(['multi3', 'multi4', 'multi1', 'multi2']);
+  });
+
+  test('should inject multi providers from given token - inject only definitions', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi({ onlyDefinitions: true })) readonly multi: Array<DefinitionRecord>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: 'multi1',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 2,
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi2',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 3,
+        }
+      },
+      {
+        provide: 'token',
+        useValue: 'multi3',
+        annotations: {
+          [ANNOTATIONS.ORDER]: 1,
+        }
+      }
+    ]);
+
+    const service = injector.get(Service) ;
+    expect(service.multi.length).toEqual(3);
+    expect(service.multi[0].annotations[ANNOTATIONS.ORDER]).toEqual(1);
+    expect(service.multi[1].annotations[ANNOTATIONS.ORDER]).toEqual(2);
+    expect(service.multi[2].annotations[ANNOTATIONS.ORDER]).toEqual(3);
+  });
+
+  test('should inject multi providers from given token - async resolution case', async function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi()) readonly multi: Array<DefinitionRecord>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        async useFactory() {
+          return 'multi1';
+        }
+      },
+      {
+        provide: 'token',
+        async useFactory() {
+          return 'multi2';
+        }
+      },
+      {
+        provide: 'token',
+        async useFactory() {
+          return 'multi3';
+        }
+      }
+    ]);
+
+    const service = await injector.getAsync(Service) ;
+    expect(service.multi).toEqual(['multi1', 'multi2', 'multi3']);
+  });
+
+  test('should inject multi providers from given token - async resolution case with meta key', async function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi({ metaKey: "metaKey" })) readonly multi: Array<string>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        async useFactory() {
+          return 'multi1';
+        },
+        annotations: {
+          metaKey: 'foobar',
+        }
+      },
+      {
+        provide: 'token',
+        async useFactory() {
+          return 'multi2';
+        },
+      },
+      {
+        provide: 'token',
+        async useFactory() {
+          return 'multi3';
+        },
+        annotations: {
+          metaKey: 'barfoo',
+        }
+      }
+    ]);
+
+    const service = await injector.getAsync(Service) ;
+    expect(service.multi).toEqual({
+      foobar: 'multi1',
+      barfoo: 'multi3'
+    });
   });
 });

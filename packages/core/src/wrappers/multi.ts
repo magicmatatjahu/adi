@@ -1,49 +1,85 @@
-import { Session, ProviderRecord, Injector } from "../injector";
-import { NextWrapper } from "../interfaces";
-import { createWrapper } from "../utils";
+import { SessionStatus } from "../enums";
+import { Session, ProviderRecord } from "../injector";
+import { DefinitionRecord, WrapperDef } from "../interfaces";
+import { compareOrder, createWrapper, thenable } from "../utils";
+
+interface MultiOptions {
+  // by annotation key
+  metaKey?: string | symbol;
+  // inherite the definitions from parent injector
+  inheritance?: any;
+  // return only definitions
+  onlyDefinitions?: boolean;
+}
 
 function getDefinitions(
   record: ProviderRecord,
   session?: Session
-): Array<any> {
+): DefinitionRecord[] {
   const constraintDefs = record.constraintDefs;
-  const satisfyingDefs = [];
+  const satisfiedDefs: DefinitionRecord[] = [];
   for (let i = 0, l = constraintDefs.length; i < l; i++) {
     const d = constraintDefs[i];
     if (d.constraint(session) === true) {
-      satisfyingDefs.push(d);
+      satisfiedDefs.push(d);
     }
   }
-  return satisfyingDefs.length === 0 ? record.defs : satisfyingDefs;
+  const defs = satisfiedDefs.length === 0 ? record.defs : satisfiedDefs;
+  // sort definitions by @adi/order annotation
+  return defs.sort(compareOrder);
 }
 
 // TODO: Add async resolution
-function wrapper(injector: Injector, session: Session, next: NextWrapper) {
-  // exec wrappers chain to retrieve needed, updated session
-  next(injector, session);
+function wrapper(options: MultiOptions = {}): WrapperDef {
+  return (injector, session, next) => {
+    // annotate session with side effects
+    session.setSideEffect(true);
+    // fork session
+    const forkedSession = session.fork();
+    // annotate forked session as dry run
+    forkedSession.status |= SessionStatus.DRY_RUN;
+    // run next to retrieve updated session
+    next(injector, forkedSession);
 
-  const record = session.record;
-  const createdDef = session.definition;
-  const createdInstance = session.instance;
-  const defs = getDefinitions(record, session);
+    // retrieve all satisfied definitions
+    const defs = getDefinitions(forkedSession.record, forkedSession);
 
-  // TODO: improve function to pass wrappers chain again and copy session
-  // add also check for side effects
-  // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint) 
-  const values = [];
-  for (let i = 0, l = defs.length; i < l; i++) {
-    const def = defs[i];
-    if (def === createdDef) {
-      if (createdInstance) {
-        values.push(createdInstance.value);
-      } else {
-        values.push(injector.resolveDefinition(def, session));
+    // remove dry run flag
+    forkedSession.status &= ~SessionStatus.DRY_RUN;
+
+    const isAsync = forkedSession.status & SessionStatus.ASYNC;
+    const onlyDefinitions = options.onlyDefinitions === true;
+
+    // with metaKey case
+    const metaKey = options.metaKey;
+    if (metaKey !== undefined) {
+      const values: Record<string | symbol, any> = {};
+      const thenables = [];
+      for (let i = 0, l = defs.length; i < l; i++) {
+        const def = defs[i];
+        const instanceSession = forkedSession.fork();
+        const defKey = def.annotations[metaKey as any];
+        if (defKey) {
+          thenables.push(thenable(
+            () => onlyDefinitions ? defs[i] : injector.resolveDefinition(defs[i], instanceSession),
+            value => {
+              values[defKey] = value;
+            }
+          ));
+        }
       }
-    } else {
-      values.push(injector.resolveDefinition(def, session));
+      return isAsync ? Promise.all(thenables).then(() => values) : values;
     }
+
+    // add also check for side effects
+    // passing wrappers again solve the issue when dev pass several wrappers on provider using standalone useWrapper provider (without constraint)
+    const values = [];
+    for (let i = 0, l = defs.length; i < l; i++) {
+      const instanceSession = forkedSession.fork();
+      values.push(onlyDefinitions ? defs[i] : injector.resolveDefinition(defs[i], instanceSession));
+    }
+    return isAsync ? Promise.all(values) : values;
   }
-  return values;
 }
 
-export const Multi = createWrapper<undefined, false>(() => wrapper);
+export const Multi = createWrapper<MultiOptions, false>(wrapper);

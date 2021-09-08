@@ -6,7 +6,7 @@ import {
   InjectorOptions, InjectorScopeType, ModuleMetadata, ModuleID, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
-import { InjectionStatus } from "../enums";
+import { InjectionStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
@@ -198,7 +198,7 @@ export class Injector {
 
     if (def === undefined) {
       // Remove assigned record from session 
-      session.setRecord(null);
+      session.setRecord(undefined);
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
@@ -212,6 +212,10 @@ export class Injector {
   }
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return;
+    }
+
     let scope = def.scope;
     if (scope.kind.canBeOverrided() === true) {
       scope = session.options.scope || scope;

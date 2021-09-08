@@ -2,13 +2,21 @@ import { Session } from "../injector";
 import { NilInjectorError } from "../errors";
 import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { createWrapper, thenable } from "../utils";
+import { createWrapper, thenable, Wrapper } from "../utils";
 
 interface FallbackProvider {
-  
+  token: Token;
+  useWrapper?: Wrapper;
 }
 
-function wrapper(token: Token): WrapperDef {
+function wrapper(options: Token | FallbackProvider): WrapperDef {
+  let token: Token = options as Token
+  let useWrapper: Wrapper = undefined;
+  if ((options as FallbackProvider).token) {
+    token = (options as FallbackProvider).token;
+    useWrapper = (options as FallbackProvider).useWrapper;
+  }
+
   return (injector, session, next) => {
     const copiedSession = session.copy();
     return thenable(
@@ -18,9 +26,7 @@ function wrapper(token: Token): WrapperDef {
         if ((err as NilInjectorError).isNilInjectorError) {
           // TODO: Change to `session.fork()` and set undefined to the record, definition and instance
           const newSession = new Session(undefined, undefined, undefined, { ...copiedSession.options, token }, copiedSession.meta, copiedSession.parent);
-          // TODO: use the return next(injector, newSession); case - fix the bugs in two tests - in Decorate wrapper and Fallback wrapper
-          return injector.get(token, undefined, newSession);
-          // return next(injector, newSession);
+          return injector.get(token, useWrapper, newSession);
         }
         throw err;
       }
@@ -28,4 +34,4 @@ function wrapper(token: Token): WrapperDef {
   }
 }
 
-export const Fallback = createWrapper<Token, true>(wrapper);
+export const Fallback = createWrapper<Token | FallbackProvider, true>(wrapper);

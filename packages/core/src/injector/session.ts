@@ -10,7 +10,7 @@ import { ProviderRecord } from "./provider";
 import { SessionStatus } from "../enums";
 
 export class Session<T = any> {
-  private status: SessionStatus = SessionStatus.NONE;
+  public status: SessionStatus = SessionStatus.NONE;
 
   constructor(
     public record: ProviderRecord<T>,
@@ -72,20 +72,12 @@ export class Session<T = any> {
     }
   }
 
-  hasSideEffect(): boolean {
-    return (this.status & SessionStatus.SIDE_EFFECTS) > 0;
-  }
-
   setAsync(async: boolean) {
     if (async === true) {
       this.status |= SessionStatus.ASYNC;
     } else {
       this.status &= ~SessionStatus.ASYNC;
     }
-  }
-
-  isAsync(): boolean {
-    return (this.status & SessionStatus.ASYNC) > 0;
   }
 
   getRecord() {

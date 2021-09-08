@@ -1,6 +1,9 @@
-import { WrapperRecord } from "../interfaces";
 import { ANNOTATIONS } from "../constants";
 
-export function compareOrder(a: WrapperRecord, b: WrapperRecord): number {
+interface WithAnnotations {
+  annotations: Record<string | symbol, any>;
+}
+
+export function compareOrder(a: WithAnnotations, b: WithAnnotations): number {
   return (a.annotations[ANNOTATIONS.ORDER] as number || 0) - (b.annotations[ANNOTATIONS.ORDER] as number || 0);
 }

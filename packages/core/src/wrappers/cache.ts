@@ -1,3 +1,4 @@
+import { SessionStatus } from "../enums";
 import { Injector, Session } from "../injector";
 import { InjectionMetadata, NextWrapper } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
@@ -19,7 +20,8 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   return thenable(
     () => next(injector, session),
     value => {
-      if (session.hasSideEffect() === false) {
+      // SessionStatus.SIDE_EFFECTS === false
+      if ((session.status & SessionStatus.SIDE_EFFECTS) === 0) {
         const metadata = session.getMetadata();
         metadata && cachePerInjector.set(metadata, value);
       }

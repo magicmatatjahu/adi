@@ -23,4 +23,5 @@ export enum SessionStatus {
   NONE = 0,
   ASYNC = 1,
   SIDE_EFFECTS = 2,
+  DRY_RUN = 4,
 }

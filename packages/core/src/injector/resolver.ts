@@ -1,7 +1,7 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
 import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
-import { InjectionStatus } from "../enums";
+import { InjectionStatus, SessionStatus } from "../enums";
 import { Wrapper } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
@@ -85,7 +85,7 @@ export const InjectorResolver = new class {
   ): FactoryDef<T> {    
     return (injector: Injector, session: Session) => {
       const deps = InjectorMetadata.combineDependencies(session.options.injections, injections, provider);
-      if (session.isAsync() === true) {
+      if (session.status & SessionStatus.ASYNC) {
         return this.createProviderAsync(provider, injections, injector, session);
       }
       const instance = new provider(...this.injectDeps(deps.parameters, injector, session));
@@ -114,7 +114,7 @@ export const InjectorResolver = new class {
   ) {
     const convertedDeps = InjectorMetadata.convertDependencies(deps, factory, options);
     return (injector: Injector, session: Session) => {
-      if (session.isAsync() === true) {
+      if (session.status & SessionStatus.ASYNC) {
         return this.injectDepsAsync(convertedDeps, injector, session).then(args => factory(...args));
       }
       return factory(...this.injectDeps(convertedDeps, injector, session));
