@@ -1,6 +1,7 @@
 import { Injector, Session } from "../injector";
 import { NextWrapper } from "../interfaces";
 import { createWrapper } from "../utils";
+import { DELEGATION } from "../constants";
 
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   const oldSession = session.copy();
@@ -8,7 +9,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     const newSession = oldSession.copy();
     if (Array.isArray(args) && args.length > 0) {
       // add delegation
-      newSession['$$delegate'] = {
+      newSession[DELEGATION.KEY] = {
         type: 'multiple',
         values: args,
       };

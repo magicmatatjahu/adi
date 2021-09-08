@@ -2,6 +2,7 @@ import { InjectorMetadata, InjectorResolver } from "../injector";
 import { FactoryDef, InjectionItem, Type, WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { createWrapper, thenable } from "../utils";
+import { DELEGATION } from "../constants";
 import { Delegate } from "./delegate";
 
 interface DecorateOptions {
@@ -9,11 +10,18 @@ interface DecorateOptions {
   inject?: Array<InjectionItem>;
 }
 
-// DECORATOR_ID is added to the every instances with `true` value to avoid redecorate the given instance
 let DECORATOR_ID = 0;
+function generateID() {
+  if (DECORATOR_ID === 999999) {
+    DECORATOR_ID = 0;
+  }
+  const date = new Date();
+  return `${DECORATOR_ID++}${date.getMinutes()}${date.getSeconds()}${date.getMilliseconds()}`; 
+}
 
 function wrapper(decorator: Type | DecorateOptions): WrapperDef {
-  const decoratorID = DECORATOR_ID++;
+  // decoratorID is added to the every instances with `true` value to avoid redecorate the given instance
+  let decoratorID = generateID();
   let factory: FactoryDef;
 
   if (typeof (decorator as DecorateOptions).decorator === 'function') { // function based decorator
@@ -35,7 +43,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
         }
 
         // add delegation
-        forkedSession['$$delegate'] = {
+        forkedSession[DELEGATION.KEY] = {
           type: 'single',
           values: decoratee,
         };

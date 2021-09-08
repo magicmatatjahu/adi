@@ -1,6 +1,7 @@
 import { InjectorResolver } from "../injector";
 import { InjectionItem, WrapperDef } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
+import { DELEGATION } from "../constants";
 import { Delegate } from "./delegate";
 
 interface TransformOptions {
@@ -19,7 +20,7 @@ function wrapper(transform: TransformOptions): WrapperDef {
       () => next(injector, session),
       value => {
         // add delegation
-        forkedSession['$$delegate'] = {
+        forkedSession[DELEGATION.KEY] = {
           type: 'single',
           values: value,
         };

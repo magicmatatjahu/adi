@@ -27,7 +27,6 @@ export const ANNOTATIONS = {
 
 export const DELEGATION = {
   KEY: '@adi/delegation',
-  DECORATOR: '@adi/delegation-decorator',
 };
 
 export const ALWAYS_CONSTRAINT = () => true;

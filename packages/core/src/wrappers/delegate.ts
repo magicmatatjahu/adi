@@ -1,6 +1,6 @@
 import { Injector, Session } from "../injector";
 import { NextWrapper, WrapperDef } from "../interfaces";
-import { NULL_REF } from "../constants";
+import { NULL_REF, DELEGATION } from "../constants";
 import { createWrapper } from "../utils/wrappers";
 
 interface DelegateOptions {
@@ -8,9 +8,19 @@ interface DelegateOptions {
   values: object;
 }
 
+function retrieveDeepSessionMetadata(session: Session, key: string) {
+  while (session.hasOwnProperty(key) === false && session.parent) {
+    session = session.parent || NULL_REF as any;
+  }
+  if (session.hasOwnProperty(key)) {
+    return session[key];
+  }
+  return NULL_REF;
+}
+
 function wrapper(arg: string): WrapperDef {
   return function(injector: Injector, session: Session, next: NextWrapper) {
-    const delegate = session.retrieveDeepMeta('$$delegate');
+    const delegate = retrieveDeepSessionMetadata(session, DELEGATION.KEY);
     // delegate isn't set
     if (delegate === NULL_REF) {
       return next(injector, session);

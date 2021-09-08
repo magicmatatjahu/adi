@@ -125,17 +125,6 @@ export class Session<T = any> {
 
   fork = this.copy;
 
-  retrieveDeepMeta(key: string) {
-    let tempSession: Session = this;
-    while (tempSession.hasOwnProperty(key) === false && tempSession.parent) {
-      tempSession = tempSession.parent || NULL_REF as any;
-    }
-    if (tempSession.hasOwnProperty(key)) {
-      return tempSession[key];
-    }
-    return NULL_REF;
-  }
-
   static $$prov: ProviderDef = {
     token: Session,
     factory: NOOP_FN,

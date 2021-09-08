@@ -1,9 +1,10 @@
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils/wrappers";
+import { DELEGATION } from "../constants";
 
 function wrapper(delegations: Record<string | symbol, any>): WrapperDef {
   return (injector, session, next) => {
-    session['$$delegate'] = {
+    session[DELEGATION.KEY] = {
       type: 'multiple',
       values: delegations,
     };

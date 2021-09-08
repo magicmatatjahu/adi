@@ -1,7 +1,7 @@
 import { InjectorResolver, Session } from "../injector";
 import { InstanceRecord, StandaloneOnInit } from "../interfaces";
 import { InjectionStatus } from "../enums";
-import { EMPTY_ARRAY, SESSION_INTERNAL } from "../constants";
+import { EMPTY_ARRAY, SESSION_INTERNAL, DELEGATION } from "../constants";
 import { hasOnInitHook } from ".";
 
 function runHook(instance: InstanceRecord, session: Session) {
@@ -18,7 +18,7 @@ function runHook(instance: InstanceRecord, session: Session) {
         const factory = InjectorResolver.createFactory(hook.onInit, hook.inject);
         const newSession = session.copy();
         // add delegation
-        newSession['$$delegate'] = {
+        newSession[DELEGATION.KEY] = {
           type: 'single',
           values: value,
         };
