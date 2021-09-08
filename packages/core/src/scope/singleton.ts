@@ -4,7 +4,15 @@ import { ScopeFlags } from "../enums";
 
 import { Scope } from "./index";
 
-export class SingletonScope extends Scope<never> {
+export interface SingletonScopeOptions {
+  reuseContext?: boolean;
+}
+
+const defaultOptions: SingletonScopeOptions = {
+  reuseContext: true
+}
+
+export class SingletonScope extends Scope<SingletonScopeOptions> {
   public readonly flags: ScopeFlags = ScopeFlags.CANNOT_OVERRIDE;
 
   get name() {

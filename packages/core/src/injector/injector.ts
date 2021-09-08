@@ -182,7 +182,7 @@ export class Injector {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
-    session.setRecord(record);
+    session.record = record;
 
     const providerWrappers = record.filterWrappers(session);
     if (providerWrappers.length > 0) {
@@ -198,11 +198,11 @@ export class Injector {
 
     if (def === undefined) {
       // Remove assigned record from session 
-      session.setRecord(undefined);
+      session.record = undefined;
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
-    session.setDefinition(def);
+    session.definition = def;
 
     if (def.wrapper !== undefined) {
       return runWrappers(def.wrapper, this, session, lastDefinitionWrapper);
@@ -222,7 +222,7 @@ export class Injector {
     }
 
     const instance = def.record.getInstance(def, scope, session);
-    session.setInstance(instance);
+    session.instance = instance;
 
     return this.resolveInstance(def.record, def, instance, session);
   }

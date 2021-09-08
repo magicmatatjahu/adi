@@ -1,6 +1,7 @@
 import { Context, Injector, Session } from "../injector";
 import { ScopeFlags } from "../enums";
 
+import { SingletonScopeOptions } from "./singleton";
 import { LocalScopeOptions } from "./local";
 import { InstanceScopeOptions } from "./instance";
 import { TransientScopeOptions } from "./transient";
@@ -9,7 +10,7 @@ export abstract class Scope<O = any> {
   public readonly flags: ScopeFlags = ScopeFlags.NONE;
 
   public static DEFAULT: Scope<never>;
-  public static SINGLETON: Scope<never>;
+  public static SINGLETON: Scope<SingletonScopeOptions>;
   public static TRANSIENT: Scope<TransientScopeOptions>;
   public static INSTANCE: Scope<InstanceScopeOptions>;
   public static LOCAL: Scope<LocalScopeOptions>;

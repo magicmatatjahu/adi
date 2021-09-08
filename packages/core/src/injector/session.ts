@@ -17,7 +17,7 @@ export class Session<T = any> {
     public definition: DefinitionRecord<T>,
     public instance: InstanceRecord<T>,
     public options: InjectionOptions,
-    public readonly meta: InjectionMetadata,
+    public readonly metadata: InjectionMetadata,
     public readonly parent: Session,
   ) {
     if (parent !== undefined) {
@@ -80,50 +80,12 @@ export class Session<T = any> {
     }
   }
 
-  getRecord() {
-    return this.record;
-  }
-
-  setRecord(record: ProviderRecord) {
-    this.record = record;
-  }
-
-  getDefinition() {
-    return this.definition;
-  }
-
-  setDefinition(def: DefinitionRecord) {
-    this.definition = def;
-  }
-
-  getInstance() {
-    return this.instance;
-  }
-
-  setInstance(instance: InstanceRecord) {
-    this.instance = instance;
-  }
-
-  getOptions() {
-    return this.options;
-  }
-
-  getMetadata() {
-    return this.meta;
-  }
-
-  getParent() {
-    return this.parent;
-  }
-
-  copy(): Session {
+  fork(): Session {
     const newOptions = { ...this.options, labels: { ...this.options.labels } };
-    const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.meta, this.parent);
+    const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.metadata, this.parent);
     newSession.status = this.status;
     return newSession;
   }
-
-  fork = this.copy;
 
   static $$prov: ProviderDef = {
     token: Session,

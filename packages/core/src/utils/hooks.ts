@@ -16,7 +16,7 @@ function runHook(instance: InstanceRecord, session: Session) {
         hook(value);
       } else {
         const factory = InjectorResolver.createFactory(hook.onInit, hook.inject);
-        const newSession = session.copy();
+        const newSession = session.fork();
         // add delegation
         newSession[DELEGATION.KEY] = {
           type: 'single',

@@ -18,14 +18,14 @@ function wrapper(options: Token | FallbackProvider): WrapperDef {
   }
 
   return (injector, session, next) => {
-    const copiedSession = session.copy();
+    const copiedSession = session.fork();
     return thenable(
       () => next(injector, session),
       val => val,
       err => {
         if ((err as NilInjectorError).isNilInjectorError) {
           // TODO: Change to `session.fork()` and set undefined to the record, definition and instance
-          const newSession = new Session(undefined, undefined, undefined, { ...copiedSession.options, token }, copiedSession.meta, copiedSession.parent);
+          const newSession = new Session(undefined, undefined, undefined, { ...copiedSession.options, token }, copiedSession.metadata, copiedSession.parent);
           return injector.get(token, useWrapper, newSession);
         }
         throw err;

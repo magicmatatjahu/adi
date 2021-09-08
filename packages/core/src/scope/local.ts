@@ -35,7 +35,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
   }
 
   public getContext(session: Session, options: LocalScopeOptions = defaultOptions, injector: Injector): Context {
-    const parent = session.getParent();
+    const parent = session.parent;
 
     // if parent session in `undefined` or custom Context exists treat scope as Transient
     // TODO: rethink the `session.getContext()` case - it's valid in all cases, maybe use should have option to define the custom context for local "scope"

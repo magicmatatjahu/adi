@@ -4,9 +4,9 @@ import { createWrapper } from "../utils";
 import { DELEGATION } from "../constants";
 
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
-  const oldSession = session.copy();
+  const oldSession = session.fork();
   return (...args: any[]) => {
-    const newSession = oldSession.copy();
+    const newSession = oldSession.fork();
     if (Array.isArray(args) && args.length > 0) {
       // add delegation
       newSession[DELEGATION.KEY] = {

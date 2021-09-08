@@ -16,7 +16,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   }
 
   public getContext(session: Session, options = defaultOptions): Context {
-    const parent = session.getParent();
+    const parent = session.parent;
 
     if (parent && session.definition === parent.definition) {
       throw Error("Cannot inject new instance of itself class (with TRANSIENT scope)");

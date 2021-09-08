@@ -7,8 +7,8 @@ function wrapper(injector: Injector, session: Session) {
     return undefined;
   }
   const token = inquirerSession.instance.def.record.token;
-  const newSession = new Session(undefined, undefined, undefined, inquirerSession.options, inquirerSession.meta, session.parent);
-  // Be aware, here is created circular refs between inquirer provider and provider on injection 
+  const newSession = new Session(undefined, undefined, undefined, inquirerSession.options, inquirerSession.metadata, session.parent);
+  // here is created circular refs between inquirer provider and provider on injection 
   return injector.get(token, undefined, newSession);
 }
 

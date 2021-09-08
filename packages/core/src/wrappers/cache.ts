@@ -12,7 +12,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     cache.set(injector, cachePerInjector);
   }
 
-  const metadata = session.getMetadata();
+  const metadata = session.metadata;
   if (cachePerInjector.has(metadata)) {
     return cachePerInjector.get(metadata);
   }
@@ -22,7 +22,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     value => {
       // SessionStatus.SIDE_EFFECTS === false
       if ((session.status & SessionStatus.SIDE_EFFECTS) === 0) {
-        const metadata = session.getMetadata();
+        const metadata = session.metadata;
         metadata && cachePerInjector.set(metadata, value);
       }
       return value;

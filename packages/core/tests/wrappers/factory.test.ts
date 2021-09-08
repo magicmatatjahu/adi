@@ -99,12 +99,12 @@ describe('Factory wrapper', function () {
       {
         provide: 'test',
         useValue: 'foobar',
-        when(session) { return session.meta.target === A; }
+        when(session) { return session.metadata.target === A; }
       },
       {
         provide: 'test',
         useValue: 'barfoo',
-        when(session) { return session.meta.target === B }
+        when(session) { return session.metadata.target === B }
       }
     ]);
 
