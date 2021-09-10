@@ -11,7 +11,8 @@
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
 - Rethink the `Multi` wrapper
 - Rethinkg the modules and exporting of the provider
-- Rethink components
+- Rethink components - inherite logic from providers
+- Handle wrappers on circular injections
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442

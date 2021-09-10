@@ -6,7 +6,7 @@ import {
   InjectorOptions, InjectorScopeType, ModuleMetadata, ModuleID, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
-import { InjectionStatus, SessionStatus } from "../enums";
+import { InjectionStatus, InjectorStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";

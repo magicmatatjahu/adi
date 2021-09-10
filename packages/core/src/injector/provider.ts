@@ -32,22 +32,24 @@ export class ProviderRecord<T = any> {
         scope,
         donePromise: undefined,
         doneResolve: undefined,
-        // children: new Set(),
-        // parents: new Set(),
+        // what is injected to instance
+        children: undefined,
+        // where instance is injected
+        parents: undefined,
       };
       def.values.set(ctx, instance);
     }
 
-    // // add links
-    // const parent = session.getParent();
-    // if (parent !== undefined) {
-    //   const parentInstance = parent.instance;
-    //   // TODO: retrieve first instance
-    //   if (parentInstance !== undefined) {
-    //     parentInstance.children.add(instance);
-    //     instance.parents.add(parentInstance);
-    //   }
-    // }
+    // add links
+    const parent = session.parent;
+    if (parent !== undefined) {
+      const parentInstance = parent.instance;
+      // TODO: retrieve first instance
+      if (parentInstance !== undefined) {
+        (parentInstance.children || (parentInstance.children = new Set())).add(instance);
+        (instance.parents || (instance.parents = new Set())).add(parentInstance);
+      }
+    }
 
     return instance;
   }
@@ -61,6 +63,8 @@ export class ProviderRecord<T = any> {
     proto?: Type,
   ): DefinitionRecord {
     const def: DefinitionRecord = {
+      name: annotations[ANNOTATIONS.NAME],
+      values: new Map<Context, InstanceRecord<T>>(),
       record: this as any,
       factory,
       scope: scope || {
@@ -71,8 +75,6 @@ export class ProviderRecord<T = any> {
       wrapper,
       annotations,
       proto: proto || undefined,
-      values: new Map<Context, InstanceRecord<T>>(),
-      name: annotations[ANNOTATIONS.NAME]
     };
 
     // add definition to the defs/constraintDefs array

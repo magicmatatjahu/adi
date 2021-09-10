@@ -25,3 +25,10 @@ export enum SessionStatus {
   SIDE_EFFECTS = 2,
   DRY_RUN = 4,
 }
+
+export enum InjectorStatus {
+  NONE = 0,
+  INITIALIZED = 1,
+  DESTROYED = 2,
+  PROXY_MODE = 4,
+}

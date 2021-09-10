@@ -16,7 +16,7 @@ function generateID() {
     DECORATOR_ID = 0;
   }
   const date = new Date();
-  return `${DECORATOR_ID++}${date.getMinutes()}${date.getSeconds()}${date.getMilliseconds()}`; 
+  return `$$decorator${DECORATOR_ID++}${date.getMinutes()}${date.getSeconds()}${date.getMilliseconds()}`; 
 }
 
 function wrapper(decorator: Type | DecorateOptions): WrapperDef {
@@ -38,7 +38,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
       () => next(injector, session),
       decoratee => {
         // if it has been decorated before, return value.
-        if (session.instance['$$decorator' + decoratorID] === true) {
+        if (session.instance[decoratorID] === true) {
           return decoratee;
         }
 
@@ -53,7 +53,7 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
           () => factory(injector, forkedSession),
           value => {
             session.instance.value = value;
-            session.instance['$$decorator' + decoratorID] = true;
+            session.instance[decoratorID] = true;
             return value;
           }
         )

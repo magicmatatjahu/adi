@@ -1,7 +1,7 @@
 import { Injector, Injectable, Component } from "../src";
 
-describe.skip('Component', function() {
-  test('should works with simple constructor', async function() {
+describe('Component', function() {
+  test('should works with simple constructor', function() {
     @Injectable()
     class Service {}
 
@@ -12,7 +12,7 @@ describe.skip('Component', function() {
       ) {}
     }
 
-    const injector = await new Injector({
+    const injector = Injector.create({
       components: [
         Controller,
       ],
@@ -26,7 +26,7 @@ describe.skip('Component', function() {
     expect(component.service).toBeInstanceOf(Service);
   });
 
-  test('should not be reached from parent injector', async function() {
+  test('should not be reached from parent injector', function() {
     @Injectable()
     class Service {}
 
@@ -37,12 +37,12 @@ describe.skip('Component', function() {
       ) {}
     }
 
-    const parentInjector = await new Injector({
+    const parentInjector = Injector.create({
       components: [
         Controller,
       ],
     }).build();
-    const childInjector = await new Injector({
+    const childInjector = Injector.create({
       providers: [
         Service,
       ],
@@ -59,7 +59,7 @@ describe.skip('Component', function() {
     expect(err !== undefined).toEqual(true);
   });
 
-  test('should resolve by default as singleton', async function() {
+  test('should resolve by default as singleton', function() {
     @Injectable()
     class Service {}
 
@@ -70,7 +70,7 @@ describe.skip('Component', function() {
       ) {}
     }
 
-    const injector = await new Injector({
+    const injector = Injector.create({
       components: [
         Controller,
       ],
@@ -91,7 +91,7 @@ describe.skip('Component', function() {
     expect(component1.service === component2.service).toEqual(true);
   });
 
-  test('should not be treated as injectable - cannot be injected in another components/providers)', async function() {
+  test('should not be treated as injectable - cannot be injected in another components/providers)', function() {
     @Injectable()
     class Service {}
 
@@ -110,7 +110,7 @@ describe.skip('Component', function() {
       ) {}
     }
 
-    const injector = await new Injector({
+    const injector = Injector.create({
       components: [
         Controller1,
         Controller2,
