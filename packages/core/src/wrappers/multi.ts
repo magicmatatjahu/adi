@@ -1,7 +1,7 @@
 import { SessionStatus } from "../enums";
-import { Session, ProviderRecord } from "../injector";
+import { Session, ProviderRecord, Injector } from "../injector";
 import { DefinitionRecord, WrapperDef } from "../interfaces";
-import { compareOrder, createWrapper, thenable } from "../utils";
+import { compareOrder, createWrapper, runWrappers, thenable } from "../utils";
 
 interface MultiOptions {
   // by annotation key
@@ -27,6 +27,19 @@ function getDefinitions(
   const defs = satisfiedDefs.length === 0 ? record.defs : satisfiedDefs;
   // sort definitions by @adi/order annotation
   return defs.sort(compareOrder);
+}
+
+function lastDefinitionWrapper(injector: Injector, session: Session) {
+  const def = session.definition;
+  return injector.resolveDefinition(def, session);
+}
+
+function resolveDefinition(def: DefinitionRecord, injector: Injector, session: Session) {
+  session.definition = def;
+  if (def.wrapper !== undefined) {
+    return runWrappers(def.wrapper, injector, session, lastDefinitionWrapper);
+  }
+  return injector.resolveDefinition(def, session);
 }
 
 // TODO: Add async resolution
@@ -61,7 +74,7 @@ function wrapper(options: MultiOptions = {}): WrapperDef {
         const defKey = def.annotations[metaKey as any];
         if (defKey) {
           thenables.push(thenable(
-            () => onlyDefinitions ? defs[i] : injector.resolveDefinition(defs[i], instanceSession),
+            () => onlyDefinitions ? defs[i] : resolveDefinition(defs[i], injector, instanceSession),
             value => {
               values[defKey] = value;
             }
@@ -76,7 +89,7 @@ function wrapper(options: MultiOptions = {}): WrapperDef {
     const values = [];
     for (let i = 0, l = defs.length; i < l; i++) {
       const instanceSession = forkedSession.fork();
-      values.push(onlyDefinitions ? defs[i] : injector.resolveDefinition(defs[i], instanceSession));
+      values.push(onlyDefinitions ? defs[i] : resolveDefinition(defs[i], injector, instanceSession));
     }
     return isAsync ? Promise.all(values) : values;
   }

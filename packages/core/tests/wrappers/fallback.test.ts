@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Fallback } from "../../src";
+import { Injector, Injectable, Inject, Fallback, Value } from "../../src";
 
 describe('Fallback wrapper', function () {
   test('should inject fallback provider when given provider doesnt exist in injector', function () {
@@ -46,6 +46,38 @@ describe('Fallback wrapper', function () {
 
     const service = injector.get(Service) ;
     expect(service.service).toBeInstanceOf(TestService);
+  });
+
+  test('should works with wrappers', async function () {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Fallback({
+          token: 'token',
+          useWrapper: Value('a.b.c'),
+        })) readonly service: TestService
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: "token",
+        useValue: {
+          a: {
+            b: {
+              c: 'foobar'
+            }
+          }
+        }
+      }
+    ]);
+
+    const service = await injector.getAsync(Service);
+    expect(service.service).toEqual("foobar");
   });
 
   test('should throw error when fallback does not exist', function () {

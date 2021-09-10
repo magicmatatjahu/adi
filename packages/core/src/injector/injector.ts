@@ -150,7 +150,6 @@ export class Injector {
 
   }
 
-
   /**
    * PROVIDERS
    */
@@ -212,6 +211,7 @@ export class Injector {
   }
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
+    // check dry run
     if (session.status & SessionStatus.DRY_RUN) {
       return;
     }

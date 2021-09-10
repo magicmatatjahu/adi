@@ -11,4 +11,4 @@ function wrapper(scope: Scope | ScopeType): WrapperDef {
   }
 }
 
-export const Scoped = createWrapper<ScopeType, true>(wrapper);
+export const Scoped = createWrapper<Scope | ScopeType, true>(wrapper);

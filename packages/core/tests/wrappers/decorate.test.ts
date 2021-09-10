@@ -485,7 +485,7 @@ describe('Decorate wrapper', function () {
     expect(service).toEqual('foobar');
   });
 
-  test('Decorate wrapper should decorates only once', function () {
+  test('Decorate wrapper should decorate only once', function () {
     let calledTimes = 0;
 
     @Injectable()
@@ -540,7 +540,7 @@ describe('Decorate wrapper', function () {
     expect(calledTimes).toEqual(1);
   });
 
-  test('should work without inject array - function decorator case', function () {
+  test('should work without inject array - function decorator case (pass as first argument the decoratee value)', function () {
     @Injectable()
     class TestService {
       method() {

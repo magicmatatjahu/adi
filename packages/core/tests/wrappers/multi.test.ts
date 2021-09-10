@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Multi, Named, when, ANNOTATIONS, DefinitionRecord } from "../../src";
+import { Injector, Injectable, Inject, Multi, Named, when, ANNOTATIONS, DefinitionRecord, Factory, Value } from "../../src";
 
 describe('Multi wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -32,7 +32,7 @@ describe('Multi wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -63,7 +63,7 @@ describe('Multi wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -100,7 +100,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual(['multi1', 'multi3']);
   });
 
@@ -134,7 +134,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual(['multi1', 'multi2']);
   });
 
@@ -168,7 +168,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual({
       foobar: 'multi1',
       barfoo: 'multi3'
@@ -226,7 +226,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual({
       foobar: 'multi2',
       barfoo: 'multi4'
@@ -273,7 +273,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi).toEqual(['multi3', 'multi4', 'multi1', 'multi2']);
   });
 
@@ -310,7 +310,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.multi.length).toEqual(3);
     expect(service.multi[0].annotations[ANNOTATIONS.ORDER]).toEqual(1);
     expect(service.multi[1].annotations[ANNOTATIONS.ORDER]).toEqual(2);
@@ -347,7 +347,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = await injector.getAsync(Service) ;
+    const service = await injector.getAsync(Service);
     expect(service.multi).toEqual(['multi1', 'multi2', 'multi3']);
   });
 
@@ -387,10 +387,58 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = await injector.getAsync(Service) ;
+    const service = await injector.getAsync(Service);
     expect(service.multi).toEqual({
       foobar: 'multi1',
       barfoo: 'multi3'
     });
   });
+
+  test('should inject multi providers from given token - custom definiton based wrappers', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi()) readonly multi: Array<() => string>,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'token',
+        useValue: {
+          a: {
+            b: 'multi1',
+          },
+        },
+        useWrapper: Value('a.b'),
+      },
+      {
+        provide: 'token',
+        useValue: {
+          b: {
+            c: 'multi2',
+          },
+        },
+        useWrapper: Value('b.c'),
+      },
+      {
+        provide: 'token',
+        useValue: {
+          c: {
+            d: 'multi3',
+          },
+        },
+        useWrapper: Value('c.d'),
+      }
+    ]);
+
+    const service = injector.get(Service);
+    expect(service.multi.length).toEqual(3);
+    expect(service.multi[0]).toEqual('multi1');
+    expect(service.multi[1]).toEqual('multi2');
+    expect(service.multi[2]).toEqual('multi3');
+  });
+
+  // TODO: check also case with Factory() wrapper on the definitions
 });
