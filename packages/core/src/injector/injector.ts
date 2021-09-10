@@ -34,7 +34,7 @@ export class Injector {
   // scopes of injector
   private scopes: Array<InjectorScopeType> = ['any'];
   // id of injector/module
-  private id: ModuleID = 'static';
+  id: ModuleID = 'static';
 
   /**
    * Flag indicating that this injector was previously initialized.
@@ -53,6 +53,7 @@ export class Injector {
   private _destroyed = false;
 
   constructor(
+    // change injector to the metatype
     readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
     readonly parent: Injector = NilInjector,
     private readonly options: InjectorOptions = {},
@@ -90,20 +91,23 @@ export class Injector {
     return createInjector(injector, this, options);
   }
 
-  compile(): Injector {
+  build(): Injector {
     if (Array.isArray(this.injector)) return;
-    Compiler.compile(this.injector, this);
+    Compiler.build(this);
     return this;
   }
 
-  async compileAsync(): Promise<Injector> {
+  async buildAsync(): Promise<Injector> {
     if (Array.isArray(this.injector)) return;
-    await Compiler.compileAsync(this.injector, this);
+    await Compiler.buildAsync(this);
     return this;
   }
 
   selectChild(mod: Type, id: ModuleID = 'static'): Injector | undefined {
     let founded = this.imports.get(mod);
+    if (founded === undefined) {
+      return;
+    }
     if (founded instanceof Map) {
       return founded.get(id);
     }
@@ -114,6 +118,21 @@ export class Injector {
     // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
     this.configureScope();
 
+    // const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
+    // let initializer = undefined;
+    // for (let i = 0, l = initializers.length; i < l; i++) {
+    //   initializer = await initializers[i];
+    //   if (typeof initializer === "function") {
+    //     await initializer();
+    //   }
+    // }
+
+    // at the end init given module
+    typeof this.injector === 'function' && this.getComponent(this.injector as any);
+    this._initialized = true;
+  }
+
+  private async runInitializer() {
     const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
     let initializer = undefined;
     for (let i = 0, l = initializers.length; i < l; i++) {
@@ -122,10 +141,6 @@ export class Injector {
         await initializer();
       }
     }
-
-    // at the end init given module
-    typeof this.injector === 'function' && this.getComponent(this.injector as any);
-    this._initialized = true;
   }
 
   init() {
@@ -307,7 +322,7 @@ export class Injector {
   }
 
   addProvider(provider: Provider): void {
-    InjectorMetadata.toRecord(provider, this);
+    provider && InjectorMetadata.toRecord(provider, this);
   }
 
   addProviders(providers: Provider[] = []): void {
@@ -408,13 +423,13 @@ export class Injector {
   , from: Injector, to: Injector): void {
     exp = resolveRef(exp);
 
+    // export can be module definition
     if (typeof exp === "function") {
-      // export can be module definition
       const moduleDef = getModuleDef(exp);
 
       // operate on Module
       if (moduleDef !== undefined) {
-        this.processModuleExport(exp as Type, 'static', undefined, from, to);
+        this.processModuleExport(exp as Type, 'static', from, to);
         return;
       }
     }
@@ -422,7 +437,7 @@ export class Injector {
     // operate on DynamicModule
     if ((exp as ExportedModule).module) {
       const { module, id, providers } = (exp as ExportedModule);
-      this.processModuleExport(module, id || 'static', providers, from, to);
+      this.processModuleExport(module, id || 'static', from, to, providers);
       return;
     }
 
@@ -435,22 +450,22 @@ export class Injector {
     }
   }
 
-  private processModuleExport(mod: Type, id: ModuleID, providers: Array<Provider | Token>, parent: Injector, to: Injector) {
-    if (parent.imports.has(mod) === false) {
+  private processModuleExport(mod: Type, id: ModuleID, from: Injector, to: Injector, providers?: Array<Provider | Token>) {
+    if (from.imports.has(mod) === false) {
       throw Error(`cannot export from ${mod} module`);
     }
 
-    let fromModule = parent.imports.get(mod);
+    let fromModule = from.imports.get(mod);
     if (fromModule instanceof Map) {
       fromModule = fromModule.get(id);
     }
 
     if (providers === undefined) {
-      parent.importedRecords.forEach((record, token) => {
+      from.importedRecords.forEach((record, token) => {
         if (record.host === fromModule) to.importedRecords.set(token, record);
       });
     } else {
-      parent.importedRecords.forEach((record, token) => {
+      from.importedRecords.forEach((record, token) => {
         if (record.host === fromModule) {
           const givenToken = providers.some(p => p === token || (p as PlainProvider).provide === token);
           givenToken && to.importedRecords.set(token, record);

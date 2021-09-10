@@ -1,8 +1,8 @@
-import { Injector, Injectable, Module } from "../../src";
+import { Injector, Injectable, Module, DynamicModule } from "../../src";
 import { ref } from "../../src/utils";
 
 describe('Module hierarchy', function() {
-  test('should be able to imports another modules', async function() {
+  test('should be able to imports another modules', function() {
     @Injectable()
     class Service {}
 
@@ -27,103 +27,144 @@ describe('Module hierarchy', function() {
       ) {}
     }
 
-    const injector = await new Injector(MainModule).compile();
+    const injector = Injector.create(MainModule).build();
     expect(injector).toBeInstanceOf(Injector);
   });
 
-  test('should resolve simple modules graph', async function() {
-    @Module()
-    class D {}
+  test('should resolve simple modules graph', function() {
+    /*
+     *  D
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
 
     @Module()
-    class C {}
+    class ModuleD {}
 
-    @Module({ imports: [D] })
-    class B {}
+    @Module()
+    class ModuleC {}
 
-    @Module({ imports: [B, C] })
-    class A {}
+    @Module({ imports: [ModuleD] })
+    class ModuleB {}
 
-    const injector = await new Injector(A).compile();
+    @Module({ imports: [ModuleB, ModuleC] })
+    class ModuleA {}
+
+    const injector = Injector.create(ModuleA).build();
     expect(injector).toBeInstanceOf(Injector);
   });
 
-  test('should resolve simple modules graph with circular references between modules', async function() {
-    @Module({ imports: [ref(() => B)] })
-    class D {}
+  test('should resolve simple modules graph with circular references between modules', function() {
+    /*
+     *  B
+     *  |
+     *  D
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
+    @Module({ imports: [ref(() => ModuleB)] })
+    class ModuleD {}
 
     @Module()
-    class C {}
+    class ModuleC {}
 
-    @Module({ imports: [D] })
-    class B {}
+    @Module({ imports: [ModuleD] })
+    class ModuleB {}
 
-    @Module({ imports: [B, C] })
-    class A {}
+    @Module({ imports: [ModuleB, ModuleC] })
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    const injector = Injector.create(ModuleA).build();
     expect(injector).toBeInstanceOf(Injector);
   });
 
-  test('should resolve complex modules graph', async function() {
-    @Module({ imports: [ref(() => D)] })
-    class F {}
+  test('should resolve complex modules graph (with modules initialization in proper order)', function() {
+    /*    
+     *   E(id E) 
+     *     |
+     *     D
+     *     |  
+     *     F
+     *     |
+     * E C(id C)     F  E(id E)
+     *  \  |         |    |
+     *     B     E   C    D
+     *       \   |   |   /
+     *        \  |   |  /
+     *         \ |   | /
+     *             A
+     */
 
-    @Module()
-    class E {}
+    const order: string[] = [];
 
-    @Module({ imports: [{ module: E, id: 'E' }] })
-    class D {}
-
-    @Module({ imports: [F] })
-    class C {}
-
-    @Module({ imports: [E, { module: C, id: 'C' }] })
-    class B {}
-
-    @Module({ imports: [B, E, C, D] })
-    class A {}
-
-    const injector = await new Injector(A).compile();
-    expect(injector).toBeInstanceOf(Injector);
-  });
-
-  test('should resolve simple modules graph with modules initialization in proper order', async function() {
-    const order = [];
-
-    @Module()
-    class D {
+    @Module({ imports: [ref(() => ModuleD)] })
+    class ModuleF {
       constructor() {
-        order.push('D');
+        order.push("F");
       }
     }
 
     @Module()
-    class C {
+    class ModuleE {
       constructor() {
-        order.push('C');
+        order.push("E");
       }
     }
 
-    @Module({ imports: [D] })
-    class B {
+    @Module({ imports: [{ module: ModuleE, id: 'E' }] })
+    class ModuleD {
       constructor() {
-        order.push('B');
+        order.push("D");
       }
     }
 
-    @Module({ imports: [B, C] })
-    class A {
+    @Module({ imports: [ModuleF] })
+    class ModuleC {
       constructor() {
-        order.push('A');
+        order.push("C");
       }
     }
 
-    await new Injector(A).compile();
-    expect(order).toEqual(['A', 'B', 'C', 'D']);
+    @Module({ imports: [ModuleE, { module: ModuleC, id: 'C' }] })
+    class ModuleB {
+      constructor() {
+        order.push("B");
+      }
+    }
+
+    @Module({ imports: [ModuleB, ModuleE, ModuleC, ModuleD] })
+    class ModuleA {
+      constructor() {
+        order.push("A");
+      }
+    }
+
+    const injector = Injector.create(ModuleA).build();
+    expect(injector).toBeInstanceOf(Injector);
+    expect(order).toEqual([
+      'A', // main module
+      'B', 'E', 'C', 'D', // root modules
+      'C', // C module with "C" id from B module
+      'F', // from C module with "C" id
+      'F', // from C module with "static" id
+      'E', // E module with "E" id from D module
+    ]);
   });
 
-  test('should resolve simple modules graph with injection in constructors', async function() {
+  test('should resolve simple modules graph with injection in constructors', function() {
+    /*
+     *  D
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
     const order = [];
 
     @Injectable()
@@ -143,7 +184,7 @@ describe('Module hierarchy', function() {
     @Module({
       providers: [ServiceD],
     })
-    class D {
+    class ModuleD {
       constructor(
         readonly service: ServiceD,
       ) {
@@ -152,16 +193,16 @@ describe('Module hierarchy', function() {
     }
 
     @Module()
-    class C {}
+    class ModuleC {}
 
-    @Module({ imports: [D] })
-    class B {}
+    @Module({ imports: [ModuleD] })
+    class ModuleB {}
 
     @Module({ 
-      imports: [B, C],
+      imports: [ModuleB, ModuleC],
       providers: [ServiceA],
     })
-    class A {
+    class ModuleA {
       constructor(
         readonly service: ServiceA,
       ) {
@@ -169,11 +210,19 @@ describe('Module hierarchy', function() {
       }
     }
 
-    await new Injector(A).compile();
+    Injector.create(ModuleA).build();
     expect(order).toEqual(['ServiceA', 'ServiceD']);
   });
 
-  test('should services work with exports', async function() {
+  test('should resolve simple modules graph with injection in constructors (using services from imports)', function() {
+    /*
+     *  D
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
     const order = [];
 
     @Injectable()
@@ -194,16 +243,16 @@ describe('Module hierarchy', function() {
       providers: [ServiceD],
       exports: [ServiceD],
     })
-    class D {}
+    class ModuleD {}
 
     @Module({
       providers: [ServiceC],
       exports: [ServiceC],
     })
-    class C {}
+    class ModuleC {}
 
-    @Module({ imports: [D] })
-    class B {
+    @Module({ imports: [ModuleD] })
+    class ModuleB {
       constructor(
         readonly service: ServiceD,
       ) {
@@ -212,9 +261,9 @@ describe('Module hierarchy', function() {
     }
 
     @Module({ 
-      imports: [B, C],
+      imports: [ModuleB, ModuleC],
     })
-    class A {
+    class ModuleA {
       constructor(
         readonly service: ServiceC,
       ) {
@@ -222,11 +271,19 @@ describe('Module hierarchy', function() {
       }
     }
 
-    await new Injector(A).compile();
+    Injector.create(ModuleA).build();
     expect(order).toEqual(['ServiceC', 'ServiceD']);
   });
 
-  test('should work exports in dynamic modules', async function() {
+  test('should resolve graph with dynamic modules', function() {
+    /*
+     *  D
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
     let service: SharedService;
 
     @Injectable()
@@ -236,10 +293,10 @@ describe('Module hierarchy', function() {
       providers: [SharedService],
       exports: [SharedService],
     })
-    class C {}
+    class ModuleC {}
 
     @Module()
-    class B {
+    class ModuleB {
       constructor(
         readonly sharedService: SharedService,
       ) {
@@ -250,18 +307,24 @@ describe('Module hierarchy', function() {
     @Module({
       imports: [
         {
-          module: B,
-          imports: [C],
+          module: ModuleB,
+          imports: [ModuleC],
         }
       ]
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    Injector.create(ModuleA).build();
     expect(service).toBeInstanceOf(SharedService);
   });
 
-  test('should share this same record across modules (looking in parent case)', async function() {
+  test('should share this same record across modules (looking for missed provider in the parent injector)', function() {
+    /*
+     *  B
+     *  |
+     *  A
+     */
+
     let serviceB: SharedService;
     let serviceA: SharedService;
 
@@ -269,7 +332,7 @@ describe('Module hierarchy', function() {
     class SharedService {}
 
     @Module()
-    class B {
+    class ModuleB {
       constructor(
         readonly service: SharedService,
       ) {
@@ -278,10 +341,10 @@ describe('Module hierarchy', function() {
     }
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
       providers: [SharedService],
     })
-    class A {
+    class ModuleA {
       constructor(
         readonly service: SharedService,
       ) {
@@ -289,11 +352,17 @@ describe('Module hierarchy', function() {
       }
     }
 
-    await new Injector(A).compile();
+    Injector.create(ModuleA).build();
     expect(serviceA).toEqual(serviceB);
   });
 
-  test('should share this same record across modules (using exports case)', async function() {
+  test('should share this same record across modules (export provider to the parent injector)', function() {
+    /*
+     *  B
+     *  |
+     *  A
+     */
+
     let serviceB: SharedService;
     let serviceA: SharedService;
 
@@ -304,7 +373,7 @@ describe('Module hierarchy', function() {
       providers: [SharedService],
       exports: [SharedService],
     })
-    class B {
+    class ModuleB {
       constructor(
         readonly service: SharedService,
       ) {
@@ -313,9 +382,9 @@ describe('Module hierarchy', function() {
     }
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
     })
-    class A {
+    class ModuleA {
       constructor(
         readonly service: SharedService,
       ) {
@@ -323,11 +392,19 @@ describe('Module hierarchy', function() {
       }
     }
 
-    await new Injector(A).compile();
+    Injector.create(ModuleA).build();
     expect(serviceA).toEqual(serviceB);
   });
 
-  test('should exports providers of module when in exports array is defined given module', async function() {
+  test('should exports providers of module when in exports array is defined given module', function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
     @Injectable()
     class ServiceC {}
 
@@ -335,215 +412,450 @@ describe('Module hierarchy', function() {
       providers: [ServiceC],
       exports: [ServiceC],
     })
-    class C {}
+    class ModuleC {}
 
     @Module({
-      imports: [C],
-      exports: [C],
+      imports: [ModuleC],
+      exports: [ModuleC],
     })
-    class B {}
+    class ModuleB {}
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    const injector = Injector.create(ModuleA).build();
     const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
-  test('should exports providers of module when in exports array is defined given module (dynamic module case)', async function() {
+  test('should exports providers of module when in exports array is defined given module (dynamic module case)', function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
     @Injectable()
     class ServiceC {}
 
     @Module()
-    class C {}
+    class ModuleC {}
 
     @Module({
       imports: [
         {
-          module: C,
+          module: ModuleC,
           providers: [ServiceC],
           exports: [ServiceC],
         }
       ],
-      exports: [C],
+      exports: [ModuleC],
     })
-    class B {}
+    class ModuleB {}
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    const injector = Injector.create(ModuleA).build();
     const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
-  test('should exports providers of dynamic module when in exports array is defined given module', async function() {
+  test('should exports only specific providers to the parent (case with dynamic module in exports)', function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
     @Injectable()
     class ServiceC {}
 
-    @Module({
-      providers: [ServiceC],
-      exports: [ServiceC],
-    })
-    class C {}
+    @Injectable()
+    class ServiceNotExported {}
+
+    let serviceNotUsedFromB: ServiceNotExported;
 
     @Module({
-      imports: [C],
+      providers: [ServiceC, ServiceNotExported],
+      exports: [ServiceC, ServiceNotExported],
+    })
+    class ModuleC {}
+
+    @Module({
+      imports: [ModuleC],
       exports: [
         {
-          module: C,
+          module: ModuleC,
           providers: [ServiceC]
         }
       ],
     })
-    class B {}
+    class ModuleB {
+      constructor(
+        public service: ServiceNotExported,
+      ) {
+        serviceNotUsedFromB = service;
+      }
+    }
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    const injector = Injector.create(ModuleA).build();
     const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
+
+    let err: Error
+    try {
+      injector.get(ServiceNotExported);
+    } catch(e) {
+      err = e;
+    }
+    expect(serviceNotUsedFromB).toBeInstanceOf(ServiceNotExported);
+    expect(err === undefined).toEqual(false);
   });
 
-  test('should exports providers of module when in exports array is defined given module (dynamic module case)', async function() {
+  test('should exports only specific providers to the parent (case with dynamic module in imports and exports)', function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
     @Injectable()
     class ServiceC {}
+
+    @Injectable()
+    class ServiceNotExported {}
+
+    let serviceNotUsedFromB: ServiceNotExported;
 
     @Module()
-    class C {}
+    class ModuleC {}
 
     @Module({
       imports: [
         {
-          module: C,
-          providers: [ServiceC],
-          exports: [ServiceC],
+          module: ModuleC,
+          providers: [ServiceC, ServiceNotExported],
+          exports: [ServiceC, ServiceNotExported],
         }
       ],
       exports: [
         {
-          module: C,
+          module: ModuleC,
           providers: [ServiceC]
         }
       ],
     })
-    class B {}
+    class ModuleB {
+      constructor(
+        public service: ServiceNotExported,
+      ) {
+        serviceNotUsedFromB = service;
+      }
+    }
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    const injector = Injector.create(ModuleA).build();
     const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
+
+    let err: Error
+    try {
+      injector.get(ServiceNotExported);
+    } catch(e) {
+      err = e;
+    }
+    expect(serviceNotUsedFromB).toBeInstanceOf(ServiceNotExported);
+    expect(err === undefined).toEqual(false);
   });
 
-  test('should exports providers of module when in exports array is defined given module (facade case)', async function() {
+  test('should exports providers of module when in exports array is defined given module (module proxy case)', function() {
+    /*
+     *   B(proxy)
+     *      |
+     *  B   C
+     *   \ /
+     *    A
+     */
+
     @Injectable()
     class ServiceB {}
 
     @Module()
-    class B {}
+    class ModuleB {}
 
     @Module({
       imports: [
         {
-          module: B,
+          module: ModuleB,
           providers: [ServiceB],
           exports: [ServiceB],
         }
       ],
-      exports: [B],
+      exports: [ModuleB],
     })
-    class C {}
+    class ModuleC {}
 
     @Module({ 
-      imports: [B, C],
+      imports: [ModuleB, ModuleC],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
+    const injector = Injector.create(ModuleA).build();
     const serviceB = injector.get(ServiceB);
     expect(serviceB).toBeInstanceOf(ServiceB);
   });
 
-  test('should add extra providers using facade module', async function() {
+  test('proxy module should point as parent to the base injector of proxy module', function() {
+    /*
+     *   B(proxy)
+     *      |
+     *  B   C
+     *   \ /
+     *    A
+     */
+
     @Injectable()
     class ServiceB {}
 
     @Injectable()
-    class ServiceC {
+    class ProxyService {
+      // if proxy works as expected it should inject ServiceB from parent injector (base module of proxy module)
       constructor(
-        readonly serviceB: ServiceB,
+        readonly service: ServiceB,
       ) {}
     }
 
     @Module({
-      providers: [ServiceB],
+      providers: [
+        ServiceB,
+      ]
     })
-    class B {}
+    class ModuleB {}
 
     @Module({
       imports: [
         {
-          module: B,
+          module: ModuleB,
+          providers: [ProxyService],
+          exports: [ProxyService],
+        }
+      ],
+      exports: [ModuleB],
+    })
+    class ModuleC {}
+
+    @Module({ 
+      imports: [ModuleB, ModuleC],
+    })
+    class ModuleA {}
+
+    const injector = Injector.create(ModuleA).build();
+    const proxyService = injector.get(ProxyService);
+    expect(proxyService).toBeInstanceOf(ProxyService);
+    expect(proxyService.service).toBeInstanceOf(ServiceB);
+
+    // if proxy works as expected it shouldn't see ServiceB in the scope
+    let err: Error
+    try {
+      injector.get(ServiceB);
+    } catch(e) {
+      err = e;
+    }
+    expect(err === undefined).toEqual(false);
+  });
+
+  test('should works with async dynamic modules', async function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
+    @Injectable()
+    class ServiceC {}
+
+    let serviceC: ServiceC;
+
+    @Module()
+    class ModuleC {
+      static async forRoot(): Promise<DynamicModule> {
+        return {
+          module: ModuleC,
           providers: [ServiceC],
           exports: [ServiceC],
         }
+      }
+    }
+
+    @Module({
+      imports: [
+        ModuleC.forRoot(),
       ],
+      exports: [ModuleC],
     })
-    class C {}
+    class ModuleB {
+      constructor(
+        readonly service: ServiceC,
+      ) {
+        serviceC = service;
+      }
+    }
 
     @Module({ 
-      imports: [B, C],
+      imports: [ModuleB],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
-    const moduleC = injector.selectChild(C);
-    const serviceC = moduleC.get(ServiceC);
+    await Injector.create(ModuleA).buildAsync();
     expect(serviceC).toBeInstanceOf(ServiceC);
-    expect(serviceC.serviceB).toBeInstanceOf(ServiceB);
   });
 
-  test('should handle falsed imports', async function() {
+  test('should handle falsy imports', function() {
     @Module({ 
       imports: [
         undefined,
         null,
       ],
     })
-    class A {}
+    class ModuleA {}
 
-    await new Injector(A).compile();
+    Injector.create(ModuleA).build();
   });
 
-  test('should work with .select()', async function() {
+  test('should handle falsy imports (async dynamic module case)', async function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
+    @Module()
+    class ModuleC {
+      static async forRoot(): Promise<DynamicModule> {
+        return undefined
+      }
+    }
+
+    @Module({
+      imports: [
+        ModuleC.forRoot(),
+      ],
+    })
+    class ModuleB {}
+
+    @Module({ 
+      imports: [ModuleB],
+    })
+    class ModuleA {}
+
+    await Injector.create(ModuleA).buildAsync();
+  });
+
+  test('should work with .selectChild()', function() {
     @Injectable()
     class ServiceB {}
 
     @Module({
       providers: [ServiceB],
     })
-    class B {}
+    class ModuleB {}
 
     @Module({ 
-      imports: [B],
+      imports: [ModuleB],
     })
-    class A {}
+    class ModuleA {}
 
-    const injector = await new Injector(A).compile();
-    const moduleB = injector.selectChild(B);
+    const injector = Injector.create(ModuleA).build();
+    const moduleB = injector.selectChild(ModuleB);
     const service = moduleB.get(ServiceB);
     expect(service).toBeInstanceOf(ServiceB);
+  });
+
+  test('should work with .selectChild() - with custom id', function() {
+    @Injectable()
+    class ServiceB {}
+
+    @Module({
+      providers: [ServiceB],
+    })
+    class ModuleB {}
+
+    @Module({ 
+      imports: [
+        ModuleB,
+        {
+          module: ModuleB,
+          id: 'module B',
+        }
+      ],
+    })
+    class ModuleA {}
+
+    const injector = Injector.create(ModuleA).build();
+    const moduleB = injector.selectChild(ModuleB);
+    const serviceB = moduleB.get(ServiceB);
+    const moduleBWithId = injector.selectChild(ModuleB, 'module B');
+    const serviceBWithId = moduleBWithId.get(ServiceB);
+    expect(serviceB).toBeInstanceOf(ServiceB);
+    expect(serviceBWithId).toBeInstanceOf(ServiceB);
+    expect(serviceB === serviceBWithId).toEqual(false);
+  });
+
+  test('should work with .selectChild() - deep imports', function() {
+    /*
+     *  D
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
+    @Injectable()
+    class Service {}
+
+    @Module({
+      providers: [
+        Service,
+      ]
+    })
+    class ModuleD {}
+
+    @Module({ imports: [ModuleD] })
+    class ModuleC {}
+
+    @Module({ imports: [ModuleC] })
+    class ModuleB {}
+
+    @Module({ imports: [ModuleB] })
+    class ModuleA {}
+
+    const injector = Injector.create(ModuleA).build();
+    const moduleD = injector.selectChild(ModuleB).selectChild(ModuleC).selectChild(ModuleD);
+    const service = moduleD.get(Service);
+    expect(service).toBeInstanceOf(Service);
   });
 });

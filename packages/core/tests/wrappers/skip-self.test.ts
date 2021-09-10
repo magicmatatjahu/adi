@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Optional, SkipSelf, Module, createInjector, Token, ref } from "../../src";
+import { Injector, Injectable, Inject, Optional, SkipSelf, Module, Token, ref } from "../../src";
 
 describe('SkipSelf wrapper', function () {
   test('should inject service from parent injector', function () {
@@ -88,7 +88,7 @@ describe('SkipSelf wrapper', function () {
     })
     class ParentModule {}
 
-    const injector = await createInjector(ParentModule).compile();
+    const injector = Injector.create(ParentModule).build();
     const grandChildInjector = injector.selectChild(ChildModule).selectChild(GrantChildModule)
     const value = grandChildInjector.get<string>("useFactory");
     expect(value).toEqual('parent');

@@ -1,4 +1,4 @@
-import { PlainSansProvider, PlainInjections, ScopeType, ModuleMetadata, Type } from ".";
+import { PlainSansProvider, PlainInjections, ScopeType, Type } from ".";
 
 export type ProvideInType = string | symbol | Type | 'any';
 

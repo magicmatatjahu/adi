@@ -1,7 +1,7 @@
 import { Injector, Injectable, INJECTOR_SCOPE, Module } from "../../src";
 
 describe('Module scopes', function() {
-  test('should work with treeshakable providers with module scops (reference to module)', async function() {
+  test('should work with treeshakable providers with module scops (reference to module)', function() {
     @Module()
     class MainModule {}
 
@@ -10,12 +10,12 @@ describe('Module scopes', function() {
     })
     class Service {}
 
-    const injector = await new Injector(MainModule).compile();
+    const injector = new Injector(MainModule).build();
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
-  test('should work with treeshakable providers with custom modules scopes (single scope)', async function() {
+  test('should work with treeshakable providers with custom modules scopes (single scope)', function() {
     @Injectable({
       provideIn: 'FOOBAR',
     })
@@ -31,12 +31,12 @@ describe('Module scopes', function() {
     })
     class MainModule {}
 
-    const injector = await new Injector(MainModule).compile();
+    const injector = new Injector(MainModule).build();
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
-  test('should work with treeshakable providers with custom modules scopes (multiple scopes)', async function() {
+  test('should work with treeshakable providers with custom modules scopes (multiple scopes)', function() {
     @Injectable({
       provideIn: 'BARFOO',
     })
@@ -52,7 +52,7 @@ describe('Module scopes', function() {
     })
     class MainModule {}
 
-    const injector = await new Injector(MainModule).compile();
+    const injector = new Injector(MainModule).build();
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
   });

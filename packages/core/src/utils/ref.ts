@@ -12,6 +12,6 @@ export function isForwardRef(type: unknown): type is ForwardRef {
   return type && (type as ForwardRef)._$ref === ref;
 }
 
-export function resolveRef<T>(type: T): T {
+export function resolveRef<T>(type: T): Exclude<T, ForwardRef<T>> {
   return isForwardRef(type) ? type.ref() : type;
 }

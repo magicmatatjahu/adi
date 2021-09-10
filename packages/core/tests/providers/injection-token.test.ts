@@ -1,4 +1,4 @@
-import { Injector, Injectable, InjectionToken, Module, ANNOTATIONS, INJECTOR_SCOPE, createInjector } from "../../src";
+import { Injector, Injectable, InjectionToken, Module, ANNOTATIONS, INJECTOR_SCOPE } from "../../src";
 
 describe('InjectionToken', function() {
   describe('should works as normal provider in providers array', function() {
@@ -201,7 +201,7 @@ describe('InjectionToken', function() {
         }
       });
 
-      const injector = await createInjector(ParentModule).compile();
+      const injector = Injector.create(ParentModule).build();
       const value = injector.get(token);
       expect(value).toEqual("foobar");
     });

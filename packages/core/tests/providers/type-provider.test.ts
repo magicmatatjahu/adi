@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, createWrapper, Value, Module, INJECTOR_SCOPE, ANNOTATIONS, createInjector, Token, StaticInjectable, Scope } from "../../src";
+import { Injector, Injectable, Inject, Module, INJECTOR_SCOPE, ANNOTATIONS, Token, StaticInjectable, Scope } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -248,7 +248,7 @@ describe('Type provider (injectable provider)', function() {
       })
       class Service {}
 
-      const injector = await createInjector(ParentModule).compile();
+      const injector = Injector.create(ParentModule).build();
       const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
     });

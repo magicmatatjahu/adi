@@ -12,11 +12,10 @@ import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 
 export class ModuleCompiler {
-  compile<T>(
-    metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+  build(
     injector: Injector,
   ): void {
-    const compiledModule = this.compileMetadata(metatype) as CompiledModule;
+    const compiledModule = this.compileMetadata(injector.injector as any) as CompiledModule;
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -24,11 +23,10 @@ export class ModuleCompiler {
     this.initModules(stack);
   }
 
-  async compileAsync<T>(
-    metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+  async buildAsync(
     injector: Injector,
   ): Promise<void> {
-    const compiledModule = await this.compileMetadata(metatype);
+    const compiledModule = await this.compileMetadata(injector.injector as any);
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -36,8 +34,9 @@ export class ModuleCompiler {
     await this.initModulesAsync(stack);
   }
 
-  public process<T>({ moduleDef, dynamicDef, injector, exportTo, isProxy }: CompiledModule, stack: Array<Injector>) {
+  public process(compiledModule: CompiledModule, stack: Array<Injector>) {
     // for proxy performs only acitions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
+    const { moduleDef, dynamicDef, injector, exportTo, isProxy } = compiledModule;
     const compiledModules: Array<CompiledModule> = [];
 
     // first iterate in all imports and create injectors for given modules
@@ -69,20 +68,20 @@ export class ModuleCompiler {
     }
   }
 
-  public async processAsync<T>({ moduleDef, dynamicDef, injector, exportTo, isProxy }: CompiledModule, stack: Array<Injector>) {
-    // for proxy performs only acitions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
+  public async processAsync({ moduleDef, dynamicDef, injector, exportTo, isProxy }: CompiledModule, stack: Array<Injector>) {
+    // for proxy performs only actions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
     const compiledModules: Array<CompiledModule> = [];
 
     // first iterate in all imports and create injectors for given modules
     let imports = moduleDef.imports || EMPTY_ARRAY;
     if (isProxy === false) {
       for (let i = 0, l = imports.length; i < l; i++) {
-        await this.processImportAsync(imports[i], compiledModules, injector, stack);
+        await this.processImport(imports[i], compiledModules, injector, stack);
       }
     }
     imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
     for (let i = 0, l = imports.length; i < l; i++) {
-      await this.processImportAsync(imports[i], compiledModules, injector, stack);
+      await this.processImport(imports[i], compiledModules, injector, stack);
     }
 
     // first process all imports and go more depper in modules graph
@@ -103,13 +102,23 @@ export class ModuleCompiler {
   }
 
   private processImport<T = any>(
-    imp: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+    _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
     compiledModules: Array<CompiledModule>,
     parentInjector: Injector,
     stack: Array<Injector>,
   ) {
-    // const processedModule = await this.compileMetadata(imp);
-    const processedModule = this.compileMetadata(imp) as CompiledModule;
+    return thenable(
+      () => this.compileMetadata(_import),
+      compiledModule => this.processImportItem(compiledModule, compiledModules, parentInjector, stack) as any,
+    );
+  }
+
+  private processImportItem(
+    processedModule: CompiledModule,
+    compiledModules: Array<CompiledModule>,
+    parentInjector: Injector,
+    stack: Array<Injector>,
+  ) {
     if (processedModule === undefined) return;
 
     const { type, dynamicDef } = processedModule;
@@ -118,97 +127,37 @@ export class ModuleCompiler {
     let injector: Injector, foundedInjector = this.findModule(parentInjector, type, id);
     if (foundedInjector === undefined) {
       injector = Injector.create(type, parentInjector, { id });
-
-      processedModule.injector = injector;
-      processedModule.exportTo = parentInjector;
-
       stack.push(injector);
     } else {
       // check also here circular references between modules
 
-      // make facade
-      const proxyInjector = Injector.create(type, foundedInjector, { id });
-      processedModule.injector = proxyInjector;
-      processedModule.exportTo = parentInjector;
+      // make proxy and don't push facade to the `stack` array
+      injector = Injector.create(type, foundedInjector, { id });
       processedModule.isProxy = true;
-      injector = proxyInjector;
-
-      // don't push facade to the `stack` array
     }
-    compiledModules.push(processedModule as any);
+    processedModule.injector = injector;
+    processedModule.exportTo = parentInjector;
+    compiledModules.push(processedModule);
 
-    if ((parentInjector as any).imports.has(type)) {
-      const modules = (parentInjector as any).imports.get(type);
+    // add injector to the imports of parent injector
+    const imports: Map<Type, Injector | Map<ModuleID, Injector>> = (parentInjector as any).imports;
+    if (imports.has(type)) {
+      let modules = imports.get(type);
 
-      // when modules is a map not a single injector
-      if (modules instanceof Map) {
-        modules.set(id, injector);
-      } else {
+      if ((modules instanceof Map) === false) {
         const map = new Map();
-        (parentInjector as any).imports.set(type, map);
-        map.set(modules.id, modules)
+        imports.set(type, map);
+        modules = map.set((modules as Injector).id, modules);
       }
+      (modules as Map<ModuleID, Injector>).set(id, injector);
     } else {
-      (parentInjector as any).imports.set(type, injector);
+      imports.set(type, injector);
     }
 
     // TODO: Checks also exported modules in imports
   }
 
-  private async processImportAsync<T = any>(
-    imp: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
-    compiledModules: Array<CompiledModule>,
-    parentInjector: Injector,
-    stack: Array<Injector>,
-  ) {
-    // const processedModule = await this.compileMetadata(imp);
-    const processedModule = await this.compileMetadata(imp);
-    if (processedModule === undefined) return;
-
-    const { type, dynamicDef } = processedModule;
-    const id = (dynamicDef && dynamicDef.id) || 'static';
-    
-    let injector: Injector, foundedInjector = this.findModule(parentInjector, type, id);
-    if (foundedInjector === undefined) {
-      injector = Injector.create(type, parentInjector, { id });
-
-      processedModule.injector = injector;
-      processedModule.exportTo = parentInjector;
-
-      stack.push(injector);
-    } else {
-      // check also here circular references between modules
-
-      // make facade
-      const proxyInjector = Injector.create(type, foundedInjector, { id });
-      processedModule.injector = proxyInjector;
-      processedModule.exportTo = parentInjector;
-      processedModule.isProxy = true;
-      injector = proxyInjector;
-
-      // don't push facade to the `stack` array
-    }
-    compiledModules.push(processedModule as any);
-
-    if ((parentInjector as any).imports.has(type)) {
-      const modules = (parentInjector as any).imports.get(type);
-
-      // when modules is a map not a single injector
-      if (modules instanceof Map) {
-        modules.set(id, injector);
-      } else {
-        const map = new Map();
-        (parentInjector as any).imports.set(type, map);
-        map.set(modules.id, modules)
-      }
-    } else {
-      (parentInjector as any).imports.set(type, injector);
-    }
-
-    // TODO: Checks also exported modules in imports
-  }
-
-  compileMetadata<T>(
+  private compileMetadata<T>(
     metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
   ): CompiledModule | Promise<CompiledModule> {
     let mod = resolveRef(metatype);
@@ -222,7 +171,11 @@ export class ModuleCompiler {
     );
   }
 
-  private extractMetadata<T>(metatype: Type<T> | DynamicModule<T>): CompiledModule {
+  private extractMetadata<T>(metatype?: Type<T> | DynamicModule<T>): CompiledModule {
+    if (!metatype) {
+      return;
+    }
+    
     let moduleDef = getModuleDef(metatype), 
       dynamicDef: DynamicModule<T> = undefined;
 
@@ -256,7 +209,7 @@ export class ModuleCompiler {
     if (foundedModule) {
       if (foundedModule instanceof Map && foundedModule.has(id)) {
         return foundedModule.get(id);
-      } else if ((foundedModule as any /* Injector */).id === id) {
+      } else if (foundedModule.id === id) {
         return foundedModule as Injector;
       }
     }
@@ -273,7 +226,7 @@ export class ModuleCompiler {
       if (foundedModule) {
         if (foundedModule instanceof Map && foundedModule.has(id)) {
           return foundedModule.get(id);
-        } else if ((foundedModule as any /* Injector */).id === id) {
+        } else if (foundedModule.id === id) {
           return foundedModule as Injector;
         }
       }
@@ -282,6 +235,7 @@ export class ModuleCompiler {
     return undefined;
   }
 
+  // TODO: Think about changing the order of initialization from latest module
   private initModules(stack: Array<Injector>): void {
     for (let i = 0, l = stack.length; i < l; i++) {
       (stack[i] as any).initModule();
