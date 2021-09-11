@@ -3,7 +3,7 @@ export * from "./ctx";
 export * from "./decorate";
 export * from "./delegate";
 export * from "./delegations";
-export * from "./facade";
+export * from "./portal";
 export * from "./factory";
 export * from "./fallback";
 export * from "./inquirer";

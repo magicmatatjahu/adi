@@ -26,7 +26,7 @@ describe('Transform wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -59,7 +59,7 @@ describe('Transform wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('barfoo');
   });
 
@@ -105,7 +105,7 @@ describe('Transform wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('(foobar is awesome!)');
   });
 
@@ -138,7 +138,7 @@ describe('Transform wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -186,7 +186,7 @@ describe('Transform wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 });

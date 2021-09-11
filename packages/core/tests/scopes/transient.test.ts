@@ -20,7 +20,7 @@ describe('Transient scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(false);
@@ -49,7 +49,7 @@ describe('Transient scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(false);
@@ -83,7 +83,7 @@ describe('Transient scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService === service.ctxService).toEqual(false);
@@ -121,7 +121,7 @@ describe('Transient scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService === service.ctxService).toEqual(false);
@@ -152,7 +152,7 @@ describe('Transient scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.singletonService).toBeInstanceOf(TestService);
     expect(service.service === service.singletonService).toEqual(false);

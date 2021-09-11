@@ -19,7 +19,7 @@ describe('New wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);

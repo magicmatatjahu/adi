@@ -29,9 +29,9 @@ describe('SideEffects wrapper', function () {
       TestService,
     ]);
 
-    const service1 = injector.get(Service) ;
-    const service2 = injector.get(Service) ;
-    const service3 = injector.get(Service) ;
+    const service1 = injector.get(Service);
+    const service2 = injector.get(Service);
+    const service3 = injector.get(Service);
 
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service1.service).toEqual(service2.service);

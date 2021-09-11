@@ -26,7 +26,7 @@ describe('Decorate wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -59,7 +59,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('barfoo');
   });
 
@@ -105,7 +105,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('(foobar is awesome!)');
   });
 
@@ -145,7 +145,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -189,7 +189,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -251,7 +251,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService2);
     expect((service.service as DecoratorService2).decoratee).toBeInstanceOf(DecoratorService1);
     expect(service.service.method()).toEqual('(foobar is awesome!)');
@@ -286,7 +286,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -332,7 +332,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -389,7 +389,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -435,7 +435,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect(service.service.method()).toEqual('foobar!');
   });
@@ -564,7 +564,7 @@ describe('Decorate wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 });

@@ -25,7 +25,7 @@ describe('Ctx wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service1.ctx).toEqual(firstCtx);
     expect(service.service2).toBeInstanceOf(TestService);

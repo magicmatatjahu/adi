@@ -29,7 +29,7 @@ describe('Named wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect((service.namedService) as any).toEqual('foobar');
     expect((service.anotherService) as any).toEqual('barfoo');

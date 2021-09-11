@@ -20,7 +20,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toEqual("foobar");
   });
 
@@ -44,7 +44,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });
 
@@ -97,7 +97,7 @@ describe('Fallback wrapper', function () {
 
     let err, service;
     try {
-      service = injector.get(Service) ;
+      service = injector.get(Service);
     } catch(e) {
       err = e;
     }
@@ -120,7 +120,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service).toEqual("foobar");
   });
 

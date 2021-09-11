@@ -20,7 +20,7 @@ describe('Singleton scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -50,7 +50,7 @@ describe('Singleton scope', function () {
 
     let error: any, instance: Service;
     try {
-      instance = injector.get(Service) ;
+      instance = injector.get(Service);
     } catch(err) {
       error = err;
     }
@@ -78,7 +78,7 @@ describe('Singleton scope', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.oldService).toBeInstanceOf(TestService);
     expect(service.probablyNewService).toBeInstanceOf(TestService);

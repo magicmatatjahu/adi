@@ -21,7 +21,7 @@ describe('Inquirer wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
@@ -44,7 +44,7 @@ describe('Inquirer wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });
@@ -66,7 +66,7 @@ describe('Inquirer wrapper', function () {
       },
     ]);
 
-    const service = await injector.getAsync(Service) ;
+    const service = await injector.getAsync(Service);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });

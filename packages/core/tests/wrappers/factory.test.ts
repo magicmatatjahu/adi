@@ -17,7 +17,7 @@ describe('Factory wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     const testService1 = service.factory();
     const testService2 = service.factory();
     const testService3 = service.factory();
@@ -57,7 +57,7 @@ describe('Factory wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     const testService1 = service.factory("foo", 1);
     const testService2 = service.factory("bar", 2);
     expect(testService1 === testService2).toEqual(false);
@@ -108,7 +108,7 @@ describe('Factory wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service.serviceA.foobarFactory()).toEqual('foobar');
     expect(service.serviceB.foobarFactory()).toEqual('barfoo');
   });

@@ -53,15 +53,15 @@ function wrapper(options: MultiOptions = {}): WrapperDef {
     forkedSession.status |= SessionStatus.DRY_RUN;
     // run next to retrieve updated session
     next(injector, forkedSession);
-
-    // retrieve all satisfied definitions
-    const defs = getDefinitions(forkedSession.record, forkedSession);
-
     // remove dry run flag
     forkedSession.status &= ~SessionStatus.DRY_RUN;
 
+    // check options
     const isAsync = forkedSession.status & SessionStatus.ASYNC;
     const onlyDefinitions = options.onlyDefinitions === true;
+
+    // retrieve all satisfied definitions
+    const defs = getDefinitions(forkedSession.record, forkedSession);
 
     // with metaKey case
     const metaKey = options.metaKey;

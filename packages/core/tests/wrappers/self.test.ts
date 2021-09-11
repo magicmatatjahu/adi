@@ -23,7 +23,7 @@ describe('Self wrapper', function () {
       },
     ], parentInjector);
 
-    const service = childInjector.get(Service) ;
+    const service = childInjector.get(Service);
     expect(service.useValue).toEqual('barfoo');
   });
 
@@ -45,7 +45,7 @@ describe('Self wrapper', function () {
       Service,
     ], parentInjector);
 
-    const service = childInjector.get(Service) ;
+    const service = childInjector.get(Service);
     expect(service.useValue).toEqual(undefined);
   });
 });

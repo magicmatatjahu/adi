@@ -25,7 +25,7 @@ describe('Value wrapper', function() {
       }
     ]);
 
-    const service = injector.get(Service) ;
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.value1).toEqual('foo');
     expect(service.value2).toEqual('bar');
