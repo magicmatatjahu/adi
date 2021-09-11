@@ -24,17 +24,19 @@ export const InjectorMetadata = new class {
   toRecord<T>(
     provider: Provider<T>,
     host: Injector,
+    isComponent: boolean = false,
   ): ProviderRecord {
     if (typeof provider === "function") {
-      return this.typeProviderToRecord(provider, host);
+      return this.typeProviderToRecord(provider, host, isComponent);
     } else {
-      return this.customProviderToRecord(provider.provide, provider, host);
+      return this.customProviderToRecord(provider.provide, provider, host, isComponent);
     }
   }
 
   typeProviderToRecord<T>(
     provider: TypeProvider<T>,
     host: Injector,
+    isComponent?: boolean,
   ): ProviderRecord {
     const provDef = this.getProviderDef(provider);
     const options = provDef.options || EMPTY_OBJECT as InjectableOptions<any>;
@@ -47,10 +49,10 @@ export const InjectorMetadata = new class {
     ) {
       // shallow copy provDef
       const customProvider = { ...options as any, useClass: (options as any).useClass || provider } as PlainProvider;
-      return this.customProviderToRecord(provider, customProvider, host);
+      return this.customProviderToRecord(provider, customProvider, host, isComponent);
     }
 
-    const record = this.getRecord(provider, host);
+    const record = this.getRecord(provider, host, isComponent);
     record.addDefinition(provDef.factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
@@ -59,8 +61,9 @@ export const InjectorMetadata = new class {
     token: Token<T>,
     provider: PlainProvider<T>,
     host: Injector,
+    isComponent?: boolean,
   ): ProviderRecord {
-    const record = this.getRecord(token, host);
+    const record = this.getRecord(token, host, isComponent);
     const constraint = provider.when;
     let factory: FactoryDef = undefined,
       wrapper: Wrapper = undefined,
@@ -121,11 +124,16 @@ export const InjectorMetadata = new class {
   getRecord<T>(
     token: Token<T>,
     host: Injector,
+    isComponent: boolean,
   ): ProviderRecord {
-    const records: Map<Token, ProviderRecord> = (host as any).records;
+    let records: Map<Token, ProviderRecord> = (host as any).records;
+    if (isComponent === true) {
+      records = (host as any).newComponents;
+    }
+
     let record = records.get(token);
     if (record === undefined) {
-      record = new ProviderRecord(token, host);
+      record = new ProviderRecord(token, host, isComponent);
       records.set(token, record);
     }
     return record;
@@ -134,6 +142,13 @@ export const InjectorMetadata = new class {
   /**
    * COMPONENTS
    */
+  toComponent<T>(
+    component: Provider<T>,
+    host: Injector,
+  ): ProviderRecord {
+    return this.toRecord(component, host, true);
+  }
+
   toComponentRecord<T>(
     comp: Type<T>,
     host: Injector,
@@ -181,6 +196,19 @@ export const InjectorMetadata = new class {
     // TODO: FIX TYPES!!!
     (session.instance as any) = instance;
     return instance;
+  }
+
+  getComponentRecord<T>(
+    token: Token<T>,
+    host: Injector,
+  ): ProviderRecord {
+    const records: Map<Token, ProviderRecord> = (host as any)._components;
+    let record = records.get(token);
+    if (record === undefined) {
+      record = new ProviderRecord(token, host);
+      records.set(token, record);
+    }
+    return record;
   }
 
   /**

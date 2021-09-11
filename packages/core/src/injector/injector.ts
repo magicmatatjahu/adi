@@ -1,12 +1,11 @@
 import { getProviderDef, getModuleDef } from "../decorators";
 import { 
-  InjectionOptions, InjectionMetadata,
   DefinitionRecord, InstanceRecord, ComponentRecord,
   Provider, Type, ForwardRef,
   InjectorOptions, InjectorScopeType, ModuleMetadata, ModuleID, ExportedModule, PlainProvider,
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
-import { InjectionStatus, InjectorStatus, SessionStatus } from "../enums";
+import { InjectionStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
@@ -26,6 +25,7 @@ export class Injector {
   // imported modules
   private imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
   // components
+  private readonly newComponents = new Map<Token, ProviderRecord>();
   private readonly components = new Map<Type, ComponentRecord>();
   // own records
   private readonly records = new Map<Token, ProviderRecord>();
@@ -177,7 +177,7 @@ export class Injector {
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): Promise<T | undefined> {
     const options = InjectorMetadata.createOptions(token);
     session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
-    session.setAsync(true);
+    session.status |= SessionStatus.ASYNC;
     return this.resolveToken(wrapper, session);
   }
 
@@ -190,7 +190,12 @@ export class Injector {
 
   resolveRecord<T>(session: Session): T | undefined {
     const token = session.getToken();
-    const record = this.getRecord(token);
+    let record: ProviderRecord;
+    if (session.status & SessionStatus.COMPONENT_RESOLUTION) {
+      record = this.newComponents.get(token);
+    } else {
+      record = this.getRecord(token);
+    }
 
     if (record === undefined) {
       // Reuse session in the parent
@@ -362,36 +367,31 @@ export class Injector {
   /**
    * COMPONENTS
    */
-  getComponent<T>(token: Type<T>, options?: InjectionOptions, meta?: InjectionMetadata, session?: Session): Promise<T | undefined> | T | undefined {
-    const component = this.components.get(token);
-    if (component === undefined) {
-      throw Error(`Given component of ${token} type doesn't exists`);
+  getComponent<T>(token: Token<T>, wrapper?: Wrapper): T | undefined {
+    if (this.newComponents.get(token) === undefined) {
+      throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
-    options = InjectorMetadata.createOptions(token);
-    const newSession = new Session(undefined, undefined, undefined, options, meta, session);
-
-    // const wrapper = options && options.wrapper;
-    // if (wrapper) {
-    //   const last = (i: Injector, s: Session) => i.resolveComponent(component, s.options, s);
-    //   return runWrappers(wrapper, this, session, last);
-    // }
-
-    return this.resolveComponent(component, options, newSession);
+    const options = InjectorMetadata.createOptions(token);
+    const session = new Session(undefined, undefined, undefined, options, undefined, undefined);
+    session.status |= SessionStatus.COMPONENT_RESOLUTION; 
+    return this.resolveToken(wrapper, session);
   }
 
-  private resolveComponent<T>(comp: ComponentRecord<T>, options?: any, session?: Session): Promise<T | undefined> | T | undefined {
-    let scope = comp.scope;
-    if (scope.canBeOverrided() === true) {
-      scope = options.scope || scope;
+  getComponentAsync<T>(token: Token<T>, wrapper?: Wrapper): Promise<T | undefined> {
+    if (this.newComponents.get(token) === undefined) {
+      throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
-    const instance = InjectorMetadata.getComponentInstanceRecord(comp, scope, session);
-    return instance.value || (instance.value = comp.factory(this, session) as any);
+
+    const options = InjectorMetadata.createOptions(token);
+    const session = new Session(undefined, undefined, undefined, options, undefined, undefined);
+    session.status |= SessionStatus.COMPONENT_RESOLUTION; 
+    session.status |= SessionStatus.ASYNC;
+    return this.resolveToken(wrapper, session);
   }
 
   addComponent(component: Type): void {
-    const record = InjectorMetadata.toComponentRecord(component, this);
-    this.components.set(component, record);
+    typeof component === 'function' && InjectorMetadata.toRecord(component, this, true);
   }
 
   addComponents(components: Type[] = []): void {

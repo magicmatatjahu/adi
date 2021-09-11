@@ -24,6 +24,7 @@ export enum SessionStatus {
   ASYNC = 1,
   SIDE_EFFECTS = 2,
   DRY_RUN = 4,
+  COMPONENT_RESOLUTION = 8,
 }
 
 export enum InjectorStatus {

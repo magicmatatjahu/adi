@@ -14,6 +14,7 @@ export class ProviderRecord<T = any> {
   constructor(
     readonly token: Token<T>,
     readonly host: Injector,
+    readonly isComponent: boolean = false,
   ) {}
 
   getInstance<S>(
