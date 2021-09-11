@@ -148,7 +148,7 @@ describe('Portal wrapper', function () {
     expect(service.deepService.foobar).toEqual('normal foobar');
   });
 
-  test('should works with deep injections and one of deep dependency has Facade wrapper', function () {
+  test('should works with deep injections and one of deep dependency has Portal wrapper', function () {
     const portalProviders = [
       {
         provide: 'foobar',

@@ -32,9 +32,9 @@ React:
 
 ## IMPLEMENTED
 
-- Create `Facade` wrapper to support case written in the https://github.com/inversify/InversifyJS/issues/1156 issue and https://github.com/nestjs/nest/issues/7631 issue - implemented by `Facade` wrapper
-- Make delegations more generic like in DryIoc -> https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#specification-api - implemented by `Facade` wrapper
-- Make transitional dependency as in https://github.com/typestack/typedi/issues/186 - it should be handled with `Facade` wrapper - implemented by `Facade` wrapper
+- Create `Portal` wrapper to support case written in the https://github.com/inversify/InversifyJS/issues/1156 issue and https://github.com/nestjs/nest/issues/7631 issue - implemented by `Portal` wrapper
+- Make delegations more generic like in DryIoc -> https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#specification-api - implemented by `Portal` wrapper
+- Make transitional dependency as in https://github.com/typestack/typedi/issues/186 - it should be handled with `Portal` wrapper - implemented by `Portal` wrapper
 - TODO: Improve inheritance of wrappers in extending case - it should be new wrappers, not these same as in parent class - it's not needed at the moment, but maybe...
 - Put wrappers as a separate collection in injector - `wrappers` - at the moment not needed, but maybe...
 - Add `useCustom` provider... - it's not needed - we can create the custom Wrapper like `UseProvider()` with provider shape
@@ -53,7 +53,7 @@ React:
 - Add Pipe, Interceptor and ErrorHandler functionality/decorators
 - Add rebind/remove/clear functionality
 - Implement multiple constructors -> https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SelectConstructorOrFactoryMethod.md#multiple-constructors base logic on the static methods - in this way ADI can treat static methods as factories
-- Implement Facades injectors as custom Wrapper like in DryIOC - https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/KindsOfChildContainer.md#facade
+- Implement Portals injectors as custom Wrapper like in DryIOC - https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/KindsOfChildContainer.md#facade
 - Add `PROVIDER` Injection Token which will be used to wrap all defined providers in module
 - Implement https://autofac.readthedocs.io/en/latest/advanced/pooled-instances.html scope - note about custom hooks like `OnGetFromPool`, probably in the Scope ADI should create the new instance of given provider (definition), or maybe not - ADI can always change reference to the definition in the session
 - Add fallback to the providers like in https://github.com/angular/angular/issues/13854
