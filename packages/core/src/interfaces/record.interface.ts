@@ -16,12 +16,6 @@ export interface DefinitionRecord<T = any, S = any> {
   proto: Type<T> | undefined;
 }
 
-export interface WrapperRecord {
-  wrapper: Wrapper,
-  constraint: ConstraintDef;
-  annotations: Record<string | symbol, any>;
-}
-
 export interface InstanceRecord<T = any> {
   ctx: Context,
   value: T;
@@ -37,21 +31,8 @@ export interface InstanceRecord<T = any> {
   parents: Set<InstanceRecord>;
 }
 
-export interface ComponentRecord<T = any> {
-  comp: Type<T>;
-  host: Injector;
-  factory: FactoryDef<T> | undefined;
-  useWrapper: Wrapper;
-  scope: Scope;
-  values: Map<Context, ComponentInstanceRecord<T>>;
-}
-
-export interface ComponentInstanceRecord<T = any> {
-  ctx: Context;
-  value: T;
-  comp: ComponentRecord;
-  // // what is injected to instance
-  // children: Set<InstanceRecord>;
-  // // where instance is injected
-  // parents: Set<InstanceRecord>;
+export interface WrapperRecord {
+  wrapper: Wrapper,
+  constraint: ConstraintDef;
+  annotations: Record<string | symbol, any>;
 }

@@ -1,20 +1,19 @@
-import { Context, Session, Injector } from ".";
+import { Injector } from ".";
 import { createInjectionArg, getProviderDef, injectableMixin } from "../decorators";
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionArgument, ComponentRecord, ComponentInstanceRecord, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem,
+  InjectionOptions, InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { EMPTY_ARRAY, EMPTY_OBJECT, STATIC_CONTEXT } from "../constants";
+import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
 import { copyWrappers, Wrapper } from "../utils/wrappers";
-import { Cache } from "../wrappers/cache";
 import { UseExisting } from "../wrappers/internal";
 
 export const InjectorMetadata = new class {
@@ -76,7 +75,7 @@ export const InjectorMetadata = new class {
     }
 
     if (isFactoryProvider(provider)) {
-      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY, { cache: true });
+      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY);
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
@@ -128,7 +127,7 @@ export const InjectorMetadata = new class {
   ): ProviderRecord {
     let records: Map<Token, ProviderRecord> = (host as any).records;
     if (isComponent === true) {
-      records = (host as any).newComponents;
+      records = (host as any).components;
     }
 
     let record = records.get(token);
@@ -147,68 +146,6 @@ export const InjectorMetadata = new class {
     host: Injector,
   ): ProviderRecord {
     return this.toRecord(component, host, true);
-  }
-
-  toComponentRecord<T>(
-    comp: Type<T>,
-    host: Injector,
-    useWrapper?: Wrapper,
-  ): ComponentRecord<T> {
-    const def = this.getProviderDef(comp);
-    return {
-      comp,
-      host,
-      factory: def.factory,
-      scope: (def.options.scope || Scope.SINGLETON) as any,
-      useWrapper,
-      values: new Map<Context, ComponentInstanceRecord>(),
-    };
-  }
-
-  createComponentInstanceRecord<T>(
-    ctx: Context,
-    value: T | undefined,
-    comp: ComponentRecord<T>,
-  ): ComponentInstanceRecord<T> {
-    return {
-      ctx,
-      value,
-      comp,
-      // children: new Set(),
-      // parents: new Set(),
-    };
-  }
-
-  getComponentInstanceRecord<T>(
-    comp: ComponentRecord<T>, 
-    scope: Scope,
-    session?: Session,
-  ): ComponentInstanceRecord<T> {
-    // FIX this
-    // const ctx = scope.getContext(session, comp as any) || STATIC_CONTEXT;
-    const ctx = STATIC_CONTEXT;
-    let instance = comp.values.get(ctx);
-    if (instance === undefined) {
-      instance = this.createComponentInstanceRecord(ctx, undefined, comp);
-      comp.values.set(ctx, instance);
-    }
-
-    // TODO: FIX TYPES!!!
-    (session.instance as any) = instance;
-    return instance;
-  }
-
-  getComponentRecord<T>(
-    token: Token<T>,
-    host: Injector,
-  ): ProviderRecord {
-    const records: Map<Token, ProviderRecord> = (host as any)._components;
-    let record = records.get(token);
-    if (record === undefined) {
-      record = new ProviderRecord(token, host);
-      records.set(token, record);
-    }
-    return record;
   }
 
   /**
@@ -247,27 +184,22 @@ export const InjectorMetadata = new class {
     return providerDef;
   }
 
-  convertDependencies(deps: Array<InjectionItem>, factory: Function, options: { cache: boolean } = { cache: false }): InjectionArgument[] {
-    const converted: InjectionArgument[] = [];
-    for (let i = 0, l = deps.length; i < l; i++) {
-      const dep = deps[i];
-      if (isWrapper(dep)) {
-        converted.push(createInjectionArg(undefined, options.cache ? Cache(dep) : dep, factory, undefined, i));
-      } else if ((dep as any).token !== undefined) {
-        converted.push(createInjectionArg((dep as any).token, (dep as any).wrapper, factory, undefined, i));
-      } else {
-        converted.push(createInjectionArg(dep as Token, undefined, factory, undefined, i));
-      }
-    }
-    return converted;
-  }
-
-  newConvertDependencies(deps: Array<InjectionItem>, target: Object, methodName?: string | symbol): InjectionArgument[] {
+  convertDependencies(deps: Array<InjectionItem>, target: Object, methodName?: string | symbol): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       converted.push(this.convertDependency(deps[i], target, methodName, i));
     }
     return converted;
+  }
+
+  convertDependency(dep: InjectionItem, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+    if (isWrapper(dep)) {
+      return createInjectionArg(undefined, dep, target, propertyKey, index);
+    }
+    if ((dep as any).token !== undefined) {
+      return createInjectionArg((dep as any).token, (dep as any).wrapper, target, propertyKey, index);
+    }
+    return createInjectionArg(dep as Token, undefined, target, propertyKey, index);
   }
 
   combineArrayDependencies(
@@ -356,15 +288,5 @@ export const InjectorMetadata = new class {
     }
 
     return newDeps;
-  }
-
-  convertDependency(dep: InjectionItem, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
-    if (isWrapper(dep)) {
-      return createInjectionArg(undefined, dep, target, propertyKey, index);
-    }
-    if ((dep as any).token !== undefined) {
-      return createInjectionArg((dep as any).token, (dep as any).wrapper, target, propertyKey, index);
-    }
-    return createInjectionArg(dep as Token, undefined, target, propertyKey, index);
   }
 }

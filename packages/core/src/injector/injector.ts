@@ -1,8 +1,9 @@
 import { getProviderDef, getModuleDef } from "../decorators";
 import { 
-  DefinitionRecord, InstanceRecord, ComponentRecord,
-  Provider, Type, ForwardRef,
-  InjectorOptions, InjectorScopeType, ModuleMetadata, ModuleID, ExportedModule, PlainProvider,
+  DefinitionRecord, InstanceRecord,
+  Provider, Type,
+  InjectorOptions, InjectorScopeType, PlainProvider,
+  ModuleMetadata, ModuleID, ExportItem, ExportedModule
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
 import { InjectionStatus, SessionStatus } from "../enums";
@@ -25,8 +26,7 @@ export class Injector {
   // imported modules
   private imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
   // components
-  private readonly newComponents = new Map<Token, ProviderRecord>();
-  private readonly components = new Map<Type, ComponentRecord>();
+  private readonly components = new Map<Token, ProviderRecord>();
   // own records
   private readonly records = new Map<Token, ProviderRecord>();
   // records from imported modules
@@ -69,6 +69,7 @@ export class Injector {
       // resolve INJECTOR_SCOPE provider again - it could be changed in provider array
       this.configureScope();
       // add passed injector (Type or ModuleMetadata) as component
+      // TODO: Change to the provider, not component
       this.addComponent(this.injector as any);
     } else {
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
@@ -114,48 +115,21 @@ export class Injector {
     return founded.id === id ? founded : undefined;
   }
 
-  private async initModule(): Promise<void> {
-    // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
-    this.configureScope();
-
-    // const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
-    // let initializer = undefined;
-    // for (let i = 0, l = initializers.length; i < l; i++) {
-    //   initializer = await initializers[i];
-    //   if (typeof initializer === "function") {
-    //     await initializer();
-    //   }
-    // }
-
-    // at the end init given module
-    typeof this.injector === 'function' && this.getComponent(this.injector as any);
-    this._initialized = true;
-  }
-
-  private async runInitializer() {
-    const initializers = (await this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
-    let initializer = undefined;
-    for (let i = 0, l = initializers.length; i < l; i++) {
-      initializer = await initializers[i];
-      if (typeof initializer === "function") {
-        await initializer();
-      }
-    }
-  }
-
-  init() {
+  init(options?: { asyncMode: boolean }) {
     if (this._initialized === true) return; 
     this._initialized = true;
 
-    // try {
-    //   // Call all the lifecycle hooks.
-    //   this.onDestroy.forEach(service => service.ngOnDestroy());
-    // } finally {
-    //   // Release all references.
-    //   this.records.clear();
-    //   this.onDestroy.clear();
-    //   this.injectorDefTypes.clear();
-    // }
+    // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
+    this.configureScope();
+
+    const asyncMode = options?.asyncMode;
+    return thenable(
+      // run MODULE_INITIALIZERS
+      () => asyncMode === true ? this.runInitializerAsync() : this.runInitializer(),
+      () => {
+        typeof this.injector === 'function' && this.getComponent(this.injector as any);
+      }
+    );
   }
 
   destroy() {
@@ -192,7 +166,7 @@ export class Injector {
     const token = session.getToken();
     let record: ProviderRecord;
     if (session.status & SessionStatus.COMPONENT_RESOLUTION) {
-      record = this.newComponents.get(token);
+      record = this.components.get(token);
     } else {
       record = this.getRecord(token);
     }
@@ -364,11 +338,33 @@ export class Injector {
     ]);
   }
 
+  private runInitializer() {
+    const initializers = this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) || [];
+    let initializer = undefined;
+    for (let i = 0, l = initializers.length; i < l; i++) {
+      initializer = initializers[i];
+      if (typeof initializer === "function") {
+        initializer();
+      }
+    }
+  }
+
+  private async runInitializerAsync() {
+    const initializers = (await this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
+    let initializer = undefined;
+    for (let i = 0, l = initializers.length; i < l; i++) {
+      initializer = await initializers[i];
+      if (typeof initializer === "function") {
+        await initializer();
+      }
+    }
+  }
+
   /**
    * COMPONENTS
    */
   getComponent<T>(token: Token<T>, wrapper?: Wrapper): T | undefined {
-    if (this.newComponents.get(token) === undefined) {
+    if (this.components.get(token) === undefined) {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
@@ -379,7 +375,7 @@ export class Injector {
   }
 
   getComponentAsync<T>(token: Token<T>, wrapper?: Wrapper): Promise<T | undefined> {
-    if (this.newComponents.get(token) === undefined) {
+    if (this.components.get(token) === undefined) {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
@@ -403,24 +399,14 @@ export class Injector {
   /**
    * EXPORTS
    */
-  processExports(exps: Array<
-    | Token
-    | Provider
-    | ExportedModule
-    | ForwardRef
-  >, from: Injector, to: Injector): void {
+  processExports(exps: Array<ExportItem>, from: Injector, to: Injector): void {
     if (exps === undefined || to === NilInjector) return;
     for (let i = 0, l = exps.length; i < l; i++) {
       this.processExport(exps[i], from, to);
     }
   }
 
-  private processExport(exp:
-    | Token
-    | Provider
-    | ExportedModule
-    | ForwardRef
-  , from: Injector, to: Injector): void {
+  private processExport(exp: ExportItem, from: Injector, to: Injector): void {
     exp = resolveRef(exp);
 
     // export can be module definition
@@ -467,7 +453,7 @@ export class Injector {
     } else {
       from.importedRecords.forEach((record, token) => {
         if (record.host === fromModule) {
-          const givenToken = providers.some(p => p === token || (p as PlainProvider).provide === token);
+          const givenToken = providers.some(prov => prov === token || (prov as PlainProvider).provide === token);
           givenToken && to.importedRecords.set(token, record);
         }
       });

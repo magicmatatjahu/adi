@@ -4,28 +4,36 @@ import { Token } from "../types";
 import { ModuleDef } from "./definition.interface";
 
 export interface ModuleMetadata {
-  imports?: Array<
-    | Type
-    | DynamicModule
-    | Promise<DynamicModule>
-    | ForwardRef
-  >;
+  imports?: Array<ImportItem>;
   components?: Array<Type>;
   providers?: Array<Provider>;
-  exports?: Array<
-    | Token
-    | Provider
-    | ExportedModule
-    | ForwardRef
-  >;
+  exports?: Array<ExportItem>;
 }
 
 export interface DynamicModule<T = any> extends ModuleMetadata {
-  id?: ModuleID;
   module: Type<T>;
+  id?: ModuleID;
 }
 
 export type ModuleID = string | symbol;
+
+export type ImportItem = 
+  | Type
+  | DynamicModule
+  | Promise<DynamicModule>
+  | ForwardRef;
+
+export type ExportItem = 
+  | Token
+  | Provider
+  | ExportedModule
+  | ForwardRef;
+
+export interface ExportedModule {
+  module: Type;
+  id?: ModuleID; 
+  providers: Array<Token | Provider>;
+}
 
 export interface CompiledModule {
   type: Type;
@@ -34,10 +42,4 @@ export interface CompiledModule {
   injector: Injector;
   exportTo: Injector;
   isProxy: boolean;
-}
-
-export interface ExportedModule {
-  module: Type;
-  id?: ModuleID; 
-  providers: Array<Token | Provider>;
 }

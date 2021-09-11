@@ -23,10 +23,3 @@ export interface InjectionArgument<T = any> {
   wrapper: Wrapper,
   metadata: InjectionMetadata;
 }
-
-export interface InjectionSession<T = any> {
-  instance: InstanceRecord<T>;
-  options: InjectionOptions;
-  meta: InjectionMetadata;
-  parent?: InjectionSession;
-}

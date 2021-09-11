@@ -81,7 +81,7 @@ export const InjectorResolver = new class {
 
   createProviderFactory<T>(
     provider: Type<T>, 
-    injections: InjectionArguments, 
+    injections: InjectionArguments,
   ): FactoryDef<T> {    
     return (injector: Injector, session: Session) => {
       const deps = InjectorMetadata.combineDependencies(session.options.injections, injections, provider);
@@ -110,9 +110,8 @@ export const InjectorResolver = new class {
   createFactory(
     factory: Function,
     deps: Array<InjectionItem>,
-    options?: { cache: boolean },
   ) {
-    const convertedDeps = InjectorMetadata.convertDependencies(deps, factory, options);
+    const convertedDeps = InjectorMetadata.convertDependencies(deps, factory);
     return (injector: Injector, session: Session) => {
       if (session.status & SessionStatus.ASYNC) {
         return this.injectDepsAsync(convertedDeps, injector, session).then(args => factory(...args));

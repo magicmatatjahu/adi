@@ -12,6 +12,8 @@ import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 
 export class ModuleCompiler {
+  private asyncInitOptions = { asyncMode: true };
+
   build(
     injector: Injector,
   ): void {
@@ -238,13 +240,13 @@ export class ModuleCompiler {
   // TODO: Think about changing the order of initialization from latest module
   private initModules(stack: Array<Injector>): void {
     for (let i = 0, l = stack.length; i < l; i++) {
-      (stack[i] as any).initModule();
+      stack[i].init();
     }
   }
 
   private async initModulesAsync(stack: Array<Injector>): Promise<void> {
     for (let i = 0, l = stack.length; i < l; i++) {
-      await (stack[i] as any).initModule();
+      await stack[i].init(this.asyncInitOptions);
     }
   }
 }

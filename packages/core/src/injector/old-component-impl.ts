@@ -31,3 +31,65 @@
 
   //   component && InjectorMetadata.toRecord(component, this, true);
   // }
+
+  // toComponentRecord<T>(
+  //   comp: Type<T>,
+  //   host: Injector,
+  //   useWrapper?: Wrapper,
+  // ): ComponentRecord<T> {
+  //   const def = this.getProviderDef(comp);
+  //   return {
+  //     comp,
+  //     host,
+  //     factory: def.factory,
+  //     scope: (def.options.scope || Scope.SINGLETON) as any,
+  //     useWrapper,
+  //     values: new Map<Context, ComponentInstanceRecord>(),
+  //   };
+  // }
+
+  // createComponentInstanceRecord<T>(
+  //   ctx: Context,
+  //   value: T | undefined,
+  //   comp: ComponentRecord<T>,
+  // ): ComponentInstanceRecord<T> {
+  //   return {
+  //     ctx,
+  //     value,
+  //     comp,
+  //     // children: new Set(),
+  //     // parents: new Set(),
+  //   };
+  // }
+
+  // getComponentInstanceRecord<T>(
+  //   comp: ComponentRecord<T>, 
+  //   scope: Scope,
+  //   session?: Session,
+  // ): ComponentInstanceRecord<T> {
+  //   // FIX this
+  //   // const ctx = scope.getContext(session, comp as any) || STATIC_CONTEXT;
+  //   const ctx = STATIC_CONTEXT;
+  //   let instance = comp.values.get(ctx);
+  //   if (instance === undefined) {
+  //     instance = this.createComponentInstanceRecord(ctx, undefined, comp);
+  //     comp.values.set(ctx, instance);
+  //   }
+
+  //   // TODO: FIX TYPES!!!
+  //   (session.instance as any) = instance;
+  //   return instance;
+  // }
+
+  // getComponentRecord<T>(
+  //   token: Token<T>,
+  //   host: Injector,
+  // ): ProviderRecord {
+  //   const records: Map<Token, ProviderRecord> = (host as any)._components;
+  //   let record = records.get(token);
+  //   if (record === undefined) {
+  //     record = new ProviderRecord(token, host);
+  //     records.set(token, record);
+  //   }
+  //   return record;
+  // }

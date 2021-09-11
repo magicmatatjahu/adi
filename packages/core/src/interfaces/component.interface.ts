@@ -1,5 +1,5 @@
 import { ScopeType } from ".";
-import { Wrapper } from "../utils";
+
 export interface ComponentOptions<S> {
   // imports?: ModuleMetadata['imports'];
   // providers?: ModuleMetadata['providers'];

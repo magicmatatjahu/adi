@@ -1,6 +1,6 @@
 import { Inject, Injectable, Injector, Module, ANNOTATIONS, MODULE_INITIALIZERS } from "../../src";
 
-describe.skip('MODULE_INITIALIZERS provider', function() {
+describe('MODULE_INITIALIZERS provider', function() {
   test('should works with single provider', async function() {
     let foobar: string = '';
 

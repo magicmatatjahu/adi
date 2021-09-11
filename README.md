@@ -9,8 +9,8 @@
 - Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
 - Rethink the `Multi` wrapper
-- Rethinkg the modules and exporting of the provider
-- Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider :)
+- Rethink the modules and exporting of the provider
+- Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider:
 
 ```ts
 {
@@ -18,6 +18,9 @@
   when: when.isComponent(),
 }
 ```
+
+- Rethink proxy modules
+- Change the logic of the Value wrapper to similar as Skip 
 
 - Handle wrappers on circular injections
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions
