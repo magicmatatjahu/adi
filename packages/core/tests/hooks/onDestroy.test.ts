@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Scope } from "../../src";
+import { Injector, Injectable, Inject, Scope, Factory } from "../../src";
 
 describe('onDestroy', function() {
   test('should works in method injection', async function() {

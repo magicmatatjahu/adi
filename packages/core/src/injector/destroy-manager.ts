@@ -1,5 +1,5 @@
 import { Injector } from "./injector";
-import { Destroyable, DestroyEvent, InstanceRecord } from "../interfaces";
+import { DestroyableType, DestroyEvent, InstanceRecord } from "../interfaces";
 import { ProviderRecord } from "./provider";
 import { hasOnDestroyHook } from "../utils";
 
@@ -52,7 +52,7 @@ export const DestroyManager = new class {
     });
   }
 
-  createDestroyable<T>(instance: InstanceRecord<T>): Destroyable<T> | never {
+  createDestroyable<T>(instance: InstanceRecord<T>): DestroyableType<T> | never {
     if (instance === undefined) {
       throw new Error('instance must to be defined to create the Destroyable instance!');
     }

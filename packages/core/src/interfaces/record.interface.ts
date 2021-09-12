@@ -2,7 +2,6 @@ import { Context, ProviderRecord } from "../injector";
 import { InstanceStatus } from "../enums";
 import { ConstraintDef, FactoryDef, ScopeShape, Type } from ".";
 import { Wrapper } from "../utils/wrappers";
-import { InjectionMetadata } from "./injection.interface";
 
 export interface DefinitionRecord<T = any, S = any> {
   name: string;
@@ -20,7 +19,6 @@ export interface InstanceRecord<T = any> {
   ctx: Context,
   value: T;
   status: InstanceStatus;
-  metadata: InjectionMetadata;
   def: DefinitionRecord;
   scope: ScopeShape;
   // for pararell resolution

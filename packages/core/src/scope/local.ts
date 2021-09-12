@@ -38,12 +38,11 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     const parent = session.parent;
 
     // if parent session in `undefined` or custom Context is passed treat scope as Transient
-    // TODO: rethink the `session.getContext()` case - it's valid in all cases, maybe use should have option to define the custom context for local "scope"
     if (parent === undefined || (options.reuseContext === true && session.getContext())) {
       return Scope.TRANSIENT.getContext(session, options as any, injector);
     }
 
-    // treat scope as with side effects
+    // always treat scope as with side effects
     session.setSideEffect(true);
 
     let instance: InstanceRecord;

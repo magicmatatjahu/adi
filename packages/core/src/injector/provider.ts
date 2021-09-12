@@ -30,8 +30,6 @@ export class ProviderRecord<T = any> {
         value: undefined,
         def,
         status: InstanceStatus.UNKNOWN,
-        // TODO: For singleton scope it's broken
-        metadata: session.metadata,
         scope,
         donePromise: undefined,
         doneResolve: undefined,

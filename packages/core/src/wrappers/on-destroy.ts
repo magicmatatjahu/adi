@@ -1,14 +1,13 @@
-import { WrapperDef } from "../interfaces";
-import { createWrapper, hasOnDestroyHook } from "../utils";
+import { SESSION_INTERNAL } from "../constants";
+import { StandaloneOnDestroy, WrapperDef } from "../interfaces";
+import { createWrapper } from "../utils";
 
-function wrapper(): WrapperDef {
+function wrapper<T>(hook: StandaloneOnDestroy<T>): WrapperDef {
   return (injector, session, next) => {
-    const value = next(injector, session);
-    if (hasOnDestroyHook(value)) {
-      value.onDestroy();
-    }
-    return value;
+    const hooks = (session[SESSION_INTERNAL.ON_DESTROY_HOOKS] || (session[SESSION_INTERNAL.ON_DESTROY_HOOKS] = []));
+    hooks.push(hook);
+    return next(injector, session);
   }
 }
 
-export const OnDestroyHook = createWrapper<undefined, false>(wrapper);
+export const OnDestroyHook = createWrapper<StandaloneOnDestroy, false>(wrapper);

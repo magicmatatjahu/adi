@@ -12,7 +12,7 @@ export interface ForwardRef<T = any> {
   _$ref: Function;
 };
 
-export interface Destroyable<T> {
+export interface DestroyableType<T> {
   value: T;
   destroy(): Promise<void>;
 };

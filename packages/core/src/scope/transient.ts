@@ -1,5 +1,5 @@
 import { Context, Session } from "../injector";
-import { DestroyEvent, InstanceRecord } from "../interfaces";
+import { DestroyEvent, InjectionMetadata, InstanceRecord } from "../interfaces";
 
 import { Scope } from "./index";
 
@@ -12,6 +12,8 @@ const defaultOptions: TransientScopeOptions = {
 }
 
 export class TransientScope extends Scope<TransientScopeOptions> {
+  private instancesMetadata = new WeakMap<Context, InjectionMetadata>();
+
   get name() {
     return 'Transient';
   }
@@ -24,27 +26,42 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     
     let ctx = options.reuseContext ? session.getContext() : undefined;
     if (ctx === undefined) {
-      session.setSideEffect(true);
       ctx = new Context();
+      this.instancesMetadata.set(ctx, session.metadata);
+      session.setSideEffect(true);
     }
     return ctx;
   }
 
   public onDestroy(
-    _: DestroyEvent,
+    event: DestroyEvent,
     instance: InstanceRecord,
   ): boolean {
-    // if metadata doesn't exist then instance is retrieved by `injector.get*(()` - don't call onDestroy hook
-    const metadata = instance.metadata;
-    if (!metadata) return false;
+    const ctx = instance.ctx;
 
-    // TODO: Think about how to not destroy the instance which is created by custom context (context isn't created by scope, but passed by user) 
-    // destroy in case of method injection
-    if (metadata.propertyKey !== undefined && metadata.index !== undefined) {
+    // when operating on an instance with a context created by scope
+    if (this.instancesMetadata.has(ctx) === false) {
+      // destroy only with `injector` event and with no parents
+      if (event === 'injector' && (instance.parents === undefined || instance.parents.size === 0)) {
+        this.instancesMetadata.delete(ctx);
+        return true;
+      }
+      return false;
+    }
+
+    // with no parents parents - mainly `manually` event
+    if (instance.parents === undefined || instance.parents.size === 0) {
+      this.instancesMetadata.delete(ctx);
+      return true;
+    }
+    
+    // when on method injection
+    const metadata = this.instancesMetadata.get(ctx);
+    if (metadata !== undefined && metadata.propertyKey !== undefined && metadata.index !== undefined) {
+      this.instancesMetadata.delete(ctx);
       return true;
     }
 
-    // destroy only when parents don't exist 
-    return instance.parents === undefined || instance.parents.size === 0;
+    return false;
   };
 }

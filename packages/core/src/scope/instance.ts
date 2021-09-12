@@ -1,5 +1,5 @@
 import { Context, Injector, Session } from "../injector";
-import { InstanceRecord } from "../interfaces";
+import { DestroyEvent, InstanceRecord } from "../interfaces";
 
 import { Scope } from "./index";
 
@@ -26,27 +26,36 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
       return Scope.TRANSIENT.getContext(session, options, injector);
     }
 
-    const instance = this.getNearestInstance(parent);
-    let ctx: Context = this.instances.get(instance);
+    const parentInstance = parent.instance;
+    let ctx: Context = this.instances.get(parentInstance);
     if (ctx === undefined) {
       ctx = new Context();
-      this.instances.set(instance, ctx);
+      this.instances.set(parentInstance, ctx);
     }
     session.setSideEffect(true);
     return ctx;
   }
 
-  public onDestroy(): boolean {
+  public onDestroy(
+    event: DestroyEvent,
+    instance: InstanceRecord,
+    options: InstanceScopeOptions = defaultOptions,
+    injector: Injector,
+  ): boolean {
+    const parents = Array.from(instance.parents || []);
+
+    // with no parent
+    // TODO: Think about it - the given instance can be created by custom Context passed by user, by Transient scope
+    if (parents.length === 0) {
+      return true;
+    }
+
+    // if parents size is different than 1 treat scope as Transient - for Instance scope there should be only one parent 
+    // also if a single instance isn't in the `instances` Map 
+    if (parents.length > 1 || this.instances.has(parents[0]) === false) {
+      return Scope.TRANSIENT.onDestroy(event, instance, options, injector);
+    }
+
     return false;
   };
-
-  private getNearestInstance(session: Session): InstanceRecord | undefined {
-    const instance = session.instance;
-    if (instance === undefined) {
-      if (session.parent) {
-        return this.getNearestInstance(session.parent);
-      }
-    }
-    return instance;
-  }
 }
