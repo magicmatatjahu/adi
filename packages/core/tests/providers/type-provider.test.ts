@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, INJECTOR_SCOPE, ANNOTATIONS, Token, StaticInjectable, Scope } from "../../src";
+import { Injector, Injectable, Inject, Module, INJECTOR_SCOPE, ANNOTATIONS, Token, StaticInjectable, Scope, createWrapper } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -155,7 +155,7 @@ describe('Type provider (injectable provider)', function() {
     expect(service.method()).toBeInstanceOf(HelperService1);
   });
 
-  test('should works whole method injection', function() {
+  test('should works with whole method injection', function() {
     @Injectable()
     class Service {
       @Inject()
@@ -207,6 +207,102 @@ describe('Type provider (injectable provider)', function() {
 
     const service = injector.get(Service);
     expect(service.method()).toEqual(['foobar', 'stringArg', 2137]);
+  });
+
+  test('should cache injection without side effects in the method injection', function() {
+    let singletonCalledTimes: number = 0;
+    const SingletonWrapper = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        singletonCalledTimes++;
+        return value;
+      }
+    });
+
+    let transientCalledTimes: number = 0;
+    const TransientWrapper = createWrapper((_: never) => {
+      return (injector, session, next) => {
+        const value = next(injector, session);
+        transientCalledTimes++;
+        return value;
+      }
+    });
+
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class TransientService {}
+
+    @Injectable()
+    class SingletonService {}
+
+    @Injectable()
+    class Service {
+      method(@Inject(SingletonWrapper()) singleton?: SingletonService, @Inject(TransientWrapper()) transient?: TransientService) {
+        return [singleton, transient];
+      } 
+    }
+
+    const injector = new Injector([
+      TransientService,
+      SingletonService,
+      Service,
+    ]);
+
+    const service = injector.get(Service);
+    service.method();
+    service.method();
+    service.method();
+    service.method();
+    const instances = service.method(); // call five times method to check cached values
+    expect(instances[0]).toBeInstanceOf(SingletonService);
+    expect(instances[1]).toBeInstanceOf(TransientService);
+    expect(singletonCalledTimes).toEqual(1);
+    expect(transientCalledTimes).toEqual(5);
+  });
+
+  test('should works with method injection in async mode', async function() {
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class TransientService {}
+
+    @Injectable()
+    class SingletonService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      method(singleton?: SingletonService, transient?: TransientService, @Inject('asyncFunction') asyncFunction?: string, @Inject('asyncDeps') asyncDeps?: string) {
+        return [singleton, transient, asyncFunction, asyncDeps];
+      } 
+    }
+
+    const injector = new Injector([
+      TransientService,
+      SingletonService,
+      Service,
+      {
+        provide: 'asyncFunction',
+        async useFactory() {
+          return 'asyncFunction'
+        }
+      },
+      {
+        provide: 'asyncDeps',
+        async useFactory(value: string) {
+          return value ? 'asyncDeps' : undefined;
+        },
+        inject: ['asyncFunction']
+      }
+    ]);
+
+    const service = await injector.getAsync(Service);
+    const instances = await service.method();
+    expect(instances[0]).toBeInstanceOf(SingletonService);
+    expect(instances[1]).toBeInstanceOf(TransientService);
+    expect(instances[2]).toEqual('asyncFunction');
+    expect(instances[3]).toEqual('asyncDeps');
   });
 
   describe('should works as tree shakable provider', function() {

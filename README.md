@@ -20,9 +20,19 @@
 ```
 
 - Rethink proxy modules
+- Rething caching in `Cache` wrapping
+- Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
 - Change the logic of the Value wrapper to similar as Skip 
+- Add qualifier field to the provider shape:
 
-- Handle wrappers on circular injections
+```ts
+{
+  provide: Component,
+  qualifier: when.isComponent(),
+}
+```
+
+- Handle wrappers on circular injections - especially `Decorate` and `OnInitHook`
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions
 
 Links:

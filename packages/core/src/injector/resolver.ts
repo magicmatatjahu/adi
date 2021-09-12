@@ -62,19 +62,41 @@ export const InjectorResolver = new class {
     return Promise.all(args) as unknown as Promise<void>;
   }
 
-  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, session: Session): void {
+  injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): { value: T | undefined | Promise<T | undefined>, session: Session } {
+    const options = InjectorMetadata.createOptions(token);
+    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
+    return { value: injector.resolveToken(wrapper, newSession), session: newSession };
+  }
+
+  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, parentSession: Session): void {
+    const isAsync = parentSession.status & SessionStatus.ASYNC;
     for (const name in methods) {
       const methodDeps = methods[name];
       const originalMethod = instance[name];
+      const cachedDeps: Array<{ value: any }> = [];
 
       instance[name] = (...args: any) => {
         let methodProp: InjectionArgument = undefined;
+        let toRemove: InstanceRecord[] = [];
+
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            args[i] = this.inject(injector, methodProp.token, methodProp.wrapper, methodProp.metadata, session);
+            if (cachedDeps[i] !== undefined) {
+              args[i] = cachedDeps[i].value;
+            } else {
+              const injected = this.injectMethodArgument(injector, methodProp.token, methodProp.wrapper, methodProp.metadata, parentSession);
+              args[i] = injected.value;
+              // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
+              if (injected.session.status & SessionStatus.SIDE_EFFECTS) {
+                toRemove.push(injected.session.instance);
+              } else {
+                // cache also falsy values 
+                cachedDeps[i] = { value: injected.value };
+              }
+            }
           }
         }
-        return originalMethod.apply(instance, args);
+        return isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args);
       }
     }
   }
