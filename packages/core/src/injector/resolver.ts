@@ -1,11 +1,12 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
 import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
-import { InjectionStatus, SessionStatus } from "../enums";
-import { Wrapper } from "../utils";
+import { InstanceStatus, SessionStatus } from "../enums";
+import { thenable, Wrapper } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
 import { SESSION_INTERNAL } from "../constants";
+import { DestroyManager } from "./destroy-manager";
 
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
@@ -77,7 +78,7 @@ export const InjectorResolver = new class {
 
       instance[name] = (...args: any) => {
         let methodProp: InjectionArgument = undefined;
-        let toRemove: InstanceRecord[] = [];
+        let toRemove: InstanceRecord[];
 
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
@@ -88,7 +89,7 @@ export const InjectorResolver = new class {
               args[i] = injected.value;
               // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
               if (injected.session.status & SessionStatus.SIDE_EFFECTS) {
-                toRemove.push(injected.session.instance);
+                (toRemove || (toRemove = [])).push(injected.session.instance);
               } else {
                 // cache also falsy values 
                 cachedDeps[i] = { value: injected.value };
@@ -96,7 +97,18 @@ export const InjectorResolver = new class {
             }
           }
         }
-        return isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args);
+
+        const result = isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args);
+        return thenable(
+          () => result,
+          value => {
+            try {
+              return value;
+            } finally {
+              DestroyManager.destroyAll('default', toRemove, injector);
+            }
+          }
+        );
       }
     }
   }
@@ -172,10 +184,10 @@ function applyParallelHook<T>(instance: InstanceRecord<T>) {
 
 function handleCircularRefs<T>(instance: InstanceRecord<T>, session: Session): T {
   // if circular injection detected return empty prototype instance
-  if (instance.status & InjectionStatus.CIRCULAR) {
+  if (instance.status & InstanceStatus.CIRCULAR) {
     return instance.value;
   }
-  instance.status |= InjectionStatus.CIRCULAR;
+  instance.status |= InstanceStatus.CIRCULAR;
   
   const proto = instance.def.proto;
   if (!proto) {

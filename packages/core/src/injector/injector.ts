@@ -6,7 +6,7 @@ import {
   ModuleMetadata, ModuleID, ExportItem, ExportedModule
 } from "../interfaces";
 import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
-import { InjectionStatus, SessionStatus } from "../enums";
+import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
 import { runWrappers, runArrayOfWrappers, Wrapper } from "../utils/wrappers";
@@ -18,11 +18,11 @@ import { ProviderRecord } from "./provider";
 import { Session } from "./session";
 import { Multi } from "../wrappers";
 import { NilInjectorError } from "../errors";
+import { DestroyManager } from "./destroy-manager";
 
 export class Injector {
   static create = createInjector;
 
-  // TODO: Change to Array not Map<ModuleID, Injector> 
   // imported modules
   private imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
   // components
@@ -35,22 +35,8 @@ export class Injector {
   private scopes: Array<InjectorScopeType> = ['any'];
   // id of injector/module
   id: ModuleID = 'static';
-
-  /**
-   * Flag indicating that this injector was previously initialized.
-   */
-  get initialized(): boolean {
-    return this._initialized;
-  }
-  private _initialized: boolean = false;
-
-  /**
-   * Flag indicating that this injector was previously destroyed.
-   */
-  get destroyed(): boolean {
-    return this._destroyed;
-  }
-  private _destroyed = false;
+  // status of injector
+  status: InjectorStatus = InjectorStatus.NONE;
 
   constructor(
     // change injector to the metatype
@@ -116,10 +102,10 @@ export class Injector {
   }
 
   init(options?: { asyncMode: boolean }) {
-    if (this._initialized === true) return; 
-    this._initialized = true;
+    if (this.status & InjectorStatus.INITIALIZED) return; 
+    this.status |= InjectorStatus.INITIALIZED;
 
-    // resolve INJECTOR_SCOPE provider again - it can be changed in provider array
+    // resolve INJECTOR_SCOPE provider again - it can be changed in the provider array
     this.configureScope();
 
     const asyncMode = options?.asyncMode;
@@ -127,16 +113,32 @@ export class Injector {
       // run MODULE_INITIALIZERS
       () => asyncMode === true ? this.runInitializerAsync() : this.runInitializer(),
       () => {
-        typeof this.injector === 'function' && this.getComponent(this.injector as any);
+        if (typeof this.injector !== 'function') return;
+        return asyncMode ? this.getComponentAsync(this.injector) : this.getComponent(this.injector);
       }
     );
   }
 
-  destroy() {
-    if (this._destroyed === true) return; 
-    this._destroyed = true;
+  async destroy() {
+    if (this.status & InjectorStatus.DESTROYED) return; 
+    this.status |= InjectorStatus.DESTROYED;
 
+    // destroy and clear own components
+    try {
+      await DestroyManager.destroyRecords(Array.from(this.components.values()), this);
+    } finally {
+      this.components.clear();
+    }
 
+    // destroy and clear own records
+    try {
+      await DestroyManager.destroyRecords(Array.from(this.records.values()), this);
+    } finally {
+      this.records.clear();
+    }
+
+    // only clear imported values
+    this.importedRecords.clear();
   }
 
   /**
@@ -227,27 +229,27 @@ export class Injector {
     instance: InstanceRecord<T>,
     session?: Session,
   ): T {
-    if (instance.status & InjectionStatus.RESOLVED) {
+    if (instance.status & InstanceStatus.RESOLVED) {
       return instance.value;
     }
 
     // parallel or circular injection
-    if (instance.status > InjectionStatus.UNKNOWN) {
+    if (instance.status > InstanceStatus.UNKNOWN) {
       return InjectorResolver.handleParallelInjection(instance, session) as T;
     }
 
-    instance.status |= InjectionStatus.PENDING;
+    instance.status |= InstanceStatus.PENDING;
     return thenable(
       () => def.factory(record.host, session) as T,
       value => {
-        if (instance.status & InjectionStatus.CIRCULAR) {
+        if (instance.status & InstanceStatus.CIRCULAR) {
           value = Object.assign(instance.value, value);
         }
         instance.value = value;
 
         handleOnInit(instance, session);
 
-        instance.status |= InjectionStatus.RESOLVED;
+        instance.status |= InstanceStatus.RESOLVED;
         instance.doneResolve && instance.doneResolve(value);
         return instance.value;
       }

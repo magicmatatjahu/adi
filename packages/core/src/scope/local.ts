@@ -37,7 +37,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
   public getContext(session: Session, options: LocalScopeOptions = defaultOptions, injector: Injector): Context {
     const parent = session.parent;
 
-    // if parent session in `undefined` or custom Context exists treat scope as Transient
+    // if parent session in `undefined` or custom Context is passed treat scope as Transient
     // TODO: rethink the `session.getContext()` case - it's valid in all cases, maybe use should have option to define the custom context for local "scope"
     if (parent === undefined || (options.reuseContext === true && session.getContext())) {
       return Scope.TRANSIENT.getContext(session, options as any, injector);
@@ -71,6 +71,10 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     }
     return ctx;
   }
+
+  public onDestroy(): boolean {
+    return false;
+  };
 
   private retrieveInstanceByDepth(session: Session, goal: number, toToken: Token, toScope: string | symbol, toAnnotation: string | symbol, depth: number = 0, instance?: InstanceRecord | undefined): InstanceRecord | undefined {
     // if depth goal is achieved or parent session doesn't exist

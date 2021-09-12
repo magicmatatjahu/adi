@@ -1,4 +1,4 @@
-export enum InjectionStatus {
+export enum InstanceStatus {
   UNKNOWN = 1,
   PENDING = 2,
   RESOLVED = 4,

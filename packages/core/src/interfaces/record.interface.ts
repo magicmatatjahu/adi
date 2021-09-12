@@ -1,8 +1,8 @@
-import { Context, Injector, ProviderRecord } from "../injector";
-import { InjectionStatus } from "../enums";
-import { Scope } from "../scope";
+import { Context, ProviderRecord } from "../injector";
+import { InstanceStatus } from "../enums";
 import { ConstraintDef, FactoryDef, ScopeShape, Type } from ".";
 import { Wrapper } from "../utils/wrappers";
+import { InjectionMetadata } from "./injection.interface";
 
 export interface DefinitionRecord<T = any, S = any> {
   name: string;
@@ -19,16 +19,17 @@ export interface DefinitionRecord<T = any, S = any> {
 export interface InstanceRecord<T = any> {
   ctx: Context,
   value: T;
-  status: InjectionStatus;
+  status: InstanceStatus;
+  metadata: InjectionMetadata;
   def: DefinitionRecord;
   scope: ScopeShape;
   // for pararell resolution
   donePromise?: Promise<T>;
   doneResolve?: (value: T) => void;
   // what is injected to instance
-  children: Set<InstanceRecord>;
+  children?: Set<InstanceRecord>;
   // where instance is injected
-  parents: Set<InstanceRecord>;
+  parents?: Set<InstanceRecord>;
 }
 
 export interface WrapperRecord {

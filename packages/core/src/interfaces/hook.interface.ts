@@ -15,3 +15,5 @@ export interface OnDestroy {
 export type StandaloneOnDestroy<T = any> = 
   | ((value: T) => void | Promise<void>)
   | { onDestroy: (...args: any[]) => void | Promise<void>, inject: Array<InjectionItem> };
+
+export type DestroyEvent = 'default' | 'injector' | 'manually';

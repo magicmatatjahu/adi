@@ -3,6 +3,7 @@ export * from "./ctx";
 export * from "./decorate";
 export * from "./delegate";
 export * from "./delegations";
+export * from "./destroyable";
 export * from "./portal";
 export * from "./factory";
 export * from "./fallback";

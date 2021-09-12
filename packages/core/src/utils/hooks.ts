@@ -1,6 +1,6 @@
 import { InjectorResolver, Session } from "../injector";
 import { InstanceRecord, StandaloneOnInit } from "../interfaces";
-import { InjectionStatus } from "../enums";
+import { InstanceStatus } from "../enums";
 import { EMPTY_ARRAY, SESSION_INTERNAL, DELEGATION } from "../constants";
 import { hasOnInitHook } from ".";
 
@@ -31,7 +31,7 @@ function runHook(instance: InstanceRecord, session: Session) {
 
 function handleCircular(instance: InstanceRecord, session: Session) {
   if (
-    instance.status & InjectionStatus.CIRCULAR &&
+    instance.status & InstanceStatus.CIRCULAR &&
     session[SESSION_INTERNAL.START_CIRCULAR] === instance
   ) {
     const circulars = session[SESSION_INTERNAL.CIRCULAR] as Session[];

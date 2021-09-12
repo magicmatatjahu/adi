@@ -1,4 +1,5 @@
 import { Context, Injector, Session } from "../injector";
+import { DestroyEvent, InstanceRecord } from "../interfaces";
 import { ScopeFlags } from "../enums";
 
 import { SingletonScopeOptions } from "./singleton";
@@ -23,13 +24,12 @@ export abstract class Scope<O = any> {
     injector: Injector,
   ): Context;
 
-  // public toCache<T = any>(
-  //   options: InjectionOptions,
-  //   def: RecordDefinition<T>, 
-  //   session?: InjectionSession,
-  // ): boolean {
-  //   return true;
-  // }
+  public abstract onDestroy(
+    event: DestroyEvent,
+    instance: InstanceRecord,
+    options: O,
+    injector: Injector,
+  ): boolean;
 
   public canBeOverrided(): boolean {
     return (this.flags & ScopeFlags.CANNOT_OVERRIDE) === 0;
