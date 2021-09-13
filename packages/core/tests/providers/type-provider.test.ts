@@ -432,6 +432,9 @@ describe('Type provider (injectable provider)', function() {
             properties: {
               service2: HelperService1,
               service3: Token(HelperService2),
+            },
+            methods: {
+              method: [{ token: HelperService1 }]
             }
           }
         }
@@ -447,6 +450,10 @@ describe('Type provider (injectable provider)', function() {
           // check if constructor injection with setter injection isn't broken
           readonly service1: HelperService1,
         ) {}
+
+        method(service?: HelperService1) {
+          return service;
+        }
       }
   
       const injector = new Injector([
@@ -461,6 +468,7 @@ describe('Type provider (injectable provider)', function() {
       expect(service.service1).toBeInstanceOf(HelperService1);
       expect(service.service2).toBeInstanceOf(HelperService1);
       expect(service._service3).toBeInstanceOf(HelperService2);
+      expect(service.method()).toBeInstanceOf(HelperService1);
     });
 
     test('simple `options` property', function() {
@@ -475,7 +483,7 @@ describe('Type provider (injectable provider)', function() {
       class Service {
         static provider: StaticInjectable = {
           injections: {
-            parameters: [Token(HelperService), HelperService],
+            parameters: [Token(HelperService), { token: HelperService }],
           }
         }
   
@@ -498,7 +506,7 @@ describe('Type provider (injectable provider)', function() {
       expect(service.service1 === service.service2).toEqual(false);
     });
 
-    test('should injections and options in the `provider` field has highter priority', function() {
+    test('should treat injections and options in the `provider` field with highter priority', function() {
       class HelperService2 {}
 
       @Injectable({

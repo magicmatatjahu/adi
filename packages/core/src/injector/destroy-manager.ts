@@ -1,5 +1,5 @@
 import { Injector } from "./injector";
-import { DestroyableType, DestroyEvent, InstanceRecord } from "../interfaces";
+import { DestroyEvent, InstanceRecord } from "../interfaces";
 import { ProviderRecord } from "./provider";
 import { hasOnDestroyHook } from "../utils";
 import { InstanceStatus } from "../enums";
@@ -10,17 +10,14 @@ export const DestroyManager = new class {
       return;
     }
 
-    const scope = instance.scope;
-    const canDestroy = scope.kind.canDestroy(event, instance, scope.options, injector);
+    const { scope, value } = instance;
+    if (scope.kind.canDestroy(event, instance, scope.options, injector) === false) return;
 
-    if (canDestroy === true) {
-      const value = instance.value;
-      hasOnDestroyHook(value) && await value.onDestroy();
-      instance.def.values.delete(instance.ctx);
-      this.removeInstanceRef(instance);
-      instance.status |= InstanceStatus.DESTROYED;
-      await this.destroyAll(event, instance.children && Array.from(instance.children), injector);
-    };
+    hasOnDestroyHook(value) && await value.onDestroy();
+    instance.status |= InstanceStatus.DESTROYED;
+    instance.def.values.delete(instance.ctx);
+    this.removeInstanceRef(instance);
+    await this.destroyAll(event, instance.children && Array.from(instance.children), injector);
   }
 
   async destroyAll(event: DestroyEvent, instances: InstanceRecord[] = [], injector: Injector) {
@@ -55,15 +52,5 @@ export const DestroyManager = new class {
     children && children.forEach(child => {
       child.parents?.delete(instance);
     });
-  }
-
-  createDestroyable<T>(instance: InstanceRecord<T>): DestroyableType<T> | never {
-    if (instance === undefined) {
-      throw new Error('instance must to be defined to create the Destroyable instance!');
-    }
-    return {
-      value: instance.value,
-      destroy: () => this.destroy('manually', instance, instance.def.record.host),
-    }
   }
 }

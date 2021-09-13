@@ -3,7 +3,6 @@ import { STATIC_CONTEXT } from "../constants";
 import { ScopeFlags } from "../enums";
 
 import { Scope } from "./index";
-import { DestroyEvent, InstanceRecord } from "../interfaces";
 
 export interface RequestScopeOptions {
   reuseContext?: boolean;
