@@ -3,7 +3,7 @@
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules
 - Create `Request` scope
 - Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers
-- Implement the `onDestroy` hook
+- Implement the `onDestroy` hook // created first draft 
 - Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
 - Handle onInit in async mode
 - Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
@@ -23,6 +23,8 @@
 - Rething caching in `Cache` wrapping
 - Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
 - Change the logic of the Value wrapper to similar as Skip 
+- Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should handle it in some way
+- Check how to call onDestroy on circular injections
 - Add qualifier field to the provider shape:
 
 ```ts
@@ -33,7 +35,7 @@
 ```
 
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook`
-- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions
+- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors?
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442

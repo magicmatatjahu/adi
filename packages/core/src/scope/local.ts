@@ -1,11 +1,12 @@
 import { EMPTY_ARRAY, STATIC_CONTEXT } from "../constants";
 import { Context, Injector, Session } from "../injector";
-import { ForwardRef, InstanceRecord } from "../interfaces";
+import { DestroyEvent, ForwardRef, InstanceRecord } from "../interfaces";
 import { Token } from "../types";
 import { resolveRef } from "../utils";
 import { ANNOTATIONS } from "../constants"
 
 import { Scope } from "./index";
+import { InstanceStatus } from "../enums";
 
 export interface LocalScopeOptions {
   toToken?: Token | ForwardRef;
@@ -29,15 +30,18 @@ const defaultOptions: LocalScopeOptions = {
 
 export class LocalScope extends Scope<LocalScopeOptions> {
   private instances = new WeakMap<InstanceRecord, Context>();
+  private contexts = new WeakMap<Context, InstanceRecord>();
 
   get name() {
     return 'Local';
   }
 
   public getContext(session: Session, options: LocalScopeOptions = defaultOptions, injector: Injector): Context {
+    options = this.mergeOptions(options);
     const parent = session.parent;
 
     // if parent session in `undefined` or custom Context is passed treat scope as Transient
+    // TODO: Maybe if parent session in `undefined` then it should be terated as Singleton scope rather than Transient scope...
     if (parent === undefined || (options.reuseContext === true && session.getContext())) {
       return Scope.TRANSIENT.getContext(session, options as any, injector);
     }
@@ -63,15 +67,40 @@ export class LocalScope extends Scope<LocalScopeOptions> {
       return STATIC_CONTEXT;
     }
 
-    let ctx: Context = this.instances.get(instance);
+    let ctx = this.instances.get(instance);
     if (ctx === undefined) {
       ctx = new Context();
       this.instances.set(instance, ctx);
+      this.contexts.set(ctx, instance);
     }
     return ctx;
   }
 
-  public onDestroy(): boolean {
+  public onDestroy(
+    event: DestroyEvent,
+    instance: InstanceRecord,
+    options: LocalScopeOptions = defaultOptions,
+    injector: Injector,
+  ): boolean {
+    options = this.mergeOptions(options);
+    const ctx = instance.ctx;
+
+    // if ctx doesn't exist in the Local scope treat scope as Transient
+    if (this.contexts.has(ctx) === false) {
+      return Scope.TRANSIENT.onDestroy(event, instance, options, injector);
+    }
+
+    // when no parent and only when local instance is previously destroyed
+    if (
+      (instance.parents === undefined || instance.parents.size === 0) &&
+      this.contexts.get(ctx).status & InstanceStatus.DESTROYED
+    ) {
+      const localInstance = this.contexts.get(ctx);
+      this.instances.delete(localInstance);
+      this.contexts.delete(ctx);
+      return true;
+    }
+
     return false;
   };
 
@@ -109,5 +138,9 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     }
     // isRecordToken === true && isAnnotation === true
     return session.instance;
+  }
+
+  private mergeOptions(options: LocalScopeOptions): LocalScopeOptions {
+    return options === defaultOptions ? defaultOptions : { ...defaultOptions, ...options };
   }
 }

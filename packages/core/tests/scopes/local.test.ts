@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ANNOTATIONS, ref } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ANNOTATIONS, ref, OnDestroy, DestroyableType, Destroyable } from "../../src";
 
 // TODO: Fix tests if scope has ability to pass custom options
 describe('Instance scope', function () {
@@ -622,5 +622,326 @@ describe('Instance scope', function () {
     expect(service.service === service.newService).toEqual(false);
     expect(service.service.context === STATIC_CONTEXT).toEqual(true);
     expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
+  });
+
+  describe('onDestroy hook', function () {
+    test('should destroy only when parent instance is destroyed (using Transient scope in parent instance)', async function() {
+      let destroyOrder: string[] = [];
+  
+      @Injectable({
+        scope: {
+          kind: Scope.LOCAL,
+          options: {
+            toScope: 'test',
+          }
+        }
+      })
+      class LocalService implements OnDestroy {
+        onDestroy() {
+          destroyOrder.push('local');
+        }
+      }
+  
+      @Injectable({
+        scope: Scope.TRANSIENT,
+        annotations: {
+          [ANNOTATIONS.LOCAL_SCOPE]: 'test'
+        }
+      })
+      class Service implements OnDestroy {
+        constructor(
+          readonly shared1: LocalService,
+          readonly shared2: LocalService,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('transient');
+        }
+      }
+  
+      const injector = new Injector([
+        LocalService,
+        Service,
+      ]);
+  
+      injector.get(Service);
+      injector.get(Service);
+
+      await injector.destroy();
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+      expect(destroyOrder).toEqual([
+        'transient',
+        'local',
+        'transient',
+        'local',
+      ]);
+    });
+
+    test('should not destroy using Destroyable interface when instance has at least single reference link to the parent instance', async function () {
+      let destroyTimes: number = 0;
+  
+      @Injectable({
+        scope: {
+          kind: Scope.LOCAL,
+          options: {
+            toScope: 'test',
+          }
+        }
+      })
+      class LocalService implements OnDestroy {
+        onDestroy() {
+          destroyTimes++;
+        }
+      }
+  
+      @Injectable({
+        annotations: {
+          [ANNOTATIONS.LOCAL_SCOPE]: 'test'
+        }
+      })
+      class Service {
+        constructor(
+          @Inject(LocalService, Destroyable()) public testService1: DestroyableType<LocalService>,
+          @Inject(LocalService, Destroyable()) public testService2: DestroyableType<LocalService>,
+        ) {}
+      }
+  
+      const injector = new Injector([
+        LocalService,
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+      expect(service.testService1.value).toBeInstanceOf(LocalService);
+      expect(service.testService2.value).toBeInstanceOf(LocalService);
+  
+      service.testService1.destroy();
+      service.testService2.destroy();
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+      expect(destroyTimes).toEqual(0);
+    });
+
+    test('should destroy using Destroyable interface - manually injection (treat scope as Transient)', async function () {
+      let destroyTimes: number = 0;
+  
+      @Injectable({
+        scope: Scope.INSTANCE,
+      })
+      class Service {
+        onDestroy() {
+          destroyTimes++;
+        }
+      }
+  
+      const injector = new Injector([
+        Service,
+      ]);
+  
+      let service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+      expect(service.value).toBeInstanceOf(Service);
+      await service.destroy();
+  
+      service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+      expect(service.value).toBeInstanceOf(Service);
+      await service.destroy();
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+      expect(destroyTimes).toEqual(2);
+    });
+
+    test('should destroy using Destroyable interface - manually injection using as parent the Transient scope', async function () {
+      let destroyOrder: string[] = [];
+  
+      @Injectable({
+        scope: {
+          kind: Scope.LOCAL,
+          options: {
+            toScope: 'test',
+          }
+        }
+      })
+      class LocalInstance implements OnDestroy {
+        onDestroy() {
+          destroyOrder.push('local');
+        }
+      }
+
+      @Injectable({
+        scope: Scope.TRANSIENT,
+        annotations: {
+          [ANNOTATIONS.LOCAL_SCOPE]: 'test'
+        }
+      })
+      class Service implements OnDestroy {
+        constructor(
+          public service1: LocalInstance,
+          public service2: LocalInstance,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('transient');
+        }
+      }
+  
+      const injector = new Injector([
+        LocalInstance,
+        Service,
+      ]);
+  
+      let service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+      expect(service.value).toBeInstanceOf(Service);
+      await service.destroy();
+  
+      service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+      expect(service.value).toBeInstanceOf(Service);
+      await service.destroy();
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+      expect(destroyOrder).toEqual(['transient', 'local', 'transient', 'local']);
+    });
+
+    test('should not destroy in method injection' , async function() {
+      let destroyTimes: number = 0;
+  
+      @Injectable({
+        scope: {
+          kind: Scope.LOCAL,
+          options: {
+            toScope: 'test',
+          }
+        }
+      })
+      class LocalService implements OnDestroy {
+        onDestroy() {
+          destroyTimes++;
+        }
+      }
+  
+      @Injectable({
+        annotations: {
+          [ANNOTATIONS.LOCAL_SCOPE]: 'test'
+        }
+      })
+      class Service {
+        @Inject()
+        method(service1?: LocalService, service2?: LocalService) {}
+      }
+  
+      const injector = new Injector([
+        LocalService,
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+      service.method();
+      service.method();
+      service.method();
+      service.method();
+      service.method(); // call five times method
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+      expect(destroyTimes).toEqual(0);
+    });
+
+    test('should not destroy when user pass custom context - default destroy event (treat scope as Transient)' , async function() {
+      let destroyOrder: string[] = [];
+      const localCtx = new Context(undefined, 'Local ctx');
+  
+      @Injectable({
+        scope: {
+          kind: Scope.LOCAL,
+          options: {
+            toScope: 'test',
+          }
+        }
+      })
+      class LocalService implements OnDestroy {
+        onDestroy() {
+          destroyOrder.push('local');
+        }
+      }
+  
+      @Injectable({
+        scope: Scope.TRANSIENT,
+        annotations: {
+          [ANNOTATIONS.LOCAL_SCOPE]: 'test'
+        }
+      })
+      class TransientInstance implements OnDestroy {
+        constructor(
+          @Inject(Ctx(localCtx)) public ctxService: LocalService,
+          public service: LocalService,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('transient');
+        }
+      }
+
+      @Injectable({
+        scope: Scope.SINGLETON,
+      })
+      class Service implements OnDestroy {
+        @Inject()
+        method(service?: TransientInstance) {}
+
+        onDestroy() {
+          destroyOrder.push('singleton');
+        }
+      }
+  
+      const injector = new Injector([
+        LocalService,
+        TransientInstance,
+        Service,
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+      service.method();
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+
+      expect(destroyOrder).toEqual(['transient', 'local']);
+
+      await injector.destroy();
+  
+      // last instance is from TransientInstance created by 'instanceCtx' context
+      expect(destroyOrder).toEqual(['transient', 'local', 'singleton', 'local']);
+    });
   });
 });

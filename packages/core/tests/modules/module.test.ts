@@ -12,7 +12,7 @@ describe('Module', function() {
     })
     class MainModule {}
 
-    const injector = new Injector(MainModule).build();
+    const injector = Injector.create(MainModule).build();
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -37,7 +37,7 @@ describe('Module', function() {
       }
     }
 
-    new Injector(MainModule).build();
+    Injector.create(MainModule).build();
     expect(createdService).toBeInstanceOf(Service);
   });
 

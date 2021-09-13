@@ -39,7 +39,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   ): boolean {
     const ctx = instance.ctx;
 
-    // when operating on an instance with a context created by scope
+    // when operating on an instance with a context passed by user
     if (this.instancesMetadata.has(ctx) === false) {
       // destroy only with `injector` event and with no parents
       if (event === 'injector' && (instance.parents === undefined || instance.parents.size === 0)) {

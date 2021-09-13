@@ -13,6 +13,7 @@ const defaultOptions: InstanceScopeOptions = {
 
 export class InstanceScope extends Scope<InstanceScopeOptions> {
   private instances = new WeakMap<InstanceRecord, Context>();
+  private contexts = new WeakMap<Context, InstanceRecord>();
 
   get name() {
     return 'Instance';
@@ -31,6 +32,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     if (ctx === undefined) {
       ctx = new Context();
       this.instances.set(parentInstance, ctx);
+      this.contexts.set(ctx, parentInstance);
     }
     session.setSideEffect(true);
     return ctx;
@@ -42,18 +44,19 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     options: InstanceScopeOptions = defaultOptions,
     injector: Injector,
   ): boolean {
-    const parents = Array.from(instance.parents || []);
-
-    // with no parent
-    // TODO: Think about it - the given instance can be created by custom Context passed by user, by Transient scope
-    if (parents.length === 0) {
-      return true;
+    const ctx = instance.ctx;
+    
+    // if ctx doesn't exist in the Instance scope treat scope as Transient
+    if (this.contexts.has(ctx) === false) {
+      return Scope.TRANSIENT.onDestroy(event, instance, options, injector);
     }
 
-    // if parents size is different than 1 treat scope as Transient - for Instance scope there should be only one parent 
-    // also if a single instance isn't in the `instances` Map 
-    if (parents.length > 1 || this.instances.has(parents[0]) === false) {
-      return Scope.TRANSIENT.onDestroy(event, instance, options, injector);
+    // when no parent
+    if (instance.parents === undefined || instance.parents.size === 0) {
+      const parentInstance = this.contexts.get(ctx);
+      this.instances.delete(parentInstance);
+      this.contexts.delete(ctx);
+      return true;
     }
 
     return false;

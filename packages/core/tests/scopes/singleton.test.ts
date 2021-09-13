@@ -26,7 +26,7 @@ describe('Singleton scope', function () {
     expect(service.service1 === service.service2).toEqual(true);
   });
 
-  test.only('should throw error if custom Context (not STATIC_CONTEXT) is passed', function () {
+  test('should throw error if custom Context (not STATIC_CONTEXT) is passed', function () {
     const ctx = new Context();
 
     @Injectable({

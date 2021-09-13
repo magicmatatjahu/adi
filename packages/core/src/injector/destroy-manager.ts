@@ -2,6 +2,7 @@ import { Injector } from "./injector";
 import { DestroyableType, DestroyEvent, InstanceRecord } from "../interfaces";
 import { ProviderRecord } from "./provider";
 import { hasOnDestroyHook } from "../utils";
+import { InstanceStatus } from "../enums";
 
 export const DestroyManager = new class {
   async destroy(event: DestroyEvent, instance: InstanceRecord, injector: Injector) {
@@ -14,12 +15,11 @@ export const DestroyManager = new class {
 
     if (canDestroy === true) {
       const value = instance.value;
-      if (hasOnDestroyHook(value)) {
-        await value.onDestroy();
-        instance.def.values.delete(instance.ctx);
-        this.removeInstanceRefFromChildren(instance);
-        await this.destroyAll(event, instance.children && Array.from(instance.children), injector);
-      }
+      hasOnDestroyHook(value) && await value.onDestroy();
+      instance.def.values.delete(instance.ctx);
+      this.removeInstanceRef(instance);
+      instance.status |= InstanceStatus.DESTROYED;
+      await this.destroyAll(event, instance.children && Array.from(instance.children), injector);
     };
   }
 
@@ -43,11 +43,16 @@ export const DestroyManager = new class {
     }
   }
 
-  removeInstanceRefFromChildren(instance: InstanceRecord) {
+  removeInstanceRef(instance: InstanceRecord) {
+    // from parents
+    const parents = instance.parents;
+    parents && parents.forEach(parent => {
+      parent.children?.delete(instance);
+    });
+
+    // from children
     const children = instance.children;
-    if (children === undefined) return;
-    
-    children.forEach(child => {
+    children && children.forEach(child => {
       child.parents?.delete(instance);
     });
   }
