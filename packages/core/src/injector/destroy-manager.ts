@@ -11,7 +11,7 @@ export const DestroyManager = new class {
     }
 
     const scope = instance.scope;
-    const canDestroy = scope.kind.onDestroy(event, instance, scope.options, injector);
+    const canDestroy = scope.kind.canDestroy(event, instance, scope.options, injector);
 
     if (canDestroy === true) {
       const value = instance.value;

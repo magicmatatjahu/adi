@@ -4,7 +4,9 @@ import { STATIC_CONTEXT } from "../constants";
 
 import { Scope } from "./index";
 
-export class DefaultScope extends Scope<never> {
+export interface DefaultScopeOptions {}
+
+export class DefaultScope extends Scope<DefaultScopeOptions> {
   get name() {
     return 'Default';
   }
@@ -13,7 +15,7 @@ export class DefaultScope extends Scope<never> {
     return session.getContext() || STATIC_CONTEXT;
   }
 
-  public onDestroy(event: DestroyEvent, instance: InstanceRecord): boolean {
+  public canDestroy(event: DestroyEvent, instance: InstanceRecord): boolean {
     // destroy only on `injector` event and when parents don't exist 
     return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
   };

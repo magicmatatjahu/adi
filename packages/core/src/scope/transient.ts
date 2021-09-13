@@ -33,7 +33,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     return ctx;
   }
 
-  public onDestroy(
+  public canDestroy(
     event: DestroyEvent,
     instance: InstanceRecord,
   ): boolean {

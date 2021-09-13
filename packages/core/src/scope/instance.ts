@@ -38,7 +38,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     return ctx;
   }
 
-  public onDestroy(
+  public canDestroy(
     event: DestroyEvent,
     instance: InstanceRecord,
     options: InstanceScopeOptions = defaultOptions,
@@ -48,7 +48,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     
     // if ctx doesn't exist in the Instance scope treat scope as Transient
     if (this.contexts.has(ctx) === false) {
-      return Scope.TRANSIENT.onDestroy(event, instance, options, injector);
+      return Scope.TRANSIENT.canDestroy(event, instance, options, injector);
     }
 
     // when no parent

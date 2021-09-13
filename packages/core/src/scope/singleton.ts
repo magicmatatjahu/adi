@@ -5,13 +5,7 @@ import { ScopeFlags } from "../enums";
 import { Scope } from "./index";
 import { DestroyEvent, InstanceRecord } from "../interfaces";
 
-export interface SingletonScopeOptions {
-  reuseContext?: boolean;
-}
-
-const defaultOptions: SingletonScopeOptions = {
-  reuseContext: true,
-}
+export interface SingletonScopeOptions {}
 
 export class SingletonScope extends Scope<SingletonScopeOptions> {
   public readonly flags: ScopeFlags = ScopeFlags.CANNOT_OVERRIDE;
@@ -28,7 +22,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
     return STATIC_CONTEXT;
   }
 
-  public onDestroy(event: DestroyEvent, instance: InstanceRecord): boolean {
+  public canDestroy(event: DestroyEvent, instance: InstanceRecord): boolean {
     // destroy only on `injector` event and when parents don't exist 
     return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
   };

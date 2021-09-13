@@ -28,7 +28,7 @@ export class RequestScope extends Scope<RequestScopeOptions> {
     return STATIC_CONTEXT;
   }
 
-  public onDestroy(): boolean {
+  public canDestroy(): boolean {
     // always destroy
     return true;
   };

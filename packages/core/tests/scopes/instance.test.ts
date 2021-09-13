@@ -139,6 +139,35 @@ describe('Instance scope', function () {
     expect(service.ctxService.context === ctx).toEqual(false);
   });
 
+  test('should inject this same instance in method injection', function () {
+    @Injectable({
+      scope: Scope.INSTANCE,
+    })
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      method(service1?: TestService, service2?: TestService) {
+        return [service1, service2];
+      }
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service);
+    const services1 = service.method();
+    const services2 = service.method();
+    expect(services1[0]).toBeInstanceOf(TestService);
+    expect(services1[1]).toBeInstanceOf(TestService);
+    expect(services1[0] === services1[1]).toEqual(true);
+    expect(services2[0] === services2[1]).toEqual(true);
+    expect(services1[0] === services2[0]).toEqual(true);
+  });
+
   test('should be able to be replaced by another scope', function () {
     @Injectable({
       scope: Scope.INSTANCE,

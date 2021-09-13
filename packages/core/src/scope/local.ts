@@ -76,7 +76,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return ctx;
   }
 
-  public onDestroy(
+  public canDestroy(
     event: DestroyEvent,
     instance: InstanceRecord,
     options: LocalScopeOptions = defaultOptions,
@@ -87,18 +87,21 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     // if ctx doesn't exist in the Local scope treat scope as Transient
     if (this.contexts.has(ctx) === false) {
-      return Scope.TRANSIENT.onDestroy(event, instance, options, injector);
+      return Scope.TRANSIENT.canDestroy(event, instance, options, injector);
     }
 
     // when no parent and only when local instance is previously destroyed
-    if (
-      (instance.parents === undefined || instance.parents.size === 0) &&
-      this.contexts.get(ctx).status & InstanceStatus.DESTROYED
-    ) {
-      const localInstance = this.contexts.get(ctx);
-      this.instances.delete(localInstance);
-      this.contexts.delete(ctx);
-      return true;
+    const localInstance = this.contexts.get(ctx);
+    if (instance.parents === undefined || instance.parents.size === 0) {
+      if (localInstance.status & InstanceStatus.DESTROYED) {
+        this.instances.delete(localInstance);
+        this.contexts.delete(ctx);
+        return true;
+      }
+      // Link instances and local instances with references
+      // the case when a local instance was created dynamically (e.g. by Factory wrapper with instance with Transient scope in subgraph), but is not attached to the parent in any way.
+      (localInstance.children || (localInstance.children = new Set())).add(instance);
+      (instance.parents || (instance.parents = new Set())).add(localInstance);
     }
 
     return false;

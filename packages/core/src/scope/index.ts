@@ -2,6 +2,7 @@ import { Context, Injector, Session } from "../injector";
 import { DestroyEvent, InstanceRecord } from "../interfaces";
 import { ScopeFlags } from "../enums";
 
+import { DefaultScopeOptions } from "./default";
 import { SingletonScopeOptions } from "./singleton";
 import { LocalScopeOptions } from "./local";
 import { InstanceScopeOptions } from "./instance";
@@ -10,7 +11,7 @@ import { TransientScopeOptions } from "./transient";
 export abstract class Scope<O = any> {
   public readonly flags: ScopeFlags = ScopeFlags.NONE;
 
-  public static DEFAULT: Scope<never>;
+  public static DEFAULT: Scope<DefaultScopeOptions>;
   public static SINGLETON: Scope<SingletonScopeOptions>;
   public static TRANSIENT: Scope<TransientScopeOptions>;
   public static INSTANCE: Scope<InstanceScopeOptions>;
@@ -24,7 +25,7 @@ export abstract class Scope<O = any> {
     injector: Injector,
   ): Context;
 
-  public abstract onDestroy(
+  public abstract canDestroy(
     event: DestroyEvent,
     instance: InstanceRecord,
     options: O,

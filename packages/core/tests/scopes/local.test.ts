@@ -943,5 +943,78 @@ describe('Instance scope', function () {
       // last instance is from TransientInstance created by 'instanceCtx' context
       expect(destroyOrder).toEqual(['transient', 'local', 'singleton', 'local']);
     });
+
+    test('should destroy free instances when created through a method injection and when parent has dynamic scope, e.g. Transient' , async function() {
+      let destroyOrder: string[] = [];
+  
+      @Injectable({
+        scope: {
+          kind: Scope.LOCAL,
+          options: {
+            toScope: 'test',
+          }
+        }
+      })
+      class LocalService implements OnDestroy {
+        onDestroy() {
+          destroyOrder.push('local');
+        }
+      }
+  
+      @Injectable({
+        scope: Scope.TRANSIENT,
+      })
+      class TransientInstance implements OnDestroy {
+        constructor(
+          public service: LocalService,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('transient');
+        }
+      }
+
+      @Injectable({
+        scope: Scope.SINGLETON,
+        annotations: {
+          [ANNOTATIONS.LOCAL_SCOPE]: 'test'
+        }
+      })
+      class Service implements OnDestroy {
+        @Inject()
+        method(service?: TransientInstance) {}
+
+        onDestroy() {
+          destroyOrder.push('singleton');
+        }
+      }
+  
+      const injector = new Injector([
+        // Service should be destroyed before LocalService - this order is very important, don't change it!
+        Service,
+        TransientInstance,
+        LocalService,
+      ]);
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+
+      service.method();
+      service.method();
+  
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+
+      expect(destroyOrder).toEqual(['transient', 'transient']);
+
+      await injector.destroy();
+  
+      // last instance is from TransientInstance created by 'instanceCtx' context
+      expect(destroyOrder).toEqual(['transient', 'transient', 'singleton', 'local']);
+    });
   });
 });
