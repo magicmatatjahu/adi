@@ -58,5 +58,5 @@ function createInjector(props: ModuleInline | ComponentsInline, parentInjector: 
   const injector = Injector.create(_module, parentInjector, options);
   if (Array.isArray(_module)) return injector;
   // TODO: change to synchronouse compilation
-  return injector.compile() as unknown as Injector;
+  return injector.build() as unknown as Injector;
 }

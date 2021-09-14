@@ -1,4 +1,4 @@
-import { createInjector, Injector } from "../injector";
+import { Injector } from "../injector";
 import { InjectionArgument, InjectionItem, Provider, WrapperDef } from "../interfaces";
 import { WithInjector } from "./with-injector";
 import { createWrapper } from "../utils/wrappers";
@@ -43,7 +43,7 @@ function wrapper(providersOrOptions: Provider[] | PortalOptions): WrapperDef {
 
     let injector = deepInjector || hostInjector;
     if (providers) {
-      injector = createInjector(providers, injector);
+      injector = Injector.create(providers, injector);
     }
     session.options.injections = {
       dynamic: dynamicInjection(injector, deep), 

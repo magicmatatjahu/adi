@@ -158,7 +158,7 @@ export class ModuleCompiler {
     } else {
       // check also here circular references between modules
 
-      // make proxy and don't push facade to the `stack` array
+      // make proxy and don't push to the `stack` array - it shouldn't be initialized (TODO: Initialize only MODULE_INITIALIZERS)
       injector = Injector.create(type, foundedInjector, { id });
       injector.status |= InjectorStatus.PROXY_MODE;
       processedModule.isProxy = true;
@@ -168,19 +168,12 @@ export class ModuleCompiler {
     compiledModules.push(processedModule);
 
     // add injector to the imports of parent injector
-    const imports: Map<Type, Injector | Map<ModuleID, Injector>> = parentInjector.imports;
-    if (imports.has(type)) {
-      let modules = imports.get(type);
-
-      if ((modules instanceof Map) === false) {
-        const map = new Map();
-        imports.set(type, map);
-        modules = map.set((modules as Injector).id, modules);
-      }
-      (modules as Map<ModuleID, Injector>).set(id, injector);
-    } else {
-      imports.set(type, injector);
+    let modules = parentInjector.imports.get(type);
+    if (modules === undefined) {
+      modules = new Map<ModuleID, Injector>();
+      parentInjector.imports.set(type, modules);
     }
+    modules.set(id, injector);
 
     // TODO: Checks also exported modules in imports
   }
@@ -225,40 +218,32 @@ export class ModuleCompiler {
   }
 
   // injector is here for searching in his parent and more depper
-  private findModule(injector: Injector, mod: Type, id: ModuleID): Injector | undefined {
-    if (mod === injector.injector) {
+  private findModule(injector: Injector, type: Type, id: ModuleID): Injector | undefined | never {
+    if (type === injector.injector) {
       // TODO: Check this statement - maybe error isn't needed
       // throw Error('Cannot import this same module to injector');
       console.log('Cannot import this same module to injector');
       return undefined;
     }
   
-    let foundedModule = injector.imports.get(mod);
-    if (foundedModule) {
-      if (foundedModule instanceof Map && foundedModule.has(id)) {
-        return foundedModule.get(id);
-      } else if ((foundedModule as Injector).id === id) {
-        return foundedModule as Injector;
-      }
+    let foundedModule = injector.imports.get(type);
+    if (foundedModule && foundedModule.has(id)) {
+      return foundedModule.get(id);
     }
   
-    let parentInjector = injector.getParent();
+    let parentInjector = injector.parent;
     // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
     while (parentInjector !== NilInjector) {
       // TODO: Check this statement - maybe it's needed
-      if (mod === parentInjector.injector) {
+      if (type === parentInjector.injector) {
         return parentInjector;
       }
-      foundedModule = parentInjector.imports.get(mod);
-  
-      if (foundedModule) {
-        if (foundedModule instanceof Map && foundedModule.has(id)) {
-          return foundedModule.get(id);
-        } else if ((foundedModule as Injector).id === id) {
-          return foundedModule as Injector;
-        }
+
+      foundedModule = parentInjector.imports.get(type);
+      if (foundedModule && foundedModule.has(id)) {
+        return foundedModule.get(id);
       }
-      parentInjector = parentInjector.getParent();
+      parentInjector = parentInjector.parent;
     }
     return undefined;
   }

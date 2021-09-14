@@ -36,6 +36,8 @@
 
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook`
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors?
+- Think about creating modules from exports which is not imported, so they are not created before exporting
+- Check deep extends
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442

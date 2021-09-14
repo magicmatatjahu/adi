@@ -42,9 +42,8 @@ export class Injector {
   /**
    * MAKE IT READONLY PRIVATE!
    */
-  // change to Map<Type, Map<ModuleID, Injector>> for better optymalization
   // imported modules
-  imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
+  imports = new Map<Type, Map<ModuleID, Injector>>();
   // components
   components = new Map<Token, ProviderRecord>();
   // own records
@@ -95,7 +94,7 @@ export class Injector {
     injector: Type<any> | ModuleMetadata | Array<Provider> = [],
     options?: InjectorOptions,
   ): Injector {
-    return createInjector(injector, this, options);
+    return Injector.create(injector, this, options);
   }
 
   selectChild(mod: Type, id: ModuleID = 'static'): Injector | undefined {
@@ -103,10 +102,7 @@ export class Injector {
     if (founded === undefined) {
       return;
     }
-    if (founded instanceof Map) {
-      return founded.get(id);
-    }
-    return founded.id === id ? founded : undefined;
+    return founded.get(id);
   }
 
   build(): Injector {
@@ -166,15 +162,12 @@ export class Injector {
     // only clear imported values
     this.importedRecords.clear();
 
+    // TODO: Clear also imported modules
+
     // remove injector from parent records
     if (this.parent !== NilInjector && typeof this.injector === 'function') {
       const importInParent = this.parent.imports.get(this.injector);
-      if (importInParent === undefined) return;
-      if (importInParent instanceof Map) {
-        importInParent.has(this.id) && importInParent.delete(this.id);
-        return;
-      }
-      this.parent.imports.delete(this.injector);
+      importInParent && importInParent.delete(this.id);
     }
   }
 
@@ -319,18 +312,16 @@ export class Injector {
         }
 
         this.imports.forEach(imp => {
-          if (imp instanceof Map) {
-            // TODO: implement this
-          } else {
-            if (imp.isProviderInScope(provideIn)) {
+          imp.forEach(inj => {
+            if (inj.isProviderInScope(provideIn)) {
               if (typeof token === "function") { // type provider case
-                record = InjectorMetadata.typeProviderToRecord(token as Type, imp);
+                record = InjectorMetadata.typeProviderToRecord(token as Type, inj);
               } else { // injection token case
-                record = InjectorMetadata.customProviderToRecord(token, def as any, imp);
+                record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
               }
               this.importedRecords.set(token, record);
             }
-          }
+          })
         });
         return record;
       }
@@ -475,14 +466,14 @@ export class Injector {
     }
   }
 
-  private processModuleExport(mod: Type, id: ModuleID, from: Injector, to: Injector, providers?: Array<Provider | Token>) {
+  private processModuleExport(mod: Type, id: ModuleID = 'static', from: Injector, to: Injector, providers?: Array<Provider | Token>) {
     if (from.imports.has(mod) === false) {
       throw Error(`cannot export from ${mod} module`);
     }
 
-    let fromModule = from.imports.get(mod);
-    if (fromModule instanceof Map) {
-      fromModule = fromModule.get(id);
+    const fromModule = from.imports.get(mod).get(id);
+    if (fromModule === undefined) {
+      throw Error(`cannot export from ${mod} module`);
     }
 
     if (providers === undefined) {
@@ -561,15 +552,11 @@ class ProtoInjector extends Injector {
     // create copy of the existing injectors in the subgraph
     const newImports = new Map<Type, Injector | Map<ModuleID, Injector>>();
     oldInjector.imports.forEach((injector, type) => {
-      if (injector instanceof Map) {
-        const newMap = new Map<ModuleID, Injector>();
-        newImports.set(type, newMap);
-        injector.forEach((injectorWithID, id) => {
-          newMap.set(id, this.cloneInjector(injectorWithID, injectorMap));
-        });
-      } else {
-        newImports.set(type, this.cloneInjector(injector, injectorMap));
-      }
+      const newMap = new Map<ModuleID, Injector>();
+      newImports.set(type, newMap);
+      injector.forEach((injectorWithID, id) => {
+        newMap.set(id, this.cloneInjector(injectorWithID, injectorMap));
+      });
     });
 
     // copy components
@@ -607,12 +594,3 @@ export const NilInjector = new class {
     return null;
   }
 } as unknown as Injector;
-
-export function createInjector(
-  injector: Type<any> | ModuleMetadata | Array<Provider> = [],
-  parent: Injector = NilInjector,
-  options?: InjectorOptions,
-): Injector {
-  injector = Array.isArray(injector) ? { providers: injector } : injector;
-  return new Injector(injector, parent, options);
-}
