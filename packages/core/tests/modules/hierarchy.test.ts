@@ -147,12 +147,12 @@ describe('Module hierarchy', function() {
     const injector = Injector.create(ModuleA).build();
     expect(injector).toBeInstanceOf(Injector);
     expect(order).toEqual([
-      'A', // main module
-      'B', 'E', 'C', 'D', // root modules
-      'C', // C module with "C" id from B module
-      'F', // from C module with "C" id
-      'F', // from C module with "static" id
       'E', // E module with "E" id from D module
+      'F', // from C module with "static" id
+      'F', // from C module with "C" id
+      'C', // C module with "C" id from B module
+      'D', 'C', 'E', 'B', // root modules
+      'A', // main module
     ]);
   });
 
@@ -211,7 +211,7 @@ describe('Module hierarchy', function() {
     }
 
     Injector.create(ModuleA).build();
-    expect(order).toEqual(['ServiceA', 'ServiceD']);
+    expect(order).toEqual(['ServiceD', 'ServiceA']);
   });
 
   test('should resolve simple modules graph with injection in constructors (using services from imports)', function() {
@@ -272,7 +272,7 @@ describe('Module hierarchy', function() {
     }
 
     Injector.create(ModuleA).build();
-    expect(order).toEqual(['ServiceC', 'ServiceD']);
+    expect(order).toEqual(['ServiceD', 'ServiceC']);
   });
 
   test('should resolve graph with dynamic modules', function() {

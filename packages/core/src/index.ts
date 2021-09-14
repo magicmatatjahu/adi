@@ -13,7 +13,7 @@ Scope.INSTANCE = new InstanceScope();
 Scope.LOCAL = new LocalScope();
 
 export { when } from "./constraint";
-export { STATIC_CONTEXT, INJECTOR_SCOPE, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
+export { STATIC_CONTEXT, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
 export { Component, Inject, Injectable, Module, componentMixin, injectableMixin, moduleMixin } from "./decorators";
 export { Context, Session, Injector, InjectionToken, InjectorMetadata, InjectorResolver } from "./injector";
 export * from "./interfaces";

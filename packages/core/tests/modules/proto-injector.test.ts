@@ -176,14 +176,14 @@ describe('ProtoInjector', function() {
     const injector = Injector.createProto(MainModule).build();
     
     injector.fork();
-    expect(initOrder).toEqual(['Main', 'B', 'C', 'D']);
+    expect(initOrder).toEqual(['D', 'C', 'B', 'Main']);
 
     // fork again to check if order is this same
     injector.fork();
-    expect(initOrder).toEqual(['Main', 'B', 'C', 'D', 'Main', 'B', 'C', 'D']);
+    expect(initOrder).toEqual(['D', 'C', 'B', 'Main', 'D', 'C', 'B', 'Main']);
 
     // and again
     injector.fork();
-    expect(initOrder).toEqual(['Main', 'B', 'C', 'D', 'Main', 'B', 'C', 'D', 'Main', 'B', 'C', 'D']);
+    expect(initOrder).toEqual(['D', 'C', 'B', 'Main', 'D', 'C', 'B', 'Main', 'D', 'C', 'B', 'Main']);
   });
 });

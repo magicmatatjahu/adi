@@ -136,7 +136,7 @@ export class ModuleCompiler {
   ) {
     return thenable(
       () => this.compileMetadata(_import),
-      compiledModule => this.processImportItem(compiledModule, compiledModules, parentInjector, stack) as any,
+      compiledModule => compiledModule && this.processImportItem(compiledModule, compiledModules, parentInjector, stack) as any,
     );
   }
 
@@ -146,8 +146,6 @@ export class ModuleCompiler {
     parentInjector: Injector,
     stack: Array<Injector>,
   ) {
-    if (processedModule === undefined) return;
-
     const { type, dynamicDef } = processedModule;
     const id = (dynamicDef && dynamicDef.id) || 'static';
     
@@ -174,8 +172,6 @@ export class ModuleCompiler {
       parentInjector.imports.set(type, modules);
     }
     modules.set(id, injector);
-
-    // TODO: Checks also exported modules in imports
   }
 
   private compileMetadata<T>(
@@ -248,15 +244,14 @@ export class ModuleCompiler {
     return undefined;
   }
 
-  // TODO: Think about changing the order of initialization from latest module
   initModules(stack: Array<Injector>): void {
-    for (let i = 0, l = stack.length; i < l; i++) {
+    for (let i = stack.length - 1; i > -1; i--) {
       stack[i].init();
     }
   }
 
   async initModulesAsync(stack: Array<Injector>): Promise<void> {
-    for (let i = 0, l = stack.length; i < l; i++) {
+    for (let i = stack.length - 1; i > -1; i--) {
       await stack[i].init(this.asyncInitOptions);
     }
   }

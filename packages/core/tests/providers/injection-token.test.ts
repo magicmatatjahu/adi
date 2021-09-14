@@ -1,4 +1,4 @@
-import { Injector, Injectable, InjectionToken, Module, ANNOTATIONS, INJECTOR_SCOPE } from "../../src";
+import { Injector, Injectable, InjectionToken, Module, ANNOTATIONS, INJECTOR_OPTIONS } from "../../src";
 
 describe('InjectionToken', function() {
   describe('should works as normal provider in providers array', function() {
@@ -179,8 +179,10 @@ describe('InjectionToken', function() {
       @Module({
         providers: [
           {
-            provide: INJECTOR_SCOPE,
-            useValue: 'child',
+            provide: INJECTOR_OPTIONS,
+            useValue: {
+              scope: 'child',
+            },
           }
         ]
       })

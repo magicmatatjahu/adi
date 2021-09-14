@@ -1,4 +1,4 @@
-import { Injector, Injectable, INJECTOR_SCOPE, Module } from "../../src";
+import { Injector, Injectable, INJECTOR_OPTIONS, Module } from "../../src";
 
 describe('Module scopes', function() {
   test('should work with treeshakable providers with module scops (reference to module)', function() {
@@ -24,8 +24,10 @@ describe('Module scopes', function() {
     @Module({ 
       providers: [
         {
-          provide: INJECTOR_SCOPE,
-          useValue: 'FOOBAR',
+          provide: INJECTOR_OPTIONS,
+          useValue: {
+            scope: ['FOOBAR']
+          },
         }
       ],
     })
@@ -45,8 +47,10 @@ describe('Module scopes', function() {
     @Module({ 
       providers: [
         {
-          provide: INJECTOR_SCOPE,
-          useValue: ['FOOBAR', 'BARFOO'],
+          provide: INJECTOR_OPTIONS,
+          useValue: {
+            scope: ['FOOBAR', 'BARFOO']
+          },
         }
       ],
     })

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, INJECTOR_SCOPE, ANNOTATIONS, Token, StaticInjectable, Scope, createWrapper } from "../../src";
+import { Injector, Injectable, Inject, Module, INJECTOR_OPTIONS, ANNOTATIONS, Token, StaticInjectable, Scope, createWrapper } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -322,8 +322,10 @@ describe('Type provider (injectable provider)', function() {
       @Module({
         providers: [
           {
-            provide: INJECTOR_SCOPE,
-            useValue: 'child',
+            provide: INJECTOR_OPTIONS,
+            useValue: {
+              scope: 'child',
+            },
           }
         ]
       })

@@ -5,7 +5,7 @@ import {
   InjectorOptions, InjectorScopeType, PlainProvider,
   ModuleMetadata, ModuleID, ExportItem, ExportedModule
 } from "../interfaces";
-import { INJECTOR_SCOPE, MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS } from "../constants";
+import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT } from "../constants";
 import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
@@ -35,8 +35,7 @@ export class Injector {
     parent: Injector = NilInjector,
     options?: InjectorOptions,
   ): ProtoInjector {
-    injector = Array.isArray(injector) ? { providers: injector } : injector;
-    return new ProtoInjector(injector, parent, options);
+    return ProtoInjector.create(injector, parent, options);
   }
 
   /**
@@ -64,17 +63,11 @@ export class Injector {
     private readonly options: InjectorOptions = {},
   ) {
     if (options !== undefined) {
-      const { setupProviders, scope } = options;
-      setupProviders && this.addProviders(options.setupProviders);
-      this.id = options.id || this.id;
-      scope && this.configureScope(scope);
+      this.addProviders(options.setupProviders);
+      this.configure(options);
     }
 
     if (typeof injector === "function") {
-      // resolve INJECTOR_SCOPE provider again - it could be changed in provider array
-      this.configureScope();
-      // add passed injector (Type or ModuleMetadata) as component
-      // TODO: Change to the provider, not component
       this.addComponent(this.injector as any);
     } else {
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
@@ -127,8 +120,8 @@ export class Injector {
     if (this.status & InjectorStatus.INITIALIZED) return; 
     this.status |= InjectorStatus.INITIALIZED;
 
-    // resolve INJECTOR_SCOPE provider again - it can be changed in the provider array
-    this.configureScope();
+    // resolve INJECTOR_OPTIONS provider again - it can be changed in the provider array
+    this.configure();
 
     const asyncMode = options?.asyncMode;
     return thenable(
@@ -145,11 +138,24 @@ export class Injector {
     if (this.status & InjectorStatus.DESTROYED) return; 
     this.status |= InjectorStatus.DESTROYED;
 
-    // destroy and clear own components
+    // first destroy and clear own components
     try {
       await DestroyManager.destroyRecords(Array.from(this.components.values()), this);
     } finally {
       this.components.clear();
+    }
+
+    // then destroy and clean all imported modules
+    try {
+      const imports = Array.from(this.imports.values());
+      for (let i = 0, li = imports.length; i < li; i++) {
+        const modules = Array.from(imports[i].values());
+        for (let j = 0, lm = modules.length; j < lm; j++) {
+          await modules[j].destroy();
+        }
+      }
+    } finally {
+      this.imports.clear();
     }
 
     // destroy and clear own records
@@ -162,11 +168,9 @@ export class Injector {
     // only clear imported values
     this.importedRecords.clear();
 
-    // TODO: Clear also imported modules
-
-    // remove injector from parent records
-    if (this.parent !== NilInjector && typeof this.injector === 'function') {
-      const importInParent = this.parent.imports.get(this.injector);
+    // remove injector from parent imports
+    if (this.parent !== NilInjector) {
+      const importInParent = this.parent.imports.get(this.injector as any);
       importInParent && importInParent.delete(this.id);
     }
   }
@@ -311,19 +315,16 @@ export class Injector {
           return;
         }
 
-        this.imports.forEach(imp => {
-          imp.forEach(inj => {
-            if (inj.isProviderInScope(provideIn)) {
-              if (typeof token === "function") { // type provider case
-                record = InjectorMetadata.typeProviderToRecord(token as Type, inj);
-              } else { // injection token case
-                record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
-              }
-              this.importedRecords.set(token, record);
-            }
-          })
-        });
-        return record;
+        this.imports.forEach(imp => imp.forEach(inj => {
+          if (inj.isProviderInScope(provideIn) === false) return;
+
+          if (typeof token === "function") { // type provider case
+            record = InjectorMetadata.typeProviderToRecord(token as Type, inj);
+          } else { // injection token case
+            record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
+          }
+          this.importedRecords.set(token, record);
+        }));
       }
     }
 
@@ -348,19 +349,22 @@ export class Injector {
     return this.scopes.includes(provideIn);
   }
 
-  private configureScope(scopes?: InjectorScopeType | Array<InjectorScopeType>): void {
+  private configure(options?: InjectorOptions) {
+    options = options || this.get(INJECTOR_OPTIONS, COMMON_HOOKS.OptionalSelf) || EMPTY_OBJECT as InjectorOptions;
+    const { scope, id } = options;
+
+    this.id = id || this.id;
     this.scopes = ["any", this.injector as any];
-    scopes = scopes || this.get(INJECTOR_SCOPE, COMMON_HOOKS.OptionalSelf) as Array<InjectorScopeType>;
-    if (scopes === undefined) return;
-    if (Array.isArray(scopes)) {
-      for (let i = 0, l = scopes.length; i < l; i++) {
-        this.scopes.push(scopes[i]);
+    if (scope === undefined) return;
+    if (Array.isArray(scope)) {
+      for (let i = 0, l = scope.length; i < l; i++) {
+        this.scopes.push(scope[i]);
       }  
     } else {
-      this.scopes.push(scopes);
+      this.scopes.push(scope);
     }
   }
-
+  
   private addCoreProviders() {
     this.addProviders([
       { provide: Injector, useValue: this },
@@ -504,7 +508,16 @@ function lastDefinitionWrapper(injector: Injector, session: Session) {
   return injector.resolveDefinition(def, session);
 }
 
-class ProtoInjector extends Injector {
+export class ProtoInjector extends Injector {
+  static create(
+    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    parent: Injector = NilInjector,
+    options?: InjectorOptions,
+  ): ProtoInjector {
+    injector = Array.isArray(injector) ? { providers: injector } : injector;
+    return new ProtoInjector(injector, parent, options);
+  }
+
   private stack: Injector[] = [];
 
   build(): ProtoInjector {
