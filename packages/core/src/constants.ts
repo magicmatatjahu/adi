@@ -36,7 +36,6 @@ export const SESSION_INTERNAL = {
   CIRCULAR: '$$circular',
   START_CIRCULAR: '$$startCircular',
   ON_INIT_HOOKS: '$$onInitHooks',
-  ON_DESTROY_HOOKS: '$$onDestroyHooks',
 }
 
 export const COMMON_HOOKS = {

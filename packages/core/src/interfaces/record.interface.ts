@@ -1,6 +1,6 @@
 import { Context, ProviderRecord } from "../injector";
 import { InstanceStatus } from "../enums";
-import { ConstraintDef, FactoryDef, ScopeShape, Type } from ".";
+import { ConstraintDef, FactoryDef, StandaloneOnDestroy, ScopeShape, Type } from ".";
 import { Wrapper } from "../utils/wrappers";
 
 export interface DefinitionRecord<T = any, S = any> {

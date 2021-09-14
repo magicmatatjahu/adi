@@ -1,12 +1,17 @@
-import { SESSION_INTERNAL } from "../constants";
 import { StandaloneOnDestroy, WrapperDef } from "../interfaces";
-import { createWrapper } from "../utils";
+import { createWrapper, thenable } from "../utils";
 
 function wrapper<T>(hook: StandaloneOnDestroy<T>): WrapperDef {
   return (injector, session, next) => {
-    const hooks = (session[SESSION_INTERNAL.ON_DESTROY_HOOKS] || (session[SESSION_INTERNAL.ON_DESTROY_HOOKS] = []));
-    hooks.push(hook);
-    return next(injector, session);
+    return thenable(
+      () => next(injector, session),
+      value => {
+        const instance = session.instance as any;
+        const hooks = (instance.destroyHooks || (instance.destroyHooks = []));
+        hooks.push(hook);
+        return value;
+      }
+    );
   }
 }
 

@@ -102,11 +102,8 @@ export const InjectorResolver = new class {
         return thenable(
           () => result,
           value => {
-            try {
-              return value;
-            } finally {
-              DestroyManager.destroyAll('default', toRemove, injector);
-            }
+            DestroyManager.destroyAll('default', toRemove, injector);
+            return value;
           }
         );
       }

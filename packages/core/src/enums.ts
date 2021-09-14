@@ -4,6 +4,8 @@ export enum InstanceStatus {
   RESOLVED = 4,
   DESTROYED = 8,
   CIRCULAR = 16,
+  // Host Injector is destroyed
+  HOST_DESTROYED = 32,
 }
 
 export enum ScopeFlags {

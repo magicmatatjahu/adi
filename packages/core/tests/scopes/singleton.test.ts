@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, OnDestroy, DestroyableType, Destroyable } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, OnDestroy, DestroyableType, Destroyable, Module } from "../../src";
 
 describe('Singleton scope', function () {
   test('should always inject this same value', function () {
@@ -174,6 +174,86 @@ describe('Singleton scope', function () {
       expect(destroyOrder).toEqual(['transient', 'transient']);
       await injector.destroy();
       expect(destroyOrder).toEqual(['transient', 'transient', 'singleton']);
+    });
+
+    test('should destroy instance after destroying the module where record for instance was saved' , async function() {
+      let destroyOrder: string[] = [];
+
+      @Injectable({
+        scope: Scope.SINGLETON,
+      })
+      class Singleton {
+        onDestroy() {
+          destroyOrder.push('Singleton');
+        }
+      }
+
+      @Module({
+        providers: [
+          Singleton,
+        ],
+        exports: [
+          Singleton,
+        ]
+      })
+      class ChildModule {
+        constructor(
+          readonly service: Singleton,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('ChildModule');
+        }
+      }
+
+      @Injectable({
+        scope: Scope.TRANSIENT,
+      })
+      class Transient implements OnDestroy {
+        constructor(
+          readonly service: Singleton,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('Transient');
+        }
+      }
+
+      @Module({
+        imports: [
+          ChildModule,
+        ],
+        providers: [
+          Transient,
+        ]
+      })
+      class MainModule {
+        onDestroy() {
+          destroyOrder.push('MainModule');
+        }
+      }
+  
+      const injector = Injector.create(MainModule).build();
+      let service: DestroyableType<Transient> = injector.get(Transient, Destroyable()) as unknown as DestroyableType<Transient>;
+      expect(service.value).toBeInstanceOf(Transient);
+
+      const childInjector = injector.selectChild(ChildModule);
+
+      await childInjector.destroy();
+      expect(destroyOrder).toEqual(['ChildModule']);
+
+      // destroy transient service which has link to the singleton instance from ChildModule and check if it can be destroyed
+      await service.destroy();
+      // wait 100ms to resolve all promises in DestroyManager
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(undefined);
+        }, 100);
+      });
+      expect(destroyOrder).toEqual(['ChildModule', 'Transient', 'Singleton']);
+
+      await injector.destroy();
+      expect(destroyOrder).toEqual(['ChildModule', 'Transient', 'Singleton', 'MainModule']);
     });
   });
 });

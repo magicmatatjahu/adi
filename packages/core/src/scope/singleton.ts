@@ -1,6 +1,6 @@
 import { Context, Session } from "../injector";
 import { STATIC_CONTEXT } from "../constants";
-import { ScopeFlags } from "../enums";
+import { InstanceStatus, ScopeFlags } from "../enums";
 
 import { Scope } from "./index";
 import { DestroyEvent, InstanceRecord } from "../interfaces";
@@ -23,7 +23,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
   }
 
   public canDestroy(event: DestroyEvent, instance: InstanceRecord): boolean {
-    // destroy only on `injector` event and when parents don't exist 
+    // destroy only on `injector` event and when parents don't exist
     return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
   };
 }

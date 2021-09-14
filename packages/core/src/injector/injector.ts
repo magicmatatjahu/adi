@@ -332,6 +332,7 @@ export class Injector {
   }
 
   addProvider(provider: Provider): void {
+    if (this.status & InjectorStatus.DESTROYED) return; 
     provider && InjectorMetadata.toRecord(provider, this);
   }
 
@@ -421,6 +422,7 @@ export class Injector {
   }
 
   addComponent(component: Type): void {
+    if (this.status & InjectorStatus.DESTROYED) return; 
     typeof component === 'function' && InjectorMetadata.toRecord(component, this, true);
   }
 
@@ -441,6 +443,7 @@ export class Injector {
   }
 
   private processExport(exp: ExportItem, from: Injector, to: Injector): void {
+    if (from.status & InjectorStatus.DESTROYED) return; 
     exp = resolveRef(exp);
 
     // export can be module definition

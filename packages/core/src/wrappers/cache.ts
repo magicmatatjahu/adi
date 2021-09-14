@@ -12,19 +12,18 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
     cache.set(injector, cachePerInjector);
   }
 
-  const metadata = session.metadata;
-  if (cachePerInjector.has(metadata)) {
-    return cachePerInjector.get(metadata);
+  if (cachePerInjector.has(session.metadata)) {
+    return cachePerInjector.get(session.metadata);
   }
 
   return thenable(
     () => next(injector, session),
     value => {
-      // SessionStatus.SIDE_EFFECTS === false
-      if ((session.status & SessionStatus.SIDE_EFFECTS) === 0) {
-        const metadata = session.metadata;
-        metadata && cachePerInjector.set(metadata, value);
+      if (session.status & SessionStatus.SIDE_EFFECTS) {
+        return value;
       }
+
+      session.metadata && cachePerInjector.set(session.metadata, value);
       return value;
     }
   );

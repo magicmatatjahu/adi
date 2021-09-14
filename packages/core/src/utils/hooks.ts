@@ -1,35 +1,38 @@
 import { InjectorResolver, Session } from "../injector";
-import { InstanceRecord, StandaloneOnInit } from "../interfaces";
+import { InstanceRecord, StandaloneOnDestroy, StandaloneOnInit } from "../interfaces";
 import { InstanceStatus } from "../enums";
 import { EMPTY_ARRAY, SESSION_INTERNAL, DELEGATION } from "../constants";
 import { hasOnInitHook } from ".";
+import { hasOnDestroyHook } from "./guards";
 
-function runHook(instance: InstanceRecord, session: Session) {
+function runInitHook(instance: InstanceRecord, session: Session) {
   const value = instance.value;
   hasOnInitHook(value) && value.onInit();
+
   const onInitHooks = (session[SESSION_INTERNAL.ON_INIT_HOOKS] || EMPTY_ARRAY) as StandaloneOnInit[];
-  if (onInitHooks.length > 0) {
-    const injector = instance.def.record.host;
-    for (let i = onInitHooks.length - 1; i > -1; i--) {
-      const hook = onInitHooks[i];
-      if (typeof hook === 'function') {
-        hook(value);
-      } else {
-        const factory = InjectorResolver.createFactory(hook.onInit, hook.inject);
-        const newSession = session.fork();
-        // add delegation
-        newSession[DELEGATION.KEY] = {
-          type: 'single',
-          values: value,
-        };
-        factory(injector, newSession);
-      }
+  if (onInitHooks.length === 0) return;
+
+  const injector = instance.def.record.host;
+  // run from last to first - in the reverse order of when they were added
+  for (let i = onInitHooks.length - 1; i > -1; i--) {
+    const hook = onInitHooks[i];
+    if (typeof hook === 'function') {
+      hook(value);
+    } else {
+      const factory = InjectorResolver.createFactory(hook.onInit, hook.inject);
+      const newSession = session.fork();
+      // add delegation
+      newSession[DELEGATION.KEY] = {
+        type: 'single',
+        values: value,
+      };
+      factory(injector, newSession);
     }
-    delete session[SESSION_INTERNAL.ON_INIT_HOOKS];
   }
+  delete session[SESSION_INTERNAL.ON_INIT_HOOKS];
 }
 
-function handleCircular(instance: InstanceRecord, session: Session) {
+function handleOnInitCircular(instance: InstanceRecord, session: Session) {
   if (
     instance.status & InstanceStatus.CIRCULAR &&
     session[SESSION_INTERNAL.START_CIRCULAR] === instance
@@ -37,9 +40,9 @@ function handleCircular(instance: InstanceRecord, session: Session) {
     const circulars = session[SESSION_INTERNAL.CIRCULAR] as Session[];
     for (let i = 0, l = circulars.length; i < l; i++) {
       const circularSession = circulars[i];
-      runHook(circularSession.instance, circularSession);
+      runInitHook(circularSession.instance, circularSession);
     }
-    runHook(instance, session);
+    runInitHook(instance, session);
   } else if (session.parent) {
     if (Array.isArray(session.parent[SESSION_INTERNAL.CIRCULAR])) {
       session.parent[SESSION_INTERNAL.CIRCULAR] = [...session[SESSION_INTERNAL.CIRCULAR], session, ...session.parent[SESSION_INTERNAL.CIRCULAR]];
@@ -52,8 +55,35 @@ function handleCircular(instance: InstanceRecord, session: Session) {
 
 export function handleOnInit(instance: InstanceRecord, session: Session) {  
   if (session[SESSION_INTERNAL.CIRCULAR]) { // when resolution chain has circular reference
-    handleCircular(instance, session);
+    handleOnInitCircular(instance, session);
   } else if (session.parent?.[SESSION_INTERNAL.CIRCULAR] === undefined) {
-    runHook(instance, session);
+    runInitHook(instance, session);
   }
+}
+
+export function handleOnDestroy(instance: InstanceRecord) {  
+  const value = instance.value;
+  hasOnDestroyHook(value) && value.onDestroy();
+
+  const onDestroyHooks = ((instance as any).destroyHooks || EMPTY_ARRAY) as StandaloneOnDestroy[];
+  if (onDestroyHooks.length === 0) return;
+
+  const injector = instance.def.record.host;
+  // run from last to first - in the reverse order of when they were added
+  for (let i = 0, l = onDestroyHooks.length; i < l; i++) {
+    const hook = onDestroyHooks[i];
+    if (typeof hook === 'function') {
+      hook(value);
+    } else {
+      const factory = InjectorResolver.createFactory(hook.onDestroy, hook.inject);
+      const session = new Session(undefined, undefined, undefined, undefined, { target: factory }, undefined);
+      // add delegation
+      session[DELEGATION.KEY] = {
+        type: 'single',
+        values: value,
+      };
+      factory(injector, session);
+    }
+  }
+  delete (instance as any).destroyHooks;
 }
