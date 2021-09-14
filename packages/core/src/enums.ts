@@ -30,7 +30,8 @@ export enum SessionStatus {
 
 export enum InjectorStatus {
   NONE = 0,
-  INITIALIZED = 1,
-  DESTROYED = 2,
-  PROXY_MODE = 4,
+  BUILDED = 1,
+  INITIALIZED = 2,
+  DESTROYED = 4,
+  PROXY_MODE = 8,
 }

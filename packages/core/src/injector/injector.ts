@@ -21,18 +21,38 @@ import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
 
 export class Injector {
-  static create = createInjector;
+  static create(
+    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    parent: Injector = NilInjector,
+    options?: InjectorOptions,
+  ): Injector {
+    injector = Array.isArray(injector) ? { providers: injector } : injector;
+    return new Injector(injector, parent, options);
+  }
 
+  static createProto(
+    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    parent: Injector = NilInjector,
+    options?: InjectorOptions,
+  ): ProtoInjector {
+    injector = Array.isArray(injector) ? { providers: injector } : injector;
+    return new ProtoInjector(injector, parent, options);
+  }
+
+  /**
+   * MAKE IT READONLY PRIVATE!
+   */
+  // change to Map<Type, Map<ModuleID, Injector>> for better optymalization
   // imported modules
-  private imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
+  imports = new Map<Type, Injector | Map<ModuleID, Injector>>();
   // components
-  private readonly components = new Map<Token, ProviderRecord>();
+  components = new Map<Token, ProviderRecord>();
   // own records
-  private readonly records = new Map<Token, ProviderRecord>();
+  records = new Map<Token, ProviderRecord>();
   // records from imported modules
-  private readonly importedRecords = new Map<Token, ProviderRecord>();
+  importedRecords = new Map<Token, ProviderRecord>();
   // scopes of injector
-  private scopes: Array<InjectorScopeType> = ['any'];
+  scopes: Array<InjectorScopeType> = ['any'];
   // id of injector/module
   id: ModuleID = 'static';
   // status of injector
@@ -78,18 +98,6 @@ export class Injector {
     return createInjector(injector, this, options);
   }
 
-  build(): Injector {
-    if (Array.isArray(this.injector)) return;
-    Compiler.build(this);
-    return this;
-  }
-
-  async buildAsync(): Promise<Injector> {
-    if (Array.isArray(this.injector)) return;
-    await Compiler.buildAsync(this);
-    return this;
-  }
-
   selectChild(mod: Type, id: ModuleID = 'static'): Injector | undefined {
     let founded = this.imports.get(mod);
     if (founded === undefined) {
@@ -99,6 +107,24 @@ export class Injector {
       return founded.get(id);
     }
     return founded.id === id ? founded : undefined;
+  }
+
+  build(): Injector {
+    if (this.status & InjectorStatus.BUILDED) return; 
+    this.status |= InjectorStatus.BUILDED;
+
+    if (Array.isArray(this.injector)) return;
+    Compiler.build(this);
+    return this;
+  }
+
+  async buildAsync(): Promise<Injector> {
+    if (this.status & InjectorStatus.BUILDED) return; 
+    this.status |= InjectorStatus.BUILDED;
+
+    if (Array.isArray(this.injector)) return;
+    await Compiler.buildAsync(this);
+    return this;
   }
 
   init(options?: { asyncMode: boolean }) {
@@ -111,7 +137,7 @@ export class Injector {
     const asyncMode = options?.asyncMode;
     return thenable(
       // run MODULE_INITIALIZERS
-      () => asyncMode === true ? this.runInitializerAsync() : this.runInitializer(),
+      () => asyncMode ? this.runInitializerAsync() : this.runInitializer(),
       () => {
         if (typeof this.injector !== 'function') return;
         return asyncMode ? this.getComponentAsync(this.injector) : this.getComponent(this.injector);
@@ -139,6 +165,17 @@ export class Injector {
 
     // only clear imported values
     this.importedRecords.clear();
+
+    // remove injector from parent records
+    if (this.parent !== NilInjector && typeof this.injector === 'function') {
+      const importInParent = this.parent.imports.get(this.injector);
+      if (importInParent === undefined) return;
+      if (importInParent instanceof Map) {
+        importInParent.has(this.id) && importInParent.delete(this.id);
+        return;
+      }
+      this.parent.imports.delete(this.injector);
+    }
   }
 
   /**
@@ -474,6 +511,89 @@ function lastProviderWrapper(injector: Injector, session: Session) {
 function lastDefinitionWrapper(injector: Injector, session: Session) {
   const def = session.definition;
   return injector.resolveDefinition(def, session);
+}
+
+class ProtoInjector extends Injector {
+  private stack: Injector[] = [];
+
+  build(): ProtoInjector {
+    if (this.status & InjectorStatus.BUILDED) return; 
+    this.status |= InjectorStatus.BUILDED;
+
+    if (Array.isArray(this.injector)) return;
+    this.stack = Compiler.build(this, true);
+    return this;
+  }
+
+  async buildAsync(): Promise<ProtoInjector> {
+    if (this.status & InjectorStatus.BUILDED) return; 
+    this.status |= InjectorStatus.BUILDED;
+
+    if (Array.isArray(this.injector)) return;
+    this.stack = await Compiler.buildAsync(this, true);
+    return this;
+  }
+
+  fork(): Injector {
+    // Map<old Injector, new Injector>
+    const injectorMap = new Map<Injector, Injector>();
+    const newInjector = this.cloneInjector(this, injectorMap);
+
+    const newStack = this.stack.map(oldInjector => injectorMap.get(oldInjector));
+    Compiler.initModules(newStack);
+    return newInjector;
+  }
+
+  async forkAsync(): Promise<Injector> {
+    // Map<old Injector, new Injector>
+    const injectorMap = new Map<Injector, Injector>();
+    const newInjector = this.cloneInjector(this, injectorMap);
+
+    const newStack = this.stack.map(oldInjector => injectorMap.get(oldInjector));
+    await Compiler.initModulesAsync(newStack);
+    return newInjector;
+  }
+
+  private cloneInjector(oldInjector: Injector, injectorMap: Map<Injector, Injector>): Injector {
+    const newInjector = Object.assign(Object.create(Injector.prototype) as Injector, oldInjector);
+    injectorMap.set(oldInjector, newInjector);
+
+    // create copy of the existing injectors in the subgraph
+    const newImports = new Map<Type, Injector | Map<ModuleID, Injector>>();
+    oldInjector.imports.forEach((injector, type) => {
+      if (injector instanceof Map) {
+        const newMap = new Map<ModuleID, Injector>();
+        newImports.set(type, newMap);
+        injector.forEach((injectorWithID, id) => {
+          newMap.set(id, this.cloneInjector(injectorWithID, injectorMap));
+        });
+      } else {
+        newImports.set(type, this.cloneInjector(injector, injectorMap));
+      }
+    });
+
+    // copy components
+    newInjector.components = new Map();
+    oldInjector.components.forEach((component, token) => newInjector.components.set(token, this.cloneProviderRecord(component, newInjector)));
+    
+    // copy records
+    newInjector.records = new Map();
+    oldInjector.records.forEach((provider, token) => newInjector.records.set(token, this.cloneProviderRecord(provider, newInjector)));
+    
+    // copy imported records
+    newInjector.importedRecords = new Map();
+    oldInjector.importedRecords.forEach((provider, token) => newInjector.importedRecords.set(token, injectorMap.get(provider.host).records.get(token)));
+
+    return newInjector;
+  }
+
+  private cloneProviderRecord(provider: ProviderRecord, newInjector: Injector): ProviderRecord {
+    const newProvider = new ProviderRecord(provider.token, newInjector, provider.isComponent);
+    newProvider.defs = provider.defs.map(def => ({ ...def, record: newProvider, values: new Map() }));
+    newProvider.constraintDefs = provider.constraintDefs.map(def => ({ ...def, record: newProvider, values: new Map() }));
+    newProvider.wrappers = provider.wrappers.map(wrapper => ({ ...wrapper }));
+    return newProvider;
+  }
 }
 
 export const NilInjector = new class {

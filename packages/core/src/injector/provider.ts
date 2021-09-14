@@ -7,9 +7,12 @@ import { Scope } from "../scope";
 import { Wrapper, compareOrder } from "../utils";
 
 export class ProviderRecord<T = any> {
-  readonly defs: Array<DefinitionRecord> = [];
-  readonly constraintDefs: Array<DefinitionRecord> = [];
-  readonly wrappers: Array<WrapperRecord> = [];
+  /**
+   * MAKE IT READONLY
+   */
+  defs: Array<DefinitionRecord> = [];
+  constraintDefs: Array<DefinitionRecord> = [];
+  wrappers: Array<WrapperRecord> = [];
 
   constructor(
     readonly token: Token<T>,

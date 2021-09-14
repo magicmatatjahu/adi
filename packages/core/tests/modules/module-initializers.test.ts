@@ -181,6 +181,59 @@ describe('MODULE_INITIALIZERS provider', function() {
     const injector = await new Injector(RootModule).buildAsync();
     expect(foobar).toEqual('foobar');
     expect(calledTimes).toEqual(1);
+    expect(eagerService).toBeInstanceOf(Service);
     expect(eagerService === injector.get(Service)).toEqual(true);
+  });
+
+  test('should properly run with proto injector', function() {
+    let timesCalled: number = 0;
+
+    @Module({ 
+      providers: [
+        {
+          provide: 'foobar',
+          useValue: 'foobar',
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useFactory: (value: string) => {
+            if (value === 'foobar') {
+              timesCalled++;
+            }
+          },
+          inject: ['foobar'],
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useFactory: (value: string) => {
+            if (value === 'foobar') {
+              timesCalled++;
+            }
+          },
+          inject: ['foobar'],
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useFactory: (value: string) => {
+            if (value === 'foobar') {
+              timesCalled++;
+            }
+          },
+          inject: ['foobar'],
+        },
+      ],
+    })
+    class RootModule {}
+
+    const injector = Injector.createProto(RootModule).build();
+
+    injector.fork();
+    expect(timesCalled).toEqual(3);
+
+    injector.fork();
+    expect(timesCalled).toEqual(6);
+
+    injector.fork();
+    expect(timesCalled).toEqual(9);
   });
 });

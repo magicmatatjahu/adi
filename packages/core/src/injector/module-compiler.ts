@@ -10,29 +10,54 @@ import {
 } from "../interfaces"
 import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
+import { InjectorStatus } from "../enums";
 
 export class ModuleCompiler {
   private asyncInitOptions = { asyncMode: true };
 
   build(
     injector: Injector,
-  ): void {
+  ): void;
+  build(
+    injector: Injector,
+    isProto: true,
+  ): Injector[];
+  build(
+    injector: Injector,
+    isProto?: true,
+  ): void | Injector[] {
     const compiledModule = this.compileMetadata(injector.injector as any) as CompiledModule;
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
     this.process(compiledModule, stack);
+
+    if (isProto === true) {
+      return stack;
+    }
     this.initModules(stack);
   }
 
   async buildAsync(
     injector: Injector,
-  ): Promise<void> {
+  ): Promise<void>;
+  async buildAsync(
+    injector: Injector,
+    isProto: true,
+  ): Promise<Injector[]>;
+  async buildAsync(
+    injector: Injector,
+    isProto?: true,
+  ): Promise<void | Injector[]> {
     const compiledModule = await this.compileMetadata(injector.injector as any);
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
     await this.processAsync(compiledModule, stack);
+
+    if (isProto === true) {
+      return stack;
+    }
     await this.initModulesAsync(stack);
   }
 
@@ -135,6 +160,7 @@ export class ModuleCompiler {
 
       // make proxy and don't push facade to the `stack` array
       injector = Injector.create(type, foundedInjector, { id });
+      injector.status |= InjectorStatus.PROXY_MODE;
       processedModule.isProxy = true;
     }
     processedModule.injector = injector;
@@ -142,7 +168,7 @@ export class ModuleCompiler {
     compiledModules.push(processedModule);
 
     // add injector to the imports of parent injector
-    const imports: Map<Type, Injector | Map<ModuleID, Injector>> = (parentInjector as any).imports;
+    const imports: Map<Type, Injector | Map<ModuleID, Injector>> = parentInjector.imports;
     if (imports.has(type)) {
       let modules = imports.get(type);
 
@@ -162,7 +188,7 @@ export class ModuleCompiler {
   private compileMetadata<T>(
     metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
   ): CompiledModule | Promise<CompiledModule> {
-    let mod = resolveRef(metatype);
+    const mod = resolveRef(metatype);
     if (!mod) {
       return;
     }
@@ -207,11 +233,11 @@ export class ModuleCompiler {
       return undefined;
     }
   
-    let foundedModule = (injector as any).imports.get(mod);
+    let foundedModule = injector.imports.get(mod);
     if (foundedModule) {
       if (foundedModule instanceof Map && foundedModule.has(id)) {
         return foundedModule.get(id);
-      } else if (foundedModule.id === id) {
+      } else if ((foundedModule as Injector).id === id) {
         return foundedModule as Injector;
       }
     }
@@ -223,12 +249,12 @@ export class ModuleCompiler {
       if (mod === parentInjector.injector) {
         return parentInjector;
       }
-      foundedModule = (parentInjector as any).imports.get(mod);
+      foundedModule = parentInjector.imports.get(mod);
   
       if (foundedModule) {
         if (foundedModule instanceof Map && foundedModule.has(id)) {
           return foundedModule.get(id);
-        } else if (foundedModule.id === id) {
+        } else if ((foundedModule as Injector).id === id) {
           return foundedModule as Injector;
         }
       }
@@ -238,13 +264,13 @@ export class ModuleCompiler {
   }
 
   // TODO: Think about changing the order of initialization from latest module
-  private initModules(stack: Array<Injector>): void {
+  initModules(stack: Array<Injector>): void {
     for (let i = 0, l = stack.length; i < l; i++) {
       stack[i].init();
     }
   }
 
-  private async initModulesAsync(stack: Array<Injector>): Promise<void> {
+  async initModulesAsync(stack: Array<Injector>): Promise<void> {
     for (let i = 0, l = stack.length; i < l; i++) {
       await stack[i].init(this.asyncInitOptions);
     }
