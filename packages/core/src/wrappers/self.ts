@@ -7,7 +7,7 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   // check for treeshakable provider
   injector.getRecord(token);
   
-  if ((injector as any).records.has(token)) {
+  if (injector.records.has(token)) {
     return next(injector, session);
   }
   // if token is not found

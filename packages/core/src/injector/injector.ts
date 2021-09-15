@@ -5,7 +5,7 @@ import {
   InjectorOptions, InjectorScopeType, PlainProvider,
   ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem
 } from "../interfaces";
-import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT } from "../constants";
+import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT, MODULE_REF } from "../constants";
 import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable } from "../utils";
@@ -22,20 +22,19 @@ import { DestroyManager } from "./destroy-manager";
 
 export class Injector {
   static create(
-    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    metatype: Type<any> | ModuleMetadata | Array<Provider> = [],
     parent: Injector = NilInjector,
     options?: InjectorOptions,
   ): Injector {
-    injector = Array.isArray(injector) ? { providers: injector } : injector;
-    return new Injector(injector, parent, options);
+    return new Injector(metatype, parent, options);
   }
 
   static createProto(
-    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    metatype: Type<any> | ModuleMetadata | Array<Provider> = [],
     parent: Injector = NilInjector,
     options?: InjectorOptions,
   ): ProtoInjector {
-    return ProtoInjector.create(injector, parent, options);
+    return ProtoInjector.create(metatype, parent, options);
   }
 
   /**
@@ -50,15 +49,14 @@ export class Injector {
   // records from imported modules
   importedRecords = new Map<Token, ProviderRecord>();
   // scopes of injector
-  scopes: Array<InjectorScopeType> = ['any', this.injector as any];
+  scopes: Array<InjectorScopeType> = ['any', this.metatype as any];
   // id of injector/module
   id: ModuleID = 'static';
   // status of injector
   status: InjectorStatus = InjectorStatus.NONE;
 
   constructor(
-    // change injector to the metatype
-    readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
+    readonly metatype: Type<any> | ModuleMetadata | Array<Provider> = [],
     readonly parent: Injector = NilInjector,
     public options: InjectorOptions = {},
   ) {
@@ -67,13 +65,18 @@ export class Injector {
       this.loadOptions();
     }
 
-    if (typeof injector === "function") {
-      this.addComponents(this.injector as any);
+    Array.isArray(metatype) && this.addProviders(metatype);
+    if (typeof metatype === "function") {
+      this.addComponents(metatype);
+      this.addComponents({ provide: MODULE_REF, useExisting: metatype });
     } else {
-      this.addComponents({ provide: this.injector as any, useValue: this.injector });
-      this.addProviders(Array.isArray(injector) ? injector : injector.providers);
+      this.addComponents({ provide: MODULE_REF, useValue: metatype });
     }
-    this.addCoreProviders();
+
+    this.addProviders([
+      { provide: Injector, useValue: this },
+      { provide: MODULE_INITIALIZERS, useWrapper: Multi() }
+    ]);
   }
 
   /**
@@ -102,7 +105,7 @@ export class Injector {
     if (this.status & InjectorStatus.BUILDED) return; 
     this.status |= InjectorStatus.BUILDED;
 
-    if (Array.isArray(this.injector)) return;
+    if (Array.isArray(this.metatype)) return;
     Compiler.build(this);
     return this;
   }
@@ -111,7 +114,7 @@ export class Injector {
     if (this.status & InjectorStatus.BUILDED) return; 
     this.status |= InjectorStatus.BUILDED;
 
-    if (Array.isArray(this.injector)) return;
+    if (Array.isArray(this.metatype)) return;
     await Compiler.buildAsync(this);
     return this;
   }
@@ -128,8 +131,7 @@ export class Injector {
       // run MODULE_INITIALIZERS
       () => asyncMode ? this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
       () => {
-        if (typeof this.injector !== 'function') return;
-        return asyncMode ? this.getComponentAsync(this.injector) : this.getComponent(this.injector);
+        return asyncMode ? this.getComponentAsync(MODULE_REF) : this.getComponent(MODULE_REF);
       }
     );
   }
@@ -170,7 +172,7 @@ export class Injector {
 
     // remove injector from parent imports
     if (this.parent !== NilInjector) {
-      const importInParent = this.parent.imports.get(this.injector as any);
+      const importInParent = this.parent.imports.get(this.metatype as any);
       importInParent && importInParent.delete(this.id);
     }
   }
@@ -187,13 +189,6 @@ export class Injector {
     this.id = id || this.id;
     scope && (this.scopes = this.scopes.concat(scope));
     return this.options;
-  }
-
-  private addCoreProviders() {
-    this.addProviders([
-      { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: Multi() }
-    ]);
   }
 
   /**
@@ -519,7 +514,7 @@ export class ProtoInjector extends Injector {
     if (this.status & InjectorStatus.BUILDED) return; 
     this.status |= InjectorStatus.BUILDED;
 
-    if (Array.isArray(this.injector)) return;
+    if (Array.isArray(this.metatype)) return;
     this.stack = Compiler.build(this, true);
     return this;
   }
@@ -528,7 +523,7 @@ export class ProtoInjector extends Injector {
     if (this.status & InjectorStatus.BUILDED) return; 
     this.status |= InjectorStatus.BUILDED;
 
-    if (Array.isArray(this.injector)) return;
+    if (Array.isArray(this.metatype)) return;
     this.stack = await Compiler.buildAsync(this, true);
     return this;
   }

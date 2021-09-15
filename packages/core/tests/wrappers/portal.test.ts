@@ -278,9 +278,7 @@ describe('Portal wrapper', function () {
         Service
       ]
     })
-    class MainModule {
-
-    }
+    class MainModule {}
 
     const injector = Injector.create(MainModule).build();
     const service = injector.get(Service);

@@ -27,7 +27,7 @@ export class ModuleCompiler {
     injector: Injector,
     isProto?: true,
   ): void | Injector[] {
-    const compiledModule = this.compileMetadata(injector.injector) as CompiledModule;
+    const compiledModule = this.compileMetadata(injector.metatype) as CompiledModule;
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -50,7 +50,7 @@ export class ModuleCompiler {
     injector: Injector,
     isProto?: true,
   ): Promise<void | Injector[]> {
-    const compiledModule = await this.compileMetadata(injector.injector);
+    const compiledModule = await this.compileMetadata(injector.metatype);
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -218,7 +218,7 @@ export class ModuleCompiler {
 
   // injector is here for searching in his parent and more depper
   private findModule(injector: Injector, type: Type, id: ModuleID): Injector | undefined | never {
-    if (type === injector.injector) {
+    if (type === injector.metatype) {
       // TODO: Check this statement - maybe error isn't needed
       // throw Error('Cannot import this same module to injector');
       console.log('Cannot import this same module to injector');
@@ -234,7 +234,7 @@ export class ModuleCompiler {
     // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
     while (parentInjector !== NilInjector) {
       // TODO: Check this statement - maybe it's needed
-      if (type === parentInjector.injector) {
+      if (type === parentInjector.metatype) {
         return parentInjector;
       }
 
