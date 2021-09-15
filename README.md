@@ -3,7 +3,6 @@
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules
 - Create `Request` scope
 - Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers
-- Implement the `onDestroy` hook // created first draft 
 - Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
 - Handle onInit in async mode
 - Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
@@ -30,7 +29,7 @@
 ```ts
 {
   provide: Component,
-  qualifier: when.isComponent(),
+  qualifier: 'some qualifier'
 }
 ```
 
@@ -38,6 +37,10 @@
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors?
 - Think about creating modules from exports which is not imported, so they are not created before exporting
 - Check deep extends
+- Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack
+- Introduce wrappers for modules 
+- Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers
+- Rethink session - for example: in method injection it stores information about previous sessions - this can be misleading for singleton because for it previous sessions point to the element that created it first
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
@@ -61,6 +64,10 @@ React:
 - Override injectable options in the `useClass` provider case - scope is overrided if can be and annotations are merged
 - Handle useWrappers (on Decorate example) in the definition (currently they are evaluated each time for instance, even for singleton). For appropriate instance it should evaluates only one time - handled by DECORATOR_ID value.
 - Add wrappers for components // ADI treats components as provdiers to it works
+
+## IMPLEMENTED PARTIALLY BUT IT WORKS
+
+- Implement the `onDestroy` hook
 
 ## NICE TO HAVE BUT NOT NEEDED
 

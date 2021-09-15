@@ -1,5 +1,6 @@
 import { Context, InjectionToken } from "./injector";
 import { InjectorOptions } from "./interfaces";
+import { Scope } from "./scope";
 import { Optional, Self } from "./wrappers";
 
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");

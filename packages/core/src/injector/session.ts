@@ -1,7 +1,7 @@
 import { 
   InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord, ScopeShape,
 } from "../interfaces";
-import { NOOP_FN, NULL_REF } from "../constants";
+import { NOOP_FN } from "../constants";
 
 import { Context } from "./context";
 import { Scope } from "../scope";
@@ -10,6 +10,13 @@ import { ProviderRecord } from "./provider";
 import { SessionStatus } from "../enums";
 
 export class Session<T = any> {
+  static create(
+    options: InjectionOptions,
+    metadata: InjectionMetadata,
+  ) {
+    return new Session(void 0, void 0, void 0, options, metadata, void 0);
+  }
+
   public status: SessionStatus = SessionStatus.NONE;
 
   constructor(

@@ -3,7 +3,7 @@ import {
   DefinitionRecord, InstanceRecord,
   Provider, Type,
   InjectorOptions, InjectorScopeType, PlainProvider,
-  ModuleMetadata, ModuleID, ExportItem, ExportedModule
+  ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem
 } from "../interfaces";
 import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT } from "../constants";
 import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
@@ -176,6 +176,21 @@ export class Injector {
   }
 
   /**
+   * MISC
+   */
+  invoke<T>(fun: (...args: any[]) => T, injections: Array<InjectionItem>) {
+    const deps = InjectorMetadata.convertDependencies(injections, fun);
+    const session = Session.create(undefined, { target: fun });
+    return fun(...InjectorResolver.injectDeps(deps, this, session));
+  }
+
+  async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
+    const deps = InjectorMetadata.convertDependencies(injections, fun);
+    const session = Session.create(undefined, { target: fun });
+    return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
+  }
+
+  /**
    * PROVIDERS
    */
   get<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): T | undefined {
@@ -200,12 +215,7 @@ export class Injector {
 
   resolveRecord<T>(session: Session): T | undefined {
     const token = session.getToken();
-    let record: ProviderRecord;
-    if (session.status & SessionStatus.COMPONENT_RESOLUTION) {
-      record = this.components.get(token);
-    } else {
-      record = this.getRecord(token);
-    }
+    let record: ProviderRecord = session.status & SessionStatus.COMPONENT_RESOLUTION ? this.components.get(token) : this.getRecord(token);
 
     if (record === undefined) {
       // Reuse session in the parent

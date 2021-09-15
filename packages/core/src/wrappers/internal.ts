@@ -29,6 +29,9 @@ function internalWrapper(inject: 'record' | 'definition' | 'instance'): WrapperD
       );
     }
 
+    if (inject === 'definition' && session.definition) return session.definition;
+    if (inject === 'record' && session.record) return session.record;
+    
     // annotate session as dry run
     session.status |= SessionStatus.DRY_RUN;
 

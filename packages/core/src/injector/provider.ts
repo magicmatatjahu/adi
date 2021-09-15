@@ -1,5 +1,5 @@
 import { Injector, Context, Session } from ".";
-import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, MODULE_INITIALIZERS } from "../constants";
+import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, MODULE_INITIALIZERS, EMPTY_ARRAY } from "../constants";
 import { InjectorStatus, InstanceStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
@@ -91,8 +91,7 @@ export class ProviderRecord<T = any> {
     // check if definition must be resolved with MODULE_INITIALIZERS
     // add def only to the MODULE_INITIALIZERS definitions when injector isn't initialized
     if (annotations[ANNOTATIONS.EAGER] === true && (this.host.status & InjectorStatus.INITIALIZED) === 0) {
-      const moduleInitializers = this.host.getRecord(MODULE_INITIALIZERS);
-      moduleInitializers.defs.push(def);
+      this.host.getRecord(MODULE_INITIALIZERS).defs.push(def);
     }
 
     return def;
@@ -120,8 +119,9 @@ export class ProviderRecord<T = any> {
         return def;
       }
     }
-    if (this.defs.length) {
-      return this.defs[this.defs.length - 1];
+    const l = this.defs.length;
+    if (l > 0) {
+      return this.defs[l - 1];
     }
     return undefined;
   }
@@ -129,6 +129,8 @@ export class ProviderRecord<T = any> {
   filterWrappers(
     session?: Session
   ): Array<Wrapper> {
+    if (this.wrappers.length === 0) return EMPTY_ARRAY;
+
     const wrappers = this.wrappers, satisfyingWraps: WrapperRecord[] = [];
     for (let i = 0, l = wrappers.length; i < l; i++) {
       const wrapper = wrappers[i];
