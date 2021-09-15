@@ -1,5 +1,5 @@
 import { Context } from "../injector";
-import { InjectionItem, InstanceRecord, ScopeShape, PlainInjections } from ".";
+import { InjectionItem, ScopeShape, PlainInjections } from ".";
 import { Token } from "../types";
 import { Wrapper } from "../utils/wrappers";
 

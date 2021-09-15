@@ -86,12 +86,12 @@ export class ModuleCompiler {
     if (isProxy === false) {
       injector.addProviders(moduleDef.providers);
       injector.addComponents(moduleDef.components);
-      injector.processExports(moduleDef.exports, injector, exportTo);
+      injector.exportsProviders(moduleDef.exports, exportTo);
     }
     if (dynamicDef !== undefined) {
       injector.addProviders(dynamicDef.providers);
       injector.addComponents(dynamicDef.components);
-      injector.processExports(dynamicDef.exports, injector, exportTo);
+      injector.exportsProviders(dynamicDef.exports, exportTo);
     }
   }
 
@@ -119,12 +119,12 @@ export class ModuleCompiler {
     if (isProxy === false) {
       injector.addProviders(moduleDef.providers);
       injector.addComponents(moduleDef.components);
-      injector.processExports(moduleDef.exports, injector, exportTo);
+      injector.exportsProviders(moduleDef.exports, exportTo);
     }
     if (dynamicDef !== undefined) {
       injector.addProviders(dynamicDef.providers);
       injector.addComponents(dynamicDef.components);
-      injector.processExports(dynamicDef.exports, injector, exportTo);
+      injector.exportsProviders(dynamicDef.exports, exportTo);
     }
   }
 

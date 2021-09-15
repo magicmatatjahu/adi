@@ -114,39 +114,6 @@ describe('MODULE_INITIALIZERS provider', function() {
     expect(eagerService === injector.get(Service)).toEqual(true);
   });
 
-  test('should calls the returned functions', async function() {
-    let timesCalled: number = 0;
-
-    function onInit() {
-      timesCalled++;
-    }
-
-    @Module({ 
-      providers: [
-        {
-          provide: 'foobar',
-          useValue: 'foobar',
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: async () => {
-            return onInit;
-          },
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: () => {
-            return onInit;
-          },
-        },
-      ],
-    })
-    class RootModule {}
-
-    await new Injector(RootModule).buildAsync();
-    expect(timesCalled).toEqual(2);
-  });
-
   test('should provisions the provider with the `@adi/eager=true` annotation', async function() {
     let foobar: string = '';
     let calledTimes: number = 0;
@@ -183,6 +150,50 @@ describe('MODULE_INITIALIZERS provider', function() {
     expect(calledTimes).toEqual(1);
     expect(eagerService).toBeInstanceOf(Service);
     expect(eagerService === injector.get(Service)).toEqual(true);
+  });
+
+  test('should properly run in sync mode', function() {
+    let timesCalled: number = 0;
+
+    @Module({ 
+      providers: [
+        {
+          provide: 'foobar',
+          useValue: 'foobar',
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useFactory: (value: string) => {
+            if (value === 'foobar') {
+              timesCalled++;
+            }
+          },
+          inject: ['foobar'],
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useFactory: (value: string) => {
+            if (value === 'foobar') {
+              timesCalled++;
+            }
+          },
+          inject: ['foobar'],
+        },
+        {
+          provide: MODULE_INITIALIZERS,
+          useFactory: (value: string) => {
+            if (value === 'foobar') {
+              timesCalled++;
+            }
+          },
+          inject: ['foobar'],
+        },
+      ],
+    })
+    class RootModule {}
+
+    Injector.create(RootModule).build();
+    expect(timesCalled).toEqual(3);
   });
 
   test('should properly run with proto injector', function() {

@@ -2,12 +2,18 @@ import { NOOP_FN } from "../constants";
 import { ProviderDef } from "../interfaces";
 import { Session } from "./session";
 
-export class Context<T = any> {
+export class Context<T = Record<string | symbol, unknown>> {
   constructor(
     private readonly data?: T,
     // for debug purpose
     private readonly name?: string,
   ) {}
+
+  get<K extends keyof T>(key: K): T[K];
+  get(): T
+  get<K extends keyof T>(key?: K): T[K] | T {
+    return key ? this.data[key] : this.data;
+  }
 
   static $$prov: ProviderDef = {
     token: Context,

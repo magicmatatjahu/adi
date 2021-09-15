@@ -50,7 +50,7 @@ export class Injector {
   // records from imported modules
   importedRecords = new Map<Token, ProviderRecord>();
   // scopes of injector
-  scopes: Array<InjectorScopeType> = ['any'];
+  scopes: Array<InjectorScopeType> = ['any', this.injector as any];
   // id of injector/module
   id: ModuleID = 'static';
   // status of injector
@@ -60,19 +60,19 @@ export class Injector {
     // change injector to the metatype
     readonly injector: Type<any> | ModuleMetadata | Array<Provider> = [],
     readonly parent: Injector = NilInjector,
-    private readonly options: InjectorOptions = {},
+    public options: InjectorOptions = {},
   ) {
     if (options !== undefined) {
       this.addProviders(options.setupProviders);
-      this.configure(options);
+      this.loadOptions();
     }
 
     if (typeof injector === "function") {
-      this.addComponent(this.injector as any);
+      this.addComponents(this.injector as any);
     } else {
+      this.addComponents({ provide: this.injector as any, useValue: this.injector });
       this.addProviders(Array.isArray(injector) ? injector : injector.providers);
     }
-
     this.addCoreProviders();
   }
 
@@ -120,13 +120,13 @@ export class Injector {
     if (this.status & InjectorStatus.INITIALIZED) return; 
     this.status |= InjectorStatus.INITIALIZED;
 
-    // resolve INJECTOR_OPTIONS provider again - it can be changed in the provider array
-    this.configure();
+    // resolve INJECTOR_OPTIONS provider again
+    this.loadOptions();
 
     const asyncMode = options?.asyncMode;
     return thenable(
       // run MODULE_INITIALIZERS
-      () => asyncMode ? this.runInitializerAsync() : this.runInitializer(),
+      () => asyncMode ? this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
       () => {
         if (typeof this.injector !== 'function') return;
         return asyncMode ? this.getComponentAsync(this.injector) : this.getComponent(this.injector);
@@ -175,19 +175,25 @@ export class Injector {
     }
   }
 
-  /**
-   * MISC
-   */
-  invoke<T>(fun: (...args: any[]) => T, injections: Array<InjectionItem>) {
-    const deps = InjectorMetadata.convertDependencies(injections, fun);
-    const session = Session.create(undefined, { target: fun });
-    return fun(...InjectorResolver.injectDeps(deps, this, session));
+  private loadOptions(): InjectorOptions {    
+    if (this.records.has(INJECTOR_OPTIONS) === true) {
+      const providerOptions = this.get(INJECTOR_OPTIONS) || EMPTY_OBJECT as InjectorOptions;
+      const previousDisablingExports = this.options.disableExporting;
+      this.options = Object.assign(this.options, providerOptions);
+      this.options.disableExporting = previousDisablingExports;
+    }
+
+    const { scope, id } = this.options;
+    this.id = id || this.id;
+    scope && (this.scopes = this.scopes.concat(scope));
+    return this.options;
   }
 
-  async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
-    const deps = InjectorMetadata.convertDependencies(injections, fun);
-    const session = Session.create(undefined, { target: fun });
-    return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
+  private addCoreProviders() {
+    this.addProviders([
+      { provide: Injector, useValue: this },
+      { provide: MODULE_INITIALIZERS, useWrapper: Multi() }
+    ]);
   }
 
   /**
@@ -320,7 +326,7 @@ export class Injector {
           record = InjectorMetadata.customProviderToRecord(token, def as any, this);
         }
       } else { // imports case
-        const annotations = def?.options?.annotations;
+        const annotations = def?.options?.annotations || EMPTY_OBJECT;
         if (annotations[ANNOTATIONS.EXPORT] !== true) {
           return;
         }
@@ -341,15 +347,16 @@ export class Injector {
     return record;
   }
 
-  addProvider(provider: Provider): void {
-    if (this.status & InjectorStatus.DESTROYED) return; 
-    provider && InjectorMetadata.toRecord(provider, this);
-  }
+  addProviders(providers: Provider | Provider[] = []): void {
+    if (this.status & InjectorStatus.DESTROYED) return;
 
-  addProviders(providers: Provider[] = []): void {
-    for (let i = 0, l = providers.length; i < l; i++) {
-      InjectorMetadata.toRecord(providers[i], this);
+    if (Array.isArray(providers)) {
+      for (let i = 0, l = providers.length; i < l; i++) {
+        providers[i] && InjectorMetadata.toRecord(providers[i], this);
+      }
+      return;
     }
+    providers && InjectorMetadata.toRecord(providers, this);
   }
 
   // TODO: add case with imported modules
@@ -358,51 +365,6 @@ export class Injector {
       return provideIn.some(scope => this.scopes.includes(scope));
     }
     return this.scopes.includes(provideIn);
-  }
-
-  private configure(options?: InjectorOptions) {
-    options = options || this.get(INJECTOR_OPTIONS, COMMON_HOOKS.OptionalSelf) || EMPTY_OBJECT as InjectorOptions;
-    const { scope, id } = options;
-
-    this.id = id || this.id;
-    this.scopes = ["any", this.injector as any];
-    if (scope === undefined) return;
-    if (Array.isArray(scope)) {
-      for (let i = 0, l = scope.length; i < l; i++) {
-        this.scopes.push(scope[i]);
-      }  
-    } else {
-      this.scopes.push(scope);
-    }
-  }
-  
-  private addCoreProviders() {
-    this.addProviders([
-      { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: Multi() }
-    ]);
-  }
-
-  private runInitializer() {
-    const initializers = this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) || [];
-    let initializer = undefined;
-    for (let i = 0, l = initializers.length; i < l; i++) {
-      initializer = initializers[i];
-      if (typeof initializer === "function") {
-        initializer();
-      }
-    }
-  }
-
-  private async runInitializerAsync() {
-    const initializers = (await this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf)) || [];
-    let initializer = undefined;
-    for (let i = 0, l = initializers.length; i < l; i++) {
-      initializer = await initializers[i];
-      if (typeof initializer === "function") {
-        await initializer();
-      }
-    }
   }
 
   /**
@@ -431,29 +393,49 @@ export class Injector {
     return this.resolveToken(wrapper, session);
   }
 
-  addComponent(component: Type): void {
-    if (this.status & InjectorStatus.DESTROYED) return; 
-    typeof component === 'function' && InjectorMetadata.toRecord(component, this, true);
+  addComponents(components: Provider | Provider[] = []): void {
+    if (this.status & InjectorStatus.DESTROYED) return;
+
+    if (Array.isArray(components)) {
+      for (let i = 0, l = components.length; i < l; i++) {
+        components[i] && InjectorMetadata.toRecord(components[i], this, true);
+      }
+      return;
+    }
+    components && InjectorMetadata.toRecord(components, this, true);
   }
 
-  addComponents(components: Type[] = []): void {
-    for (let i = 0, l = components.length; i < l; i++) {
-      this.addComponent(components[i]);
-    }
+  /**
+   * MISC
+   */
+  invoke<T>(fun: (...args: any[]) => T, injections: Array<InjectionItem>) {
+    const deps = InjectorMetadata.convertDependencies(injections, fun);
+    const session = Session.create(undefined, { target: fun });
+    return fun(...InjectorResolver.injectDeps(deps, this, session));
+  }
+
+  async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
+    const deps = InjectorMetadata.convertDependencies(injections, fun);
+    const session = Session.create(undefined, { target: fun });
+    return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
   }
 
   /**
    * EXPORTS
    */
-  processExports(exps: Array<ExportItem>, from: Injector, to: Injector): void {
-    if (exps === undefined || to === NilInjector) return;
+  exportsProviders(exps: Array<ExportItem> = [], to: Injector): void {
+    if (
+      this.status & InjectorStatus.DESTROYED || 
+      to === NilInjector ||
+      this.loadOptions().disableExporting === false
+    ) return;
+
     for (let i = 0, l = exps.length; i < l; i++) {
-      this.processExport(exps[i], from, to);
+      this.processExport(exps[i], to);
     }
   }
 
-  private processExport(exp: ExportItem, from: Injector, to: Injector): void {
-    if (from.status & InjectorStatus.DESTROYED) return; 
+  private processExport(exp: ExportItem, to: Injector): void {
     exp = resolveRef(exp);
 
     // export can be module definition
@@ -462,7 +444,7 @@ export class Injector {
 
       // operate on Module
       if (moduleDef !== undefined) {
-        this.processModuleExport(exp as Type, 'static', from, to);
+        this.processModuleExport(exp as Type, 'static', to);
         return;
       }
     }
@@ -470,35 +452,35 @@ export class Injector {
     // operate on DynamicModule
     if ((exp as ExportedModule).module) {
       const { module, id, providers } = (exp as ExportedModule);
-      this.processModuleExport(module, id || 'static', from, to, providers);
+      this.processModuleExport(module, id || 'static', to, providers);
       return;
     }
 
     // Token, Provider and InjectionToken case
     // import also imported records
     const token: any = (exp as PlainProvider).provide || exp;
-    const record = from.getRecord(token);
+    const record = this.getRecord(token);
     if (record !== undefined) {
       to.importedRecords.set(token, record);
     }
   }
 
-  private processModuleExport(mod: Type, id: ModuleID = 'static', from: Injector, to: Injector, providers?: Array<Provider | Token>) {
-    if (from.imports.has(mod) === false) {
+  private processModuleExport(mod: Type, id: ModuleID = 'static', to: Injector, providers?: Array<Provider | Token>) {
+    if (this.imports.has(mod) === false) {
       throw Error(`cannot export from ${mod} module`);
     }
 
-    const fromModule = from.imports.get(mod).get(id);
+    const fromModule = this.imports.get(mod).get(id);
     if (fromModule === undefined) {
       throw Error(`cannot export from ${mod} module`);
     }
 
     if (providers === undefined) {
-      from.importedRecords.forEach((record, token) => {
+      this.importedRecords.forEach((record, token) => {
         if (record.host === fromModule) to.importedRecords.set(token, record);
       });
     } else {
-      from.importedRecords.forEach((record, token) => {
+      this.importedRecords.forEach((record, token) => {
         if (record.host === fromModule) {
           const givenToken = providers.some(prov => prov === token || (prov as PlainProvider).provide === token);
           givenToken && to.importedRecords.set(token, record);

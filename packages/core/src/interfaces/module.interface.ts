@@ -5,7 +5,7 @@ import { ModuleDef } from "./definition.interface";
 
 export interface ModuleMetadata {
   imports?: Array<ImportItem>;
-  components?: Array<Type>;
+  components?: Array<Provider>;
   providers?: Array<Provider>;
   exports?: Array<ExportItem>;
 }

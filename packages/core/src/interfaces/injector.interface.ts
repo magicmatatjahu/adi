@@ -6,4 +6,5 @@ export interface InjectorOptions {
   scope?: InjectorScopeType | InjectorScopeType[];
   id?: ModuleID;
   setupProviders?: Provider[];
+  disableExporting?: boolean;
 }
