@@ -7,6 +7,7 @@ import {
   ForwardRef,
   CompiledModule,
   ModuleID,
+  Provider,
 } from "../interfaces"
 import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
@@ -26,7 +27,7 @@ export class ModuleCompiler {
     injector: Injector,
     isProto?: true,
   ): void | Injector[] {
-    const compiledModule = this.compileMetadata(injector.injector as any) as CompiledModule;
+    const compiledModule = this.compileMetadata(injector.injector) as CompiledModule;
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -49,7 +50,7 @@ export class ModuleCompiler {
     injector: Injector,
     isProto?: true,
   ): Promise<void | Injector[]> {
-    const compiledModule = await this.compileMetadata(injector.injector as any);
+    const compiledModule = await this.compileMetadata(injector.injector);
     compiledModule.injector = injector;
     compiledModule.exportTo = injector.parent;
     const stack: Array<Injector> = [injector];
@@ -175,20 +176,20 @@ export class ModuleCompiler {
   }
 
   private compileMetadata<T>(
-    metatype: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
+    metatype: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
   ): CompiledModule | Promise<CompiledModule> {
-    const mod = resolveRef(metatype);
-    if (!mod) {
+    metatype = resolveRef(metatype);
+    if (!metatype) {
       return;
     }
 
     return thenable<any>(
-      () => mod,
+      () => metatype,
       this.extractMetadata,
     );
   }
 
-  private extractMetadata<T>(metatype?: Type<T> | DynamicModule<T>): CompiledModule {
+  private extractMetadata<T>(metatype?: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T>): CompiledModule {
     if (!metatype) {
       return;
     }
@@ -196,12 +197,14 @@ export class ModuleCompiler {
     let moduleDef = getModuleDef(metatype), 
       dynamicDef: DynamicModule<T> = undefined;
 
-    // DynamicModule case
-    if (moduleDef === undefined) {
+    if (moduleDef === undefined) { // maybe DynamicModule case
       dynamicDef = metatype as DynamicModule<T>;
-      metatype = dynamicDef.module;
-      if (metatype !== undefined) {
+      if (dynamicDef.module !== undefined) { // DynamicModule case
+        metatype = dynamicDef.module;
         moduleDef = getModuleDef(metatype);
+      } else { // ModuleMetadata case
+        dynamicDef = undefined;
+        moduleDef = metatype as ModuleMetadata;
       }
     }
 

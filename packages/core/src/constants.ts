@@ -12,6 +12,8 @@ export const INJECTOR_OPTIONS = new InjectionToken<InjectorOptions>({
 
 export const MODULE_INITIALIZERS = new InjectionToken<any>({}, "MODULE_INITIALIZERS");
 
+export const MODULE_REF = new InjectionToken<any>({}, "MODULE_REF");
+
 export const ANNOTATIONS = {
   NAME: '@adi/name',
   NAMED: '@adi/named',

@@ -72,6 +72,34 @@ describe('Module', function() {
     expect(component.service).toBeInstanceOf(Service);
   });
 
+  test('should be able to create module from plain ModuleMetadata type', function() {
+    @Injectable()
+    class Service {}
+
+    @Component()
+    class Controller {
+      constructor(
+        readonly service: Service,
+      ) {}
+    }
+
+    const injector = Injector.create({
+      components: [
+        Controller,
+      ],
+      providers: [
+        Service,
+      ],
+    }).build();
+
+    const service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+
+    const component = injector.getComponent(Controller);
+    expect(component).toBeInstanceOf(Controller);
+    expect(component.service).toBeInstanceOf(Service);
+  });
+
   test('should init', async function() {
     const onInit: string[] = []; 
 
@@ -215,7 +243,6 @@ describe('Module', function() {
 
   test('should destroy itself and imported modules in proper order', async function() {
     const onDestroyOrder: string[] = [];
-
 
     @Injectable()
     class ChildService implements OnDestroy {
