@@ -1,28 +1,30 @@
 import { useEffect, useRef } from "react";
 
-import { InjectionItem } from "@adi/core";
+import { DestroyManager, InjectionItem, InstanceRecord } from "@adi/core";
 
 import { injectArray } from "../utils";
 import { useInjector } from "./useInjector";
 
-export function useInjections<T>(...injections: Array<InjectionItem>): T {
-  const instances = useRef(null);
+export function useInjections(...injections: Array<InjectionItem>): any[] {
   const injector = useInjector();
+  const instancesRef = useRef<InstanceRecord[]>(null);
+  const valuesRef = useRef<any[]>(null);
 
   useEffect(() => {
-    // // TODO: make cleanup
-    // return () => {
-    //   console.log("cleaned up useInjections");
-    //   instances.current = null;
-    // };
+    return () => {
+      // change injector argument to undefined
+      DestroyManager.destroyAll('default', instancesRef.current, injector);
+      instancesRef.current = null;
+      valuesRef.current = null;
+    };
   }, []);
 
   if (injector === null) {
     throw new Error();
   }
 
-  return (
-    instances.current ||
-    (instances.current = injectArray(injector, injections))
-  );
+  if (instancesRef.current) return valuesRef.current;
+  const result = injectArray(injector, injections);
+  instancesRef.current = result.instances;
+  return (valuesRef.current = result.values);
 }

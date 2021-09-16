@@ -81,7 +81,7 @@ describe('Constraint', function() {
     });
   });
 
-  describe('Concat', function() {
+  describe('And', function() {
     test('should works', function () {
       const ctx = new Context();
 
@@ -93,7 +93,7 @@ describe('Constraint', function() {
         {
           provide: 'foobar',
           useValue: 'bar',
-          when: when.concat(when.labelled({
+          when: when.and(when.labelled({
             foo: 'bar',
             bar: 'foo',
           }), when.withContext(ctx)),
@@ -110,6 +110,37 @@ describe('Constraint', function() {
       expect(foobar[1]).toEqual('bar');
     });
   });
+
+  describe('Or', function() {
+    test('should works', function () {
+      const ctx = new Context();
+
+      const injector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'foo',
+        },
+        {
+          provide: 'foobar',
+          useValue: 'bar',
+          when: when.or(when.labelled({
+            abc: 'abc',
+            def: 'def',
+          }), when.withContext(ctx)),
+        },
+        {
+          provide: 'test',
+          useFactory() { return arguments },
+          inject: ['foobar', Token('foobar', Labelled({ foo: 'bar', bar: 'foo' }, Ctx(ctx)))],
+        }
+      ]);
+  
+      const foobar = injector.get('test') as string;
+      expect(foobar[0]).toEqual('foo');
+      expect(foobar[1]).toEqual('bar');
+    });
+  });
+
 
   test('should works with hierarchical injectors', function () {
     const parentInjector = new Injector([

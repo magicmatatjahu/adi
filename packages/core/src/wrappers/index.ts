@@ -8,6 +8,7 @@ export * from "./portal";
 export * from "./factory";
 export * from "./fallback";
 export * from "./inquirer";
+export * from "./internal";
 export * from "./labelled";
 export * from "./lazy";
 export * from "./memo";

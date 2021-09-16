@@ -24,7 +24,7 @@ export function labelled(l: Record<string | symbol | number, any>): ConstraintDe
   }
 }
 
-export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
+export function and(...fns: Array<ConstraintDef>): ConstraintDef {
   return (session) => {
     for (let i = 0, l = fns.length; i < l; i++) {
       if (fns[i](session) === false) return false;
@@ -33,11 +33,21 @@ export function concat(...fns: Array<ConstraintDef>): ConstraintDef {
   }
 }
 
+export function or(...fns: Array<ConstraintDef>): ConstraintDef {
+  return (session) => {
+    for (let i = 0, l = fns.length; i < l; i++) {
+      if (fns[i](session) === true) return true;
+    }
+    return false;
+  }
+}
+
 export const when = {
   named,
   withContext,
   labelled,
-  concat,
+  and,
+  or,
 }
 
 export const NOOP_CONSTRAINT = () => true;

@@ -1,6 +1,6 @@
-import { InjectionItem, Injector, ValueProvider, when } from "@adi/core";
+import { InjectionItem, Injector, InstanceRecord, Internal, ValueProvider, when } from "@adi/core";
 import { Token } from "@adi/core/lib/types";
-import { isWrapper } from "@adi/core/lib/utils";
+import { isWrapper, Wrapper } from "@adi/core/lib/utils";
 
 import { ComponentProvider } from "./interfaces";
 import { COMPONENT_TOKEN } from "./constants";
@@ -14,23 +14,40 @@ export function createComponentProvider(componentProvider: ComponentProvider): V
   };
 }
 
-export function injectArray(injector: Injector, injections: Array<InjectionItem>): any[] {
-  return injections.map(injectionItem => inject(injector, injectionItem));
+const instanceWrapper = Internal('instance') as Wrapper;
+export function wrap(wrapper: Wrapper): Wrapper {
+  return {
+    ...instanceWrapper,
+    next: wrapper,
+  }
 }
 
-export function injectMap(injector: Injector, injections: Record<string | symbol, InjectionItem>): Record<string | symbol, any> {
-  return Object.keys(injections).reduce((result, key) => {
-    result[key] = inject(injector, injections[key]);
-    return result;
-  }, {});
+export function injectArray(injector: Injector, injections: Array<InjectionItem>): { values: any[], instances: InstanceRecord[] } {
+  const result: { values: any[], instances: InstanceRecord[] } = { values: [], instances: [] }
+  for (let i = 0, l = injections.length; i < l; i++) {
+    const provider = injections[i];
+    const [value, instance] = inject(injector, provider);
+    result.values.push(value); result.instances.push(instance);
+  }
+  return result;
 }
 
-function inject<T>(injector: Injector, injectionItem: InjectionItem<T>): T {
+export function injectMap(injector: Injector, injections: Record<string | symbol, InjectionItem>): { values: Record<string | symbol, any>, instances: InstanceRecord[] } {
+  const result: { values: Record<string | symbol, any>, instances: InstanceRecord[] } = { values: {}, instances: [] }, keys = Object.keys(injections);
+  for (let i = 0, l = keys.length; i < l; i++) {
+    const key = keys[i];
+    const [value, instance] = inject(injector, injections[key]);
+    result.values[key] = value; result.instances.push(instance);
+  }
+  return result;
+}
+
+function inject<T>(injector: Injector, injectionItem: InjectionItem<T>): [T, InstanceRecord<T>] {
   if (isWrapper(injectionItem)) {
-    return injector.get(undefined, injectionItem);
+    return injector.get(undefined, wrap(injectionItem));
   }
   if ((injectionItem as any).token !== undefined) {
-    return injector.get((injectionItem as any).token, (injectionItem as any).wrapper);
+    return injector.get((injectionItem as any).token, wrap((injectionItem as any).wrapper));
   }
-  return injector.get(injectionItem as Token);
+  return injector.get(injectionItem as Token, instanceWrapper);
 }

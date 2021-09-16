@@ -1,4 +1,4 @@
-import { Injector } from "../injector";
+import { Injector, ProtoInjector } from "../injector";
 import { InjectionArgument, InjectionItem, Provider, WrapperDef } from "../interfaces";
 import { WithInjector } from "./with-injector";
 import { createWrapper } from "../utils/wrappers";
@@ -19,11 +19,11 @@ function dynamicInjection(injector: Injector, deep: boolean) {
 }
 
 function wrapper(providersOrOptions: Provider[] | PortalOptions): WrapperDef {
-  let providers: Provider[], deep: boolean = false, deepInjector: Injector = undefined;
+  let protoInjector: ProtoInjector, deep: boolean = false, deepInjector: Injector = undefined;
   if (Array.isArray(providersOrOptions)) {
-    providers = providersOrOptions;
+    protoInjector = ProtoInjector.create(providersOrOptions);
   } else if (typeof providersOrOptions === 'object') {
-    providers = providersOrOptions.providers;
+    protoInjector = ProtoInjector.create(providersOrOptions.providers);
     deep = providersOrOptions.deep;
     deepInjector = (providersOrOptions as any).injector;
   }
@@ -42,8 +42,8 @@ function wrapper(providersOrOptions: Provider[] | PortalOptions): WrapperDef {
     const hostInjector = forkedSession.definition.record.host;
 
     let injector = deepInjector || hostInjector;
-    if (providers) {
-      injector = Injector.create(providers, injector);
+    if (protoInjector) {
+      injector = protoInjector.fork(injector);
     }
     session.options.injections = {
       dynamic: dynamicInjection(injector, deep), 

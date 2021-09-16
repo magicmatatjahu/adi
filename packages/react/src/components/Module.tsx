@@ -1,5 +1,5 @@
 import { useEffect, useRef, createElement } from "react";
-import { Injector, InjectorOptions, ModuleMetadata, Provider, Type } from "@adi/core";
+import { Injector, InjectorOptions, ModuleMetadata, ProtoInjector, Provider, Type } from "@adi/core";
 
 import { useInjector } from "../hooks";
 import { InjectorContext } from "../constants";
@@ -18,45 +18,53 @@ interface ComponentsInline {
   options?: InjectorOptions;
 }
 
-interface InjectorInline {
-  injector: Injector;
-}
+// interface InjectorInline {
+//   injector: ProtoInjector
+// }
 
 export type ModuleProps = 
  | ModuleInline
  | ComponentsInline
- | InjectorInline;
+//  | InjectorInline;
 
 export const Module: React.FunctionComponent<ModuleProps> = (props) => {
-  const injectorRef = useRef<Injector>((props as InjectorInline).injector ? (props as InjectorInline).injector : null);
   const parentInjector = useInjector();
+  const injectorRef = useRef<Injector>(null);
+    // isInjectorInline(props) ? props.injector.fork(parentInjector || undefined) : null
+  // );
 
   useEffect(() => {
     return () => {
-      injectorRef.current.destroy();
+      setTimeout(() => {
+        // add to the end of event loop
+        injectorRef.current.destroy();
+      }, 0);
     };
   }, []);
 
   const injector = 
     injectorRef.current ||
-    (injectorRef.current = createInjector(props as ModuleInline, parentInjector || undefined));
+    (injectorRef.current = createInjector(props as ModuleInline, parentInjector));
 
   return createElement(InjectorContext.Provider, { value: injector }, props.children);
 }
 
 function createInjector(props: ModuleInline | ComponentsInline, parentInjector: Injector): Injector {
   let _module = props.module || [];
-  let options = props.options;
+  let options = props.options || {};
+  options.disableExporting = false;
 
   if (props.components) {
-    options = options || {};
     options.setupProviders = (options.setupProviders || []).concat(
       props.components.map(createComponentProvider)
     );
   }
 
-  const injector = Injector.create(_module, parentInjector, options);
+  const injector = Injector.create(_module, parentInjector || undefined, options);
   if (Array.isArray(_module)) return injector;
-  // TODO: change to synchronouse compilation
-  return injector.build() as unknown as Injector;
+  return injector.build();
 }
+
+// function isInjectorInline(props: ModuleProps): props is InjectorInline {
+//   return (props as InjectorInline).injector !== undefined;
+// }

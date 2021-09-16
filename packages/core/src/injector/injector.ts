@@ -504,7 +504,6 @@ export class ProtoInjector extends Injector {
     parent: Injector = NilInjector,
     options?: InjectorOptions,
   ): ProtoInjector {
-    injector = Array.isArray(injector) ? { providers: injector } : injector;
     return new ProtoInjector(injector, parent, options);
   }
 
@@ -528,20 +527,22 @@ export class ProtoInjector extends Injector {
     return this;
   }
 
-  fork(): Injector {
+  fork(parent?: Injector): Injector {
     // Map<old Injector, new Injector>
     const injectorMap = new Map<Injector, Injector>();
     const newInjector = this.cloneInjector(this, injectorMap);
+    if (parent) (newInjector as any).parent = parent;
 
     const newStack = this.stack.map(oldInjector => injectorMap.get(oldInjector));
     Compiler.initModules(newStack);
     return newInjector;
   }
 
-  async forkAsync(): Promise<Injector> {
+  async forkAsync(parent?: Injector): Promise<Injector> {
     // Map<old Injector, new Injector>
     const injectorMap = new Map<Injector, Injector>();
     const newInjector = this.cloneInjector(this, injectorMap);
+    if (parent) (newInjector as any).parent = parent;
 
     const newStack = this.stack.map(oldInjector => injectorMap.get(oldInjector));
     await Compiler.initModulesAsync(newStack);

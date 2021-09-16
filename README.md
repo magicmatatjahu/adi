@@ -22,7 +22,7 @@
 - Rething caching in `Cache` wrapping
 - Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
 - Change the logic of the Value wrapper to similar as Skip 
-- Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should handle it in some way
+- Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should destroy it in some way
 - Check how to call onDestroy on circular injections
 - Add qualifier field to the provider shape:
 
@@ -38,17 +38,18 @@
 - Think about creating modules from exports which is not imported, so they are not created before exporting
 - Check deep extends
 - Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack
-- Introduce wrappers for modules 
 - Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers
 - Rethink session - for example: in method injection it stores information about previous sessions - this can be misleading for singleton because for it previous sessions point to the element that created it first
+- Add initialization of all injectors (even new Injector([])) to the `.build` method.
+- Fix problem with parent Injector in ProtInjector and exporting - it should be maybe always NilInjector
+
+React:
+- Fix problem with ProtoInjector - when ProtInjector is created before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating
 
 Links:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
 - Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
 - Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention
-
-React:
-- Implement ProtoInjector and think how to reuse the created modules from the scope, it means how to reuse the modules that will be create in the hierarchy one time and then reuse - the main problem is with imported modules and with `exports` - probably in react (and in other front-end tools) exports isn't good solution
 
 ## IMPLEMENTED
 
@@ -64,10 +65,13 @@ React:
 - Override injectable options in the `useClass` provider case - scope is overrided if can be and annotations are merged
 - Handle useWrappers (on Decorate example) in the definition (currently they are evaluated each time for instance, even for singleton). For appropriate instance it should evaluates only one time - handled by DECORATOR_ID value.
 - Add wrappers for components // ADI treats components as provdiers to it works
+- Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
 
 ## IMPLEMENTED PARTIALLY BUT IT WORKS
 
 - Implement the `onDestroy` hook
+- Implement ProtoInjector and think how to reuse the created modules from the scope, it means how to reuse the modules that will be create in the hierarchy one time and then reuse - the main problem is with imported modules and with `exports` - probably in react (and in other front-end tools) exports isn't good solution
+- Introduce wrappers for modules 
 
 ## NICE TO HAVE BUT NOT NEEDED
 

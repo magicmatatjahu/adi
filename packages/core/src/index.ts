@@ -15,7 +15,7 @@ Scope.LOCAL = new LocalScope();
 export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
 export { Component, Inject, Injectable, Module, componentMixin, injectableMixin, moduleMixin } from "./decorators";
-export { Context, Session, Injector, InjectionToken, InjectorMetadata, InjectorResolver } from "./injector";
+export { Context, Session, Injector, ProtoInjector, InjectionToken, InjectorMetadata, InjectorResolver, DestroyManager } from "./injector";
 export * from "./interfaces";
 export * from "./wrappers";
 export { Scope } from "./scope";
