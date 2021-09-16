@@ -1,3 +1,4 @@
+import { SessionStatus } from "../enums";
 import { WrapperDef } from "../interfaces";
 import { createWrapper } from "../utils";
 
@@ -51,6 +52,10 @@ function createProxy<T = any>(createObject: () => T): T {
 
 function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
   return (injector, session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(injector, session);
+    }
+
     if (proxy === true) {
       // works only with objects
       return createProxy(() => {

@@ -29,6 +29,10 @@ function wrapper(providersOrOptions: Provider[] | PortalOptions): WrapperDef {
   }
   
   return (selfInjector, session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(selfInjector, session);
+    }
+
     // annotate session with side effects
     session.setSideEffect(true);
     // fork session
@@ -38,10 +42,8 @@ function wrapper(providersOrOptions: Provider[] | PortalOptions): WrapperDef {
     // run next to retrieve updated session
     next(selfInjector, forkedSession);
 
-    // retrieve host injector from provider's record 
-    const hostInjector = forkedSession.definition.record.host;
-
-    let injector = deepInjector || hostInjector;
+    // deepInjector or retrieve host injector from provider's record 
+    let injector = deepInjector || forkedSession.definition.record.host;
     if (protoInjector) {
       injector = protoInjector.fork(injector);
     }

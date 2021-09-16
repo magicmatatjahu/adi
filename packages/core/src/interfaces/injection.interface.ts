@@ -2,13 +2,16 @@ import { Context } from "../injector";
 import { InjectionItem, ScopeShape, PlainInjections } from ".";
 import { Token } from "../types";
 import { Wrapper } from "../utils/wrappers";
+import { DefinitionRecord } from "./record.interface";
 
 export interface InjectionOptions<T = any> {
   token: Token<T>;
   ctx?: Context;
   scope?: ScopeShape;
   labels?: Record<string | symbol, any>;
-  // TOOD: Think about this... Maybe it's unnecessary
+  // mainly for collection wrappers - force resolution for given definition
+  definition?: DefinitionRecord;
+  // Maybe it's unnecessary...
   injections?: Array<InjectionItem> | PlainInjections;
 }
 

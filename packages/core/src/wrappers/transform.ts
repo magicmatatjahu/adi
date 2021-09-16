@@ -3,6 +3,7 @@ import { InjectionItem, WrapperDef } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
 import { DELEGATION } from "../constants";
 import { Delegate } from "./delegate";
+import { SessionStatus } from "../enums";
 
 interface TransformOptions {
   transform: (...args: any[]) => any | Promise<any>;
@@ -13,6 +14,10 @@ function wrapper(transform: TransformOptions): WrapperDef {
   const factory = InjectorResolver.createFactory(transform.transform, transform.inject || [Delegate()]);
 
   return (injector, session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(injector, session);
+    }
+
     // copy session
     const forkedSession = session.fork();
 

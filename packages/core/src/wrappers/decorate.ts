@@ -4,6 +4,7 @@ import { Token } from "../types";
 import { createWrapper, thenable } from "../utils";
 import { DELEGATION } from "../constants";
 import { Delegate } from "./delegate";
+import { SessionStatus } from "../enums";
 
 interface DecorateOptions {
   decorator: (...args: any[]) => any;
@@ -31,6 +32,10 @@ function wrapper(decorator: Type | DecorateOptions): WrapperDef {
   }
 
   return (injector, session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(injector, session);
+    }
+
     // copy session and resolve the value to decorate
     const forkedSession = session.fork();
 

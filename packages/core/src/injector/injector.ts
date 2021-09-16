@@ -234,7 +234,7 @@ export class Injector {
 
   getDefinition<T>(session: Session): T | undefined {
     const record = session.record;
-    const def = record.getDefinition(session);
+    const def = session.options.definition || record.getDefinition(session);
 
     if (def === undefined) {
       // Remove assigned record from session 

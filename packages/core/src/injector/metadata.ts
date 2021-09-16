@@ -157,6 +157,8 @@ export const InjectorMetadata = new class {
       ctx: undefined,
       scope: undefined,
       labels: {},
+      definition: undefined,
+      injections: undefined,
     };
   }
 

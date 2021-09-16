@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Multi, Named, when, ANNOTATIONS, DefinitionRecord, Factory, Value } from "../../src";
+import { Injector, Injectable, Inject, Multi, Named, when, ANNOTATIONS, DefinitionRecord, Value, Internal } from "../../src";
 
 describe('Multi wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -275,46 +275,6 @@ describe('Multi wrapper', function () {
 
     const service = injector.get(Service);
     expect(service.multi).toEqual(['multi3', 'multi4', 'multi1', 'multi2']);
-  });
-
-  test('should inject multi providers from given token - inject only definitions', function () {
-    @Injectable()
-    class Service {
-      constructor(
-        @Inject('token', Multi({ onlyDefinitions: true })) readonly multi: Array<DefinitionRecord>,
-      ) {}
-    }
-
-    const injector = new Injector([
-      Service,
-      {
-        provide: 'token',
-        useValue: 'multi1',
-        annotations: {
-          [ANNOTATIONS.ORDER]: 2,
-        }
-      },
-      {
-        provide: 'token',
-        useValue: 'multi2',
-        annotations: {
-          [ANNOTATIONS.ORDER]: 3,
-        }
-      },
-      {
-        provide: 'token',
-        useValue: 'multi3',
-        annotations: {
-          [ANNOTATIONS.ORDER]: 1,
-        }
-      }
-    ]);
-
-    const service = injector.get(Service);
-    expect(service.multi.length).toEqual(3);
-    expect(service.multi[0].annotations[ANNOTATIONS.ORDER]).toEqual(1);
-    expect(service.multi[1].annotations[ANNOTATIONS.ORDER]).toEqual(2);
-    expect(service.multi[2].annotations[ANNOTATIONS.ORDER]).toEqual(3);
   });
 
   test('should inject multi providers from given token - async resolution case', async function () {
