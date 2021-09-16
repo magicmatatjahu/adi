@@ -1,11 +1,11 @@
-import { Injector, Injectable, Component } from "../src";
+import { Injector, Injectable } from "../src";
 
 describe('Component', function() {
   test('should works with simple constructor', function() {
     @Injectable()
     class Service {}
 
-    @Component()
+    @Injectable()
     class Controller {
       constructor(
         readonly service: Service,
@@ -30,7 +30,7 @@ describe('Component', function() {
     @Injectable()
     class Service {}
 
-    @Component()
+    @Injectable()
     class Controller {
       constructor(
         readonly service: Service,
@@ -63,7 +63,7 @@ describe('Component', function() {
     @Injectable()
     class Service {}
 
-    @Component()
+    @Injectable()
     class Controller {
       constructor(
         readonly service: Service,
@@ -95,14 +95,14 @@ describe('Component', function() {
     @Injectable()
     class Service {}
 
-    @Component()
+    @Injectable()
     class Controller1 {
       constructor(
         readonly service: Service,
       ) {}
     }
 
-    @Component()
+    @Injectable()
     class Controller2 {
       constructor(
         readonly service: Service,

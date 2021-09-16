@@ -173,7 +173,7 @@ export const InjectorMetadata = new class {
   getProviderDef<T>(token: Token<T>, throwError: boolean = true): ProviderDef {
     let providerDef = getProviderDef(token);
     if (!providerDef) {
-      // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable(), @Component() or @Module()
+      // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable() or @Module()
       // collect only constructor params
       typeof token === "function" && injectableMixin(token as Type);
       providerDef = getProviderDef(token);

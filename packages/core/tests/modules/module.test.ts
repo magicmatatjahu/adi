@@ -1,4 +1,4 @@
-import { Injector, Injectable, Module, Component, OnDestroy, OnInit } from "../../src";
+import { Injector, Injectable, Module, OnDestroy, OnInit } from "../../src";
 
 describe('Module', function() {
   test('should be able to create injector from module and instances of the corresponding providers', async function() {
@@ -45,7 +45,7 @@ describe('Module', function() {
     @Injectable()
     class Service {}
 
-    @Component()
+    @Injectable()
     class Controller {
       constructor(
         readonly service: Service,
@@ -76,7 +76,7 @@ describe('Module', function() {
     @Injectable()
     class Service {}
 
-    @Component()
+    @Injectable()
     class Controller {
       constructor(
         readonly service: Service,
@@ -200,7 +200,7 @@ describe('Module', function() {
       }
     }
 
-    @Component()
+    @Injectable()
     class Controller implements OnDestroy {
       constructor(
         readonly service: Service1,
@@ -251,7 +251,7 @@ describe('Module', function() {
       }
     }
 
-    @Component()
+    @Injectable()
     class ChildController implements OnDestroy {
       constructor(
         readonly service: ChildService,
@@ -287,7 +287,7 @@ describe('Module', function() {
       }
     }
 
-    @Component()
+    @Injectable()
     class Controller implements OnDestroy {
       constructor(
         readonly service: Service,
