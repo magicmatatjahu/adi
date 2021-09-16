@@ -1,4 +1,3 @@
-export * from "./async";
 export * from "./ctx";
 export * from "./decorate";
 export * from "./delegate";
@@ -24,7 +23,6 @@ export * from "./self";
 export * from "./side-effects";
 export * from "./skip-self";
 export * from "./skip";
-export * from "./sync";
 export * from "./token";
 export * from "./transform";
 export * from "./value";
