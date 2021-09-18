@@ -1,4 +1,4 @@
-import { Injector, Inject, Injectable, Portal, Scope, Value, Module } from "../../src";
+import { Injector, Inject, Injectable, Portal, Scope, Path, Module } from "../../src";
 
 describe('Portal wrapper', function () {
   test('should works', function () {
@@ -59,7 +59,7 @@ describe('Portal wrapper', function () {
     })
     class TestService {
       constructor(
-        @Inject('foobar', Value('foo.bar')) readonly foobar: string,
+        @Inject('foobar', Path('foo.bar')) readonly foobar: string,
       ) {}
     }
 

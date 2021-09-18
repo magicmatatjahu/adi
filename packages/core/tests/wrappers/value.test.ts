@@ -1,33 +1,23 @@
 import { Injector, Injectable, Inject, Value } from "../../src";
 
-describe('Value wrapper', function() {
-  test('should override inferred token', function() {
+describe('Value wrapper', function () {
+  test('should inject value', function () {
+    @Injectable()
+    class TestService {}
+
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Value('a.b.c')) readonly value1: string,
-        @Inject('token', Value('a.d')) readonly value2: string,
+        @Inject(Value('foobar')) readonly service: TestService,
       ) {}
     }
 
     const injector = new Injector([
       Service,
-      {
-        provide: 'token',
-        useValue: {
-          a: {
-            b: {
-              c: 'foo'
-            },
-            d: 'bar'
-          }
-        },
-      }
+      TestService,
     ]);
 
     const service = injector.get(Service);
-    expect(service).toBeInstanceOf(Service);
-    expect(service.value1).toEqual('foo');
-    expect(service.value2).toEqual('bar');
+    expect(service.service).toEqual('foobar');
   });
 });

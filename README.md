@@ -1,12 +1,9 @@
 # ADIJS
 
 - Handle onInit in async mode
-- Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
-- Change the logic of the Value wrapper to similar as Skip 
 - Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should destroy it in some way
 - Check how to call onDestroy on circular injections
-- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors?
 - Add qualifier field to the provider shape:
 
 ```ts
@@ -38,12 +35,13 @@ React:
 - Add wrappers for components // ADI treats components as provdiers to it works
 - Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors? - treat imported records as collection of imported records
+- Change the logic of the Value wrapper to similar as Skip 
+- Introduce wrappers for modules 
 
 ## IMPLEMENTED PARTIALLY BUT IT WORKS
 
 - Implement the `onDestroy` hook
 - Implement ProtoInjector and think how to reuse the created modules from the scope, it means how to reuse the modules that will be create in the hierarchy one time and then reuse - the main problem is with imported modules and with `exports` - probably in react (and in other front-end tools) exports isn't good solution
-- Introduce wrappers for modules 
 - Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack // it's good order like in C++ destructors
 - Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers - done by `DRY_RUN` session's status
 
@@ -56,6 +54,7 @@ React:
 - Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
 - Rethink session - for example: in method injection it stores information about previous sessions - this can be misleading for singleton because for it previous sessions point to the element that created it first
 - Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
+- Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
 
 ## NICE TO HAVE BUT NOT NEEDED
 

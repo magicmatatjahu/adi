@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Fallback, Value } from "../../src";
+import { Injector, Injectable, Inject, Fallback, Path } from "../../src";
 
 describe('Fallback wrapper', function () {
   test('should inject fallback provider when given provider doesnt exist in injector', function () {
@@ -57,7 +57,7 @@ describe('Fallback wrapper', function () {
       constructor(
         @Inject(Fallback({
           token: 'token',
-          useWrapper: Value('a.b.c'),
+          useWrapper: Path('a.b.c'),
         })) readonly service: TestService
       ) {}
     }

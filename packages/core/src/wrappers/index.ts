@@ -17,6 +17,7 @@ export * from "./new";
 export * from "./on-init";
 export * from "./on-destroy";
 export * from "./optional";
+export * from "./path";
 export * from "./ref";
 export * from "./scoped";
 export * from "./self";

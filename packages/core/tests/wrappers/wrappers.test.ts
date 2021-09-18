@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Token, Optional, Scope, Value, createWrapper, ANNOTATIONS, Memo } from "../../src";
+import { Injector, Injectable, Inject, Token, Optional, Scope, Path, createWrapper, ANNOTATIONS, Memo } from "../../src";
 
 describe('Wrappers', function() {
   describe('should can use useWrapper in injectable as option', function() {
@@ -139,7 +139,7 @@ describe('Wrappers', function() {
 
   describe('should works as Injectable metadata', function() {
     @Injectable({
-      useWrapper: Value('foo.bar')
+      useWrapper: Path('foo.bar')
     })
     class Service {
       public foo = {
@@ -183,21 +183,21 @@ describe('Wrappers', function() {
       },
       {
         provide: 'useValue',
-        useWrapper: Value('a.b'),
+        useWrapper: Path('a.b'),
         annotations: {
           [ANNOTATIONS.ORDER]: 3
         }
       },
       {
         provide: 'useValue',
-        useWrapper: Value('e.f'),
+        useWrapper: Path('e.f'),
         annotations: {
           [ANNOTATIONS.ORDER]: 1
         }
       },
       {
         provide: 'useValue',
-        useWrapper: Value('c.d'),
+        useWrapper: Path('c.d'),
         annotations: {
           [ANNOTATIONS.ORDER]: 2
         }
@@ -214,7 +214,7 @@ describe('Wrappers', function() {
     })
     class Service {
       constructor(
-        @Inject('token', Memo(Value('a.b'))) readonly value: object,  
+        @Inject('token', Memo(Path('a.b'))) readonly value: object,  
       ) {}
     }
 
@@ -247,7 +247,7 @@ describe('Wrappers', function() {
     })
     class Service {
       constructor(
-        @Inject('token', Memo(Value('a.b'))) readonly value: object,  
+        @Inject('token', Memo(Path('a.b'))) readonly value: object,  
       ) {}
     }
 
