@@ -34,7 +34,7 @@ describe('useInjections hook', function() {
     ]
 
     const TestComponent: React.FunctionComponent = () => {
-      const [service, useFactory, useValue] = useInjections(Service, 'useFactory', 'useValue') as any;
+      const [service, useFactory, useValue] = useInjections(Service, 'useFactory', 'useValue');
 
       return (
         <div>

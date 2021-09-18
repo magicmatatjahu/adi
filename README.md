@@ -1,29 +1,14 @@
 # ADIJS
 
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules
-- Create `Request` scope
-- Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers
 - Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
 - Handle onInit in async mode
 - Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
-- Rethink the `Multi` wrapper
-- Rethink the modules and exporting of the provider
-- Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider:
-
-```ts
-{
-  provide: Component,
-  when: when.isComponent(),
-}
-```
-
-- Rethink proxy modules
-- Rething caching in `Cache` wrapping
-- Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
 - Change the logic of the Value wrapper to similar as Skip 
 - Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should destroy it in some way
 - Check how to call onDestroy on circular injections
+- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors?
 - Add qualifier field to the provider shape:
 
 ```ts
@@ -34,14 +19,8 @@
 ```
 
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook`
-- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors?
-- Think about creating modules from exports which is not imported, so they are not created before exporting
 - Check deep extends
-- Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack
-- Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers
-- Rethink session - for example: in method injection it stores information about previous sessions - this can be misleading for singleton because for it previous sessions point to the element that created it first
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
-- Fix problem with parent Injector in ProtInjector and exporting - it should be maybe always NilInjector
 
 React:
 - Fix problem with ProtoInjector - when ProtInjector is created before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating
@@ -72,9 +51,21 @@ Links:
 - Implement the `onDestroy` hook
 - Implement ProtoInjector and think how to reuse the created modules from the scope, it means how to reuse the modules that will be create in the hierarchy one time and then reuse - the main problem is with imported modules and with `exports` - probably in react (and in other front-end tools) exports isn't good solution
 - Introduce wrappers for modules 
+- Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack // it's good order like in C++ destructors
+- Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers - done by `DRY_RUN` session's status
+
+## RETHING - WORKS BUT IT SHOULD BE BETTER
+
+- Rethink the `Multi` wrapper
+- Rethink the modules and exporting of the provider
+- Rethink proxy modules
+- Rething caching in `Cache` wrapping
+- Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
+- Rethink session - for example: in method injection it stores information about previous sessions - this can be misleading for singleton because for it previous sessions point to the element that created it first
 
 ## NICE TO HAVE BUT NOT NEEDED
 
+- Create `Request` scope
 - Add tree-shakable wrappers, eg for Multi purpose
 - Allow change wrappers on runtime - in another, previous in wrappers' chain wrapper. Also have definition of next wrappers in single wrapper - it will be awesome feature for collections wrappers like `Multi`
 - Add `deep` config for `Delegate` wrapper
@@ -86,3 +77,5 @@ Links:
 - Implement https://autofac.readthedocs.io/en/latest/advanced/pooled-instances.html scope - note about custom hooks like `OnGetFromPool`, probably in the Scope ADI should create the new instance of given provider (definition), or maybe not - ADI can always change reference to the definition in the session
 - Add fallback to the providers like in https://github.com/angular/angular/issues/13854
 - Implement something like ContextView from Loopback https://loopback.io/doc/en/lb4/Context.html#context-view
+- Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers
+- Think about creating modules from exports which is not imported, so they are not created before exporting
