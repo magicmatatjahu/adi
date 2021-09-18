@@ -13,9 +13,10 @@ function plainWrapper(injector: Injector, session: Session, next: NextWrapper) {
   while (parentInjector !== NilInjector) {
     // check for treeshakable provider
     parentInjector.getRecord(token);
+    const parentCollection = parentInjector.importedRecords.get(token);
     if (
       parentInjector.records.get(token) ||
-      (ownRecord && parentInjector.importedRecords.get(token) !== ownRecord)
+      (ownRecord && (!parentCollection || parentCollection[parentCollection.length - 1] !== ownRecord))
     ) {
       return next(parentInjector, session);
     }
@@ -38,9 +39,10 @@ function parentWrapper(injector?: Type | ForwardRef<Type>): WrapperDef {
       // check for treeshakable provider
       parentInjector.getRecord(token);
       if (parentInjector.metatype === injector) {
+        const parentCollection = parentInjector.importedRecords.get(token);
         if (
           !parentInjector.records.get(token) ||
-          (ownRecord && parentInjector.importedRecords.get(token) === ownRecord)
+          (ownRecord && (!parentCollection || parentCollection[parentCollection.length - 1] !== ownRecord))
         ) {
           break;
         }

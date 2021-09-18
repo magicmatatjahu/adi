@@ -6,7 +6,6 @@ import { Scope } from "../scope";
 export function Module(metadata?: ModuleMetadata) {
   return function(target: Object) {
     applyModuleDef(target, metadata);
-    // applyComponentDef(target, "module");
     const params = Reflection.getOwnMetadata("design:paramtypes", target);
     applyProviderDef(target, params, { scope: Scope.SINGLETON });
   }

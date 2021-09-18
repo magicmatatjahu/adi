@@ -47,7 +47,7 @@ export class Injector {
   // own records
   records = new Map<Token, ProviderRecord>();
   // records from imported modules
-  importedRecords = new Map<Token, ProviderRecord>();
+  importedRecords = new Map<Token, Array<ProviderRecord>>();
   // scopes of injector
   scopes: Array<InjectorScopeType> = ['any', this.metatype as any];
   // id of injector/module
@@ -303,7 +303,8 @@ export class Injector {
   getRecord<T>(
     token: Token<T>,
   ): ProviderRecord {
-    let record = this.records.get(token) || this.importedRecords.get(token);
+    let record = this.records.get(token) || this.getImportedRecord(token);
+    // let record = this.records.get(token) || this.importedRecords.get(token);
 
     // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
@@ -333,7 +334,7 @@ export class Injector {
           } else { // injection token case
             record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
           }
-          this.importedRecords.set(token, record);
+          this.setImportedRecords(token, record);
         }));
       }
     }
@@ -455,7 +456,8 @@ export class Injector {
     const token: any = (exp as PlainProvider).provide || exp;
     const record = this.getRecord(token);
     if (record !== undefined) {
-      to.importedRecords.set(token, record);
+      // to.importedRecords.set(token, record);
+      to.setImportedRecords(token, record);
     }
   }
 
@@ -470,17 +472,35 @@ export class Injector {
     }
 
     if (providers === undefined) {
-      this.importedRecords.forEach((record, token) => {
-        if (record.host === fromModule) to.importedRecords.set(token, record);
+      this.importedRecords.forEach((collection, token) => {
+        collection.forEach(record => {
+          record.host === fromModule && to.setImportedRecords(token, record);
+        });
       });
     } else {
-      this.importedRecords.forEach((record, token) => {
-        if (record.host === fromModule) {
-          const givenToken = providers.some(prov => prov === token || (prov as PlainProvider).provide === token);
-          givenToken && to.importedRecords.set(token, record);
-        }
+      this.importedRecords.forEach((collection, token) => {
+        collection.forEach(record => {
+          record.host === fromModule && 
+          providers.some(prov => prov === token || (prov as PlainProvider).provide === token) &&
+          to.setImportedRecords(token, record);
+        });
       });
     }
+  }
+
+  private getImportedRecord(token: Token) {
+    const collection = this.importedRecords.get(token);
+    // get last item in the collection
+    return collection && collection[collection.length - 1];
+  }
+
+  private setImportedRecords(token: Token, record: ProviderRecord) {
+    let collection = this.importedRecords.get(token);
+    if (collection === undefined) {
+      collection = [];
+      this.importedRecords.set(token, collection);
+    }
+    collection.push(record);
   }
 }
 
@@ -569,10 +589,10 @@ export class ProtoInjector extends Injector {
     // copy records
     newInjector.records = new Map();
     oldInjector.records.forEach((provider, token) => newInjector.records.set(token, this.cloneProviderRecord(provider, newInjector)));
-    
-    // copy imported records
+
+    // copy new imported records
     newInjector.importedRecords = new Map();
-    oldInjector.importedRecords.forEach((provider, token) => newInjector.importedRecords.set(token, injectorMap.get(provider.host).records.get(token)));
+    oldInjector.importedRecords.forEach((collections, token) => newInjector.importedRecords.set(token, collections.map(provider => injectorMap.get(provider.host).records.get(token))));
 
     return newInjector;
   }

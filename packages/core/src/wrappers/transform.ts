@@ -24,6 +24,8 @@ function wrapper(transform: TransformOptions): WrapperDef {
     return thenable(
       () => next(injector, session),
       value => {
+        // mark session with side effect
+        session.setSideEffect(false);
         // add delegation
         forkedSession[DELEGATION.KEY] = {
           type: 'single',
@@ -32,7 +34,7 @@ function wrapper(transform: TransformOptions): WrapperDef {
         return thenable(
           () => factory(injector, forkedSession),
           transformedValue => transformedValue,
-        )
+        );
       }
     );
   }

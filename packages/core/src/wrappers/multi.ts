@@ -10,7 +10,7 @@ interface MultiOptions {
   inheritance?: any;
 }
 
-function getDefinitions(
+function getDefinitionsFromRecord(
   record: ProviderRecord,
   session: Session
 ): DefinitionRecord[] {
@@ -22,13 +22,28 @@ function getDefinitions(
       satisfiedDefs.push(d);
     }
   }
-  const defs = satisfiedDefs.length === 0 ? record.defs : satisfiedDefs;
+  return satisfiedDefs.length === 0 ? record.defs : satisfiedDefs;
+}
+
+function getDefinitions(
+  record: ProviderRecord,
+  session: Session
+): DefinitionRecord[] {
+  let defs = getDefinitionsFromRecord(record, session);
+  const importedRecords = record.host.importedRecords.get(record.token);
+  importedRecords && importedRecords.forEach(importedRecord => {
+    defs = defs.concat(getDefinitionsFromRecord(importedRecord, session));
+  })
   // sort definitions by @adi/order annotation
   return defs.sort(compareOrder);
 }
 
 function wrapper(options: MultiOptions = {}): WrapperDef {
   return (injector, session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(injector, session);
+    }
+  
     // annotate session with side effects
     session.setSideEffect(true);
     // fork session

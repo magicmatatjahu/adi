@@ -1,4 +1,4 @@
-import { InjectableOptions, InjectionArgument, PlainInjections, ProviderDef, StaticInjectable, Type } from "../interfaces";
+import { InjectableOptions, InjectionArgument, ProviderDef, StaticInjectable, Type } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";

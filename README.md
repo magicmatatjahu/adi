@@ -1,7 +1,5 @@
 # ADIJS
 
-- Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules
-- Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
 - Handle onInit in async mode
 - Improve Factory and Delegations delegations -> way how DryIOC it resolves is awesome https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SpecifyDependencyAndPrimitiveValues.md#injecting-value-of-primitive-type
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
@@ -19,16 +17,10 @@
 ```
 
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook`
-- Check deep extends
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
 
 React:
 - Fix problem with ProtoInjector - when ProtInjector is created before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating
-
-Links:
-- Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
-- Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
-- Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention
 
 ## IMPLEMENTED
 
@@ -45,6 +37,7 @@ Links:
 - Handle useWrappers (on Decorate example) in the definition (currently they are evaluated each time for instance, even for singleton). For appropriate instance it should evaluates only one time - handled by DECORATOR_ID value.
 - Add wrappers for components // ADI treats components as provdiers to it works
 - Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
+- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors? - treat imported records as collection of imported records
 
 ## IMPLEMENTED PARTIALLY BUT IT WORKS
 
@@ -62,9 +55,11 @@ Links:
 - Rething caching in `Cache` wrapping
 - Rething about instance record saved in the session - it can increase memory consumption and make stackoverflow in the future if someone will inject Session in the provider - then whole chain of session will be injected and "cached" to the provider
 - Rethink session - for example: in method injection it stores information about previous sessions - this can be misleading for singleton because for it previous sessions point to the element that created it first
+- Improve Circular reference case (change in tests the E and D dependency order in the C class) - fix this bug
 
 ## NICE TO HAVE BUT NOT NEEDED
 
+- Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules
 - Create `Request` scope
 - Add tree-shakable wrappers, eg for Multi purpose
 - Allow change wrappers on runtime - in another, previous in wrappers' chain wrapper. Also have definition of next wrappers in single wrapper - it will be awesome feature for collections wrappers like `Multi`
@@ -79,3 +74,7 @@ Links:
 - Implement something like ContextView from Loopback https://loopback.io/doc/en/lb4/Context.html#context-view
 - Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers
 - Think about creating modules from exports which is not imported, so they are not created before exporting
+- Check deep extends
+- Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
+- Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
+- Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Multi, Named, when, ANNOTATIONS, DefinitionRecord, Value, Internal } from "../../src";
+import { Injector, Injectable, Inject, Module, Multi, Named, when, ANNOTATIONS, Value } from "../../src";
 
 describe('Multi wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -281,7 +281,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<DefinitionRecord>,
+        @Inject('token', Multi()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -358,7 +358,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<() => string>,
+        @Inject('token', Multi()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -398,6 +398,174 @@ describe('Multi wrapper', function () {
     expect(service.multi[0]).toEqual('multi1');
     expect(service.multi[1]).toEqual('multi2');
     expect(service.multi[2]).toEqual('multi3');
+  });
+
+  test('should inject multi providers from imported modules', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi()) readonly multi: Array<string>,
+      ) {}
+    }
+
+    @Module({
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'childMulti2-1',
+        },
+        {
+          provide: 'token',
+          useValue: 'childMulti2-2',
+        },
+        {
+          provide: 'token',
+          useValue: 'childMulti2-3',
+        },
+      ],
+      exports: [
+        'token',
+      ]
+    })
+    class ChildModule2 {}
+
+    @Module({
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'childMulti1-1',
+        },
+        {
+          provide: 'token',
+          useValue: 'childMulti1-2',
+        },
+      ],
+      exports: [
+        'token',
+      ]
+    })
+    class ChildModule1 {}
+
+    @Module({
+      imports: [
+        ChildModule1,
+        ChildModule2,
+      ],
+      providers: [
+        Service,
+        {
+          provide: 'token',
+          useValue: 'multi1',
+        },
+        {
+          provide: 'token',
+          useValue: 'multi2',
+        },
+        {
+          provide: 'token',
+          useValue: 'multi3',
+        }
+      ]
+    })
+    class MainModule {}
+
+    const injector = Injector.create(MainModule).build();
+    const service = injector.get(Service);
+    expect(service.multi.length).toEqual(8);
+    expect(service.multi).toEqual([
+      'multi1',
+      'multi2',
+      'multi3',
+      'childMulti1-1',
+      'childMulti1-2',
+      'childMulti2-1',
+      'childMulti2-2',
+      'childMulti2-3',
+    ]);
+  });
+
+  test('should inject multi providers from imported modules with constraints', function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Multi(Named('multi'))) readonly multi: Array<string>,
+      ) {}
+    }
+
+    @Module({
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'childMulti2-1',
+        },
+        {
+          provide: 'token',
+          useValue: 'childMulti2-2',
+          when: when.named('multi'),
+        },
+        {
+          provide: 'token',
+          useValue: 'childMulti2-3',
+        },
+      ],
+      exports: [
+        'token',
+      ]
+    })
+    class ChildModule2 {}
+
+    @Module({
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'childMulti1-1',
+        },
+        {
+          provide: 'token',
+          useValue: 'childMulti1-2',
+          when: when.named('multi'),
+        },
+      ],
+      exports: [
+        'token',
+      ]
+    })
+    class ChildModule1 {}
+
+    @Module({
+      imports: [
+        ChildModule1,
+        ChildModule2,
+      ],
+      providers: [
+        Service,
+        {
+          provide: 'token',
+          useValue: 'multi1',
+          when: when.named('multi'),
+        },
+        {
+          provide: 'token',
+          useValue: 'multi2',
+        },
+        {
+          provide: 'token',
+          useValue: 'multi3',
+          when: when.named('multi'),
+        }
+      ]
+    })
+    class MainModule {}
+
+    const injector = Injector.create(MainModule).build();
+    const service = injector.get(Service);
+    expect(service.multi.length).toEqual(4);
+    expect(service.multi).toEqual([
+      'multi1',
+      'multi3',
+      'childMulti1-2',
+      'childMulti2-2',
+    ]);
   });
 
   // TODO: check also case with Factory() wrapper on the definitions
