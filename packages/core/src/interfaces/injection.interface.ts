@@ -9,8 +9,6 @@ export interface InjectionOptions<T = any> {
   ctx?: Context;
   scope?: ScopeShape;
   labels?: Record<string | symbol, any>;
-  // mainly for collection wrappers - force resolution for given definition
-  definition?: DefinitionRecord;
   // Maybe it's unnecessary...
   injections?: Array<InjectionItem> | PlainInjections;
 }

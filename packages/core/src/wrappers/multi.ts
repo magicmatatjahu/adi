@@ -10,6 +10,7 @@ interface MultiOptions {
   inheritance?: any;
 }
 
+// add also records to resolve the wrappers for appropriate records
 function getDefinitionsFromRecord(
   record: ProviderRecord,
   session: Session
@@ -67,7 +68,7 @@ function wrapper(options: MultiOptions = {}): WrapperDef {
       for (let i = 0, l = defs.length; i < l; i++) {
         const def = defs[i];
         const instanceSession = session.fork();
-        instanceSession.options.definition = defs[i];
+        instanceSession.definition = defs[i];
         const defKey = def.annotations[metaKey as any];
 
         if (defKey) {
@@ -85,7 +86,7 @@ function wrapper(options: MultiOptions = {}): WrapperDef {
     const values = [];
     for (let i = 0, l = defs.length; i < l; i++) {
       const instanceSession = session.fork();
-      instanceSession.options.definition = defs[i];
+      instanceSession.definition = defs[i];
       values.push(next(injector, instanceSession));
     }
     return isAsync ? Promise.all(values) : values;

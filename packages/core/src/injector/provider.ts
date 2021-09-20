@@ -110,8 +110,16 @@ export class ProviderRecord<T = any> {
   }
 
   getDefinition(
-    session?: Session
+    session?: Session,
+    getLastDefault?: boolean,
   ): DefinitionRecord | undefined {
+    if (getLastDefault === true) {
+      return this.defs[this.defs.length - 1];
+    }
+    if (this.constraintDefs.length === 0) {
+      return;
+    }
+
     const constraintDefs = this.constraintDefs;
     for (let i = constraintDefs.length - 1; i > -1; i--) {
       const def = constraintDefs[i];
@@ -119,11 +127,6 @@ export class ProviderRecord<T = any> {
         return def;
       }
     }
-    const l = this.defs.length;
-    if (l > 0) {
-      return this.defs[l - 1];
-    }
-    return undefined;
   }
 
   filterWrappers(

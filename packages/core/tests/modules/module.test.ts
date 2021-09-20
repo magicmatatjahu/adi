@@ -1,4 +1,4 @@
-import { Injector, Injectable, Module, OnDestroy, OnInit } from "../../src";
+import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named } from "../../src";
 
 describe('Module', function() {
   test('should be able to create injector from module and instances of the corresponding providers', async function() {
@@ -337,5 +337,68 @@ describe('Module', function() {
       'Controller', 'MainModule', 'Service',
       'ChildController', 'ChildModule', 'ChildService',
     ]);
+  });
+
+  test('should resolve definition from imported records if definitions from current record in injector do not meet the requirements', function() {
+    @Module({ 
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'named provider',
+          when: when.named('foobar'),
+        },
+        {
+          provide: 'token',
+          useValue: 'not named provider',
+        }
+      ],
+      exports: [
+        'token',
+      ]
+    })
+    class ChildModule2 {}
+
+    @Module({ 
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'not named provider',
+        },
+        {
+          provide: 'token',
+          useValue: 'not named provider',
+        }
+      ],
+      exports: [
+        'token',
+      ]
+    })
+    class ChildModule1 {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token', Named('foobar')) public foobar: string,
+      ) {}
+    }
+
+    @Module({ 
+      imports: [
+        ChildModule1,
+        ChildModule2,
+      ],
+      providers: [
+        Service,
+        {
+          provide: 'token',
+          useValue: 'not named provider',
+        }
+      ]
+    })
+    class MainModule {}
+
+    const injector = Injector.create(MainModule).build();
+    const service = injector.get(Service);
+    expect(service.foobar).toEqual('named provider');
   });
 });

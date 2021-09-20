@@ -3,7 +3,7 @@ import { createInjectionArg, getProviderDef, injectableMixin } from "../decorato
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionOptions, InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem,
+  InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
@@ -151,17 +151,6 @@ export const InjectorMetadata = new class {
   /**
    * HELPERS
    */
-  createOptions(token: Token): InjectionOptions {
-    return {
-      token,
-      ctx: undefined,
-      scope: undefined,
-      labels: {},
-      definition: undefined,
-      injections: undefined,
-    };
-  }
-
   getScopeShape(scope: ScopeType): ScopeShape {
     if (scope && (scope as ScopeShape).kind === undefined) {
       scope = {

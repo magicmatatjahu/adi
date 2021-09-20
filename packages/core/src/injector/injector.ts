@@ -195,16 +195,13 @@ export class Injector {
    * PROVIDERS
    */
   get<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): T | undefined {
-    const options = InjectorMetadata.createOptions(token);
-    session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
-    return this.resolveToken(wrapper, session);
+    return this.resolveToken(wrapper, session || Session.create(token));
   }
 
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): Promise<T | undefined> {
-    const options = InjectorMetadata.createOptions(token);
-    session = session || new Session(undefined, undefined, undefined, options, undefined, undefined);
+    session = session || Session.create(token);
     session.status |= SessionStatus.ASYNC;
-    return this.resolveToken(wrapper, session);
+    return this.resolveToken(wrapper, session || Session.create(token));
   }
 
   resolveToken<T>(wrapper: Wrapper, session: Session): T | undefined {
@@ -215,14 +212,16 @@ export class Injector {
   }
 
   resolveRecord<T>(session: Session): T | undefined {
-    const token = session.getToken();
-    let record: ProviderRecord = session.status & SessionStatus.COMPONENT_RESOLUTION ? this.components.get(token) : this.getRecord(token);
+    const record: ProviderRecord = session.record =
+      session.record ||
+      session.status & SessionStatus.COMPONENT_RESOLUTION 
+        ? this.components.get(session.getToken()) 
+        : this.getRecord(session.getToken());
 
     if (record === undefined) {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
-    session.record = record;
 
     const providerWrappers = record.filterWrappers(session);
     if (providerWrappers.length > 0) {
@@ -233,15 +232,21 @@ export class Injector {
   }
 
   getDefinition<T>(session: Session): T | undefined {
-    const def = session.options.definition || session.record.getDefinition(session);
+    let def = session.definition = 
+      session.definition || session.record.getDefinition(session);
 
     if (def === undefined) {
-      // Remove assigned record from session 
-      session.record = undefined;
-      // Reuse session in the parent
-      return this.parent.resolveRecord(session);
+      // check definitions from imported records
+      def = session.definition = 
+        this.getImportedDefinition(session) || session.record.getDefinition(session, true) || this.getImportedDefinition(session, true);
+
+      if (def === undefined) {
+        // Remove assigned record from session 
+        session.record = undefined;
+        // Reuse session in the parent
+        return this.parent.resolveRecord(session);
+      }
     }
-    session.definition = def;
 
     if (def.wrapper !== undefined) {
       return runWrappers(def.wrapper, this, session, lastDefinitionWrapper);
@@ -261,18 +266,14 @@ export class Injector {
       scope = session.options.scope || scope;
     }
 
-    const instance = def.record.getInstance(def, scope, session);
-    session.instance = instance;
-
-    return this.resolveInstance(def.record, def, instance, session);
+    session.instance = def.record.getInstance(def, scope, session);
+    return this.resolveInstance(session);
   }
 
-  private resolveInstance<T>(
-    record: ProviderRecord<T>,
-    def: DefinitionRecord<T>,
-    instance: InstanceRecord<T>,
-    session?: Session,
+  resolveInstance<T>(
+    session: Session,
   ): T {
+    const instance = session.instance;
     if (instance.status & InstanceStatus.RESOLVED) {
       return instance.value;
     }
@@ -284,7 +285,7 @@ export class Injector {
 
     instance.status |= InstanceStatus.PENDING;
     return thenable(
-      () => def.factory(record.host, session) as T,
+      () => session.definition.factory(session.record.host, session) as T,
       value => {
         if (instance.status & InstanceStatus.CIRCULAR) {
           value = Object.assign(instance.value, value);
@@ -304,7 +305,6 @@ export class Injector {
     token: Token<T>,
   ): ProviderRecord {
     let record = this.records.get(token) || this.getImportedRecord(token);
-    // let record = this.records.get(token) || this.importedRecords.get(token);
 
     // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
@@ -370,8 +370,7 @@ export class Injector {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
-    const options = InjectorMetadata.createOptions(token);
-    const session = new Session(undefined, undefined, undefined, options, undefined, undefined);
+    const session = Session.create(token);
     session.status |= SessionStatus.COMPONENT_RESOLUTION; 
     return this.resolveToken(wrapper, session);
   }
@@ -381,10 +380,8 @@ export class Injector {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
-    const options = InjectorMetadata.createOptions(token);
-    const session = new Session(undefined, undefined, undefined, options, undefined, undefined);
-    session.status |= SessionStatus.COMPONENT_RESOLUTION; 
-    session.status |= SessionStatus.ASYNC;
+    const session = Session.create(token);
+    session.status |= SessionStatus.COMPONENT_RESOLUTION | SessionStatus.ASYNC; 
     return this.resolveToken(wrapper, session);
   }
 
@@ -501,6 +498,19 @@ export class Injector {
       this.importedRecords.set(token, collection);
     }
     collection.push(record);
+  }
+
+  private getImportedDefinition(session: Session, getLastDefault?: boolean) {
+    if (this.importedRecords.has(session.getToken()) === false) return
+    
+    const records = this.importedRecords.get(session.getToken());
+    const currentRecord = session.record;
+    for (let i = records.length - 1; i > -1; i--) {
+      const record = session.record = records[i];
+      const def = record.getDefinition(session, getLastDefault);
+      if (def) return def;
+    }
+    session.record = currentRecord;
   }
 }
 

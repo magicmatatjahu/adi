@@ -10,9 +10,7 @@ import { DestroyManager } from "./destroy-manager";
 
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
-    const options = InjectorMetadata.createOptions(token);
-    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
-    return injector.resolveToken(wrapper, newSession);
+    return injector.resolveToken(wrapper, Session.create(token, meta, parentSession));
   }
 
   injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session): Array<any> {
@@ -64,8 +62,7 @@ export const InjectorResolver = new class {
   }
 
   injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper, meta: InjectionMetadata, parentSession?: Session): { value: T | undefined | Promise<T | undefined>, session: Session } {
-    const options = InjectorMetadata.createOptions(token);
-    const newSession = new Session(undefined, undefined, undefined, options, meta, parentSession);
+    const newSession = Session.create(token, meta, parentSession);
     return { value: injector.resolveToken(wrapper, newSession), session: newSession };
   }
 
@@ -168,7 +165,7 @@ export const InjectorResolver = new class {
       return handleCircularRefs(instance, session);
     }
 
-    // parallel injection detected (in async resolution)
+    // otherwise parallel injection detected (in async resolution)
     return instance.donePromise || applyParallelHook(instance);
   }
 }

@@ -5,20 +5,16 @@ import { thenable } from "../utils";
 import { createWrapper } from "../utils/wrappers";
 
 // TODO: check if record and def in the session should be overrided 
-function useExistingWrapper(token: Token): WrapperDef {
+function existingWrapper(token: Token): WrapperDef {
   return (injector, session) => {
-    // const newSession = session.fork();
-    // newSession.setToken(token);
-    // if (newSession.isAsync() === true) {
-    //   return injector.getAsync(token, undefined, newSession);
-    // }
-    // return injector.get(token, undefined, newSession);
+    session.record = undefined;
+    session.definition = undefined;
     session.setToken(token);
     return injector.get(token, undefined, session);
   }
 }
 
-export const UseExisting = createWrapper<Token, true>(useExistingWrapper);
+export const UseExisting = createWrapper<Token, true>(existingWrapper);
 
 function internalWrapper(inject: 'session' | 'record' | 'definition' | 'instance'): WrapperDef {
   switch (inject) {

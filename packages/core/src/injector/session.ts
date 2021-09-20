@@ -9,12 +9,23 @@ import { Token } from "../types";
 import { ProviderRecord } from "./provider";
 import { SessionStatus } from "../enums";
 
+function createOptions(token: Token): InjectionOptions {
+  return {
+    token,
+    ctx: undefined,
+    scope: undefined,
+    labels: {},
+    injections: undefined,
+  };
+}
+
 export class Session<T = any> {
   static create(
-    options: InjectionOptions,
-    metadata: InjectionMetadata,
+    token: Token,
+    metadata?: InjectionMetadata,
+    parent?: Session,
   ) {
-    return new Session(void 0, void 0, void 0, options, metadata, void 0);
+    return new Session(void 0, void 0, void 0, createOptions(token), metadata, parent);
   }
 
   public status: SessionStatus = SessionStatus.NONE;
