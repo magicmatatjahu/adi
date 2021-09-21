@@ -75,7 +75,7 @@ export class Injector {
 
     this.addProviders([
       { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: Multi() }
+      { provide: MODULE_INITIALIZERS, useWrapper: Multi({ inheritance: 1 }) }
     ]);
   }
 
@@ -212,8 +212,7 @@ export class Injector {
   }
 
   resolveRecord<T>(session: Session): T | undefined {
-    const record: ProviderRecord = session.record =
-      session.record ||
+    const record = 
       session.status & SessionStatus.COMPONENT_RESOLUTION 
         ? this.components.get(session.getToken()) 
         : this.getRecord(session.getToken());
@@ -222,6 +221,7 @@ export class Injector {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
+    session.record = record;
 
     const providerWrappers = record.filterWrappers(session);
     if (providerWrappers.length > 0) {
@@ -232,21 +232,20 @@ export class Injector {
   }
 
   getDefinition<T>(session: Session): T | undefined {
-    let def = session.definition = 
-      session.definition || session.record.getDefinition(session);
+    let def =
+      session.definition ||
+      session.record.getDefinition(session) || 
+      this.getImportedDefinition(session) || 
+      session.record.getDefinition(session, true) || 
+      this.getImportedDefinition(session, true);
 
     if (def === undefined) {
-      // check definitions from imported records
-      def = session.definition = 
-        this.getImportedDefinition(session) || session.record.getDefinition(session, true) || this.getImportedDefinition(session, true);
-
-      if (def === undefined) {
-        // Remove assigned record from session 
-        session.record = undefined;
-        // Reuse session in the parent
-        return this.parent.resolveRecord(session);
-      }
+      // Remove assigned record from session 
+      session.record = undefined;
+      // Reuse session in the parent
+      return this.parent.resolveRecord(session);
     }
+    session.definition = def;
 
     if (def.wrapper !== undefined) {
       return runWrappers(def.wrapper, this, session, lastDefinitionWrapper);
@@ -501,9 +500,10 @@ export class Injector {
   }
 
   private getImportedDefinition(session: Session, getLastDefault?: boolean) {
-    if (this.importedRecords.has(session.getToken()) === false) return
+    const host = session.record.host;
+    if (host.importedRecords.has(session.getToken()) === false) return
     
-    const records = this.importedRecords.get(session.getToken());
+    const records = host.importedRecords.get(session.getToken());
     const currentRecord = session.record;
     for (let i = records.length - 1; i > -1; i--) {
       const record = session.record = records[i];

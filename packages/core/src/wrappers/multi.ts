@@ -3,11 +3,15 @@ import { Session, ProviderRecord } from "../injector";
 import { DefinitionRecord, WrapperDef } from "../interfaces";
 import { compareOrder, createWrapper, thenable } from "../utils";
 
+export enum MultiFlags {
+  OnlySelf = 1,
+}
+
 interface MultiOptions {
   // by annotation key
   metaKey?: string | symbol;
   // inherite the definitions from parent injector
-  inheritance?: any;
+  inheritance?: MultiFlags;
 }
 
 // add also records to resolve the wrappers for appropriate records
@@ -28,9 +32,14 @@ function getDefinitionsFromRecord(
 
 function getDefinitions(
   record: ProviderRecord,
-  session: Session
+  session: Session,
+  options: MultiOptions,
 ): DefinitionRecord[] {
   let defs = getDefinitionsFromRecord(record, session);
+  if (options.inheritance & MultiFlags.OnlySelf) {
+    return defs;
+  }
+
   const importedRecords = record.host.importedRecords.get(record.token);
   importedRecords && importedRecords.forEach(importedRecord => {
     defs = defs.concat(getDefinitionsFromRecord(importedRecord, session));
@@ -58,7 +67,7 @@ function wrapper(options: MultiOptions = {}): WrapperDef {
     const isAsync = forkedSession.status & SessionStatus.ASYNC;
 
     // retrieve all satisfied definitions
-    const defs = getDefinitions(forkedSession.record, forkedSession);
+    const defs = getDefinitions(forkedSession.record, forkedSession, options);
 
     // with metaKey case
     const metaKey = options.metaKey;
