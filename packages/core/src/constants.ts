@@ -1,6 +1,5 @@
 import { Context, InjectionToken } from "./injector";
 import { InjectorOptions } from "./interfaces";
-import { Scope } from "./scope";
 import { Optional, Self } from "./wrappers";
 
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");
@@ -22,6 +21,16 @@ export const ANNOTATIONS = {
   ORDER: '@adi/order',
   LOCAL_SCOPE: '@adi/local-scope',
 };
+
+export enum PRIVATE_METADATA {
+  PROVIDER = '$$prov',
+  MODULE = '$$mod',
+}
+
+export enum METADATA {
+  PROVIDER = 'provider',
+  MODULE = 'module',
+}
 
 export const DELEGATION = {
   KEY: '@adi/delegation',

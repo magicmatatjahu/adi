@@ -1,4 +1,4 @@
-import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named } from "../../src";
+import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named, ModuleMetadata } from "../../src";
 
 describe('Module', function() {
   test('should be able to create injector from module and instances of the corresponding providers', async function() {
@@ -400,5 +400,96 @@ describe('Module', function() {
     const injector = Injector.create(MainModule).build();
     const service = injector.get(Service);
     expect(service.foobar).toEqual('named provider');
+  });
+
+  describe('should works with inlined module def', function() {
+    test('simple case', function() {
+      class ChildModule {
+        static module: ModuleMetadata = {
+          providers: [
+            {
+              provide: 'token',
+              useValue: 'foobar',
+            },
+          ],
+          exports: [
+            'token',
+          ]
+        }
+      }
+
+      @Injectable()
+      class HelperService {}
+
+      @Injectable()
+      class Service {  
+        constructor(
+          readonly service: HelperService,
+          @Inject('token') readonly foobar: string,
+        ) {}
+      }
+
+      class AppModule {
+        static module: ModuleMetadata = {
+          imports: [ChildModule],
+          providers: [Service, HelperService],
+        }
+      }
+  
+      const injector = Injector.create(AppModule).build();
+  
+      const service = injector.get(Service);
+  
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service).toBeInstanceOf(HelperService);
+      expect(service.foobar).toEqual('foobar');
+    });
+
+    test('merging with metadata defined with decorator case', function() {
+      @Module({
+        providers: [
+          {
+            provide: 'token',
+            useValue: 'foobar',
+          },
+        ],
+      })
+      class ChildModule {
+        static module: ModuleMetadata = {
+          exports: [
+            'token',
+          ]
+        }
+      }
+
+      @Injectable()
+      class HelperService {}
+
+      @Injectable()
+      class Service {  
+        constructor(
+          readonly service: HelperService,
+          @Inject('token') readonly foobar: string,
+        ) {}
+      }
+
+      @Module({
+        imports: [ChildModule],
+        providers: [HelperService],
+      })
+      class AppModule {
+        static module: ModuleMetadata = {
+          providers: [Service],
+        }
+      }
+  
+      const injector = Injector.create(AppModule).build();
+  
+      const service = injector.get(Service);
+  
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service).toBeInstanceOf(HelperService);
+      expect(service.foobar).toEqual('foobar');
+    });
   });
 });

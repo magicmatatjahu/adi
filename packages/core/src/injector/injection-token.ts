@@ -17,5 +17,5 @@ export class InjectionToken<T> {
     }
   }
 
-  private readonly $$prov: ProviderDef<T> = undefined;
+  private readonly $$prov: ProviderDef = undefined;
 };

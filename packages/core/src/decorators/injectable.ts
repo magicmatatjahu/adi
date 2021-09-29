@@ -1,10 +1,11 @@
-import { InjectableOptions, InjectionArgument, ProviderDef, StaticInjectable, Type } from "../interfaces";
+import { InjectableOptions, InjectionArgument, ProviderDef, InjectableMetadata, Type } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
 import { Wrapper } from "../utils/wrappers";
 import { InjectorMetadata } from "../injector";
+import { PRIVATE_METADATA, METADATA } from "../constants";
 
 export function Injectable<S>(options?: InjectableOptions<S>) {
   return function(target: Object) {
@@ -19,31 +20,33 @@ export function injectableMixin<T, S>(target: Type<T>, options?: InjectableOptio
 }
 
 export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined {
-  return provider['$$prov'] || undefined;
+  return provider[PRIVATE_METADATA.PROVIDER] || undefined;
 }
 
 export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions<S>): ProviderDef<T> {
   const def = ensureProviderDef(target);
   def.options = Object.assign(def.options, options);
 
-  // merge inline definition
-  const provider = (target as any).provider as StaticInjectable<S>;
-  if (provider !== undefined) {
-    def.injections = InjectorMetadata.combineDependencies(provider.injections, def.injections, target);
-    def.options = Object.assign(def.options, provider.options);
+  // merge inline metadata
+  const inlineMetadata = target[METADATA.PROVIDER] as InjectableMetadata<S>;
+  if (inlineMetadata !== undefined) {
+    def.injections = InjectorMetadata.combineDependencies(inlineMetadata.injections, def.injections, target);
+    def.options = Object.assign(def.options, inlineMetadata.options);
   }
 
   // check inheritance
   lookupInheritance(target, def, paramtypes);
+
+  // create factory
   def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def.injections);
   return def as ProviderDef<T>;
 }
 
 function ensureProviderDef<T>(provider: T): ProviderDef<T> {
-  if (!provider.hasOwnProperty('$$prov')) {
-    Object.defineProperty(provider, '$$prov', { value: defineProviderDef(provider), enumerable: true });
+  if (!provider.hasOwnProperty(PRIVATE_METADATA.PROVIDER)) {
+    Object.defineProperty(provider, PRIVATE_METADATA.PROVIDER, { value: defineProviderDef(provider), enumerable: true });
   }
-  return provider['$$prov'];
+  return provider[PRIVATE_METADATA.PROVIDER];
 }
 
 function defineProviderDef<T>(provider: T): ProviderDef<T> {

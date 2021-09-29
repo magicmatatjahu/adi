@@ -14,7 +14,7 @@ export type InjectionTokenOptions<S> = {
   annotations?: Record<string | symbol, any>;
 } & Partial<PlainSansProvider>;
 
-export interface StaticInjectable<S = any> {
+export interface InjectableMetadata<S = any> {
   options?: InjectableOptions<S>;
   injections?: Omit<PlainInjections, 'dynamic'>;
 }

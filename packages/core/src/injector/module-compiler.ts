@@ -1,5 +1,4 @@
-import { getModuleDef } from "../decorators";
-import { Injector, NilInjector } from ".";
+import { Injector, NilInjector, InjectorMetadata } from ".";
 import {
   Type,
   ModuleMetadata,
@@ -194,14 +193,14 @@ export class ModuleCompiler {
       return;
     }
     
-    let moduleDef = getModuleDef(metatype), 
+    let moduleDef = InjectorMetadata.getModuleDef(metatype), 
       dynamicDef: DynamicModule<T> = undefined;
 
     if (moduleDef === undefined) { // maybe DynamicModule case
       dynamicDef = metatype as DynamicModule<T>;
       if (dynamicDef.module !== undefined) { // DynamicModule case
         metatype = dynamicDef.module;
-        moduleDef = getModuleDef(metatype);
+        moduleDef = InjectorMetadata.getModuleDef(metatype);
       } else { // ModuleMetadata case
         dynamicDef = undefined;
         moduleDef = metatype as ModuleMetadata;

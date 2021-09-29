@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, INJECTOR_OPTIONS, ANNOTATIONS, Token, StaticInjectable, Scope, createWrapper } from "../../src";
+import { Injector, Injectable, Inject, Module, INJECTOR_OPTIONS, ANNOTATIONS, Token, InjectableMetadata, Scope, createWrapper } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -475,7 +475,7 @@ describe('Type provider (injectable provider)', function() {
 
     test('simple `options` property', function() {
       class HelperService {
-        static provider: StaticInjectable = {
+        static provider: InjectableMetadata = {
           options: {
             scope: Scope.TRANSIENT,
           },
@@ -483,7 +483,7 @@ describe('Type provider (injectable provider)', function() {
       }
   
       class Service {
-        static provider: StaticInjectable = {
+        static provider: InjectableMetadata = {
           injections: {
             parameters: [Token(HelperService), { token: HelperService }],
           }
@@ -515,7 +515,7 @@ describe('Type provider (injectable provider)', function() {
         scope: Scope.SINGLETON,
       })
       class HelperService {
-        static provider: StaticInjectable = {
+        static provider: InjectableMetadata = {
           options: {
             scope: Scope.TRANSIENT,
           },
@@ -524,7 +524,7 @@ describe('Type provider (injectable provider)', function() {
   
       @Injectable()
       class Service {
-        static provider: StaticInjectable = {
+        static provider: InjectableMetadata = {
           injections: {
             parameters: [undefined, HelperService],
           }
@@ -547,6 +547,37 @@ describe('Type provider (injectable provider)', function() {
       expect(service.service1).toBeInstanceOf(HelperService);
       expect(service.service2).toBeInstanceOf(HelperService);
       expect(service.service1 === service.service2).toEqual(false);
+    });
+
+    test('should work with module definition', function() {
+      class HelperService2 {}
+
+      @Injectable()
+      class HelperService {}
+  
+      @Module({
+        providers: [
+          HelperService,
+        ]
+      })
+      class TestModule {
+        static provider: InjectableMetadata = {
+          injections: {
+            parameters: [HelperService],
+          }
+        }
+  
+        constructor(
+          readonly service: HelperService2,
+        ) {}
+      }
+  
+      const injector = Injector.create(TestModule).build();
+  
+      const mod = injector.getComponent(TestModule);
+  
+      expect(mod).toBeInstanceOf(TestModule);
+      expect(mod.service).toBeInstanceOf(HelperService);
     });
   });
 });
