@@ -307,7 +307,7 @@ export class Injector {
 
     // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
-      const def = getProviderDef(token);
+      const def = InjectorMetadata.getProviderDef(token, false);
       const provideIn = def?.options?.provideIn;
       if (provideIn === undefined) {
         return;

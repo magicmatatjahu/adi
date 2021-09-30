@@ -193,14 +193,14 @@ export class ModuleCompiler {
       return;
     }
     
-    let moduleDef = InjectorMetadata.getModuleDef(metatype), 
+    let moduleDef = InjectorMetadata.getModuleDef(metatype, false), 
       dynamicDef: DynamicModule<T> = undefined;
 
     if (moduleDef === undefined) { // maybe DynamicModule case
       dynamicDef = metatype as DynamicModule<T>;
       if (dynamicDef.module !== undefined) { // DynamicModule case
         metatype = dynamicDef.module;
-        moduleDef = InjectorMetadata.getModuleDef(metatype);
+        moduleDef = InjectorMetadata.getModuleDef(metatype, false);
       } else { // ModuleMetadata case
         dynamicDef = undefined;
         moduleDef = metatype as ModuleMetadata;

@@ -1,5 +1,5 @@
 import { Injector } from ".";
-import { applyModuleDef, createInjectionArg, getModuleDef, getProviderDef, injectableMixin } from "../decorators";
+import { createInjectionArg, getModuleDef, getProviderDef, injectableMixin, moduleMixin } from "../decorators";
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
@@ -161,26 +161,29 @@ export const InjectorMetadata = new class {
     return scope as ScopeShape;
   }
 
-  getProviderDef(token: unknown, throwError: boolean = true): ProviderDef {
+  getProviderDef(token: unknown, strict: boolean = true): ProviderDef {
     let providerDef = getProviderDef(token);
     if (!providerDef) {
       // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable() or @Module()
       // collect only constructor params
-      typeof token === "function" && injectableMixin(token as Type);
-      providerDef = getProviderDef(token);
-      if (providerDef === undefined && throwError === true) {
+      // typeof token === "function" && injectableMixin(token as Type);
+      providerDef = getProviderDef(injectableMixin(token as Type));
+      if (providerDef === undefined && strict === true) {
         throw new Error('Cannot get provider def');
       }
     }
     return providerDef;
   }
 
-  getModuleDef(target: unknown): ModuleMetadata {
-    const moduleDef = getModuleDef(target);
+  getModuleDef(target: unknown, strict: boolean = true): ModuleMetadata {
+    let moduleDef = getModuleDef(target);
     if (!moduleDef) {
       // check if the inlined metadata is defined 
-      typeof target === "function" && applyModuleDef(target);
-      return getModuleDef(target);
+      // moduleMixin(target);
+      moduleDef = getModuleDef(moduleMixin(target as Type));
+      if (moduleDef === undefined && strict === true) {
+        throw new Error('Cannot get module def');
+      }
     }
     return moduleDef;
   }

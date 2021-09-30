@@ -15,7 +15,7 @@ export function Injectable<S>(options?: InjectableOptions<S>) {
 }
 
 export function injectableMixin<T, S>(target: Type<T>, options?: InjectableOptions<S>): Type<T> {
-  Injectable(options)(target);
+  typeof target === 'function' && Injectable(options)(target);
   return target;
 }
 
@@ -35,7 +35,7 @@ export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> =
   }
 
   // check inheritance
-  lookupInheritance(target, def, paramtypes);
+  inheritance(target, def, paramtypes);
 
   // create factory
   def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def.injections);
@@ -62,22 +62,15 @@ function defineProviderDef<T>(provider: T): ProviderDef<T> {
   };
 }
 
-// merge def from parent class
-function lookupInheritance(target: Object, def: ProviderDef, paramtypes: Array<Type>): void {
-  let inheritedClass = Object.getPrototypeOf(target);
-
-  // case when base class is not decorated by @Injectable()
-  // inheritedClass.length means arguments of constructor
-  if (inheritedClass && inheritedClass.length > 0) {
-    inheritedClass = injectableMixin(inheritedClass);
-  }
-  const inheritedDef = getProviderDef(inheritedClass);
-
-  // when inheritedDef doesn't exist, then merge constructor params
-  if (!inheritedDef) {
+function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): void {
+  // when class is not extended, then merge constructor params and return
+  if (target.prototype.__proto__ === Object.prototype) {
     mergeParameters(def.injections.parameters, paramtypes, target);
     return;
   }
+
+  let inheritedClass = Object.getPrototypeOf(target);
+  const inheritedDef = getProviderDef(inheritedClass) || getProviderDef(injectableMixin(inheritedClass));
 
   const injections = def.injections;
   const inheritedInjection = inheritedDef.injections;

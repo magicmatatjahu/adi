@@ -12,9 +12,9 @@ export function Module(metadata?: ModuleMetadata) {
   }
 }
 
-export function moduleMixin<T>(clazz: Type<T>, metadata?: ModuleMetadata): Type<T> {
-  Module(metadata)(clazz);
-  return clazz;
+export function moduleMixin<T>(target: Type<T>, metadata?: ModuleMetadata): Type<T> {
+  typeof target === 'function' && Module(metadata)(target);
+  return target;
 }
 
 export function getModuleDef(injector: unknown): ModuleDef | undefined {

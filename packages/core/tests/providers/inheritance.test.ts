@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject } from "../../src";
+import { Injector, Injectable, Inject, InjectableMetadata } from "../../src";
 
 describe('Inheritance', function() {
   test('should use parent arguments', function() {
@@ -230,5 +230,91 @@ describe('Inheritance', function() {
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.method()).toEqual('extendedService');
     expect(service.method()).toBeInstanceOf(TestService);
+  });
+
+  test('should works with inline provider def', function() {
+    class TestService {}
+
+    class Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          parameters: [TestService],
+        }
+      }
+
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    class ExtendedService extends Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          properties: {
+            foobar: 'foobar',
+          }
+        }
+      }
+
+      foobar: string;
+    }
+
+    const injector = Injector.create([
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+      }
+    ]);
+
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.foobar).toEqual('foobar');
+    expect(extendedService.service).toBeInstanceOf(TestService);
+  });
+
+  test('should works with inline provider def - base class has not constructors injections', function() {
+    class TestService {}
+
+    class Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          properties: {
+            service: TestService,
+          }
+        }
+      }
+
+      service: TestService;
+    }
+
+    class ExtendedService extends Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          properties: {
+            foobar: 'foobar',
+          }
+        }
+      }
+
+      foobar: string;
+    }
+
+    const injector = Injector.create([
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+      }
+    ]);
+
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.foobar).toEqual('foobar');
+    expect(extendedService.service).toBeInstanceOf(TestService);
   });
 });

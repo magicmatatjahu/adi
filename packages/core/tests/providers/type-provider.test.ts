@@ -550,6 +550,8 @@ describe('Type provider (injectable provider)', function() {
     });
 
     test('should work with module definition', function() {
+      let value: any;
+
       class HelperService2 {}
 
       @Injectable()
@@ -569,15 +571,13 @@ describe('Type provider (injectable provider)', function() {
   
         constructor(
           readonly service: HelperService2,
-        ) {}
+        ) {
+          value = service;
+        }
       }
   
-      const injector = Injector.create(TestModule).build();
-  
-      const mod = injector.getComponent(TestModule);
-  
-      expect(mod).toBeInstanceOf(TestModule);
-      expect(mod.service).toBeInstanceOf(HelperService);
+      Injector.create(TestModule).build();
+      expect(value).toBeInstanceOf(HelperService);
     });
   });
 });
