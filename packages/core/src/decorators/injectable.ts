@@ -71,6 +71,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
 
   let inheritedClass = Object.getPrototypeOf(target);
   const inheritedDef = getProviderDef(inheritedClass) || getProviderDef(injectableMixin(inheritedClass));
+  if (inheritedDef === undefined) return;
 
   const injections = def.injections;
   const inheritedInjection = inheritedDef.injections;
