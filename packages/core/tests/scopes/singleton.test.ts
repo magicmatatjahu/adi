@@ -86,6 +86,68 @@ describe('Singleton scope', function () {
     expect(service.service === service.probablyNewService).toEqual(true);
   });
 
+  test('should create another instance per injector', function () {
+    @Injectable({
+      scope: {
+        kind: Scope.SINGLETON,
+        options: {
+          perInjector: true,
+        }
+      },
+    })
+    class TestService {}
+
+    @Injectable()
+    class Service1 {
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    @Injectable()
+    class Service2 {
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    @Injectable()
+    class ChildService1 {
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    @Injectable()
+    class ChildService2 {
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    const parentInjector = Injector.create([
+      Service1,
+      Service2,
+      TestService,
+    ]);
+    const childInjector = Injector.create([
+      ChildService1,
+      ChildService2,
+    ], parentInjector);
+
+    const service1 = parentInjector.get(Service1);
+    const service2 = parentInjector.get(Service2);
+    expect(service1.service).toBeInstanceOf(TestService);
+    expect(service2.service).toBeInstanceOf(TestService);
+    expect(service1.service === service2.service).toEqual(true);
+    const childService1 = childInjector.get(ChildService1);
+    const childService2 = childInjector.get(ChildService2);
+    expect(childService1.service).toBeInstanceOf(TestService);
+    expect(childService2.service).toBeInstanceOf(TestService);
+    expect(childService1.service === childService2.service).toEqual(true);
+    expect(service1.service === childService1.service).toEqual(false);
+  });
+
   describe('onDestroy hook', function () {
     test('should destroy on injector event' , async function() {
       let destroyOrder: string[] = [];

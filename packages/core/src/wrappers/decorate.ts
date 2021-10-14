@@ -11,13 +11,11 @@ interface DecorateOptions {
   inject?: Array<InjectionItem>;
 }
 
-let DECORATOR_ID = 0;
+const maxInt = 2147483647
+let nextReqId = 0
 function generateID() {
-  if (DECORATOR_ID === 999999) {
-    DECORATOR_ID = 0;
-  }
-  const date = new Date();
-  return `$$decorator${DECORATOR_ID++}${date.getMinutes()}${date.getSeconds()}${date.getMilliseconds()}`; 
+  nextReqId = (nextReqId + 1) & maxInt
+  return `ID-${nextReqId.toString(36)}`
 }
 
 function wrapper(decorator: Type | DecorateOptions): WrapperDef {
