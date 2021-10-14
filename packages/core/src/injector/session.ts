@@ -1,7 +1,6 @@
 import { 
   InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord, ScopeShape,
 } from "../interfaces";
-import { NOOP_FN } from "../constants";
 
 import { Context } from "./context";
 import { Scope } from "../scope";
@@ -107,7 +106,7 @@ export class Session<T = any> {
 
   static $$prov: ProviderDef = {
     token: Session,
-    factory: NOOP_FN,
+    factory: () => {},
     options: {
       provideIn: 'any',
       useWrapper: {

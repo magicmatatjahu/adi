@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, InjectableMetadata } from "../../src";
+import { Injector, Injectable, Inject, InjectableMetadata, Scope } from "../../src";
 
 describe('Inheritance', function() {
   test('should use parent arguments', function() {
@@ -316,5 +316,352 @@ describe('Inheritance', function() {
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.foobar).toEqual('foobar');
     expect(extendedService.service).toBeInstanceOf(TestService);
+  });
+
+  test('should works with inline provider def when base class is decorated by @Injectable', function() {
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    class ExtendedService extends Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          properties: {
+            foobar: 'foobar',
+          }
+        }
+      }
+
+      foobar: string;
+    }
+
+    const injector = Injector.create([
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+      }
+    ]);
+
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.foobar).toEqual('foobar');
+    expect(extendedService.service).toBeInstanceOf(TestService);
+  });
+
+  test('should works with inline provider def when extended class is decorated by @Injectable', function() {
+    class TestService {}
+
+    class Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          parameters: [TestService],
+        }
+      }
+
+      constructor(
+        readonly service: TestService,
+      ) {}
+    }
+
+    @Injectable()
+    class ExtendedService extends Service {
+      @Inject('foobar')
+      foobar: string;
+    }
+
+    const injector = Injector.create([
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+      }
+    ]);
+
+    const extendedService = injector.get(ExtendedService);
+    expect(extendedService).toBeInstanceOf(ExtendedService);
+    expect(extendedService.foobar).toEqual('foobar');
+    expect(extendedService.service).toBeInstanceOf(TestService);
+  });
+
+  test('should works with deep inheritance', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      propertyService: TestService;
+
+      constructor(
+        readonly parentService: String,
+        readonly additionalArg: Number,
+      ) {}
+    }
+
+    @Injectable()
+    class ExtendedService extends Service {
+      constructor(
+        readonly service: TestService,
+      ) {
+        super(undefined, undefined);
+      }
+    }
+
+    @Injectable()
+    class DeepExtendedService extends ExtendedService {
+      @Inject()
+      deepPropertyService: TestService;
+    }
+
+    const injector = new Injector([
+      DeepExtendedService,
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: String,
+        useValue: 'stringValue',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const deepExtendedService = injector.get(DeepExtendedService);
+    expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
+    expect(deepExtendedService.service).toBeInstanceOf(TestService);
+    expect(deepExtendedService.parentService).toEqual(undefined);
+    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);
+    expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
+  });
+
+  test('should works with deep inheritance when one of the base classes has not defined provider definiton', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      propertyService: TestService;
+
+      constructor(
+        readonly parentService: String,
+        readonly additionalArg: Number,
+      ) {}
+    }
+
+    class ExtendedService extends Service {}
+
+    @Injectable()
+    class DeepExtendedService extends ExtendedService {
+      @Inject()
+      deepPropertyService: TestService;
+
+      constructor(
+        readonly service: TestService,
+      ) {
+        super(undefined, undefined);
+      }
+    }
+
+    const injector = new Injector([
+      DeepExtendedService,
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: String,
+        useValue: 'stringValue',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const deepExtendedService = injector.get(DeepExtendedService);
+    expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
+    expect(deepExtendedService.service).toBeInstanceOf(TestService);
+    expect(deepExtendedService.parentService).toEqual(undefined);
+    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);
+    expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
+  });
+
+  test('should works with deep inheritance when one of the base classes has defined provider definiton only by @Inject decorator', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      propertyService: TestService;
+
+      constructor(
+        readonly parentService: String,
+        readonly additionalArg: Number,
+      ) {}
+    }
+
+    class ExtendedService extends Service {
+      @Inject()
+      extendedService: TestService;
+    }
+
+    @Injectable()
+    class DeepExtendedService extends ExtendedService {
+      @Inject()
+      deepPropertyService: TestService;
+
+      constructor(
+        readonly service: TestService,
+      ) {
+        super(undefined, undefined);
+      }
+    }
+
+    const injector = new Injector([
+      DeepExtendedService,
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: String,
+        useValue: 'stringValue',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const deepExtendedService = injector.get(DeepExtendedService);
+    expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
+    expect(deepExtendedService.service).toBeInstanceOf(TestService);
+    expect(deepExtendedService.parentService).toEqual(undefined);
+    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
+    expect(deepExtendedService.extendedService).toBeInstanceOf(TestService);
+    expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);
+  });
+
+  test('should works with deep inheritance when one of the base classes has defined inlined provider definiton', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      propertyService: TestService;
+
+      constructor(
+        readonly parentService: String,
+        readonly additionalArg: Number,
+      ) {}
+    }
+
+    class ExtendedService extends Service {
+      static provider: InjectableMetadata = {
+        injections: {
+          properties: {
+            extendedService: TestService,
+          }
+        }
+      }
+
+      extendedService: TestService;
+    }
+
+    @Injectable()
+    class DeepExtendedService extends ExtendedService {
+      @Inject()
+      deepPropertyService: TestService;
+
+      constructor(
+        readonly service: TestService,
+      ) {
+        super(undefined, undefined);
+      }
+    }
+
+    const injector = new Injector([
+      DeepExtendedService,
+      ExtendedService,
+      Service,
+      TestService,
+      {
+        provide: String,
+        useValue: 'stringValue',
+      },
+      {
+        provide: Number,
+        useValue: 2137,
+      }
+    ]);
+
+    const deepExtendedService = injector.get(DeepExtendedService);
+    expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
+    expect(deepExtendedService.service).toBeInstanceOf(TestService);
+    expect(deepExtendedService.parentService).toEqual(undefined);
+    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
+    expect(deepExtendedService.extendedService).toBeInstanceOf(TestService);
+    expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);
+  });
+
+  test('should inherite options of provider definition', function() {
+    @Injectable({
+      scope: Scope.TRANSIENT
+    })
+    class Service {}
+
+    @Injectable()
+    class ExtendedService extends Service {}
+
+    const injector = new Injector([
+      ExtendedService,
+      Service,
+    ]);
+
+    const service1 = injector.get(ExtendedService);
+    const service2 = injector.get(ExtendedService);
+    expect(service1).toBeInstanceOf(ExtendedService);
+    expect(service2).toBeInstanceOf(ExtendedService);
+    expect(service1 === service2).toEqual(false);
+  });
+
+  test('should override (shallow) options of base provider definition', function() {
+    @Injectable({
+      scope: Scope.TRANSIENT
+    })
+    class Service {}
+
+    @Injectable({
+      scope: Scope.SINGLETON
+    })
+    class ExtendedService extends Service {}
+
+    const injector = new Injector([
+      ExtendedService,
+      Service,
+    ]);
+
+    const service1 = injector.get(ExtendedService);
+    const service2 = injector.get(ExtendedService);
+    expect(service1).toBeInstanceOf(ExtendedService);
+    expect(service2).toBeInstanceOf(ExtendedService);
+    expect(service1 === service2).toEqual(true);
   });
 });

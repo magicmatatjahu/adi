@@ -1,14 +1,12 @@
 import { applyProviderDef } from "./injectable";
 import { ModuleDef, ModuleMetadata, Type } from "../interfaces";
-import { Reflection } from "../utils";
 import { Scope } from "../scope";
 import { PRIVATE_METADATA, METADATA, EMPTY_ARRAY } from "../constants";
 
 export function Module(metadata?: ModuleMetadata) {
   return function(target: Object) {
     applyModuleDef(target, metadata);
-    const params = Reflection.getOwnMetadata("design:paramtypes", target);
-    applyProviderDef(target, params, { scope: Scope.SINGLETON });
+    applyProviderDef(target, { scope: Scope.SINGLETON });
   }
 }
 
@@ -18,7 +16,10 @@ export function moduleMixin<T>(target: Type<T>, metadata?: ModuleMetadata): Type
 }
 
 export function getModuleDef(injector: unknown): ModuleDef | undefined {
-  return injector[PRIVATE_METADATA.MODULE] || undefined;
+  if (injector.hasOwnProperty(PRIVATE_METADATA.MODULE) === true) {
+    return injector[PRIVATE_METADATA.MODULE];
+  }
+  return undefined;
 }
 
 export function applyModuleDef(target: Object, moduleMetadata: ModuleMetadata = {}): ModuleDef {

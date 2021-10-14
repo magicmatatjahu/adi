@@ -5,25 +5,28 @@ import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
 import { Wrapper } from "../utils/wrappers";
 import { InjectorMetadata } from "../injector";
-import { PRIVATE_METADATA, METADATA } from "../constants";
+import { PRIVATE_METADATA, METADATA, EMPTY_ARRAY } from "../constants";
 
 export function Injectable<S>(options?: InjectableOptions<S>) {
   return function(target: Object) {
-    const params = Reflection.getOwnMetadata("design:paramtypes", target);
-    applyProviderDef(target, params, options);
+    applyProviderDef(target, options);
   }
 }
 
 export function injectableMixin<T, S>(target: Type<T>, options?: InjectableOptions<S>): Type<T> {
-  typeof target === 'function' && Injectable(options)(target);
+  typeof target === 'function' && applyProviderDef(target, options);
   return target;
 }
 
 export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined {
-  return provider[PRIVATE_METADATA.PROVIDER] || undefined;
+  if (provider.hasOwnProperty(PRIVATE_METADATA.PROVIDER) === true) {
+    return provider[PRIVATE_METADATA.PROVIDER];
+  }
+  return undefined;
 }
 
-export function applyProviderDef<T, S>(target: Object, paramtypes: Array<Type> = [], options?: InjectableOptions<S>): ProviderDef<T> {
+export function applyProviderDef<T, S>(target: Object, options?: InjectableOptions<S>): ProviderDef<T> {
+  const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target) || EMPTY_ARRAY;
   const def = ensureProviderDef(target);
   def.options = Object.assign(def.options, options);
 
@@ -70,11 +73,20 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
   }
 
   let inheritedClass = Object.getPrototypeOf(target);
-  const inheritedDef = getProviderDef(inheritedClass) || getProviderDef(injectableMixin(inheritedClass));
-  if (inheritedDef === undefined) return;
+  let inheritedDef = getProviderDef(inheritedClass);
+  if (
+    inheritedDef === undefined || 
+    // checks whether the provider definition has been fully initialized - by saving provider's configuration
+    inheritedDef.factory === undefined
+  ) {
+    inheritedDef = getProviderDef(injectableMixin(inheritedClass));
+  }
+
+  // override (shallow) options
+  def.options = { ...inheritedDef.options, ...def.options };
 
   const injections = def.injections;
-  const inheritedInjection = inheritedDef.injections;
+  const inheritedInjections = inheritedDef.injections;
 
   // override/adjust constructor injection
   // if class has defined paramtypes, then skip overriding parameters from parent class
@@ -83,7 +95,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
     mergeParameters(parameters, paramtypes, target);
   } else {
     // definedArgs is empty array in case of merging parent ctor arguments
-    const inheritedParameters = inheritedInjection.parameters;
+    const inheritedParameters = inheritedInjections.parameters;
     for (let i = 0, l = inheritedParameters.length; i < l; i++) {
       const param = inheritedParameters[i]
       parameters[i] = createInjectionArg(param.token, param.wrapper, target, undefined, i);
@@ -92,7 +104,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
 
   // override/adjust properties injection
   const props = injections.properties;
-  const inheritedProps = inheritedInjection.properties;
+  const inheritedProps = inheritedInjections.properties;
   for (let key in inheritedProps) {
     const inheritedProp = inheritedProps[key];
     // shallow copy injection argument and override target
@@ -109,13 +121,13 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
 
   const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
   // override/adjust methods injection
-  for (let key in inheritedInjection.methods) {
+  for (let key in inheritedInjections.methods) {
     // check if target has method.
     // if yes, dev could make it injectable from scratch or override to pure (without injection) function in extended class.
     // if not, copy injections from parent class
     if (targetMethods.includes(key) === false) {
       const copiedMethod: InjectionArgument[] = [];
-      const method = inheritedInjection.methods[key];
+      const method = inheritedInjections.methods[key];
       for (let i = 0, l = method.length; i < l; i++) {
         const arg = method[i];
         // shallow copy injection argument and override target

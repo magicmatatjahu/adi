@@ -125,9 +125,9 @@ export const InjectorMetadata = new class {
     host: Injector,
     isComponent: boolean,
   ): ProviderRecord {
-    let records: Map<Token, ProviderRecord> = (host as any).records;
+    let records: Map<Token, ProviderRecord> = host.records;
     if (isComponent === true) {
-      records = (host as any).components;
+      records = host.components;
     }
 
     let record = records.get(token);
@@ -163,10 +163,9 @@ export const InjectorMetadata = new class {
 
   getProviderDef(token: unknown, strict: boolean = true): ProviderDef {
     let providerDef = getProviderDef(token);
-    if (!providerDef) {
+    if (providerDef === undefined || providerDef.factory === undefined) {
       // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable() or @Module()
       // collect only constructor params
-      // typeof token === "function" && injectableMixin(token as Type);
       providerDef = getProviderDef(injectableMixin(token as Type));
       if (providerDef === undefined && strict === true) {
         throw new Error('Cannot get provider def');
@@ -177,9 +176,8 @@ export const InjectorMetadata = new class {
 
   getModuleDef(target: unknown, strict: boolean = true): ModuleMetadata {
     let moduleDef = getModuleDef(target);
-    if (!moduleDef) {
+    if (moduleDef === undefined) {
       // check if the inlined metadata is defined 
-      // moduleMixin(target);
       moduleDef = getModuleDef(moduleMixin(target as Type));
       if (moduleDef === undefined && strict === true) {
         throw new Error('Cannot get module def');

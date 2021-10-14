@@ -1,4 +1,3 @@
-import { NOOP_FN } from "../constants";
 import { ProviderDef } from "../interfaces";
 import { Session } from "./session";
 
@@ -17,7 +16,7 @@ export class Context<T = Record<string | symbol, unknown>> {
 
   static $$prov: ProviderDef = {
     token: Context,
-    factory: NOOP_FN,
+    factory: () => {},
     options: {
       provideIn: 'any',
       useWrapper: {
