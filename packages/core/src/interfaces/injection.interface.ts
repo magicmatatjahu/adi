@@ -1,7 +1,7 @@
 import { Context } from "../injector";
 import { InjectionItem, ScopeShape, PlainInjections } from ".";
 import { Token } from "../types";
-import { Wrapper } from "../utils/wrappers";
+import { NewWrapper, Wrapper } from "../utils/wrappers";
 import { DefinitionRecord } from "./record.interface";
 
 export interface InjectionOptions<T = any> {
@@ -21,6 +21,6 @@ export interface InjectionMetadata {
 
 export interface InjectionArgument<T = any> {
   token: Token<T>;
-  wrapper: Wrapper,
+  wrapper: Wrapper | NewWrapper | Array<NewWrapper>,
   metadata: InjectionMetadata;
 }

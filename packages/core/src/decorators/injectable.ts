@@ -3,7 +3,7 @@ import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
-import { Wrapper } from "../utils/wrappers";
+import { NewWrapper, Wrapper } from "../utils/wrappers";
 import { InjectorMetadata } from "../injector";
 import { PRIVATE_METADATA, METADATA, EMPTY_ARRAY } from "../constants";
 
@@ -146,7 +146,7 @@ function mergeParameters(definedArgs: Array<InjectionArgument>, paramtypes: Arra
 
 export function applyInjectionArg(
   token: Token,
-  wrapper: Wrapper,
+  wrapper: Wrapper | NewWrapper | Array<NewWrapper>,
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
@@ -168,10 +168,10 @@ export function applyInjectionArg(
   return injections.parameters[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, wrapper: Wrapper, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+export function createInjectionArg(token: Token, wrapper: Wrapper | NewWrapper | Array<NewWrapper>, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   return {
     token,
-    wrapper: Cache(wrapper),
+    wrapper: wrapper, // Cache(wrapper),
     metadata: {
       target,
       propertyKey,

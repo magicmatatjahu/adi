@@ -18,7 +18,7 @@ function generateID() {
   return `ID-${nextReqId.toString(36)}`
 }
 
-function wrapper(decorator: Type | DecorateOptions): WrapperDef {
+function wrapper(decorator: Type | DecorateOptions) {
   // decoratorID is added to the every instances with `true` value to avoid redecorate the given instance
   let decoratorID = generateID();
   let factory: FactoryDef;

@@ -43,6 +43,7 @@ export const NULL_REF = {};
 export const EMPTY_OBJECT = {};
 export const EMPTY_ARRAY = [];
 export const NOOP_FN = () => {}; 
+export const WRAPPER_DEF = {};
 
 export const SESSION_INTERNAL = {
   CIRCULAR: '$$circular',

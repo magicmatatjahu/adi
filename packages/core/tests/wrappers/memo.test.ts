@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Memo, New, Scope, createWrapper } from "../../src";
 
-describe('Memo wrapper', function () {
+describe.skip('Memo wrapper', function () {
   test('should memoize injection even when injection has side effects', function () {
     let calls = 0;
 

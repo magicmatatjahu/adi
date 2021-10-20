@@ -3,6 +3,7 @@ import {
 } from "../interfaces";
 
 import { Context } from "./context";
+import { Injector } from "./injector";
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { ProviderRecord } from "./provider";
@@ -28,6 +29,7 @@ export class Session<T = any> {
   }
 
   public status: SessionStatus = SessionStatus.NONE;
+  public injector: Injector;
 
   constructor(
     public record: ProviderRecord<T>,

@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, hasNewWrapperProvider } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
@@ -13,7 +13,7 @@ import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
-import { copyWrappers, Wrapper } from "../utils/wrappers";
+import { copyWrappers, NewWrapper, Wrapper } from "../utils/wrappers";
 import { UseExisting } from "../wrappers/internal";
 
 export const InjectorMetadata = new class {
@@ -65,12 +65,12 @@ export const InjectorMetadata = new class {
     const record = this.getRecord(token, host, isComponent);
     const constraint = provider.when;
     let factory: FactoryDef = undefined,
-      wrapper: Wrapper = undefined,
+      wrapper: Wrapper | NewWrapper | Array<NewWrapper> = undefined,
       scope: ScopeShape = this.getScopeShape((provider as any).scope),
       annotations: Record<string | symbol, any> = provider.annotations || EMPTY_OBJECT,
       proto = undefined;
 
-    if (hasWrapperProvider(provider)) {
+    if (hasWrapperProvider(provider) || hasNewWrapperProvider(provider)) {
       wrapper = provider.useWrapper;
     }
 
@@ -82,7 +82,8 @@ export const InjectorMetadata = new class {
       const aliasProvider = provider.useExisting;
       // copy wrapper and add to the end the new one 
       if (wrapper) {
-        wrapper = copyWrappers(wrapper);
+        // TODO: Change it
+        wrapper = copyWrappers(wrapper as Wrapper);
         while (wrapper.next) {
           wrapper = wrapper.next;
         }

@@ -1,6 +1,6 @@
 import { Context } from "../injector";
 import { WrapperDef } from "../interfaces";
-import { createWrapper } from "../utils/wrappers";
+import { createNewWrapper, createWrapper } from "../utils/wrappers";
 
 function wrapper(ctx: Context): WrapperDef {
   return (injector, session, next) => {
@@ -10,3 +10,10 @@ function wrapper(ctx: Context): WrapperDef {
 }
 
 export const Ctx = createWrapper<Context, true>(wrapper);
+
+export const NewCtx = createNewWrapper((ctx: Context) => {
+  return (session, next) => {
+    session.setContext(ctx);
+    return next(session);
+  }
+});

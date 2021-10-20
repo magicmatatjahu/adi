@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context } from "../../src";
+import { Injector, Injectable, Inject, NewCtx, Context } from "../../src";
 
 describe('Ctx wrapper', function () {
   test('should inject given context', function () {
@@ -15,8 +15,8 @@ describe('Ctx wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Ctx(firstCtx)) readonly service1: TestService,
-        @Inject(Ctx(secondCtx)) readonly service2: TestService,
+        @Inject(NewCtx(firstCtx)) readonly service1: TestService,
+        @Inject(NewCtx(secondCtx)) readonly service2: TestService,
       ) {}
     }
 
@@ -25,7 +25,7 @@ describe('Ctx wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service1.ctx).toEqual(firstCtx);
     expect(service.service2).toBeInstanceOf(TestService);

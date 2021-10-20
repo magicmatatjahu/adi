@@ -4,7 +4,7 @@ import { InjectorStatus, InstanceStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
 import { Token } from "../types";
 import { Scope } from "../scope";
-import { Wrapper, compareOrder } from "../utils";
+import { Wrapper, compareOrder, NewWrapper } from "../utils";
 
 export class ProviderRecord<T = any> {
   /**
@@ -62,7 +62,7 @@ export class ProviderRecord<T = any> {
     factory?: FactoryDef,
     scope?: ScopeShape<S>,
     constraint?: ConstraintDef,
-    wrapper?: Wrapper,
+    wrapper?: Wrapper | NewWrapper | Array<NewWrapper>,
     annotations?: Record<string | symbol, any>,
     proto?: Type,
   ): DefinitionRecord {
@@ -98,7 +98,7 @@ export class ProviderRecord<T = any> {
   }
 
   addWrapper(
-    wrapper: Wrapper,
+    wrapper: Wrapper | NewWrapper | Array<NewWrapper>,
     constraint?: ConstraintDef,
     annotations?: Record<string | symbol, any>,
   ): void {
@@ -141,6 +141,6 @@ export class ProviderRecord<T = any> {
         satisfyingWraps.push(wrapper);
       }
     }
-    return satisfyingWraps.sort(compareOrder).map(record => record.wrapper);
+    return satisfyingWraps.sort(compareOrder).map(record => record.wrapper) as Array<Wrapper>;
   }
 }

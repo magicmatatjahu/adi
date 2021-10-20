@@ -1,6 +1,6 @@
-import { NULL_REF } from "../constants";
-import { NextWrapper, WrapperDef } from "../interfaces";
-import { Injector, Session } from "../injector";
+import { NULL_REF, WRAPPER_DEF } from "../constants";
+import { NextWrapper, WrapperDef, NewNextWrapper, NewWrapperDef } from "../interfaces";
+import { Injector, ProviderRecord, Session } from "../injector";
 
 export interface Wrapper {
   prev?: Wrapper;
@@ -66,3 +66,45 @@ export function copyWrappers(wrapper: Wrapper): Wrapper {
   }
   return newWrapper;
 }
+
+/**
+ * New implementation
+ */
+export interface NewWrapper {
+  func: NewWrapperDef;
+  $$wr: object;
+}
+
+export function createNewWrapper<F extends (...args: any) => NewWrapperDef>(useWrapper: F): (...args: Parameters<F>) => NewWrapper {
+  return function(...args: any): NewWrapper {
+    return {
+      func: useWrapper(...args),
+      $$wr: WRAPPER_DEF,
+    };
+  }
+}
+
+export function runNewWrappers(wrappers: Array<NewWrapper> | NewWrapper, session: Session, last: NewNextWrapper) {
+  if (Array.isArray(wrappers)) {
+    const length = wrappers.length - 1;
+    const nextWrapper = (i: number) => (session: Session) => {
+      const next: NewNextWrapper = i === length ? last : (s: Session) => nextWrapper(i+1)(s);
+      return wrappers[i].func(session, next);
+    }
+    return nextWrapper(0)(session);
+  }
+  return wrappers.func(session, last);
+}
+
+export function runNewRecordsWrappers(wrappers: Array<{ record: ProviderRecord, wrapper: NewWrapper }>, session: Session, last: NewNextWrapper) {
+  const length = wrappers.length - 1;
+  const nextWrapper = (i: number) => (session: Session) => {
+    const next: NewNextWrapper = i === length ? last : (s: Session) => nextWrapper(i+1)(s);
+    const item = wrappers[i];
+    session.record = item.record;
+    session.injector = item.record.host;
+    return item.wrapper.func(session, next);
+  }
+  return nextWrapper(0)(session);
+}
+

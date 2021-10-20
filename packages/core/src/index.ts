@@ -19,4 +19,4 @@ export { Context, Session, Injector, ProtoInjector, InjectionToken, InjectorMeta
 export * from "./interfaces";
 export * from "./wrappers";
 export { Scope } from "./scope";
-export { Wrapper, createWrapper, resolveRef, ref } from "./utils";
+export { Wrapper, NewWrapper, createWrapper, createNewWrapper, resolveRef, ref } from "./utils";

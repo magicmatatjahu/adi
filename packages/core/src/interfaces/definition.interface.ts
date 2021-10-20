@@ -44,3 +44,7 @@ export type NextWrapper<T = any> = (
 ) => Promise<T | undefined> | T | undefined;
 
 export type WrapperDef<T = any> = (injector: Injector, session: Session, next: NextWrapper) => Promise<T> | T;
+
+export type NewNextWrapper<T = any> = (session: Session) => Promise<T | undefined> | T | undefined;
+
+export type NewWrapperDef<T = any> = (session: Session, next: NewNextWrapper) => Promise<T> | T;

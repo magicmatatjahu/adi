@@ -1,4 +1,4 @@
-import { NULL_REF } from "../constants";
+import { NULL_REF, WRAPPER_DEF } from "../constants";
 import { 
   ClassProvider,
   ExistingProvider,
@@ -12,7 +12,7 @@ import {
   DynamicModule,
   Type,
 } from "../interfaces";
-import { Wrapper } from "./wrappers";
+import { NewWrapper, Wrapper } from "./wrappers";
 
 export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
   return typeof (provider as FactoryProvider).useFactory === "function";
@@ -35,8 +35,17 @@ export function hasWrapperProvider(provider: unknown): provider is WrapperProvid
   return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
 }
 
+export function hasNewWrapperProvider(provider: unknown): provider is WrapperProvider {
+  const wrapper = (provider as WrapperProvider).useWrapper;
+  return wrapper && (wrapper as NewWrapper).$$wr === WRAPPER_DEF;
+}
+
 export function isWrapper(wrapper: unknown): wrapper is Wrapper {
   return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
+}
+
+export function isNewWrapper(wrapper: unknown): wrapper is NewWrapper {
+  return wrapper && (wrapper as NewWrapper).$$wr === WRAPPER_DEF;
 }
 
 export function isDynamicModule(module: Type | DynamicModule): module is DynamicModule {

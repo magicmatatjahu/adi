@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, New, Scope, createWrapper } from "../../src";
 
-describe('Cacheable wrapper', function () {
+describe.skip('Cacheable wrapper', function () {
   test('should cache injection with simple provider (with DEFAULT scope)', function () {
     let calls = 0;
 
