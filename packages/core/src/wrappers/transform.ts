@@ -1,8 +1,8 @@
 import { InjectorResolver } from "../injector";
 import { InjectionItem, WrapperDef } from "../interfaces";
-import { createWrapper, thenable } from "../utils";
+import { createNewWrapper, createWrapper, thenable } from "../utils";
 import { DELEGATION } from "../constants";
-import { Delegate } from "./delegate";
+import { Delegate, NewDelegate } from "./delegate";
 import { SessionStatus } from "../enums";
 
 interface TransformOptions {
@@ -41,3 +41,33 @@ function wrapper(transform: TransformOptions): WrapperDef {
 }
 
 export const Transform = createWrapper<TransformOptions, true>(wrapper);
+
+export const NewTransform = createNewWrapper((transform: TransformOptions) => {
+  const factory = InjectorResolver.createFactory(transform.transform, transform.inject || [NewDelegate()]);
+
+  return (session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(session);
+    }
+
+    // copy session
+    const forkedSession = session.fork();
+
+    return thenable(
+      () => next(session),
+      value => {
+        // mark session with side effect
+        session.setSideEffect(false);
+        // add delegation
+        forkedSession[DELEGATION.KEY] = {
+          type: 'single',
+          values: value,
+        };
+        return thenable(
+          () => factory(forkedSession.injector, forkedSession),
+          transformedValue => transformedValue,
+        );
+      }
+    );
+  }
+});

@@ -1,4 +1,4 @@
-import { Injector, Token, Named, when, Ctx, Context, Labelled } from "../src";
+import { Injector, NewToken, NewNamed, when, NewCtx, Context, NewLabelled } from "../src";
 
 describe('Constraint', function() {
   describe('Named constraint', function() {
@@ -16,11 +16,11 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: [Token('foobar', Named('bar')), 'foobar'],
+          inject: [[NewToken('foobar'), NewNamed('bar')], 'foobar'],
         }
       ]);
   
-      const foobar = injector.get('test') as string[];
+      const foobar = injector.newGet('test') as string[];
       expect(foobar[0]).toEqual('bar');
       expect(foobar[1]).toEqual('foo');
     });
@@ -43,11 +43,11 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', Token('foobar', Ctx(ctx))],
+          inject: ['foobar', [NewToken('foobar'), NewCtx(ctx)]],
         }
       ]);
   
-      const foobar = injector.get('test') as string;
+      const foobar = injector.newGet('test') as string;
       expect(foobar[0]).toEqual('foo');
       expect(foobar[1]).toEqual('bar');
     });
@@ -71,11 +71,11 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', Token('foobar', Labelled({ foo: 'bar', bar: 'foo' }))],
+          inject: ['foobar', [NewToken('foobar'), NewLabelled({ foo: 'bar', bar: 'foo' })]],
         }
       ]);
   
-      const foobar = injector.get('test') as string;
+      const foobar = injector.newGet('test') as string;
       expect(foobar[0]).toEqual('foo');
       expect(foobar[1]).toEqual('bar');
     });
@@ -101,11 +101,11 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', Token('foobar', Labelled({ foo: 'bar', bar: 'foo' }, Ctx(ctx)))],
+          inject: ['foobar', [NewToken('foobar'), NewLabelled({ foo: 'bar', bar: 'foo' }), NewCtx(ctx)]],
         }
       ]);
   
-      const foobar = injector.get('test') as string;
+      const foobar = injector.newGet('test') as string;
       expect(foobar[0]).toEqual('foo');
       expect(foobar[1]).toEqual('bar');
     });
@@ -131,11 +131,11 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', Token('foobar', Labelled({ foo: 'bar', bar: 'foo' }, Ctx(ctx)))],
+          inject: ['foobar', [NewToken('foobar'), NewLabelled({ foo: 'bar', bar: 'foo' }), NewCtx(ctx)]],
         }
       ]);
   
-      const foobar = injector.get('test') as string;
+      const foobar = injector.newGet('test') as string;
       expect(foobar[0]).toEqual('foo');
       expect(foobar[1]).toEqual('bar');
     });
@@ -158,8 +158,8 @@ describe('Constraint', function() {
       },
     ], parentInjector);
 
-    const childValue = childInjector.get<string>('foobar', Named('bar'));
-    const parentValue = childInjector.get<string>('foobar', Named('foo'));
+    const childValue = childInjector.newGet<string>('foobar', NewNamed('bar'));
+    const parentValue = childInjector.newGet<string>('foobar', NewNamed('foo'));
     expect(childValue).toEqual('bar');
     expect(parentValue).toEqual('foo');
   });

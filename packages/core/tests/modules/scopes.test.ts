@@ -11,7 +11,7 @@ describe('Module scopes', function() {
     class Service {}
 
     const injector = new Injector(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -34,7 +34,7 @@ describe('Module scopes', function() {
     class MainModule {}
 
     const injector = new Injector(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -57,7 +57,7 @@ describe('Module scopes', function() {
     class MainModule {}
 
     const injector = new Injector(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
   });
 });

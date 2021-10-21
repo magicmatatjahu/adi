@@ -1,6 +1,6 @@
 import { Injector, NilInjector, Session } from "../injector";
-import { NextWrapper } from "../interfaces";
-import { createWrapper } from "../utils";
+import { NewNextWrapper, NextWrapper } from "../interfaces";
+import { createNewWrapper, createWrapper } from "../utils";
 
 function wrapper(injector: Injector, session: Session, next: NextWrapper) {
   const token = session.getToken();
@@ -15,3 +15,19 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
 }
 
 export const Self = createWrapper<undefined, false>(() => wrapper);
+
+function newWrapper(session: Session, next: NewNextWrapper) {
+  const token = session.getToken();
+  const injector = session.injector;
+  
+  // check for treeshakable provider
+  injector.getRecord(token);
+  
+  if (injector.records.has(token)) {
+    return next(session);
+  }
+  // if token is not found
+  return NilInjector.get(token);
+}
+
+export const NewSelf = createNewWrapper(() => newWrapper);

@@ -23,14 +23,14 @@ describe('ProtoInjector', function() {
     const injector = Injector.createProto(MainModule).build();
     
     const newInjector1 = injector.fork();
-    const singleton1 = newInjector1.get(Singleton);
-    const transient1 = newInjector1.get(Transient);
+    const singleton1 = newInjector1.newGet(Singleton);
+    const transient1 = newInjector1.newGet(Transient);
     expect(singleton1).toBeInstanceOf(Singleton);
     expect(transient1).toBeInstanceOf(Transient);
 
     const newInjector2 = injector.fork();
-    const singleton2 = newInjector2.get(Singleton);
-    const transient2 = newInjector2.get(Transient);
+    const singleton2 = newInjector2.newGet(Singleton);
+    const transient2 = newInjector2.newGet(Transient);
     expect(singleton2).toBeInstanceOf(Singleton);
     expect(transient2).toBeInstanceOf(Transient);
 
@@ -72,14 +72,14 @@ describe('ProtoInjector', function() {
     const injector = Injector.createProto(MainModule).build();
     
     const newInjector1 = injector.fork();
-    const parentSingleton1 = newInjector1.get(Service);
-    const childSingleton1 = newInjector1.get(ChildService);
+    const parentSingleton1 = newInjector1.newGet(Service);
+    const childSingleton1 = newInjector1.newGet(ChildService);
     expect(parentSingleton1).toBeInstanceOf(Service);
     expect(childSingleton1).toBeInstanceOf(ChildService);
 
     const newInjector2 = injector.fork();
-    const parentSingleton2 = newInjector2.get(Service);
-    const childSingleton2 = newInjector2.get(ChildService);
+    const parentSingleton2 = newInjector2.newGet(Service);
+    const childSingleton2 = newInjector2.newGet(ChildService);
     expect(parentSingleton2).toBeInstanceOf(Service);
     expect(childSingleton2).toBeInstanceOf(ChildService);
 
@@ -124,11 +124,11 @@ describe('ProtoInjector', function() {
     const injector = Injector.createProto(MainModule).build();
     
     const newInjector1 = injector.fork();
-    const service1 = newInjector1.get(ServiceB);
+    const service1 = newInjector1.newGet(ServiceB);
     expect(service1).toBeInstanceOf(ServiceB);
 
     const newInjector2 = injector.fork();
-    const service2 = newInjector2.get(ServiceB);
+    const service2 = newInjector2.newGet(ServiceB);
     expect(service2).toBeInstanceOf(ServiceB);
 
     expect(service1 === service2).toEqual(false);

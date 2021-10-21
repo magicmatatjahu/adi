@@ -37,7 +37,10 @@ export function hasWrapperProvider(provider: unknown): provider is WrapperProvid
 
 export function hasNewWrapperProvider(provider: unknown): provider is WrapperProvider {
   const wrapper = (provider as WrapperProvider).useWrapper;
-  return wrapper && (wrapper as NewWrapper).$$wr === WRAPPER_DEF;
+  return wrapper && (
+    (wrapper as NewWrapper).$$wr === WRAPPER_DEF || 
+    Array.isArray(wrapper)
+  );
 }
 
 export function isWrapper(wrapper: unknown): wrapper is Wrapper {

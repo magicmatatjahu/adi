@@ -1,7 +1,7 @@
 import { Injector, Session } from "../injector";
 import { DestroyManager } from "../injector/destroy-manager";
-import { DestroyableType, InstanceRecord, NextWrapper } from "../interfaces";
-import { createWrapper, thenable } from "../utils";
+import { DestroyableType, InstanceRecord, NewNextWrapper, NextWrapper } from "../interfaces";
+import { createNewWrapper, createWrapper, thenable } from "../utils";
 
 function createDestroyable<T>(instance: InstanceRecord<T>): DestroyableType<T> | never {
   if (instance === undefined) {
@@ -21,3 +21,12 @@ function wrapper(injector: Injector, session: Session, next: NextWrapper) {
 }
 
 export const Destroyable = createWrapper<undefined, false>(() => wrapper);
+
+function newWrapper(session: Session, next: NewNextWrapper) {
+  return thenable(
+    () => next(session),
+    () => createDestroyable(session.instance),
+  );
+}
+
+export const NewDestroyable = createNewWrapper(() => newWrapper);

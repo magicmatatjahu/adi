@@ -1,6 +1,6 @@
 import { Injector, Injectable, Scope, Decorate, Delegate } from "../../src";
 
-describe('useExisting', function() {
+describe.skip('useExisting', function() {
   test('should return value from alias', function() {
     @Injectable()
     class Service {}

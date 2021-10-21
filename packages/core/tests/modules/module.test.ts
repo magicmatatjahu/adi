@@ -1,4 +1,4 @@
-import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named, ModuleMetadata, createWrapper } from "../../src";
+import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, NewNamed, ModuleMetadata } from "../../src";
 
 describe('Module', function() {
   test('should be able to create injector from module and instances of the corresponding providers', async function() {
@@ -14,7 +14,7 @@ describe('Module', function() {
 
     const injector = Injector.create(MainModule).build();
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -92,7 +92,7 @@ describe('Module', function() {
       ],
     }).build();
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
 
     const component = injector.getComponent(Controller);
@@ -234,7 +234,7 @@ describe('Module', function() {
     // init components
     injector.getComponent(Controller);
     // init providers
-    injector.get(Service2);
+    injector.newGet(Service2);
 
     // destriy module/injector
     await injector.destroy();
@@ -323,13 +323,13 @@ describe('Module', function() {
     // init components
     injector.getComponent(Controller);
     // init providers
-    injector.get(Service);
+    injector.newGet(Service);
 
     const childInjector = injector.selectChild(ChildModule);
     // init components
     childInjector.getComponent(ChildController);
     // init providers
-    childInjector.get(ChildService);
+    childInjector.newGet(ChildService);
 
     // destriy module/injector
     await injector.destroy();
@@ -378,7 +378,7 @@ describe('Module', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Named('foobar')) public foobar: string,
+        @Inject('token', NewNamed('foobar')) public foobar: string,
       ) {}
     }
 
@@ -398,7 +398,7 @@ describe('Module', function() {
     class MainModule {}
 
     const injector = Injector.create(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.foobar).toEqual('named provider');
   });
 
@@ -438,7 +438,7 @@ describe('Module', function() {
   
       const injector = Injector.create(AppModule).build();
   
-      const service = injector.get(Service);
+      const service = injector.newGet(Service);
   
       expect(service).toBeInstanceOf(Service);
       expect(service.service).toBeInstanceOf(HelperService);
@@ -485,7 +485,7 @@ describe('Module', function() {
   
       const injector = Injector.create(AppModule).build();
   
-      const service = injector.get(Service);
+      const service = injector.newGet(Service);
   
       expect(service).toBeInstanceOf(Service);
       expect(service.service).toBeInstanceOf(HelperService);

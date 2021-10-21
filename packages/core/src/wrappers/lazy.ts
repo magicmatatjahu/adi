@@ -1,6 +1,6 @@
 import { SessionStatus } from "../enums";
 import { WrapperDef } from "../interfaces";
-import { createWrapper } from "../utils";
+import { createNewWrapper, createWrapper } from "../utils";
 
 interface LazyOptions {
   proxy?: boolean;
@@ -76,3 +76,28 @@ function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
 
 export const Lazy = createWrapper<LazyOptions, true>(wrapper);
 
+export const NewLazy = createNewWrapper((options: LazyOptions = {}) => {
+  const proxy = options.proxy;
+  return (session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(session);
+    }
+
+    if (proxy === true) {
+      // works only with objects
+      return createProxy(() => {
+        return next(session)
+      });
+    }
+
+    let value: any, resolved = false;
+    return () => {
+      if (resolved === false) {
+        resolved = true;
+        // TODO: support async mode
+        value = next(session);
+      }
+      return value;
+    };
+  }
+});

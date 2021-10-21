@@ -344,6 +344,40 @@ export class Injector {
     return record;
   }
 
+  checkTreeshakable(token: Token): ProviderRecord {
+    const def = InjectorMetadata.getProviderDef(token, false);
+    const provideIn = def?.options?.provideIn;
+    if (provideIn === undefined) {
+      return;
+    }
+
+    let record: ProviderRecord;
+    if (this.isProviderInScope(provideIn)) {
+      if (typeof token === "function") { // type provider case
+        record = InjectorMetadata.typeProviderToRecord(token as Type, this);
+      } else { // injection token case
+        record = InjectorMetadata.customProviderToRecord(token, def as any, this);
+      }
+    } else { // imports case
+      const annotations = def?.options?.annotations || EMPTY_OBJECT;
+      if (annotations[ANNOTATIONS.EXPORT] !== true) {
+        return;
+      }
+
+      this.imports.forEach(imp => imp.forEach(inj => {
+        if (inj.isProviderInScope(provideIn) === false) return;
+
+        if (typeof token === "function") { // type provider case
+          record = InjectorMetadata.typeProviderToRecord(token as Type, inj);
+        } else { // injection token case
+          record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
+        }
+        this.setImportedRecords(token, record);
+      }));
+    }
+    return record;
+  }
+
   addProviders(providers: Provider | Provider[] = []): void {
     if (this.status & InjectorStatus.DESTROYED) return;
 
@@ -516,6 +550,7 @@ export class Injector {
   }
 
   newResolveToken<T>(wrapper: NewWrapper | Array<NewWrapper>, session: Session): T | undefined {
+    session.newImplementation = true;
     session.injector = this;
     if (wrapper !== undefined) {
       return runNewWrappers(wrapper, session, newLastInjectionWrapper);
@@ -552,6 +587,18 @@ export class Injector {
   }
 
   newGetDefinition<T>(session: Session, records?: Array<ProviderRecord>): T | undefined {
+    if (session.definition) {
+      const def = session.definition;
+      session.record = def.record;
+      session.injector = def.record.host;
+  
+      if (def.wrapper !== undefined) {
+        return runNewWrappers(def.wrapper as unknown as NewWrapper[], session, newLastDefinitionWrapper);
+      }
+
+      return this.resolveDefinition(def, session);
+    }
+
     let def: DefinitionRecord;
     if (Array.isArray(records)) {
       for (let i = records.length - 1; i > -1; i--) {
@@ -572,7 +619,7 @@ export class Injector {
         }
       }
     } else {
-      def = session.definition ||
+      def = 
         session.record.getDefinition(session) ||
         // change it 
         session.record.getDefinition(session, true);
@@ -585,6 +632,7 @@ export class Injector {
       return this.parent.newResolveRecord(session);
     }
     session.injector = def.record.host;
+    session.record = def.record;
     session.definition = def;
 
     if (def.wrapper !== undefined) {
@@ -597,7 +645,7 @@ export class Injector {
   // support also treeshakable providers
   private filterRecords(session: Session): ProviderRecord | Array<ProviderRecord> | undefined {
     const token = session.getToken();
-    const record = this.records.get(token);
+    const record = this.records.get(token) || this.checkTreeshakable(token);
     let importedRecords = this.importedRecords.get(token);
     if (importedRecords) {
       importedRecords = [...importedRecords];
@@ -613,13 +661,13 @@ export class Injector {
       const record = records[i];
       const filteredWrappers = this.filterRecordWrappers(record, session);
       for (let j = filteredWrappers.length - 1; j > -1; j--) {
-        const wrapperDef = filteredWrappers[j];
-        if (Array.isArray(wrapperDef.wrapper)) {
-          for (let k = 0, l = wrapperDef.wrapper.length; k < l; k++) {
-            wrappers.push({ record, wrapper: wrapperDef.wrapper[k], annotations: wrapperDef.annotations });
+        const { wrapper, annotations } = filteredWrappers[j];
+        if (Array.isArray(wrapper)) {
+          for (let k = 0, l = wrapper.length; k < l; k++) {
+            wrappers.push({ record, wrapper: wrapper[k], annotations });
           }
         } else {
-          wrappers.push({ record, wrapper: wrapperDef.wrapper as NewWrapper, annotations: wrapperDef.annotations });
+          wrappers.push({ record, wrapper: wrapper as NewWrapper, annotations });
         }
       }
     }

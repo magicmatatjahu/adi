@@ -30,6 +30,7 @@ export class Session<T = any> {
 
   public status: SessionStatus = SessionStatus.NONE;
   public injector: Injector;
+  public newImplementation: boolean = false;
 
   constructor(
     public record: ProviderRecord<T>,
@@ -103,6 +104,8 @@ export class Session<T = any> {
     const newOptions = { ...this.options, labels: { ...this.options.labels } };
     const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.metadata, this.parent);
     newSession.status = this.status;
+    newSession.injector = this.injector;
+    newSession.newImplementation = this.newImplementation;
     return newSession;
   }
 
@@ -112,7 +115,16 @@ export class Session<T = any> {
     options: {
       provideIn: 'any',
       useWrapper: {
-        func: (_, session: Session) => {
+        func: (newSession: Session, session: Session) => {
+          if (newSession instanceof Session) {
+            const parent = newSession.parent;
+            if (parent === undefined) {
+              throw new Error('Session provider can be only used in other providers');
+            }
+            newSession.setSideEffect(true);
+            return parent;
+          }
+
           const parent = session.parent;
           if (parent === undefined) {
             throw new Error('Session provider can be only used in other providers');

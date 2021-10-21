@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ref, OnInit, OnInitHook } from "../src";
+import { Injector, Injectable, Inject, NewRef, OnInit, NewOnInitHook } from "../src";
 
 describe('Circular refs', function() {
   test('should handle simple case, when one class needs second and vice versa (with onInit hooks to assert proper order of initialization)', function() {
@@ -7,7 +7,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
 
       onInit() {
@@ -21,7 +21,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(NewRef(() => ServiceA)) readonly serviceA: ServiceA,
       ) {}
 
       onInit() {
@@ -37,7 +37,7 @@ describe('Circular refs', function() {
       ServiceB,
     ]);
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.newGet(ServiceA) as ServiceA;
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
@@ -51,7 +51,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
 
       onInit() {
@@ -65,7 +65,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceC)) readonly serviceC: ServiceC,
+        @Inject(NewRef(() => ServiceC)) readonly serviceC: ServiceC,
       ) {}
 
       onInit() {
@@ -79,7 +79,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceC {
       constructor(
-        @Inject(Ref(() => ServiceD)) readonly serviceD: ServiceD,
+        @Inject(NewRef(() => ServiceD)) readonly serviceD: ServiceD,
       ) {}
 
       onInit() {
@@ -111,7 +111,7 @@ describe('Circular refs', function() {
       ServiceD,
     ]);
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.newGet(ServiceA) as ServiceA;
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceC).toBeInstanceOf(ServiceC);
@@ -127,7 +127,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
 
       onInit() {
@@ -141,7 +141,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceC)) readonly serviceC: ServiceC,
+        @Inject(NewRef(() => ServiceC)) readonly serviceC: ServiceC,
       ) {}
 
       onInit() {
@@ -155,8 +155,8 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceC {
       constructor(
-        @Inject(Ref(() => ServiceD)) readonly serviceD: ServiceD,
-        @Inject(Ref(() => ServiceE)) readonly serviceE: ServiceE,
+        @Inject(NewRef(() => ServiceD)) readonly serviceD: ServiceD,
+        @Inject(NewRef(() => ServiceE)) readonly serviceE: ServiceE,
       ) {}
 
       onInit() {
@@ -185,7 +185,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceE {
       constructor(
-        @Inject(Ref(() => ServiceF)) readonly serviceF: ServiceF,
+        @Inject(NewRef(() => ServiceF)) readonly serviceF: ServiceF,
       ) {}
 
       onInit() {
@@ -199,7 +199,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceF {
       constructor(
-        @Inject(Ref(() => ServiceG)) readonly serviceG: ServiceG,
+        @Inject(NewRef(() => ServiceG)) readonly serviceG: ServiceG,
       ) {}
 
       onInit() {
@@ -238,7 +238,7 @@ describe('Circular refs', function() {
       ServiceG,
     ]);
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.newGet(ServiceA) as ServiceA;
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceC).toBeInstanceOf(ServiceC);
@@ -260,7 +260,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
 
       onInit() {
@@ -274,7 +274,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(NewRef(() => ServiceA)) readonly serviceA: ServiceA,
       ) {}
 
       onInit() {
@@ -290,7 +290,7 @@ describe('Circular refs', function() {
       ServiceB,
     ]);
 
-    const service = await injector.getAsync(ServiceA);
+    const service = await injector.newGetAsync(ServiceA);
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
@@ -302,13 +302,13 @@ describe('Circular refs', function() {
     let onInitOrder = [];
 
     @Injectable({
-      useWrapper: OnInitHook(_ => {
+      useWrapper: NewOnInitHook(_ => {
         onInitOrder.push('ServiceA useWrapper');
       }),
     })
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
 
       onInit() {
@@ -320,13 +320,13 @@ describe('Circular refs', function() {
     }
 
     @Injectable({
-      useWrapper: OnInitHook(_ => {
+      useWrapper: NewOnInitHook(_ => {
         onInitOrder.push('ServiceB useWrapper');
       }),
     })
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(NewRef(() => ServiceA)) readonly serviceA: ServiceA,
       ) {}
 
       onInit() {
@@ -342,7 +342,7 @@ describe('Circular refs', function() {
       ServiceB,
     ]);
 
-    const service = await injector.getAsync(ServiceA);
+    const service = await injector.newGetAsync(ServiceA);
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);

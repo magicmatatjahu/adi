@@ -141,6 +141,14 @@ export class ProviderRecord<T = any> {
         satisfyingWraps.push(wrapper);
       }
     }
-    return satisfyingWraps.sort(compareOrder).map(record => record.wrapper) as Array<Wrapper>;
+
+    const returned = [] as Array<Wrapper>;
+    const sorted = satisfyingWraps.sort(compareOrder);
+    for (let i = 0, l = sorted.length; i < l; i++) {
+      const w = sorted[i].wrapper
+      if (Array.isArray(w)) returned.push(...w as any)
+      else returned.push(w as any);
+    }
+    return returned;
   }
 }

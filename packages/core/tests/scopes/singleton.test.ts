@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, OnDestroy, DestroyableType, Destroyable, Module } from "../../src";
 
-describe('Singleton scope', function () {
+describe.skip('Singleton scope', function () {
   test('should always inject this same value', function () {
     @Injectable({
       scope: Scope.SINGLETON,

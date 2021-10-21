@@ -1,4 +1,4 @@
-import { Injector, Inject, Injectable, Factory, New, Delegate, createWrapper } from "../../src";
+import { Injector, Inject, Injectable, NewFactory, NewDelegate, NewNew } from "../../src";
 
 describe('Factory wrapper', function () {
   test('should works (injection based wrapper) - using the New wrapper', function () {
@@ -8,7 +8,11 @@ describe('Factory wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, Factory(New())) readonly factory: () => TestService,
+        @Inject(TestService, [
+          NewFactory(),
+          NewNew(),
+        ])
+        readonly factory: () => TestService,
       ) {}
     }
 
@@ -17,7 +21,7 @@ describe('Factory wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     const testService1 = service.factory();
     const testService2 = service.factory();
     const testService3 = service.factory();
@@ -36,15 +40,19 @@ describe('Factory wrapper', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject(Delegate(0)) readonly stringValue: string,
-        @Inject(Delegate(1)) readonly numberValue: number,
+        @Inject(NewDelegate(0)) readonly stringValue: string,
+        @Inject(NewDelegate(1)) readonly numberValue: number,
       ) {}
     }
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, Factory(New())) readonly factory: (str: string, nr: number) => TestService,
+        @Inject(TestService, [
+          NewFactory(),
+          NewNew(),
+        ]) 
+        readonly factory: (str: string, nr: number) => TestService,
       ) {}
     }
 
@@ -57,7 +65,7 @@ describe('Factory wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     const testService1 = service.factory("foo", 1);
     const testService2 = service.factory("bar", 2);
     expect(testService1 === testService2).toEqual(false);
@@ -73,14 +81,17 @@ describe('Factory wrapper', function () {
     @Injectable()
     class A {
       constructor(
-        @Inject('test', Factory()) public readonly foobarFactory: () => string
+        @Inject('test', [
+          NewFactory(),
+        ]) 
+        public readonly foobarFactory: () => string
       ) {}
     }
 
     @Injectable()
     class B {
       constructor(
-        @Inject('test', Factory()) public readonly foobarFactory: () => string
+        @Inject('test', NewFactory()) public readonly foobarFactory: () => string
       ) {}
     }
 
@@ -108,7 +119,7 @@ describe('Factory wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.serviceA.foobarFactory()).toEqual('foobar');
     expect(service.serviceB.foobarFactory()).toEqual('barfoo');
   });
@@ -119,7 +130,11 @@ describe('Factory wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, Factory(New())) readonly factory: () => TestService,
+        @Inject(TestService, [
+          NewFactory(),
+          NewNew(),
+        ])
+        readonly factory: () => TestService,
       ) {}
     }
 
@@ -133,7 +148,7 @@ describe('Factory wrapper', function () {
       },
     ]);
 
-    const service = await injector.getAsync(Service);
+    const service = await injector.newGetAsync(Service);
     const testService1 = service.factory();
     const testService2 = service.factory();
     const testService3 = service.factory();

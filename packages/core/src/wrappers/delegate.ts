@@ -1,7 +1,7 @@
 import { Injector, Session } from "../injector";
 import { NextWrapper, WrapperDef } from "../interfaces";
 import { NULL_REF, DELEGATION } from "../constants";
-import { createWrapper } from "../utils/wrappers";
+import { createNewWrapper, createWrapper } from "../utils/wrappers";
 
 interface DelegateOptions {
   type: 'single' | 'multiple',
@@ -32,3 +32,18 @@ function wrapper(arg: string): WrapperDef {
 }
 
 export const Delegate = createWrapper<undefined, false>(wrapper);
+
+export const NewDelegate = createNewWrapper((arg?: string | number) => {
+  return function(session, next) {
+    const delegate = retrieveDeepSessionMetadata(session, DELEGATION.KEY);
+
+    // delegate isn't set
+    if (delegate === NULL_REF) {
+      return next(session);
+    }
+
+    session.setSideEffect(true);
+    const { type, values } = delegate as DelegateOptions;
+    return type === 'single' ? values : values[arg];
+  }
+});

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Named, when } from "../../src";
+import { Injector, Injectable, Inject, NewNamed, when } from "../../src";
 
 describe('Named wrapper', function () {
   test('should inject named provider', function () {
@@ -9,8 +9,8 @@ describe('Named wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Named('namedService')) readonly namedService: TestService,
-        @Inject(Named('anotherService')) readonly anotherService: TestService,
+        @Inject(NewNamed('namedService')) readonly namedService: TestService,
+        @Inject(NewNamed('anotherService')) readonly anotherService: TestService,
       ) {}
     }
 
@@ -29,7 +29,7 @@ describe('Named wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect((service.namedService) as any).toEqual('foobar');
     expect((service.anotherService) as any).toEqual('barfoo');

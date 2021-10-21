@@ -1,4 +1,4 @@
-import { Injector, Inject, Injectable, Portal, Scope, Path, Module } from "../../src";
+import { Injector, Inject, Injectable, NewPortal, Scope, NewPath, Module } from "../../src";
 
 describe('Portal wrapper', function () {
   test('should works', function () {
@@ -22,7 +22,7 @@ describe('Portal wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Portal(portalProviders)) readonly portalService: TestService,
+        @Inject(NewPortal(portalProviders)) readonly portalService: TestService,
       ) {}
     }
 
@@ -35,7 +35,7 @@ describe('Portal wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.portalService).toBeInstanceOf(TestService);
     expect(service.service.foobar).toEqual('normal foobar');
@@ -59,7 +59,7 @@ describe('Portal wrapper', function () {
     })
     class TestService {
       constructor(
-        @Inject('foobar', Path('foo.bar')) readonly foobar: string,
+        @Inject('foobar', NewPath('foo.bar')) readonly foobar: string,
       ) {}
     }
 
@@ -67,7 +67,7 @@ describe('Portal wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Portal(portalProviders)) readonly portalService: TestService,
+        @Inject(NewPortal(portalProviders)) readonly portalService: TestService,
       ) {}
     }
 
@@ -84,7 +84,7 @@ describe('Portal wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.portalService).toBeInstanceOf(TestService);
     expect(service.service.foobar).toEqual('normal foobar');
@@ -122,7 +122,7 @@ describe('Portal wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Portal({ providers: portalProviders, deep: true })) readonly portalService: TestService,
+        @Inject(NewPortal({ providers: portalProviders, deep: true })) readonly portalService: TestService,
         readonly deepService: DeepService,
       ) {}
     }
@@ -137,7 +137,7 @@ describe('Portal wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.portalService).toBeInstanceOf(TestService);
     expect(service.deepService).toBeInstanceOf(DeepService);
@@ -176,7 +176,7 @@ describe('Portal wrapper', function () {
     })
     class DeepService {
       constructor(
-        @Inject(Portal({ providers: deepFacadeProviders })) readonly veryDeepService: VeryDeepService,
+        @Inject(NewPortal({ providers: deepFacadeProviders })) readonly veryDeepService: VeryDeepService,
         @Inject('foobar') readonly foobar: string,
       ) {}
     }
@@ -195,7 +195,7 @@ describe('Portal wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Portal({ providers: portalProviders, deep: true })) readonly portalService: TestService,
+        @Inject(NewPortal({ providers: portalProviders, deep: true })) readonly portalService: TestService,
         readonly deepService: DeepService,
         readonly veryDeepService: VeryDeepService,
       ) {}
@@ -212,7 +212,7 @@ describe('Portal wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.portalService).toBeInstanceOf(TestService);
     expect(service.deepService).toBeInstanceOf(DeepService);
@@ -266,7 +266,7 @@ describe('Portal wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Portal(portalProviders)) readonly portalService: TestService,
+        @Inject(NewPortal(portalProviders)) readonly portalService: TestService,
       ) {}
     }
 
@@ -281,7 +281,7 @@ describe('Portal wrapper', function () {
     class MainModule {}
 
     const injector = Injector.create(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.portalService).toBeInstanceOf(TestService);
     expect(service.service.foobar).toEqual('normal foobar');

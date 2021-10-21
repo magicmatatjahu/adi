@@ -23,7 +23,7 @@ describe('Session token', function() {
       Service,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.session).toBeInstanceOf(Session);
@@ -42,7 +42,7 @@ describe('Session token', function() {
       },
     ]);
 
-    const session = injector.get('test') as Session;
+    const session = injector.newGet('test') as Session;
     expect(session).toBeInstanceOf(Session);
     expect(session.instance.value).toEqual(session);
   });

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Labelled, when } from "../../src";
+import { Injector, Injectable, Inject, NewLabelled, when } from "../../src";
 
 describe('Labelled wrapper', function () {
   test('should inject labeled provider', function () {
@@ -9,8 +9,8 @@ describe('Labelled wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Labelled({ foo: 'bar' })) readonly foobar: TestService,
-        @Inject(Labelled({ bar: 'foo' })) readonly barfoo: TestService,
+        @Inject(NewLabelled({ foo: 'bar' })) readonly foobar: TestService,
+        @Inject(NewLabelled({ bar: 'foo' })) readonly barfoo: TestService,
       ) {}
     }
 
@@ -29,7 +29,7 @@ describe('Labelled wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect((service.foobar) as any).toEqual('foobar');
     expect((service.barfoo) as any).toEqual('barfoo');

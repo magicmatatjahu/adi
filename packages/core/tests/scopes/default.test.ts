@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, OnDestroy, DestroyableType, Destroyable } from "../../src";
 
-describe('Default scope', function () {
+describe.skip('Default scope', function () {
   test('should behaves as Singleton by default', function () {
     @Injectable()
     class TestService {}

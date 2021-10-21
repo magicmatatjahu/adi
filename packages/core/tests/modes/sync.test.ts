@@ -34,7 +34,7 @@ describe('Sync mode injection', function() {
       },
     ]);
   
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.asyncProvider).toBeInstanceOf(Promise);

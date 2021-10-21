@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, hasNewWrapperProvider } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, hasNewWrapperProvider, isNewWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
@@ -196,7 +196,7 @@ export const InjectorMetadata = new class {
   }
 
   convertDependency(dep: InjectionItem, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
-    if (isWrapper(dep)) {
+    if (isWrapper(dep) || isNewWrapper(dep) || Array.isArray(dep)) {
       return createInjectionArg(undefined, dep, target, propertyKey, index);
     }
     if ((dep as any).token !== undefined) {

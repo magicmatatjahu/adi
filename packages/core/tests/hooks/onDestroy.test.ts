@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Scope, OnDestroyHook, Destroyable, DestroyableType, OnDestroy } from "../../src";
+import { Injector, Injectable, Inject, Scope, NewOnDestroyHook, NewDestroyable, DestroyableType, OnDestroy } from "../../src";
 
 describe('onDestroy', function() {
   test('should works in method injection', async function() {
@@ -24,7 +24,7 @@ describe('onDestroy', function() {
       Service,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
     service.method();
     service.method();
@@ -81,7 +81,7 @@ describe('onDestroy', function() {
       Service,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
     
     service.method();
@@ -141,7 +141,7 @@ describe('onDestroy', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnDestroyHook((value: string) => {
+        useWrapper: NewOnDestroyHook((value: string) => {
           if (value === 'value from factory') {
             called = true
           }
@@ -150,7 +150,7 @@ describe('onDestroy', function() {
       }
     ]);
 
-    const foobar = injector.get<DestroyableType<string>>('foobar', Destroyable());
+    const foobar = injector.newGet<DestroyableType<string>>('foobar', NewDestroyable());
     expect(foobar.value).toEqual('value from factory');
     expect(called).toEqual(false);
     
@@ -167,7 +167,7 @@ describe('onDestroy', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnDestroyHook((value: string) => {
+        useWrapper: NewOnDestroyHook((value: string) => {
           if (value === 'value from factory') {
             onInitCalls++
           }
@@ -176,7 +176,7 @@ describe('onDestroy', function() {
       }
     ]);
 
-    const foobar = injector.get<DestroyableType<string>>('foobar', Destroyable());
+    const foobar = injector.newGet<DestroyableType<string>>('foobar', NewDestroyable());
     expect(foobar.value).toEqual('value from factory');
     expect(onInitCalls).toEqual(0);
     
@@ -212,12 +212,16 @@ describe('onDestroy', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnDestroyHook(hook3, OnDestroyHook(hook2, OnDestroyHook(hook1))),
+        useWrapper: [
+          NewOnDestroyHook(hook3), 
+          NewOnDestroyHook(hook2), 
+          NewOnDestroyHook(hook1),
+        ],
         scope: Scope.TRANSIENT,
       }
     ]);
 
-    const foobar = injector.get<DestroyableType<string>>('foobar', Destroyable());
+    const foobar = injector.newGet<DestroyableType<string>>('foobar', NewDestroyable());
     expect(foobar.value).toEqual('value from factory');
     expect(order).toEqual([]);
     
@@ -251,7 +255,7 @@ describe('onDestroy', function() {
     })
     class Service {
       constructor(
-        @Inject(OnDestroyHook(hook('injection onDestroy'))) readonly testService1: TestService,
+        @Inject(NewOnDestroyHook(hook('injection onDestroy'))) readonly testService1: TestService,
       ) {}
     }
 
@@ -260,7 +264,7 @@ describe('onDestroy', function() {
       TestService,
     ]);
 
-    const service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    const service: DestroyableType<Service> = injector.newGet(Service, NewDestroyable()) as unknown as DestroyableType<Service>;
     expect(service.value).toBeInstanceOf(Service);
     expect(order).toEqual([]);
 
@@ -282,7 +286,7 @@ describe('onDestroy', function() {
 
     @Injectable({
       scope: Scope.TRANSIENT,
-      useWrapper: OnDestroyHook(hook('definition onDestroy')),
+      useWrapper: NewOnDestroyHook(hook('definition onDestroy')),
     })
     class TestService implements OnDestroy {
       onDestroy() {
@@ -295,7 +299,7 @@ describe('onDestroy', function() {
     })
     class Service {
       constructor(
-        @Inject(OnDestroyHook(hook('injection onDestroy'))) readonly testService1: TestService,
+        @Inject(NewOnDestroyHook(hook('injection onDestroy'))) readonly testService1: TestService,
       ) {}
     }
 
@@ -304,11 +308,11 @@ describe('onDestroy', function() {
       TestService,
       {
         provide: TestService,
-        useWrapper: OnDestroyHook(hook('provider onDestroy')),
+        useWrapper: NewOnDestroyHook(hook('provider onDestroy')),
       }
     ]);
 
-    const service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    const service: DestroyableType<Service> = injector.newGet(Service, NewDestroyable()) as unknown as DestroyableType<Service>;
     expect(service.value).toBeInstanceOf(Service);
     expect(order).toEqual([]);
 

@@ -1,11 +1,11 @@
-import { Injector, Injectable, Inject, Inquirer } from "../../src";
+import { Injector, Injectable, Inject, NewInquirer } from "../../src";
 
 describe('Inquirer wrapper', function () {
   test('should inject inquirer in class provider', function () {
     @Injectable()
     class TestService {
       constructor(
-        @Inject(Inquirer()) readonly inquirer: typeof Service,
+        @Inject(NewInquirer()) readonly inquirer: typeof Service,
       ) {}
     }
 
@@ -21,7 +21,7 @@ describe('Inquirer wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
@@ -40,11 +40,11 @@ describe('Inquirer wrapper', function () {
       {
         provide: 'test',
         useFactory(inquirer: Service) { return { inquirer } },
-        inject: [Inquirer()],
+        inject: [NewInquirer()],
       },
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });
@@ -62,11 +62,11 @@ describe('Inquirer wrapper', function () {
       {
         provide: 'test',
         async useFactory(inquirer: Service) { return { inquirer } },
-        inject: [Inquirer()],
+        inject: [NewInquirer()],
       },
     ]);
 
-    const service = await injector.getAsync(Service);
+    const service = await injector.newGetAsync(Service);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });

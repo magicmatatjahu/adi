@@ -1,4 +1,4 @@
-import { Injector, Inject, Injectable, Scope, Destroyable, DestroyableType } from "../../src";
+import { Injector, Inject, Injectable, Scope, NewDestroyable, DestroyableType } from "../../src";
 
 describe('Destroyable wrapper', function () {
   test('should works - simple case', async function () {
@@ -17,11 +17,11 @@ describe('Destroyable wrapper', function () {
       Service,
     ]);
 
-    let service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    let service: DestroyableType<Service> = injector.newGet(Service, NewDestroyable()) as unknown as DestroyableType<Service>;
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
-    service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    service = injector.newGet(Service, NewDestroyable()) as unknown as DestroyableType<Service>;
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
@@ -49,8 +49,8 @@ describe('Destroyable wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TransientService, Destroyable()) public testService1: DestroyableType<TransientService>,
-        @Inject(TransientService, Destroyable()) public testService2: DestroyableType<TransientService>,
+        @Inject(TransientService, NewDestroyable()) public testService1: DestroyableType<TransientService>,
+        @Inject(TransientService, NewDestroyable()) public testService2: DestroyableType<TransientService>,
       ) {}
     }
 
@@ -59,7 +59,7 @@ describe('Destroyable wrapper', function () {
       Service,
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1.value).toBeInstanceOf(TransientService);
     expect(service.testService2.value).toBeInstanceOf(TransientService);

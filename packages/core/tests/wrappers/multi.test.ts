@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, Multi, Named, when, ANNOTATIONS, Path } from "../../src";
+import { Injector, Injectable, Inject, Module, Multi, Named, when, ANNOTATIONS, Path, NewMulti, NewNamed, NewPath } from "../../src";
 
 describe('Multi wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -16,7 +16,7 @@ describe('Multi wrapper', function () {
       Service,
       {
         provide: MultiProvider,
-        useWrapper: Multi(),
+        useWrapper: NewMulti(),
       },
       {
         provide: MultiProvider,
@@ -32,7 +32,7 @@ describe('Multi wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -43,7 +43,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Multi()) readonly multi: MultiProvider,
+        @Inject(NewMulti()) readonly multi: MultiProvider,
       ) {}
     }
 
@@ -63,7 +63,7 @@ describe('Multi wrapper', function () {
       },
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -74,7 +74,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Named('multi')) readonly multi: MultiProvider,
+        @Inject(NewNamed('multi')) readonly multi: MultiProvider,
       ) {}
     }
 
@@ -82,7 +82,7 @@ describe('Multi wrapper', function () {
       Service,
       {
         provide: MultiProvider,
-        useWrapper: Multi(),
+        useWrapper: NewMulti(),
       },
       {
         provide: MultiProvider,
@@ -100,7 +100,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual(['multi1', 'multi3']);
   });
 
@@ -108,7 +108,11 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi(Named('multi'))) readonly multi: Array<string>,
+        @Inject('token', [
+          NewMulti(),
+          NewNamed('multi'),
+        ])
+        readonly multi: Array<string>,
       ) {}
     }
 
@@ -134,7 +138,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual(['multi1', 'multi2']);
   });
 
@@ -142,7 +146,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi({ metaKey: "metaKey" })) readonly multi: Array<string>,
+        @Inject('token', NewMulti({ metaKey: "metaKey" })) readonly multi: Array<string>,
       ) {}
     }
 
@@ -168,7 +172,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual({
       foobar: 'multi1',
       barfoo: 'multi3'
@@ -179,7 +183,11 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi({ metaKey: "metaKey" }, Named('multi'))) readonly multi: Array<string>,
+        @Inject('token', [
+          NewMulti({ metaKey: "metaKey" }),
+          NewNamed('multi'), 
+        ]) 
+        readonly multi: Array<string>,
       ) {}
     }
 
@@ -226,7 +234,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual({
       foobar: 'multi2',
       barfoo: 'multi4'
@@ -237,7 +245,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', NewMulti()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -273,7 +281,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi).toEqual(['multi3', 'multi4', 'multi1', 'multi2']);
   });
 
@@ -281,7 +289,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', NewMulti()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -307,7 +315,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = await injector.getAsync(Service);
+    const service = await injector.newGetAsync(Service);
     expect(service.multi).toEqual(['multi1', 'multi2', 'multi3']);
   });
 
@@ -315,7 +323,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi({ metaKey: "metaKey" })) readonly multi: Array<string>,
+        @Inject('token', NewMulti({ metaKey: "metaKey" })) readonly multi: Array<string>,
       ) {}
     }
 
@@ -347,7 +355,7 @@ describe('Multi wrapper', function () {
       }
     ]);
 
-    const service = await injector.getAsync(Service);
+    const service = await injector.newGetAsync(Service);
     expect(service.multi).toEqual({
       foobar: 'multi1',
       barfoo: 'multi3'
@@ -358,7 +366,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', NewMulti()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -371,7 +379,7 @@ describe('Multi wrapper', function () {
             b: 'multi1',
           },
         },
-        useWrapper: Path('a.b'),
+        useWrapper: NewPath('a.b'),
       },
       {
         provide: 'token',
@@ -380,7 +388,7 @@ describe('Multi wrapper', function () {
             c: 'multi2',
           },
         },
-        useWrapper: Path('b.c'),
+        useWrapper: NewPath('b.c'),
       },
       {
         provide: 'token',
@@ -389,11 +397,11 @@ describe('Multi wrapper', function () {
             d: 'multi3',
           },
         },
-        useWrapper: Path('c.d'),
+        useWrapper: NewPath('c.d'),
       }
     ]);
 
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi.length).toEqual(3);
     expect(service.multi[0]).toEqual('multi1');
     expect(service.multi[1]).toEqual('multi2');
@@ -404,7 +412,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', NewMulti()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -470,7 +478,7 @@ describe('Multi wrapper', function () {
     class MainModule {}
 
     const injector = Injector.create(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi.length).toEqual(8);
     expect(service.multi).toEqual([
       'multi1',
@@ -488,7 +496,11 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi(Named('multi'))) readonly multi: Array<string>,
+        @Inject('token', [
+          NewMulti(),
+          NewNamed('multi'),
+        ]) 
+        readonly multi: Array<string>,
       ) {}
     }
 
@@ -558,7 +570,7 @@ describe('Multi wrapper', function () {
     class MainModule {}
 
     const injector = Injector.create(MainModule).build();
-    const service = injector.get(Service);
+    const service = injector.newGet(Service);
     expect(service.multi.length).toEqual(4);
     expect(service.multi).toEqual([
       'multi1',
