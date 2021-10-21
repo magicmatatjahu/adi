@@ -1,7 +1,7 @@
 import { Injector, Injectable, Inject, Optional, SkipSelf, Module, Token, ref } from "../../src";
 
 // TODO: Fix
-describe.skip('SkipSelf wrapper', function () {
+describe('SkipSelf wrapper', function () {
   test('should inject service from parent injector', function () {
     @Injectable()
     class Service {
@@ -32,7 +32,11 @@ describe.skip('SkipSelf wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('useValue', Optional(SkipSelf())) readonly useValue: string,
+        @Inject('useValue', [
+          Optional(),
+          SkipSelf(),
+        ])
+        readonly useValue: string,
       ) {}
     }
 

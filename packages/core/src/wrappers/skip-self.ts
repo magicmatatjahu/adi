@@ -19,6 +19,7 @@ function plainWrapper(session: Session, next: NextWrapper) {
       parentInjector.records.get(token) ||
       (ownRecord && (!parentCollection || parentCollection[parentCollection.length - 1] !== ownRecord))
     ) {
+      session.injector = parentInjector;
       return next(session);
     }
     parentInjector = parentInjector.getParent();
@@ -48,6 +49,7 @@ function parentWrapper(injector?: Type | ForwardRef<Type>): WrapperDef {
         ) {
           break;
         }
+        session.injector = parentInjector;
         return next(session);
       }
       parentInjector = parentInjector.getParent();
