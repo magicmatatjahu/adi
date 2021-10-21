@@ -1,4 +1,4 @@
-import { Injector, NewToken } from "../../src";
+import { Injector, Token } from "../../src";
 
 describe('useFactory', function() {
   test('should works with simple provider', function() {
@@ -9,7 +9,7 @@ describe('useFactory', function() {
       },
     ]);
 
-    const resolvedToken = injector.newGet<string>('useFactory');
+    const resolvedToken = injector.get<string>('useFactory');
     expect(resolvedToken).toEqual('foobar');
   });
 
@@ -26,7 +26,7 @@ describe('useFactory', function() {
       },
     ]);
 
-    const resolvedToken = injector.newGet<string>('useFactory');
+    const resolvedToken = injector.get<string>('useFactory');
     expect(resolvedToken).toEqual('foobar');
   });
 
@@ -47,7 +47,7 @@ describe('useFactory', function() {
       },
     ]);
 
-    const resolvedToken = injector.newGet<string[]>('useFactory');
+    const resolvedToken = injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
   });
 
@@ -68,7 +68,7 @@ describe('useFactory', function() {
       },
     ]);
 
-    const resolvedToken = await injector.newGetAsync<string[]>('useFactory');
+    const resolvedToken = await injector.getAsync<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
   });
 
@@ -85,11 +85,11 @@ describe('useFactory', function() {
       {
         provide: 'useFactory',
         useFactory(foobar, barfoo) { return [foobar, barfoo] },
-        inject: [NewToken('useValue1'), { token: 'useValue2' }]
+        inject: [Token('useValue1'), { token: 'useValue2' }]
       },
     ]);
 
-    const resolvedToken = injector.newGet<string[]>('useFactory');
+    const resolvedToken = injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
   });
 });

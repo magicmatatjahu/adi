@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewNew } from "../../src";
+import { Injector, Injectable, Inject, New } from "../../src";
 
 describe('New wrapper', function () {
   test('should create new instances', function () {
@@ -9,8 +9,8 @@ describe('New wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(NewNew()) readonly newService1: TestService,
-        @Inject(NewNew()) readonly newService2: TestService,
+        @Inject(New()) readonly newService1: TestService,
+        @Inject(New()) readonly newService2: TestService,
       ) {}
     }
 
@@ -19,7 +19,7 @@ describe('New wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);

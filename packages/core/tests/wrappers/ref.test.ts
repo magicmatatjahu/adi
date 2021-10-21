@@ -1,11 +1,11 @@
-import { Injector, Injectable, Inject, NewRef } from "../../src";
+import { Injector, Injectable, Inject, Ref } from "../../src";
 
 describe('Ref wrapper', function() {
   test('should wrap reference to function and forward it', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
     }
 
@@ -17,7 +17,7 @@ describe('Ref wrapper', function() {
       ServiceB,
     ]);
 
-    const service = injector.newGet(ServiceA) as ServiceA;
+    const service = injector.get(ServiceA) as ServiceA;
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
   });
@@ -26,14 +26,14 @@ describe('Ref wrapper', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(NewRef(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
       ) {}
     }
 
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(NewRef(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
       ) {}
     }
 
@@ -42,7 +42,7 @@ describe('Ref wrapper', function() {
       ServiceB,
     ]);
 
-    const service = injector.newGet(ServiceA) as ServiceA;
+    const service = injector.get(ServiceA) as ServiceA;
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);

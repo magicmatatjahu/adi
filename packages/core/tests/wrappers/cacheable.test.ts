@@ -1,12 +1,12 @@
 import { Injector, Injectable, Inject, New, Scope, createWrapper } from "../../src";
 
-describe.skip('Cacheable wrapper', function () {
+describe('Cacheable wrapper', function () {
   test('should cache injection with simple provider (with DEFAULT scope)', function () {
     let calls = 0;
 
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
         calls++;
         return value;
       }
@@ -41,9 +41,9 @@ describe.skip('Cacheable wrapper', function () {
   test('should not cache injection with side effects - case with New wrapper', function () {
     let calls = 0;
 
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
         calls++;
         return value;
       }
@@ -56,7 +56,11 @@ describe.skip('Cacheable wrapper', function () {
     @Injectable({ scope: Scope.TRANSIENT })
     class Service {
       constructor(
-        @Inject(TestWrapper(New())) readonly service: TestService,
+        @Inject([
+          TestWrapper(),
+          New(),
+        ]) 
+        readonly service: TestService,
       ) {}
     }
 
@@ -79,9 +83,9 @@ describe.skip('Cacheable wrapper', function () {
   test('should not cache injection in different modules - case when this same provider is provided in different modules', function () {
     let calls = 0;
 
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
         calls++;
         return value;
       }
@@ -123,9 +127,9 @@ describe.skip('Cacheable wrapper', function () {
   test('should not cache injection in different modules - case when this same provider is provided in different modules with sideEffects', function () {
     let calls = 0;
 
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
         calls++;
         return value;
       }
@@ -138,7 +142,11 @@ describe.skip('Cacheable wrapper', function () {
     @Injectable({ scope: Scope.TRANSIENT })
     class Service {
       constructor(
-        @Inject(TestWrapper(New())) readonly service: TestService,
+        @Inject([
+          TestWrapper(),
+          New(),
+        ])
+        readonly service: TestService,
       ) {}
     }
 
@@ -167,9 +175,9 @@ describe.skip('Cacheable wrapper', function () {
   test('should not cache injection in different modules - case when this same provider is provided in parent injector', function () {
     let calls = 0;
 
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
         calls++;
         return value;
       }
@@ -211,9 +219,9 @@ describe.skip('Cacheable wrapper', function () {
   test('should not cache injection in different modules - case when this same provider is provided in parent injector with sideEffects', function () {
     let calls = 0;
 
-    const TestWrapper = createWrapper((_: never) => {
-      return (injector, session, next) => {
-        const value = next(injector, session);
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
         calls++;
         return value;
       }
@@ -226,7 +234,11 @@ describe.skip('Cacheable wrapper', function () {
     @Injectable({ scope: Scope.TRANSIENT })
     class Service {
       constructor(
-        @Inject(TestWrapper(New())) readonly service: TestService,
+        @Inject([
+          TestWrapper(),
+          New(),
+        ])
+        readonly service: TestService,
       ) {}
     }
 

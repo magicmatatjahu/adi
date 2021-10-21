@@ -30,7 +30,6 @@ export class Session<T = any> {
 
   public status: SessionStatus = SessionStatus.NONE;
   public injector: Injector;
-  public newImplementation: boolean = false;
 
   constructor(
     public record: ProviderRecord<T>,
@@ -105,7 +104,6 @@ export class Session<T = any> {
     const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.metadata, this.parent);
     newSession.status = this.status;
     newSession.injector = this.injector;
-    newSession.newImplementation = this.newImplementation;
     return newSession;
   }
 

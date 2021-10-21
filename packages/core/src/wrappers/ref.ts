@@ -1,17 +1,7 @@
-import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
-import { createNewWrapper, createWrapper } from "../utils";
+import { createWrapper } from "../utils";
 
-function wrapper(ref: () => Token): WrapperDef {
-  return (injector, session, next) => {
-    session.setToken(ref());
-    return next(injector, session);
-  }
-}
-
-export const Ref = createWrapper<() => Token, true>(wrapper);
-
-export const NewRef = createNewWrapper((ref: () => Token) => {
+export const Ref = createWrapper((ref: () => Token) => {
   return (session, next) => {
     session.setToken(ref());
     return next(session);

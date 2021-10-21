@@ -1,10 +1,5 @@
-import { WrapperDef } from "../interfaces";
-import { createNewWrapper, createWrapper } from "../utils";
+import { createWrapper } from "../utils";
 
-function wrapper(value: any) {
+export const Value = createWrapper((value: any) => {
   return () => value;
-}
-
-export const Value = createWrapper<any, false>(wrapper);
-
-export const NewValue = createNewWrapper(wrapper);
+});

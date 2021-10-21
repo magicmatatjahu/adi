@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewLazy } from "../../src";
+import { Injector, Injectable, Inject, Lazy } from "../../src";
 
 describe('Lazy wrapper', function () {
   test('should create lazy injection - normal injection.get(...) invocation', function () {
@@ -9,11 +9,11 @@ describe('Lazy wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewLazy(),
+        useWrapper: Lazy(),
       },
     ]);
 
-    const service = injector.newGet(TestService) as () => TestService;
+    const service = injector.get(TestService) as () => TestService;
     expect(service).toBeInstanceOf(Function);
     expect(service()).toBeInstanceOf(TestService);
   });
@@ -27,7 +27,7 @@ describe('Lazy wrapper', function () {
 
     @Injectable()
     class TestService {
-      @Inject(NewLazy({ proxy: true }))
+      @Inject(Lazy({ proxy: true }))
       public lazyService: LazyService;
     }
 
@@ -38,7 +38,7 @@ describe('Lazy wrapper', function () {
 
     let err: Error, service: TestService;
     try {
-      service = injector.newGet(TestService) as TestService;
+      service = injector.get(TestService) as TestService;
     } catch(e) {
       err = e;
     }
@@ -61,7 +61,7 @@ describe('Lazy wrapper', function () {
 
     @Injectable()
     class TestService {
-      @Inject(NewLazy({ proxy: true }))
+      @Inject(Lazy({ proxy: true }))
       public lazyService: LazyService;
     }
 
@@ -74,7 +74,7 @@ describe('Lazy wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(TestService) as TestService;
+    const service = injector.get(TestService) as TestService;
     expect(service.lazyService).toBeInstanceOf(LazyService);
     expect(service.lazyService.prop).toEqual('foobar');
   });

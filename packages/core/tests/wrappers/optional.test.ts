@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewOptional } from "../../src";
+import { Injector, Injectable, Inject, Optional } from "../../src";
 
 describe('Optional wrapper', function () {
   test('should handle exception when token is not defined in providers array', function () {
@@ -8,7 +8,7 @@ describe('Optional wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewOptional()) readonly service: TestService
+        @Inject(Optional()) readonly service: TestService
       ) {}
     }
 
@@ -16,7 +16,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual(undefined);
   });
 
@@ -27,7 +27,7 @@ describe('Optional wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewOptional('testService')) readonly service: TestService
+        @Inject(Optional('testService')) readonly service: TestService
       ) {}
     }
 
@@ -35,7 +35,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('testService');
   });
 
@@ -46,7 +46,7 @@ describe('Optional wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewOptional('testService')) readonly service: TestService = 'defaultValue'
+        @Inject(Optional('testService')) readonly service: TestService = 'defaultValue'
       ) {}
     }
 
@@ -54,7 +54,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('testService');
   });
 
@@ -62,7 +62,7 @@ describe('Optional wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewOptional()) readonly service: string = 'defaultValue'
+        @Inject(Optional()) readonly service: string = 'defaultValue'
       ) {}
     }
 
@@ -70,7 +70,7 @@ describe('Optional wrapper', function () {
       Service,
     ]);
 
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
     expect(service.service).toEqual('defaultValue');
   });
 });

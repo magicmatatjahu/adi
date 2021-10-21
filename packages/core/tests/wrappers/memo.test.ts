@@ -1,10 +1,10 @@
-import { Injector, Injectable, Inject, NewMemo, Scope, createWrapper, createNewWrapper, NewNew } from "../../src";
+import { Injector, Injectable, Inject, Memo, Scope, createWrapper, New } from "../../src";
 
-describe.skip('Memo wrapper', function () {
+describe('Memo wrapper', function () {
   test('should memoize injection even when injection has side effects', function () {
     let calls = 0;
 
-    const TestWrapper = createNewWrapper(() => {
+    const TestWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         session.setSideEffect(true);
@@ -21,9 +21,9 @@ describe.skip('Memo wrapper', function () {
     class Service {
       constructor(
         @Inject([
-          NewMemo(),
+          Memo(),
           TestWrapper(),
-          NewNew(),
+          New(),
         ])
         readonly service: TestService,
       ) {}
@@ -34,9 +34,9 @@ describe.skip('Memo wrapper', function () {
       TestService,
     ]);
 
-    const service1 = injector.newGet(Service);
-    const service2 = injector.newGet(Service);
-    const service3 = injector.newGet(Service);
+    const service1 = injector.get(Service);
+    const service2 = injector.get(Service);
+    const service3 = injector.get(Service);
 
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service1.service).toEqual(service2.service);

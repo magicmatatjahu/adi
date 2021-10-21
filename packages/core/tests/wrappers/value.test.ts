@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewValue } from "../../src";
+import { Injector, Injectable, Inject, Value } from "../../src";
 
 describe('Value wrapper', function () {
   test('should inject value', function () {
@@ -8,7 +8,7 @@ describe('Value wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewValue('foobar')) readonly service: TestService,
+        @Inject(Value('foobar')) readonly service: TestService,
       ) {}
     }
 
@@ -17,7 +17,7 @@ describe('Value wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 });

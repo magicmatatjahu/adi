@@ -1,14 +1,14 @@
-import { Injector, Inject, Injectable, NewWithDependencies, NewToken } from "../../src";
+import { Injector, Inject, Injectable, WithDependencies, Token } from "../../src";
 
 describe('WithDependencies wrapper', function () {
   test('should have possibility to inject custom injections', function() {
     const customInjections = {
-      parameters: [NewToken('parameter')],
+      parameters: [Token('parameter')],
       properties: {
         property: 'property',
       },
       methods: {
-        method: [NewToken('argument')],
+        method: [Token('argument')],
       }
     };
 
@@ -27,7 +27,7 @@ describe('WithDependencies wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewWithDependencies(customInjections)) readonly testService: TestService,
+        @Inject(WithDependencies(customInjections)) readonly testService: TestService,
       ) {}
     }
 
@@ -48,7 +48,7 @@ describe('WithDependencies wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.parameter).toEqual('parameter injection');
@@ -75,7 +75,7 @@ describe('WithDependencies wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewWithDependencies(customInjections)) readonly testService: TestService,
+        @Inject(WithDependencies(customInjections)) readonly testService: TestService,
       ) {}
     }
 
@@ -89,8 +89,8 @@ describe('WithDependencies wrapper', function () {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
-    const helpService = injector.newGet(HelperService);
+    const service = injector.get(Service);
+    const helpService = injector.get(HelperService);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.service).toBeInstanceOf(HelperService);
@@ -102,12 +102,12 @@ describe('WithDependencies wrapper', function () {
 
   test('should have possibility to override injection by custom injections', function() {
     const customInjections = {
-      parameters: [undefined, NewToken('parameter')],
+      parameters: [undefined, Token('parameter')],
       properties: {
         property: 'property',
       },
       methods: {
-        method: [undefined, NewToken('argument')],
+        method: [undefined, Token('argument')],
       }
     };
 
@@ -133,7 +133,7 @@ describe('WithDependencies wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewWithDependencies(customInjections)) readonly testService: TestService,
+        @Inject(WithDependencies(customInjections)) readonly testService: TestService,
       ) {}
     }
 
@@ -155,8 +155,8 @@ describe('WithDependencies wrapper', function () {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
-    const helpService = injector.newGet(HelperService);
+    const service = injector.get(Service);
+    const helpService = injector.get(HelperService);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.service).toBeInstanceOf(HelperService);

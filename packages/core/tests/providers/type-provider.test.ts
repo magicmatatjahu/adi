@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, INJECTOR_OPTIONS, ANNOTATIONS, NewToken, InjectableMetadata, Scope, createNewWrapper } from "../../src";
+import { Injector, Injectable, Inject, Module, INJECTOR_OPTIONS, ANNOTATIONS, Token, InjectableMetadata, Scope, createWrapper } from "../../src";
 
 describe('Type provider (injectable provider)', function() {
   test('should works with class without constructor', function() {
@@ -9,7 +9,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
   });
@@ -35,7 +35,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -66,7 +66,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -103,7 +103,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -146,7 +146,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(HelperService1);
@@ -176,7 +176,7 @@ describe('Type provider (injectable provider)', function() {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.method()).toEqual(['stringArg', 'stringArg', 2137]);
   });
 
@@ -205,13 +205,13 @@ describe('Type provider (injectable provider)', function() {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.method()).toEqual(['foobar', 'stringArg', 2137]);
   });
 
   test('should cache injection without side effects in the method injection', function() {
     let singletonCalledTimes: number = 0;
-    const SingletonWrapper = createNewWrapper(() => {
+    const SingletonWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         singletonCalledTimes++;
@@ -220,7 +220,7 @@ describe('Type provider (injectable provider)', function() {
     });
 
     let transientCalledTimes: number = 0;
-    const TransientWrapper = createNewWrapper(() => {
+    const TransientWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         transientCalledTimes++;
@@ -249,7 +249,7 @@ describe('Type provider (injectable provider)', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     service.method();
     service.method();
     service.method();
@@ -297,7 +297,7 @@ describe('Type provider (injectable provider)', function() {
       }
     ]);
 
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
     const instances = await service.method();
     expect(instances[0]).toBeInstanceOf(SingletonService);
     expect(instances[1]).toBeInstanceOf(TransientService);
@@ -314,7 +314,7 @@ describe('Type provider (injectable provider)', function() {
   
       const injector = new Injector();
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
     });
 
@@ -347,7 +347,7 @@ describe('Type provider (injectable provider)', function() {
       class Service {}
 
       const injector = Injector.create(ParentModule).build();
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
     });
   });
@@ -363,7 +363,7 @@ describe('Type provider (injectable provider)', function() {
         Service,
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
       expect(service).toEqual('foobar');
     });
 
@@ -382,7 +382,7 @@ describe('Type provider (injectable provider)', function() {
         }
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
       expect(service).toEqual('foobar');
     });
   
@@ -399,11 +399,11 @@ describe('Type provider (injectable provider)', function() {
         Service,
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
       expect(service).toBeInstanceOf(TestService);
     });
 
-    test.skip('with useExisting', function() {
+    test('with useExisting', function() {
       @Injectable({
         useExisting: 'useValue',
       })
@@ -417,7 +417,7 @@ describe('Type provider (injectable provider)', function() {
         },
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
       expect(service).toEqual('foobar');
     });
   });
@@ -430,10 +430,10 @@ describe('Type provider (injectable provider)', function() {
       class Service {
         static provider = {
           injections: {
-            parameters: [NewToken(HelperService1)],
+            parameters: [Token(HelperService1)],
             properties: {
               service2: HelperService1,
-              service3: NewToken(HelperService2),
+              service3: Token(HelperService2),
             },
             methods: {
               method: [{ token: HelperService1 }]
@@ -464,7 +464,7 @@ describe('Type provider (injectable provider)', function() {
         Service,
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
   
       expect(service).toBeInstanceOf(Service);
       expect(service.service1).toBeInstanceOf(HelperService1);
@@ -485,7 +485,7 @@ describe('Type provider (injectable provider)', function() {
       class Service {
         static provider: InjectableMetadata = {
           injections: {
-            parameters: [NewToken(HelperService), { token: HelperService }],
+            parameters: [Token(HelperService), { token: HelperService }],
           }
         }
   
@@ -500,7 +500,7 @@ describe('Type provider (injectable provider)', function() {
         Service,
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
   
       expect(service).toBeInstanceOf(Service);
       expect(service.service1).toBeInstanceOf(HelperService);
@@ -541,7 +541,7 @@ describe('Type provider (injectable provider)', function() {
         Service,
       ]);
   
-      const service = injector.newGet(Service);
+      const service = injector.get(Service);
   
       expect(service).toBeInstanceOf(Service);
       expect(service.service1).toBeInstanceOf(HelperService);

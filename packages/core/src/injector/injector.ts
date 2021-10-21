@@ -10,8 +10,8 @@ import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable, compareOrder } from "../utils";
 import { 
-  runWrappers, runArrayOfWrappers, Wrapper,
-  runNewWrappers, runNewRecordsWrappers, NewWrapper,
+  runRecordsWrappers,
+  runWrappers, Wrapper,
 } from "../utils/wrappers";
 
 import { Compiler } from "./module-compiler";
@@ -19,7 +19,7 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { Multi, NewMulti } from "../wrappers";
+import { Multi } from "../wrappers";
 import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
 
@@ -78,7 +78,7 @@ export class Injector {
 
     this.addProviders([
       { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: NewMulti({ inheritance: 1 }) }
+      { provide: MODULE_INITIALIZERS, useWrapper: Multi({ inheritance: 1 }) }
     ]);
   }
 
@@ -132,7 +132,7 @@ export class Injector {
     const asyncMode = options?.asyncMode;
     return thenable(
       // run MODULE_INITIALIZERS
-      () => asyncMode ? this.newGetAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.newGet(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
+      () => asyncMode ? this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
       () => {
         return asyncMode ? this.getComponentAsync(MODULE_REF) : this.getComponent(MODULE_REF);
       }
@@ -197,19 +197,20 @@ export class Injector {
   /**
    * PROVIDERS
    */
-  get<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): T | undefined {
+  get<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): T | undefined {
     return this.resolveToken(wrapper, session || Session.create(token));
   }
 
-  async getAsync<T>(token: Token<T>, wrapper?: Wrapper, session?: Session): Promise<T | undefined> {
+  async getAsync<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): Promise<T | undefined> {
     session = session || Session.create(token);
     session.status |= SessionStatus.ASYNC;
     return this.resolveToken(wrapper, session || Session.create(token));
   }
 
-  resolveToken<T>(wrapper: Wrapper, session: Session): T | undefined {
+  resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
+    session.injector = this;
     if (wrapper !== undefined) {
-      return runWrappers(wrapper, this, session, lastInjectionWrapper);
+      return runWrappers(wrapper, session, lastInjectionWrapper);
     }
     return this.resolveRecord(session);
   }
@@ -218,29 +219,67 @@ export class Injector {
     let record = 
       session.status & SessionStatus.COMPONENT_RESOLUTION 
         ? this.components.get(session.getToken()) 
-        : this.getRecord(session.getToken());
+        : this.filterRecords(session);
 
     if (record === undefined) {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
-    session.record = record;
 
-    const providerWrappers = record.filterWrappers(session);
-    if (providerWrappers.length > 0) {
-      return runArrayOfWrappers(providerWrappers, record.host, session, lastProviderWrapper);
+    if (Array.isArray(record)) {
+      const wrappers = this.getRecordsWrappers(record, session);
+      if (wrappers.length > 0) {
+        return runRecordsWrappers(wrappers, session, (s: Session) => s.injector.getDefinition(s, record as Array<ProviderRecord>));
+      }
+      return this.getDefinition(session, record);
     }
 
+    session.injector = record.host;
+    session.record = record;
+    const wrappers = record.filterWrappers(session);
+    if (wrappers.length > 0) {
+      return runWrappers(wrappers, session, lastProviderWrapper);
+    }
     return this.getDefinition(session);
   }
 
-  getDefinition<T>(session: Session): T | undefined {
-    let def =
-      session.definition ||
-      session.record.getDefinition(session) || 
-      this.getImportedDefinition(session) || 
-      session.record.getDefinition(session, true) || 
-      this.getImportedDefinition(session, true);
+  getDefinition<T>(session: Session, records?: Array<ProviderRecord>): T | undefined {
+    if (session.definition) {
+      const def = session.definition;
+      session.record = def.record;
+      session.injector = def.record.host;
+  
+      if (def.wrapper !== undefined) {
+        return runWrappers(def.wrapper, session, lastDefinitionWrapper);
+      }
+      return this.resolveDefinition(def, session);
+    }
+
+    let def: DefinitionRecord;
+    if (Array.isArray(records)) {
+      for (let i = records.length - 1; i > -1; i--) {
+        const record = session.record = records[i];
+        session.injector = record.host;
+        const constraintDefs = record.constraintDefs;
+
+        if (constraintDefs.length === 0) {
+          def = def || record.defs[record.defs.length - 1];
+        }
+
+        for (let i = constraintDefs.length - 1; i > -1; i--) {
+          const constraintDef = constraintDefs[i];
+          if (constraintDef.constraint(session) === true) {
+            def = constraintDef;
+            break;
+          }
+        }
+      }
+    } else {
+      def = 
+        session.record.getDefinition(session) ||
+        // change it 
+        session.record.getDefinition(session, true);
+    }
 
     if (def === undefined) {
       // Remove assigned record from session 
@@ -248,10 +287,12 @@ export class Injector {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
     }
+    session.injector = def.record.host;
+    session.record = def.record;
     session.definition = def;
 
     if (def.wrapper !== undefined) {
-      return runWrappers(def.wrapper as Wrapper, this, session, lastDefinitionWrapper);
+      return runWrappers(def.wrapper, session, lastDefinitionWrapper);
     }
 
     return this.resolveDefinition(def, session);
@@ -401,24 +442,24 @@ export class Injector {
   /**
    * COMPONENTS
    */
-  getComponent<T>(token: Token<T>, wrapper?: NewWrapper | Array<NewWrapper>): T | undefined {
+  getComponent<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>): T | undefined {
     if (this.components.get(token) === undefined) {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
     const session = Session.create(token);
     session.status |= SessionStatus.COMPONENT_RESOLUTION; 
-    return this.newResolveToken(wrapper, session);
+    return this.resolveToken(wrapper, session);
   }
 
-  getComponentAsync<T>(token: Token<T>, wrapper?: NewWrapper | Array<NewWrapper>): Promise<T | undefined> {
+  getComponentAsync<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>): Promise<T | undefined> {
     if (this.components.get(token) === undefined) {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
     const session = Session.create(token);
     session.status |= SessionStatus.COMPONENT_RESOLUTION | SessionStatus.ASYNC; 
-    return this.newResolveToken(wrapper, session);
+    return this.resolveToken(wrapper, session);
   }
 
   addComponents(components: Provider | Provider[] = []): void {
@@ -536,113 +577,6 @@ export class Injector {
     collection.push(record);
   }
 
-  /**
-   * NEW IMPLEMENTATION OF RECORDS AND DEFINITIONS
-   */
-  newGet<T>(token: Token<T>, wrapper?: NewWrapper | Array<NewWrapper>, session?: Session): T | undefined {
-    return this.newResolveToken(wrapper, session || Session.create(token));
-  }
-
-  async newGetAsync<T>(token: Token<T>, wrapper?: NewWrapper | Array<NewWrapper>, session?: Session): Promise<T | undefined> {
-    session = session || Session.create(token);
-    session.status |= SessionStatus.ASYNC;
-    return this.newResolveToken(wrapper, session || Session.create(token));
-  }
-
-  newResolveToken<T>(wrapper: NewWrapper | Array<NewWrapper>, session: Session): T | undefined {
-    session.newImplementation = true;
-    session.injector = this;
-    if (wrapper !== undefined) {
-      return runNewWrappers(wrapper, session, newLastInjectionWrapper);
-    }
-    return this.newResolveRecord(session);
-  }
-
-  newResolveRecord<T>(session: Session): T | undefined {
-    let record = 
-      session.status & SessionStatus.COMPONENT_RESOLUTION 
-        ? this.components.get(session.getToken()) 
-        : this.filterRecords(session);
-
-    if (record === undefined) {
-      // Reuse session in the parent
-      return this.parent.newResolveRecord(session);
-    }
-
-    if (Array.isArray(record)) {
-      const wrappers = this.getRecordsWrappers(record, session);
-      if (wrappers.length > 0) {
-        return runNewRecordsWrappers(wrappers, session, (s: Session) => s.injector.newGetDefinition(s, record as Array<ProviderRecord>));
-      }
-      return this.newGetDefinition(session, record);
-    }
-
-    session.injector = record.host;
-    session.record = record;
-    const wrappers = record.filterWrappers(session);
-    if (wrappers.length > 0) {
-      return runNewWrappers(wrappers as unknown as NewWrapper[], session, newLastProviderWrapper);
-    }
-    return this.newGetDefinition(session);
-  }
-
-  newGetDefinition<T>(session: Session, records?: Array<ProviderRecord>): T | undefined {
-    if (session.definition) {
-      const def = session.definition;
-      session.record = def.record;
-      session.injector = def.record.host;
-  
-      if (def.wrapper !== undefined) {
-        return runNewWrappers(def.wrapper as unknown as NewWrapper[], session, newLastDefinitionWrapper);
-      }
-
-      return this.resolveDefinition(def, session);
-    }
-
-    let def: DefinitionRecord;
-    if (Array.isArray(records)) {
-      for (let i = records.length - 1; i > -1; i--) {
-        const record = session.record = records[i];
-        session.injector = record.host;
-        const constraintDefs = record.constraintDefs;
-
-        if (constraintDefs.length === 0) {
-          def = def || record.defs[record.defs.length - 1];
-        }
-
-        for (let i = constraintDefs.length - 1; i > -1; i--) {
-          const constraintDef = constraintDefs[i];
-          if (constraintDef.constraint(session) === true) {
-            def = constraintDef;
-            break;
-          }
-        }
-      }
-    } else {
-      def = 
-        session.record.getDefinition(session) ||
-        // change it 
-        session.record.getDefinition(session, true);
-    }
-
-    if (def === undefined) {
-      // Remove assigned record from session 
-      session.record = undefined;
-      // Reuse session in the parent
-      return this.parent.newResolveRecord(session);
-    }
-    session.injector = def.record.host;
-    session.record = def.record;
-    session.definition = def;
-
-    if (def.wrapper !== undefined) {
-      return runNewWrappers(def.wrapper as unknown as NewWrapper[], session, newLastDefinitionWrapper);
-    }
-
-    return this.resolveDefinition(def, session);
-  }
-
-  // support also treeshakable providers
   private filterRecords(session: Session): ProviderRecord | Array<ProviderRecord> | undefined {
     const token = session.getToken();
     const record = this.records.get(token) || this.checkTreeshakable(token);
@@ -655,8 +589,8 @@ export class Injector {
     return record;
   }
 
-  private getRecordsWrappers(records: Array<ProviderRecord>, session: Session): Array<{ record: ProviderRecord, wrapper: NewWrapper }> {
-    const wrappers: Array<{ record: ProviderRecord, wrapper: NewWrapper, annotations: Record<string, any> }> = [];
+  private getRecordsWrappers(records: Array<ProviderRecord>, session: Session): Array<{ record: ProviderRecord, wrapper: Wrapper }> {
+    const wrappers: Array<{ record: ProviderRecord, wrapper: Wrapper, annotations: Record<string, any> }> = [];
     for (let i = records.length - 1; i > -1; i--) {
       const record = records[i];
       const filteredWrappers = this.filterRecordWrappers(record, session);
@@ -667,7 +601,7 @@ export class Injector {
             wrappers.push({ record, wrapper: wrapper[k], annotations });
           }
         } else {
-          wrappers.push({ record, wrapper: wrapper as NewWrapper, annotations });
+          wrappers.push({ record, wrapper, annotations });
         }
       }
     }
@@ -689,44 +623,17 @@ export class Injector {
     }
     return satisfyingWraps;
   }
-
-  private getImportedDefinition(session: Session, getLastDefault?: boolean) {
-    const host = session.record.host;
-    if (host.importedRecords.has(session.getToken()) === false) return
-    
-    const records = host.importedRecords.get(session.getToken());
-    const currentRecord = session.record;
-    for (let i = records.length - 1; i > -1; i--) {
-      const record = session.record = records[i];
-      const def = record.getDefinition(session, getLastDefault);
-      if (def) return def;
-    }
-    session.record = currentRecord;
-  }
 }
 
-function lastInjectionWrapper(injector: Injector, session: Session) {
-  return injector.resolveRecord(session);
+function lastInjectionWrapper(session: Session) {
+  return session.injector.resolveRecord(session);
 }
 
-function lastProviderWrapper(injector: Injector, session: Session) {
-  return injector.getDefinition(session);
+function lastProviderWrapper(session: Session) {
+  return session.injector.getDefinition(session);
 }
 
-function lastDefinitionWrapper(injector: Injector, session: Session) {
-  const def = session.definition;
-  return injector.resolveDefinition(def, session);
-}
-
-function newLastInjectionWrapper(session: Session) {
-  return session.injector.newResolveRecord(session);
-}
-
-function newLastProviderWrapper(session: Session) {
-  return session.injector.newGetDefinition(session);
-}
-
-function newLastDefinitionWrapper(session: Session) {
+function lastDefinitionWrapper(session: Session) {
   return session.injector.resolveDefinition(session.definition, session);
 }
 
@@ -824,9 +731,6 @@ export const NilInjector = new class {
     throw new NilInjectorError(token);
   }
   resolveRecord(session: Session) {
-    this.get(session.getToken());
-  };
-  newResolveRecord(session: Session) {
     this.get(session.getToken());
   };
   getParent() {

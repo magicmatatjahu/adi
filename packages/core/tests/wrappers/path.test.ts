@@ -1,12 +1,12 @@
-import { Injector, Injectable, Inject, NewPath } from "../../src";
+import { Injector, Injectable, Inject, Path } from "../../src";
 
 describe('Value wrapper', function() {
   test('should override inferred token', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', NewPath('a.b.c')) readonly value1: string,
-        @Inject('token', NewPath('a.d')) readonly value2: string,
+        @Inject('token', Path('a.b.c')) readonly value1: string,
+        @Inject('token', Path('a.d')) readonly value2: string,
       ) {}
     }
 
@@ -25,7 +25,7 @@ describe('Value wrapper', function() {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.value1).toEqual('foo');
     expect(service.value2).toEqual('bar');

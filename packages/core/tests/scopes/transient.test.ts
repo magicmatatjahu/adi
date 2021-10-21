@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, DestroyableType, Destroyable } from "../../src";
 
-describe.skip('Transient scope', function () {
+describe('Transient scope', function () {
   test('should inject new instance per single injection', function () {
     @Injectable({
       scope: Scope.TRANSIENT,

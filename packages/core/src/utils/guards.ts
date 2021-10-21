@@ -12,7 +12,7 @@ import {
   DynamicModule,
   Type,
 } from "../interfaces";
-import { NewWrapper, Wrapper } from "./wrappers";
+import { Wrapper } from "./wrappers";
 
 export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
   return typeof (provider as FactoryProvider).useFactory === "function";
@@ -32,23 +32,14 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 
 export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
   const wrapper = (provider as WrapperProvider).useWrapper;
-  return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
+  return isWrapper(wrapper);
 }
 
-export function hasNewWrapperProvider(provider: unknown): provider is WrapperProvider {
-  const wrapper = (provider as WrapperProvider).useWrapper;
+export function isWrapper(wrapper: unknown): wrapper is Wrapper | Array<Wrapper> {
   return wrapper && (
-    (wrapper as NewWrapper).$$wr === WRAPPER_DEF || 
+    (wrapper as Wrapper).$$wr === WRAPPER_DEF || 
     Array.isArray(wrapper)
   );
-}
-
-export function isWrapper(wrapper: unknown): wrapper is Wrapper {
-  return wrapper && (wrapper as Wrapper).$$wr === NULL_REF;
-}
-
-export function isNewWrapper(wrapper: unknown): wrapper is NewWrapper {
-  return wrapper && (wrapper as NewWrapper).$$wr === WRAPPER_DEF;
 }
 
 export function isDynamicModule(module: Type | DynamicModule): module is DynamicModule {

@@ -1,9 +1,9 @@
-import { Injector, Injectable, Inject, Scope, createNewWrapper, ANNOTATIONS, NewToken, NewOptional, NewPath, NewMemo, Module, NewNamed, when, InjectionToken } from "../../src";
+import { Injector, Injectable, Inject, Scope, createWrapper, ANNOTATIONS, Token, Optional, Path, Memo, Module, Named, when, InjectionToken } from "../../src";
 
 describe('Wrappers', function() {
   describe('should can use useWrapper in injectable as option', function() {
     let called: boolean = false;
-    const TestWrapper = createNewWrapper(() => {
+    const TestWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         called = true;
@@ -20,7 +20,7 @@ describe('Wrappers', function() {
       Service
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(called).toEqual(true);
   });
@@ -28,7 +28,7 @@ describe('Wrappers', function() {
   test('should not operate on original options (type of InjectionOptions) but in the copy of the options', function () {
     let lastOptions = undefined;
     let numberOfThisSameOptions = 0;
-    const TestWrapper = createNewWrapper(() => {
+    const TestWrapper = createWrapper(() => {
       return (session, next) => {
         if (lastOptions === session.options) {
           numberOfThisSameOptions++;
@@ -55,11 +55,11 @@ describe('Wrappers', function() {
       TestService,
     ]);
 
-    injector.newGet(Service);
-    injector.newGet(Service);
-    injector.newGet(Service);
-    injector.newGet(Service);
-    injector.newGet(Service);
+    injector.get(Service);
+    injector.get(Service);
+    injector.get(Service);
+    injector.get(Service);
+    injector.get(Service);
     expect(numberOfThisSameOptions).toEqual(0);
   });
 
@@ -74,7 +74,7 @@ describe('Wrappers', function() {
         useFactory(useValue, stringArg) {
           return [useValue, stringArg];
         },
-        inject: [NewToken('useValue'), [NewToken(String), NewOptional()]],
+        inject: [Token('useValue'), [Token(String), Optional()]],
       },
     ]);
 
@@ -84,7 +84,7 @@ describe('Wrappers', function() {
 
   test('should works with multiple wrappers (provider based useWrapper)', function () {
     let order: number[] = [];
-    const TestWrapper = createNewWrapper((nr: number) => {
+    const TestWrapper = createWrapper((nr: number) => {
       return (session, next) => {
         const value = next(session);
         order.push(nr);
@@ -111,7 +111,7 @@ describe('Wrappers', function() {
       },
     ]);
 
-    const values = injector.newGet('useValue');
+    const values = injector.get('useValue');
     expect(values).toEqual('foobar');
     expect(order).toEqual([1, 2, 3]);
   });
@@ -121,7 +121,7 @@ describe('Wrappers', function() {
       useFactory(useValue, stringArg) {
         return [useValue, stringArg];
       },
-      inject: [NewToken('useValue'), [NewToken(String), NewOptional()]],
+      inject: [Token('useValue'), [Token(String), Optional()]],
     })
     class Service {}
 
@@ -133,13 +133,13 @@ describe('Wrappers', function() {
       Service,
     ]);
 
-    const values = injector.newGet(Service);
+    const values = injector.get(Service);
     expect(values).toEqual(['foobar', undefined]);
   });
 
   describe('should works as Injectable metadata', function() {
     @Injectable({
-      useWrapper: NewPath('foo.bar')
+      useWrapper: Path('foo.bar')
     })
     class Service {
       public foo = {
@@ -159,7 +159,7 @@ describe('Wrappers', function() {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toEqual('foobar');
   });
 
@@ -183,28 +183,28 @@ describe('Wrappers', function() {
       },
       {
         provide: 'useValue',
-        useWrapper: NewPath('a.b'),
+        useWrapper: Path('a.b'),
         annotations: {
           [ANNOTATIONS.ORDER]: 3
         }
       },
       {
         provide: 'useValue',
-        useWrapper: NewPath('e.f'),
+        useWrapper: Path('e.f'),
         annotations: {
           [ANNOTATIONS.ORDER]: 1
         }
       },
       {
         provide: 'useValue',
-        useWrapper: NewPath('c.d'),
+        useWrapper: Path('c.d'),
         annotations: {
           [ANNOTATIONS.ORDER]: 2
         }
       },
     ]);
 
-    const foobar = injector.newGet<string>('useValue');
+    const foobar = injector.get<string>('useValue');
     expect(foobar).toEqual('foobar');
   });
 
@@ -215,8 +215,8 @@ describe('Wrappers', function() {
     class Service {
       constructor(
         @Inject('token', [
-          NewMemo(),
-          NewPath('a.b')
+          Memo(),
+          Path('a.b')
         ])
         readonly value: object,  
       ) {}
@@ -238,8 +238,8 @@ describe('Wrappers', function() {
       }
     ]);
 
-    const service1 = injector.newGet(Service);
-    const service2 = injector.newGet(Service);
+    const service1 = injector.get(Service);
+    const service2 = injector.get(Service);
     expect(service1.value).toEqual({ c: 'foobar' });
     expect(service2.value).toEqual({ c: 'foobar' });
     expect(service1.value === service2.value).toEqual(true);
@@ -252,8 +252,8 @@ describe('Wrappers', function() {
     class Service {
       constructor(
         @Inject('token', [
-          NewMemo(),
-          NewPath('a.b'),
+          Memo(),
+          Path('a.b'),
         ])
         readonly value: object,  
       ) {}
@@ -282,8 +282,8 @@ describe('Wrappers', function() {
       }
     ]);
 
-    const service1 = await injector.newGetAsync(Service);
-    const service2 = await injector.newGetAsync(Service);
+    const service1 = await injector.getAsync(Service);
+    const service2 = await injector.getAsync(Service);
     expect(service1.value).toEqual({ c: 'foobar' });
     expect(service2.value).toEqual({ c: 'foobar' });
     expect(service1.value === service2.value).toEqual(true);
@@ -291,7 +291,7 @@ describe('Wrappers', function() {
 
   test('should works with imported wrappers', function() {
     let childCalled: boolean = false;
-    const ChildWrapper = createNewWrapper(() => {
+    const ChildWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         childCalled = true;
@@ -300,7 +300,7 @@ describe('Wrappers', function() {
     });
 
     let parentCalled: boolean = false;
-    const ParentWrapper = createNewWrapper(() => {
+    const ParentWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         parentCalled = true;
@@ -340,7 +340,7 @@ describe('Wrappers', function() {
 
     const injector = Injector.create(ParentModule).build();
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(childCalled).toEqual(true);
     expect(parentCalled).toEqual(true);
@@ -350,7 +350,7 @@ describe('Wrappers', function() {
     const token = new InjectionToken<string>();
 
     let childCalled: boolean = false;
-    const ChildWrapper = createNewWrapper(() => {
+    const ChildWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         childCalled = true;
@@ -392,7 +392,7 @@ describe('Wrappers', function() {
 
     const injector = Injector.create(ParentModule).build();
 
-    const value = injector.newGet(token, NewNamed('child'));
+    const value = injector.get(token, Named('child'));
     expect(value).toEqual('child value');
     expect(childCalled).toEqual(true);
   });
@@ -401,7 +401,7 @@ describe('Wrappers', function() {
     const token = new InjectionToken<string>();
 
     let called: boolean = false;
-    const TestWrapper = createNewWrapper(() => {
+    const TestWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         called = true;
@@ -426,7 +426,7 @@ describe('Wrappers', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(token, [NewNamed('child'), TestWrapper()]) public value: string,
+        @Inject(token, [Named('child'), TestWrapper()]) public value: string,
       ) {}
     }
 
@@ -447,7 +447,7 @@ describe('Wrappers', function() {
 
     const injector = Injector.create(ParentModule).build();
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.value).toEqual('child value');
     expect(called).toEqual(true);
   });

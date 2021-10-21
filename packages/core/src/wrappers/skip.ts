@@ -1,9 +1,5 @@
-import { createNewWrapper, createWrapper } from "../utils";
+import { createWrapper } from "../utils";
 
-function wrapper(value?: any) {
+export const Skip = createWrapper((value?: any) => {
   return () => value;
-}
-
-export const Skip = createWrapper<any, false>(wrapper);
-
-export const NewSkip = createNewWrapper(wrapper);
+});

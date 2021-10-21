@@ -1,11 +1,11 @@
-import { Injector, Injectable, Inject, NewOptional, NewSelf } from "../../src";
+import { Injector, Injectable, Inject, Optional, Self } from "../../src";
 
 describe('Self wrapper', function () {
   test('should inject service from self injector', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('useValue', NewSelf()) readonly useValue: string,
+        @Inject('useValue', Self()) readonly useValue: string,
       ) {}
     }
 
@@ -23,7 +23,7 @@ describe('Self wrapper', function () {
       },
     ], parentInjector);
 
-    const service = childInjector.newGet(Service);
+    const service = childInjector.get(Service);
     expect(service.useValue).toEqual('barfoo');
   });
 
@@ -32,8 +32,8 @@ describe('Self wrapper', function () {
     class Service {
       constructor(
         @Inject('useValue', [
-          NewOptional(),
-          NewSelf(),
+          Optional(),
+          Self(),
         ]) 
         readonly useValue: string,
       ) {}
@@ -49,7 +49,7 @@ describe('Self wrapper', function () {
       Service,
     ], parentInjector);
 
-    const service = childInjector.newGet(Service);
+    const service = childInjector.get(Service);
     expect(service.useValue).toEqual(undefined);
   });
 });

@@ -5,7 +5,7 @@ import {
   ProviderDef, FactoryDef, Type,
   InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata,
 } from "../interfaces";
-import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper, hasNewWrapperProvider, isNewWrapper } from "../utils";
+import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
@@ -13,8 +13,8 @@ import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
-import { copyWrappers, NewWrapper, Wrapper } from "../utils/wrappers";
-import { NewUseExisting, UseExisting } from "../wrappers/internal";
+import { Wrapper } from "../utils/wrappers";
+import { UseExisting } from "../wrappers/internal";
 
 export const InjectorMetadata = new class {
   /**
@@ -65,12 +65,12 @@ export const InjectorMetadata = new class {
     const record = this.getRecord(token, host, isComponent);
     const constraint = provider.when;
     let factory: FactoryDef = undefined,
-      wrapper: Wrapper | NewWrapper | Array<NewWrapper> = undefined,
+      wrapper: Wrapper | Array<Wrapper> = undefined,
       scope: ScopeShape = this.getScopeShape((provider as any).scope),
       annotations: Record<string | symbol, any> = provider.annotations || EMPTY_OBJECT,
       proto = undefined;
 
-    if (hasWrapperProvider(provider) || hasNewWrapperProvider(provider)) {
+    if (hasWrapperProvider(provider)) {
       wrapper = provider.useWrapper;
     }
 
@@ -79,18 +79,12 @@ export const InjectorMetadata = new class {
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
-      const aliasProvider = provider.useExisting;
-      // copy wrapper and add to the end the new one 
+      const aliasWrapper = UseExisting(provider.useExisting);
       if (wrapper) {
-        // TODO: Change it
-        wrapper = copyWrappers(wrapper as Wrapper);
-        while (wrapper.next) {
-          wrapper = wrapper.next;
-        }
-        wrapper.next = UseExisting(aliasProvider);
-        wrapper.next.prev = wrapper.next;
+        if (Array.isArray(wrapper)) wrapper.push(aliasWrapper);
+        else wrapper = [wrapper, aliasWrapper]
       } else {
-        wrapper = NewUseExisting(aliasProvider);
+        wrapper = aliasWrapper;
       }
       factory = () => {};
     } else if (isClassProvider(provider)) {
@@ -196,7 +190,7 @@ export const InjectorMetadata = new class {
   }
 
   convertDependency(dep: InjectionItem, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
-    if (isWrapper(dep) || isNewWrapper(dep) || Array.isArray(dep)) {
+    if (isWrapper(dep)) {
       return createInjectionArg(undefined, dep, target, propertyKey, index);
     }
     if ((dep as any).token !== undefined) {

@@ -426,7 +426,7 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const serviceC = injector.newGet(ServiceC);
+    const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
@@ -463,7 +463,7 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const serviceC = injector.newGet(ServiceC);
+    const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
@@ -513,12 +513,12 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const serviceC = injector.newGet(ServiceC);
+    const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
 
     let err: Error
     try {
-      injector.newGet(ServiceNotExported);
+      injector.get(ServiceNotExported);
     } catch(e) {
       err = e;
     }
@@ -575,12 +575,12 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const serviceC = injector.newGet(ServiceC);
+    const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
 
     let err: Error
     try {
-      injector.newGet(ServiceNotExported);
+      injector.get(ServiceNotExported);
     } catch(e) {
       err = e;
     }
@@ -621,7 +621,7 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const serviceB = injector.newGet(ServiceB);
+    const serviceB = injector.get(ServiceB);
     expect(serviceB).toBeInstanceOf(ServiceB);
   });
 
@@ -670,14 +670,14 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const proxyService = injector.newGet(ProxyService);
+    const proxyService = injector.get(ProxyService);
     expect(proxyService).toBeInstanceOf(ProxyService);
     expect(proxyService.service).toBeInstanceOf(ServiceB);
 
     // if proxy works as expected it shouldn't see ServiceB in the scope
     let err: Error
     try {
-      injector.newGet(ServiceB);
+      injector.get(ServiceB);
     } catch(e) {
       err = e;
     }

@@ -1,9 +1,9 @@
-import { Injector, Inject, Injectable, NewDelegate, createNewWrapper } from "../../src";
+import { Injector, Inject, Injectable, Delegate, createWrapper } from "../../src";
 
 describe('Delegate wrapper', function () {
   test('should works without Factory, Decorate or Delegations wrapper', function () {
     let called: boolean = false;
-    const TestWrapper = createNewWrapper(() => {
+    const TestWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         called = true;
@@ -19,7 +19,7 @@ describe('Delegate wrapper', function () {
       constructor(
         @Inject([
           TestWrapper(),
-          NewDelegate(),
+          Delegate(),
         ]) 
         readonly service: TestService,
       ) {}
@@ -30,7 +30,7 @@ describe('Delegate wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(called).toEqual(true);
   });

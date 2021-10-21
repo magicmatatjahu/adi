@@ -34,7 +34,7 @@ describe('Async mode injection', function() {
       },
     ]);
   
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.asyncProvider).toEqual('test value');
@@ -75,7 +75,7 @@ describe('Async mode injection', function() {
       },
     ]);
   
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.deepTestService).toBeInstanceOf(DeepTestService);
@@ -123,7 +123,7 @@ describe('Async mode injection', function() {
       },
     ]);
   
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.deepTestService).toBeInstanceOf(DeepTestService);
@@ -172,7 +172,7 @@ describe('Async mode injection', function() {
       }
     ]);
   
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
 
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1).toBeInstanceOf(TestService);

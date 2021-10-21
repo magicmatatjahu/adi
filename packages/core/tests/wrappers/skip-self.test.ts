@@ -1,5 +1,6 @@
 import { Injector, Injectable, Inject, Optional, SkipSelf, Module, Token, ref } from "../../src";
 
+// TODO: Fix
 describe.skip('SkipSelf wrapper', function () {
   test('should inject service from parent injector', function () {
     @Injectable()
@@ -56,7 +57,7 @@ describe.skip('SkipSelf wrapper', function () {
           useFactory(value: string) {
             return value;
           },
-          inject: [Token('useValue', SkipSelf(ref(() => ParentModule)))]
+          inject: [[Token('useValue'), SkipSelf(ref(() => ParentModule))]]
         },
       ],
     })

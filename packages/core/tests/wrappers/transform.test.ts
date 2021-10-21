@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewDelegate, NewTransform } from "../../src";
+import { Injector, Injectable, Inject, Delegate, Transform } from "../../src";
 
 describe('Transform wrapper', function () {
   test('should transform returned value (injection based useWrapper)', function () {
@@ -11,13 +11,13 @@ describe('Transform wrapper', function () {
 
     const transformer = {
       transform(value: TestService) { return value.method() + 'bar' },
-      inject: [NewDelegate()],
+      inject: [Delegate()],
     };
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewTransform(transformer)) readonly service: TestService,
+        @Inject(Transform(transformer)) readonly service: TestService,
       ) {}
     }
 
@@ -26,7 +26,7 @@ describe('Transform wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -40,13 +40,13 @@ describe('Transform wrapper', function () {
 
     const transformer = {
       transform(bar: string, value: TestService) { return bar + value.method() },
-      inject: ['bar', NewDelegate()],
+      inject: ['bar', Delegate()],
     };
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewTransform(transformer)) readonly service: TestService,
+        @Inject(Transform(transformer)) readonly service: TestService,
       ) {}
     }
 
@@ -59,7 +59,7 @@ describe('Transform wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('barfoo');
   });
 
@@ -80,20 +80,20 @@ describe('Transform wrapper', function () {
 
     const transformer1 = {
       transform(service: AwesomeService, decoratee: TestService) { return decoratee.method() + 'bar' + service.addAwesome() },
-      inject: [AwesomeService, NewDelegate()],
+      inject: [AwesomeService, Delegate()],
     }
 
     const transformer2 = {
       transform(value: string, exclamation: string) { return `(${value + exclamation})` },
-      inject: [NewDelegate(), 'exclamation'],
+      inject: [Delegate(), 'exclamation'],
     }
 
     @Injectable()
     class Service {
       constructor(
         @Inject([
-          NewTransform(transformer2),
-          NewTransform(transformer1),
+          Transform(transformer2),
+          Transform(transformer1),
         ]) 
         readonly service: TestService,
       ) {}
@@ -109,7 +109,7 @@ describe('Transform wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('(foobar is awesome!)');
   });
 
@@ -130,7 +130,7 @@ describe('Transform wrapper', function () {
 
     const transformer = {
       transform(value: TestService) { return value.method() + 'bar' },
-      inject: [NewDelegate()]
+      inject: [Delegate()]
     }
 
     const injector = new Injector([
@@ -138,11 +138,11 @@ describe('Transform wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewTransform(transformer),
+        useWrapper: Transform(transformer),
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -151,9 +151,9 @@ describe('Transform wrapper', function () {
       {
         provide: 'test',
         useValue: 'foobar',
-        useWrapper: NewTransform({
+        useWrapper: Transform({
           transform(value: string, exclamation: string) { return value + exclamation; },
-          inject: [NewDelegate(), 'exclamation'],
+          inject: [Delegate(), 'exclamation'],
         }),
       },
       {
@@ -162,7 +162,7 @@ describe('Transform wrapper', function () {
       },
     ]);
 
-    const t = injector.newGet('test') as string;
+    const t = injector.get('test') as string;
     expect(t).toEqual('foobar!');
   });
 
@@ -181,7 +181,7 @@ describe('Transform wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewTransform(transformer)) readonly service: TestService,
+        @Inject(Transform(transformer)) readonly service: TestService,
       ) {}
     }
 
@@ -190,7 +190,7 @@ describe('Transform wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 });

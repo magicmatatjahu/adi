@@ -1,4 +1,4 @@
-import { Injector, Injectable, OnInit, NewOnInitHook, Inject, Scope, NewDelegate, StandaloneOnInit } from "../../src";
+import { Injector, Injectable, OnInit, OnInitHook, Inject, Scope, Delegate, StandaloneOnInit } from "../../src";
 
 describe('onInit', function() {
   test('should works (useClass case)', function() {
@@ -15,7 +15,7 @@ describe('onInit', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(checkInit).toEqual(true);
   });
@@ -44,7 +44,7 @@ describe('onInit', function() {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(onInitCalls).toEqual(1);
   });
@@ -58,7 +58,7 @@ describe('onInit', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: NewOnInitHook((value: string) => {
+        useWrapper: OnInitHook((value: string) => {
           if (value === 'value from factory') {
             called = true
           }
@@ -66,7 +66,7 @@ describe('onInit', function() {
       }
     ]);
 
-    const foobar = injector.newGet('foobar');
+    const foobar = injector.get('foobar');
     expect(foobar).toEqual('value from factory');
     expect(called).toEqual(true);
   });
@@ -80,7 +80,7 @@ describe('onInit', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: NewOnInitHook((value: string) => {
+        useWrapper: OnInitHook((value: string) => {
           if (value === 'value from factory') {
             onInitCalls++
           }
@@ -88,9 +88,9 @@ describe('onInit', function() {
       }
     ]);
 
-    injector.newGet('foobar');
-    injector.newGet('foobar');
-    const foobar = injector.newGet('foobar');
+    injector.get('foobar');
+    injector.get('foobar');
+    const foobar = injector.get('foobar');
     expect(foobar).toEqual('value from factory');
     expect(onInitCalls).toEqual(1);
   });
@@ -121,16 +121,16 @@ describe('onInit', function() {
           return 'value from factory';
         },
         useWrapper: [
-          NewOnInitHook(hook3), 
-          NewOnInitHook(hook2), 
-          NewOnInitHook(hook1),
+          OnInitHook(hook3), 
+          OnInitHook(hook2), 
+          OnInitHook(hook1),
         ],
       }
     ]);
 
-    injector.newGet('foobar');
-    injector.newGet('foobar');
-    const foobar = injector.newGet('foobar');
+    injector.get('foobar');
+    injector.get('foobar');
+    const foobar = injector.get('foobar');
     expect(foobar).toEqual('value from factory');
     expect(order).toEqual([1, 2, 3]);
   });
@@ -154,7 +154,7 @@ describe('onInit', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewOnInitHook(hook('injection onInit'))) readonly testService1: TestService,
+        @Inject(OnInitHook(hook('injection onInit'))) readonly testService1: TestService,
       ) {}
     }
 
@@ -163,7 +163,7 @@ describe('onInit', function() {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(order).toEqual(['class onInit', 'injection onInit']);
   });
@@ -178,7 +178,7 @@ describe('onInit', function() {
     }
 
     @Injectable({
-      useWrapper: NewOnInitHook(hook('definition onInit')),
+      useWrapper: OnInitHook(hook('definition onInit')),
     })
     class TestService implements OnInit {
       onInit() {
@@ -189,7 +189,7 @@ describe('onInit', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewOnInitHook(hook('injection onInit'))) readonly testService1: TestService,
+        @Inject(OnInitHook(hook('injection onInit'))) readonly testService1: TestService,
       ) {}
     }
 
@@ -198,14 +198,14 @@ describe('onInit', function() {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewOnInitHook(hook('provider onInit')),
+        useWrapper: OnInitHook(hook('provider onInit')),
       }
     ]);
 
     // retrieve several times the `TestService` provider from injector to check if hooks are called only once
-    injector.newGet(Service);
-    injector.newGet(TestService);
-    injector.newGet(TestService);
+    injector.get(Service);
+    injector.get(TestService);
+    injector.get(TestService);
     expect(order).toEqual(["class onInit", "definition onInit", "provider onInit", "injection onInit"]);
   });
 
@@ -218,7 +218,7 @@ describe('onInit', function() {
 
     @Injectable({
       scope: Scope.TRANSIENT,
-      useWrapper: NewOnInitHook(hook),
+      useWrapper: OnInitHook(hook),
     })
     class TestService implements OnInit {
       onInit() {
@@ -240,7 +240,7 @@ describe('onInit', function() {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(onInitCalls).toEqual(6);
   });
@@ -254,11 +254,11 @@ describe('onInit', function() {
           checkInit = true;
         } 
       },
-      inject: ['foobar', NewDelegate()]
+      inject: ['foobar', Delegate()]
     }
 
     @Injectable({
-      useWrapper: NewOnInitHook(hook),
+      useWrapper: OnInitHook(hook),
     })
     class Service {}
 
@@ -270,7 +270,7 @@ describe('onInit', function() {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(checkInit).toEqual(true);
   });

@@ -1,7 +1,7 @@
 import { SessionStatus } from "../enums";
 import { Session, ProviderRecord } from "../injector";
-import { DefinitionRecord, WrapperDef } from "../interfaces";
-import { compareOrder, createNewWrapper, createWrapper, thenable } from "../utils";
+import { DefinitionRecord } from "../interfaces";
+import { compareOrder, createWrapper, thenable } from "../utils";
 
 export enum MultiFlags {
   OnlySelf = 1,
@@ -48,64 +48,7 @@ function getDefinitions(
   return defs.sort(compareOrder);
 }
 
-function wrapper(options: MultiOptions = {}): WrapperDef {
-  return (injector, session, next) => {
-    if (session.status & SessionStatus.DRY_RUN) {
-      return next(injector, session);
-    }
-  
-    // annotate session with side effects
-    session.setSideEffect(true);
-    // fork session
-    const forkedSession = session.fork();
-    // annotate forked session as dry run
-    forkedSession.status |= SessionStatus.DRY_RUN;
-    // run next to retrieve updated session
-    next(injector, forkedSession);
-
-    // check if resolution is async
-    const isAsync = forkedSession.status & SessionStatus.ASYNC;
-
-    // retrieve all satisfied definitions
-    const defs = getDefinitions(forkedSession.record, forkedSession, options);
-
-    // with metaKey case
-    const metaKey = options.metaKey;
-    if (metaKey !== undefined) {
-      const values: Record<string | symbol, any> = {};
-      const thenables = [];
-      for (let i = 0, l = defs.length; i < l; i++) {
-        const def = defs[i];
-        const instanceSession = session.fork();
-        instanceSession.definition = defs[i];
-        const defKey = def.annotations[metaKey as any];
-
-        if (defKey) {
-          thenables.push(thenable(
-            () => next(injector, instanceSession),
-            value => {
-              values[defKey] = value;
-            }
-          ));
-        }
-      }
-      return isAsync ? Promise.all(thenables).then(() => values) : values;
-    }
-
-    const values = [];
-    for (let i = 0, l = defs.length; i < l; i++) {
-      const instanceSession = session.fork();
-      instanceSession.definition = defs[i];
-      values.push(next(injector, instanceSession));
-    }
-    return isAsync ? Promise.all(values) : values;
-  }
-}
-
-export const Multi = createWrapper<MultiOptions, false>(wrapper);
-
-
-export const NewMulti = createNewWrapper((options: MultiOptions = {}) => {
+export const Multi = createWrapper((options: MultiOptions = {}) => {
   return (session, next) => {
     if (session.status & SessionStatus.DRY_RUN) {
       return next(session);

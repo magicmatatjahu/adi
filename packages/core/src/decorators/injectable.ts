@@ -3,7 +3,7 @@ import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
-import { NewWrapper, Wrapper } from "../utils/wrappers";
+import { Wrapper } from "../utils/wrappers";
 import { InjectorMetadata } from "../injector";
 import { PRIVATE_METADATA, METADATA, EMPTY_ARRAY } from "../constants";
 
@@ -146,7 +146,7 @@ function mergeParameters(definedArgs: Array<InjectionArgument>, paramtypes: Arra
 
 export function applyInjectionArg(
   token: Token,
-  wrapper: Wrapper | NewWrapper | Array<NewWrapper>,
+  wrapper: Wrapper | Array<Wrapper>,
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
@@ -168,10 +168,16 @@ export function applyInjectionArg(
   return injections.parameters[index as number] = createInjectionArg(token, wrapper, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, wrapper: Wrapper | NewWrapper | Array<NewWrapper>, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrapper>, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+  if (wrapper !== undefined) {
+    wrapper = Array.isArray(wrapper) ? [Cache(), ...wrapper] : [Cache(), wrapper];
+  } else {
+    wrapper = Cache();
+  }
+
   return {
     token,
-    wrapper: wrapper, // Cache(wrapper),
+    wrapper: wrapper,
     metadata: {
       target,
       propertyKey,

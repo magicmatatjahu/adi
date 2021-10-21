@@ -1,7 +1,7 @@
 import { Injector, ProtoInjector } from "../injector";
-import { InjectionArgument, InjectionItem, Provider, WrapperDef } from "../interfaces";
-import { NewWithInjector, WithInjector } from "./with-injector";
-import { createNewWrapper, createWrapper, NewWrapper } from "../utils/wrappers";
+import { InjectionArgument, InjectionItem, Provider } from "../interfaces";
+import { WithInjector } from "./with-injector";
+import { createWrapper, Wrapper } from "../utils/wrappers";
 import { SessionStatus } from "../enums";
 
 interface PortalOptions {
@@ -11,60 +11,16 @@ interface PortalOptions {
 
 function dynamicInjection(injector: Injector, deep: boolean) {
   return function dynamic(arg: InjectionArgument): InjectionItem {
-    const basicWrapper = WithInjector(injector, arg.wrapper);
-    return deep === true
-      ? { token: arg.token, wrapper: Portal({ deep: true, injector } as any, basicWrapper) }
-      : { token: arg.token, wrapper: basicWrapper };
-  }
-}
-
-function wrapper(providersOrOptions: Provider[] | PortalOptions): WrapperDef {
-  let protoInjector: ProtoInjector, deep: boolean = false, deepInjector: Injector = undefined;
-  if (Array.isArray(providersOrOptions)) {
-    protoInjector = ProtoInjector.create(providersOrOptions);
-  } else if (typeof providersOrOptions === 'object') {
-    protoInjector = ProtoInjector.create(providersOrOptions.providers);
-    deep = providersOrOptions.deep;
-    deepInjector = (providersOrOptions as any).injector;
-  }
-  
-  return (selfInjector, session, next) => {
-    if (session.status & SessionStatus.DRY_RUN) {
-      return next(selfInjector, session);
+    const basicWrappers = [WithInjector(injector)];
+    if (arg.wrapper) {
+      Array.isArray(arg.wrapper) ? basicWrappers.push(...arg.wrapper) : basicWrappers.push(arg.wrapper);
     }
-
-    // annotate session with side effects
-    session.setSideEffect(true);
-    // fork session
-    const forkedSession = session.fork();
-    // annotate forked session as dry run
-    forkedSession.status |= SessionStatus.DRY_RUN;
-    // run next to retrieve updated session
-    next(selfInjector, forkedSession);
-
-    // deepInjector or retrieve host injector from provider's record 
-    let injector = deepInjector || forkedSession.definition.record.host;
-    if (protoInjector) {
-      injector = protoInjector.fork(injector);
-    }
-    session.options.injections = {
-      dynamic: dynamicInjection(injector, deep), 
-    };
-    return next(injector, session);
+    deep === true && basicWrappers.unshift(Portal({ deep: true, injector } as any));
+    return { token: arg.token, wrapper: basicWrappers as Wrapper[] };
   }
 }
 
-export const Portal = createWrapper<Provider[] | PortalOptions, true>(wrapper);
-
-function newDynamicInjection(injector: Injector, deep: boolean) {
-  return function dynamic(arg: InjectionArgument): InjectionItem {
-    const basicWrappers = arg.wrapper ? [NewWithInjector(injector), arg.wrapper] : [NewWithInjector(injector)];
-    deep === true && basicWrappers.unshift(NewPortal({ deep: true, injector } as any));
-    return { token: arg.token, wrapper: basicWrappers as NewWrapper[] };
-  }
-}
-
-export const NewPortal = createNewWrapper((providersOrOptions: Provider[] | PortalOptions) => {
+export const Portal = createWrapper((providersOrOptions: Provider[] | PortalOptions) => {
   let protoInjector: ProtoInjector, deep: boolean = false, deepInjector: Injector = undefined;
   if (Array.isArray(providersOrOptions)) {
     protoInjector = ProtoInjector.create(providersOrOptions);
@@ -95,7 +51,7 @@ export const NewPortal = createNewWrapper((providersOrOptions: Provider[] | Port
     }
     session.injector = injector;
     session.options.injections = {
-      dynamic: newDynamicInjection(injector, deep), 
+      dynamic: dynamicInjection(injector, deep), 
     };
     return next(session);
   }

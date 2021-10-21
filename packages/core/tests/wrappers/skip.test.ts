@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewSkip } from "../../src";
+import { Injector, Injectable, Inject, Skip } from "../../src";
 
 describe('Skip wrapper', function () {
   test('should skip injection', function () {
@@ -8,7 +8,7 @@ describe('Skip wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewSkip()) readonly service: TestService,
+        @Inject(Skip()) readonly service: TestService,
       ) {}
     }
 
@@ -17,7 +17,7 @@ describe('Skip wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual(undefined);
   });
 });

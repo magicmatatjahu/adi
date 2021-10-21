@@ -1,13 +1,14 @@
-import { Injector, NilInjector, Session } from "../injector";
+import { NilInjector, Session } from "../injector";
 import { ForwardRef, NextWrapper, Type, WrapperDef } from "../interfaces";
 import { createWrapper, resolveRef } from "../utils";
 
-function plainWrapper(injector: Injector, session: Session, next: NextWrapper) {
+function plainWrapper(session: Session, next: NextWrapper) {
+  const injector = session.injector;
   const token = session.getToken();
 
   // check for treeshakable provider
   injector.getRecord(token);
-  const ownRecord = (injector as any).records.get(token);
+  const ownRecord = injector.records.get(token);
 
   let parentInjector = injector.getParent();
   while (parentInjector !== NilInjector) {
@@ -18,15 +19,16 @@ function plainWrapper(injector: Injector, session: Session, next: NextWrapper) {
       parentInjector.records.get(token) ||
       (ownRecord && (!parentCollection || parentCollection[parentCollection.length - 1] !== ownRecord))
     ) {
-      return next(parentInjector, session);
+      return next(session);
     }
     parentInjector = parentInjector.getParent();
   }
-  return next(NilInjector, session);
+  return NilInjector.get(token);
 }
 
 function parentWrapper(injector?: Type | ForwardRef<Type>): WrapperDef {
-  return (selfInjector, session, next) => {
+  return (session, next) => {
+    const selfInjector = session.injector;
     injector = resolveRef(injector);
     const token = session.getToken();
 
@@ -46,19 +48,17 @@ function parentWrapper(injector?: Type | ForwardRef<Type>): WrapperDef {
         ) {
           break;
         }
-        return next(parentInjector, session);
+        return next(session);
       }
       parentInjector = parentInjector.getParent();
     }
-    return next(NilInjector, session);
+    return NilInjector.get(token);
   }
 }
 
-function wrapper(injector?: Type | ForwardRef<Type>): WrapperDef {
+export const SkipSelf = createWrapper((injector?: Type | ForwardRef<Type>) => {
   if (injector) {
     return parentWrapper(injector);
   }
   return plainWrapper;
-}
-
-export const SkipSelf = createWrapper<Type | ForwardRef<Type>, false>(wrapper);
+});

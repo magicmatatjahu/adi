@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewToken } from "../../src";
+import { Injector, Injectable, Inject, Token } from "../../src";
 
 describe('Token wrapper', function() {
   test('should override inferred token', function() {
@@ -8,7 +8,7 @@ describe('Token wrapper', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewToken(TestService)) readonly service: string,
+        @Inject(Token(TestService)) readonly service: string,
       ) {}
     }
 
@@ -18,7 +18,7 @@ describe('Token wrapper', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });
@@ -30,7 +30,7 @@ describe('Token wrapper', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('nonExisting', NewToken(TestService)) readonly service: any,
+        @Inject('nonExisting', Token(TestService)) readonly service: any,
       ) {}
     }
 
@@ -39,7 +39,7 @@ describe('Token wrapper', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });

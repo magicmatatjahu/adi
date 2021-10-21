@@ -1,18 +1,15 @@
 import { applyInjectionArg } from "./injectable"; 
 import { Token } from "../types";
-import { Reflection, isWrapper, isNewWrapper } from "../utils";
-import { NewWrapper, Wrapper } from "../utils/wrappers";
+import { Reflection, isWrapper } from "../utils";
+import { Wrapper } from "../utils/wrappers";
 
-export function Inject<T = any>(token?: Token<T>, wrapper?: Wrapper | NewWrapper | Array<NewWrapper>);
-export function Inject<T = any>(wrapper?: Wrapper | NewWrapper | Array<NewWrapper>);
-export function Inject<T = any>(token?: Token<T> | Wrapper | NewWrapper | Array<NewWrapper>, wrapper?: Wrapper | NewWrapper | Array<NewWrapper>) {
-  if (isNewWrapper(token) || Array.isArray(token)) {
-    wrapper = token as NewWrapper | Array<NewWrapper>;
+export function Inject<T = any>(token?: Token<T>, wrapper?: Wrapper | Array<Wrapper>);
+export function Inject<T = any>(wrapper?: Wrapper | Array<Wrapper>);
+export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper>, wrapper?: Wrapper | Array<Wrapper>) {
+  if (isWrapper(token)) {
+    wrapper = token as Wrapper | Array<Wrapper>;
     token = undefined;
-  } else if (isWrapper(token)) {
-    wrapper = token as Wrapper;
-    token = undefined;
-  }
+  };
 
   return function(target: Object, key: string | symbol, index?: number | PropertyDescriptor) {
     if (token === undefined) {

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, NewNew, NewToken } from "../../src";
+import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, New, Token } from "../../src";
 
 describe('Context token', function() {
   test('Should works in simple case', function() {
@@ -23,7 +23,7 @@ describe('Context token', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.context).toBeInstanceOf(Context);
@@ -46,7 +46,7 @@ describe('Context token', function() {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(NewNew()) readonly newService: TestService,
+        @Inject(New()) readonly newService: TestService,
         readonly context: Context,
       ) {}
     }
@@ -56,7 +56,7 @@ describe('Context token', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService).toBeInstanceOf(TestService);
@@ -81,11 +81,11 @@ describe('Context token', function() {
       {
         provide: 'test',
         useFactory(context1: Context, context2: Context) { return [context1, context2] },
-        inject: ['context', [NewToken('context'), NewNew()]],
+        inject: ['context', [Token('context'), New()]],
       },
     ]);
 
-    const context = injector.newGet('test') as Context;
+    const context = injector.get('test') as Context;
     expect(context[0]).toBeInstanceOf(Context);
     expect(context[1]).toBeInstanceOf(Context);
     expect(context[0] === STATIC_CONTEXT).toEqual(true);
@@ -104,7 +104,7 @@ describe('Context token', function() {
       Service,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     const ctx = service.method();
 

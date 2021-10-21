@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewFallback, Path, NewPath } from "../../src";
+import { Injector, Injectable, Inject, Fallback, Path } from "../../src";
 
 describe('Fallback wrapper', function () {
   test('should inject fallback provider when given provider doesnt exist in injector', function () {
@@ -8,7 +8,7 @@ describe('Fallback wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewFallback("token")) readonly service: TestService
+        @Inject(Fallback("token")) readonly service: TestService
       ) {}
     }
 
@@ -20,7 +20,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual("foobar");
   });
 
@@ -31,7 +31,7 @@ describe('Fallback wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewFallback("token")) readonly service: TestService
+        @Inject(Fallback("token")) readonly service: TestService
       ) {}
     }
 
@@ -44,7 +44,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });
 
@@ -56,9 +56,9 @@ describe('Fallback wrapper', function () {
     class Service {
       constructor(
         @Inject(
-          NewFallback({
+          Fallback({
             token: 'token',
-            useWrapper: NewPath('a.b.c'),
+            useWrapper: Path('a.b.c'),
           })
         ) 
         readonly service: TestService
@@ -79,7 +79,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual("foobar");
   });
 
@@ -90,7 +90,7 @@ describe('Fallback wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewFallback('foobar')) readonly service: TestService
+        @Inject(Fallback('foobar')) readonly service: TestService
       ) {}
     }
 
@@ -100,7 +100,7 @@ describe('Fallback wrapper', function () {
 
     let err, service;
     try {
-      service = injector.newGet(Service);
+      service = injector.get(Service);
     } catch(e) {
       err = e;
     }
@@ -119,11 +119,11 @@ describe('Fallback wrapper', function () {
       },
       {
         provide: Service,
-        useWrapper: NewFallback('lol'),
+        useWrapper: Fallback('lol'),
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toEqual("foobar");
   });
 
@@ -134,7 +134,7 @@ describe('Fallback wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewFallback("token")) readonly service: TestService
+        @Inject(Fallback("token")) readonly service: TestService
       ) {}
     }
 
@@ -146,7 +146,7 @@ describe('Fallback wrapper', function () {
       }
     ]);
 
-    const service = await injector.newGetAsync(Service);
+    const service = await injector.getAsync(Service);
     expect(service.service).toEqual("foobar");
   });
 });

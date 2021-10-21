@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Decorate, NewDecorate, Delegate, NewDelegate, Fallback, createWrapper, createNewWrapper, NewFallback } from "../../src";
+import { Injector, Injectable, Inject, Decorate, Delegate, Fallback, createWrapper } from "../../src";
 
 describe('Decorate wrapper', function () {
   test('should decorate provider (injection based useWrapper) - function decorator case', function () {
@@ -11,13 +11,13 @@ describe('Decorate wrapper', function () {
 
     const functionDecorator = {
       decorate(decoratee: TestService) { return decoratee.method() + 'bar' },
-      inject: [NewDelegate()],
+      inject: [Delegate()],
     };
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewDecorate(functionDecorator)) readonly service: TestService,
+        @Inject(Decorate(functionDecorator)) readonly service: TestService,
       ) {}
     }
 
@@ -26,7 +26,7 @@ describe('Decorate wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -40,13 +40,13 @@ describe('Decorate wrapper', function () {
 
     const functionDecorator = {
       decorate(bar: string, decoratee: TestService) { return bar + decoratee.method() },
-      inject: ['bar', NewDelegate()],
+      inject: ['bar', Delegate()],
     };
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewDecorate(functionDecorator)) readonly service: TestService,
+        @Inject(Decorate(functionDecorator)) readonly service: TestService,
       ) {}
     }
 
@@ -59,7 +59,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('barfoo');
   });
 
@@ -80,20 +80,20 @@ describe('Decorate wrapper', function () {
 
     const decorator1 = {
       decorate(service: AwesomeService, decoratee: TestService) { return decoratee.method() + 'bar' + service.addAwesome() },
-      inject: [AwesomeService, NewDelegate()],
+      inject: [AwesomeService, Delegate()],
     };
 
     const decorator2 = {
       decorate(value: string, exclamation: string) { return `(${value + exclamation})` },
-      inject: [NewDelegate(), 'exclamation'],
+      inject: [Delegate(), 'exclamation'],
     };
 
     @Injectable()
     class Service {
       constructor(
         @Inject([
-          NewDecorate(decorator2), 
-          NewDecorate(decorator1),
+          Decorate(decorator2), 
+          Decorate(decorator1),
         ]) 
         readonly service: TestService,
       ) {}
@@ -109,7 +109,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('(foobar is awesome!)');
   });
 
@@ -125,7 +125,7 @@ describe('Decorate wrapper', function () {
     class DecoratorService implements TestService {
       constructor(
         @Inject('exclamation') readonly exclamation: string,
-        @Inject(NewDelegate()) public decoratee: any,
+        @Inject(Delegate()) public decoratee: any,
       ) {}
 
       method() {
@@ -136,7 +136,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewDecorate(DecoratorService)) readonly service: TestService,
+        @Inject(Decorate(DecoratorService)) readonly service: TestService,
       ) {}
     }
 
@@ -149,7 +149,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -165,7 +165,7 @@ describe('Decorate wrapper', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject(NewDelegate())
+      @Inject(Delegate())
       public decoratee: any;
 
       constructor(
@@ -180,7 +180,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewDecorate(DecoratorService)) readonly service: TestService,
+        @Inject(Decorate(DecoratorService)) readonly service: TestService,
       ) {}
     }
 
@@ -193,7 +193,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -217,7 +217,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class DecoratorService1 implements TestService {
       constructor(
-        @Inject(NewDelegate()) public decoratee: any,
+        @Inject(Delegate()) public decoratee: any,
         public service: AwesomeService,
       ) {}
 
@@ -230,7 +230,7 @@ describe('Decorate wrapper', function () {
     class DecoratorService2 implements TestService {
       constructor(
         @Inject('exclamation') readonly exclamation: string,
-        @Inject(NewDelegate()) public decoratee: any,
+        @Inject(Delegate()) public decoratee: any,
       ) {}
 
       method() {
@@ -242,8 +242,8 @@ describe('Decorate wrapper', function () {
     class Service {
       constructor(
         @Inject([
-          NewDecorate(DecoratorService2), 
-          NewDecorate(DecoratorService1)
+          Decorate(DecoratorService2), 
+          Decorate(DecoratorService1)
         ])
         readonly service: TestService,
       ) {}
@@ -259,7 +259,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService2);
     expect((service.service as DecoratorService2).decoratee).toBeInstanceOf(DecoratorService1);
     expect(service.service.method()).toEqual('(foobar is awesome!)');
@@ -282,7 +282,7 @@ describe('Decorate wrapper', function () {
 
     const functionDecorator = {
       decorate(decoratee: TestService) { return decoratee.method() + 'bar' },
-      inject: [NewDelegate()]
+      inject: [Delegate()]
     }
 
     const injector = new Injector([
@@ -290,11 +290,11 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewDecorate(functionDecorator),
+        useWrapper: Decorate(functionDecorator),
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -308,7 +308,7 @@ describe('Decorate wrapper', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject(NewDelegate())
+      @Inject(Delegate())
       public decoratee: TestService;
 
       constructor(
@@ -332,7 +332,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewDecorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService),
       },
       {
         provide: 'exclamation',
@@ -340,7 +340,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -348,7 +348,7 @@ describe('Decorate wrapper', function () {
 
   test('should decorate provider with custom wrappers on delegate injection', function () {
     let called: boolean = false;
-    const TestWrapper = createNewWrapper(() => {
+    const TestWrapper = createWrapper(() => {
       return (session, next) => {
         const value = next(session);
         called = true;
@@ -367,7 +367,7 @@ describe('Decorate wrapper', function () {
     class DecoratorService implements TestService {
       @Inject([
         TestWrapper(),
-        NewDelegate(),
+        Delegate(),
       ])
       public decoratee: TestService;
 
@@ -392,7 +392,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewDecorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService),
       },
       {
         provide: 'exclamation',
@@ -400,7 +400,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -421,7 +421,7 @@ describe('Decorate wrapper', function () {
         @Inject('exclamation') readonly exclamation: string,
       ) {}
 
-      method(@Inject(NewDelegate()) decoratee?: TestService): string {
+      method(@Inject(Delegate()) decoratee?: TestService): string {
         return decoratee?.method() + 'bar' + this.exclamation;
       }
     }
@@ -438,7 +438,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewDecorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService),
       },
       {
         provide: 'exclamation',
@@ -446,7 +446,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect(service.service.method()).toEqual('foobar!');
   });
@@ -456,9 +456,9 @@ describe('Decorate wrapper', function () {
       {
         provide: 'test',
         useValue: 'foobar',
-        useWrapper: NewDecorate({
+        useWrapper: Decorate({
           decorate(decoratee: string, exclamation: string) { return decoratee + exclamation; },
-          inject: [NewDelegate(), 'exclamation'],
+          inject: [Delegate(), 'exclamation'],
         }),
       },
       {
@@ -467,7 +467,7 @@ describe('Decorate wrapper', function () {
       },
     ]);
 
-    const t = injector.newGet('test') as string;
+    const t = injector.get('test') as string;
     expect(t).toEqual('foobar!');
   });
 
@@ -477,7 +477,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class DecoratorService {
       constructor(
-        @Inject(NewDelegate()) readonly service: any,
+        @Inject(Delegate()) readonly service: any,
       ) {}
     }
 
@@ -489,13 +489,13 @@ describe('Decorate wrapper', function () {
       {
         provide: Service,
         useWrapper: [
-          NewFallback('test'),
-          NewDecorate(DecoratorService),
+          Fallback('test'),
+          Decorate(DecoratorService),
         ],
       },
     ]);
 
-    const service = injector.newGet(Service) as DecoratorService;
+    const service = injector.get(Service) as DecoratorService;
     expect(service).toEqual('foobar');
   });
 
@@ -511,7 +511,7 @@ describe('Decorate wrapper', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject(NewDelegate())
+      @Inject(Delegate())
       public decoratee: TestService;
 
       constructor(
@@ -538,7 +538,7 @@ describe('Decorate wrapper', function () {
       TestService,
       {
         provide: TestService,
-        useWrapper: NewDecorate(DecoratorService),
+        useWrapper: Decorate(DecoratorService),
       },
       {
         provide: 'exclamation',
@@ -546,7 +546,7 @@ describe('Decorate wrapper', function () {
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(DecoratorService);
     expect((service.service1 as DecoratorService).decoratee).toBeInstanceOf(TestService);
     expect(service.service1.method()).toEqual('foobar!');
@@ -569,7 +569,7 @@ describe('Decorate wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewDecorate(functionDecorator)) readonly service: TestService,
+        @Inject(Decorate(functionDecorator)) readonly service: TestService,
       ) {}
     }
 
@@ -578,7 +578,7 @@ describe('Decorate wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toEqual('foobar');
   });
 });

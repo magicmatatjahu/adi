@@ -1,6 +1,6 @@
 import { Injector, Session } from "../injector";
 import { InjectionArgument, InjectableOptions, ModuleMetadata } from ".";
-import { NewWrapper, Wrapper } from "../utils";
+import { Wrapper } from "../utils";
 import { Token } from "../types";
 
 export type ModuleDef = ModuleMetadata;
@@ -22,7 +22,7 @@ export interface InjectionArguments {
   methods: Record<string, InjectionArgument[]>;
 }
 
-export type InjectionItem<T = any> = Token<T> | Wrapper | NewWrapper | Array<NewWrapper> | { token: Token<T>, wrapper?: Wrapper | NewWrapper | Array<NewWrapper> };
+export type InjectionItem<T = any> = Token<T> | Wrapper | Array<Wrapper> | { token: Token<T>, wrapper?: Wrapper | Array<Wrapper> };
 
 export interface PlainInjections {
   parameters?: Array<InjectionItem>;
@@ -38,13 +38,5 @@ export type FactoryDef<T = any> = (
 
 export type ConstraintDef = (session: Session) => boolean;
 
-export type NextWrapper<T = any> = (
-  injector: Injector, 
-  session: Session,
-) => Promise<T | undefined> | T | undefined;
-
-export type WrapperDef<T = any> = (injector: Injector, session: Session, next: NextWrapper) => Promise<T> | T;
-
-export type NewNextWrapper<T = any> = (session: Session) => Promise<T | undefined> | T | undefined;
-
-export type NewWrapperDef<T = any> = (session: Session, next: NewNextWrapper) => Promise<T> | T;
+export type NextWrapper<T = any> = (session: Session) => Promise<T | undefined> | T | undefined;
+export type WrapperDef<T = any> = (session: Session, next: NextWrapper) => Promise<T> | T;

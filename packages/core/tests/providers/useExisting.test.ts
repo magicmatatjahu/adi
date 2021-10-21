@@ -1,6 +1,6 @@
 import { Injector, Injectable, Scope, Decorate, Delegate } from "../../src";
 
-describe.skip('useExisting', function() {
+describe('useExisting', function() {
   test('should return value from alias', function() {
     @Injectable()
     class Service {}
@@ -54,7 +54,7 @@ describe.skip('useExisting', function() {
         provide: 'useExisting',
         useExisting: Service,
         useWrapper: Decorate({
-          decorator: (value: Service) => {
+          decorate(value: Service) {
             value.prop = {};
             return value;
           },
@@ -86,7 +86,7 @@ describe.skip('useExisting', function() {
       {
         provide: Service,
         useWrapper: Decorate({
-          decorator: (value: Service) => {
+          decorate(value: Service) {
             value.prop++;
             return value;
           },
@@ -97,7 +97,7 @@ describe.skip('useExisting', function() {
         provide: 'useExisting',
         useExisting: Service,
         useWrapper: Decorate({
-          decorator: (value: Service) => {
+          decorate(value: Service) {
             value.prop++;
             return value;
           },

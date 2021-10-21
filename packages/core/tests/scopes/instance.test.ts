@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, Destroyable, DestroyableType } from "../../src";
 
-describe.skip('Instance scope', function () {
+describe('Instance scope', function () {
   test('should inject new instance per instance', function () {
     @Injectable({
       scope: Scope.INSTANCE,

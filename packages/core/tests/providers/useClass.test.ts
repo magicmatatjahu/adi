@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Scope, NewToken } from "../../src";
+import { Injector, Injectable, Inject, Scope, Token } from "../../src";
 
 describe('useClass', function() {
   test('should works without injection arguments', function() {
@@ -12,7 +12,7 @@ describe('useClass', function() {
       },
     ]);
 
-    const resolvedToken = injector.newGet<Service>('useClass');
+    const resolvedToken = injector.get<Service>('useClass');
     expect(resolvedToken).toBeInstanceOf(Service);
   });
 
@@ -38,7 +38,7 @@ describe('useClass', function() {
       },
     ]);
 
-    const resolvedToken = injector.newGet<Service>('useClass');
+    const resolvedToken = injector.get<Service>('useClass');
     expect(resolvedToken.service).toBeInstanceOf(HelperService);
     expect(resolvedToken.propService).toBeInstanceOf(HelperService);
   });
@@ -55,8 +55,8 @@ describe('useClass', function() {
       },
     ]);
 
-    const service1 = injector.newGet<Service>('useClass');
-    const service2 = injector.newGet<Service>('useClass');
+    const service1 = injector.get<Service>('useClass');
+    const service2 = injector.get<Service>('useClass');
     expect(service1).toBeInstanceOf(Service);
     expect(service2).toBeInstanceOf(Service);
     expect(service1 === service2).toEqual(false);
@@ -76,8 +76,8 @@ describe('useClass', function() {
       },
     ]);
 
-    const service1 = injector.newGet<Service>('useClass');
-    const service2 = injector.newGet<Service>('useClass');
+    const service1 = injector.get<Service>('useClass');
+    const service2 = injector.get<Service>('useClass');
     expect(service1).toBeInstanceOf(Service);
     expect(service2).toBeInstanceOf(Service);
     expect(service1 === service2).toEqual(true);
@@ -114,18 +114,18 @@ describe('useClass', function() {
         provide: 'useClass',
         useClass: Service,
         inject: {
-          parameters: [NewToken('parameter')],
+          parameters: [Token('parameter')],
           properties: {
             property: 'property',
           },
           methods: {
-            method: [NewToken('argument')],
+            method: [Token('argument')],
           }
         }
       },
     ]);
 
-    const service = injector.newGet<Service>('useClass');
+    const service = injector.get<Service>('useClass');
     expect(service).toBeInstanceOf(Service);
     expect(service.parameter).toEqual('parameter injection');
     expect(service.property).toEqual('property injection');
@@ -155,12 +155,12 @@ describe('useClass', function() {
       {
         provide: 'useClass',
         useClass: Service,
-        inject: [undefined, NewToken('parameter')],
+        inject: [undefined, Token('parameter')],
       },
     ]);
 
-    const service = injector.newGet<Service>('useClass');
-    const helpService = injector.newGet(HelperService);
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(HelperService);
     expect(service.service).toEqual(helpService);
@@ -207,19 +207,19 @@ describe('useClass', function() {
         provide: 'useClass',
         useClass: Service,
         inject: {
-          parameters: [undefined, NewToken('parameter')],
+          parameters: [undefined, Token('parameter')],
           properties: {
             property: 'property',
           },
           methods: {
-            method: [undefined, NewToken('argument')],
+            method: [undefined, Token('argument')],
           }
         }
       },
     ]);
 
-    const service = injector.newGet<Service>('useClass');
-    const helpService = injector.newGet(HelperService);
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(HelperService);
     expect(service.service).toEqual(helpService);
@@ -289,8 +289,8 @@ describe('useClass', function() {
       },
     ]);
 
-    const service = injector.newGet<Service>('useClass');
-    const helpService = injector.newGet(HelperService);
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(HelperService);
     expect(service.service).toEqual(helpService);
@@ -367,8 +367,8 @@ describe('useClass', function() {
       },
     ]);
 
-    const service = injector.newGet<Service>('useClass');
-    const helpService = injector.newGet(HelperService);
+    const service = injector.get<Service>('useClass');
+    const helpService = injector.get(HelperService);
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(HelperService);
     expect(service.service).toEqual(helpService);

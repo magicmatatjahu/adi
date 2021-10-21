@@ -1,6 +1,5 @@
 import { SessionStatus } from "../enums";
-import { WrapperDef } from "../interfaces";
-import { createNewWrapper, createWrapper, thenable } from "../utils";
+import { createWrapper, thenable } from "../utils";
 
 function getDeepValue(value: object, props: string[]) {
   let result = value;
@@ -13,23 +12,7 @@ function getDeepValue(value: object, props: string[]) {
   return result;
 }
 
-function wrapper(path: string): WrapperDef {
-  const props = path.split('.').filter(Boolean);
-  return (injector, session, next) => {
-    if (session.status & SessionStatus.DRY_RUN) {
-      return next(injector, session);
-    }
-
-    return thenable(
-      () => next(injector, session),
-      value => getDeepValue(value, props),
-    );
-  }
-}
-
-export const Path = createWrapper<string, true>(wrapper);
-
-export const NewPath = createNewWrapper((path: string) => {
+export const Path = createWrapper((path: string) => {
   const props = path.split('.').filter(Boolean);
   return (session, next) => {
     if (session.status & SessionStatus.DRY_RUN) {

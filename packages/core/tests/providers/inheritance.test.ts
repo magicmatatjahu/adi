@@ -21,7 +21,7 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.parentService).toBeInstanceOf(TestService);
   });
@@ -61,7 +61,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.service).toBeInstanceOf(TestService);
     expect(extendedService.parentService).toEqual(undefined);
@@ -97,7 +97,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.stringArg).toEqual(undefined);
     expect(extendedService.numberArg).toEqual(undefined);
@@ -125,7 +125,7 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.parentService).toBeInstanceOf(TestService);
   });
@@ -158,7 +158,7 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.prop).toBeInstanceOf(TestService);
   });
@@ -193,8 +193,8 @@ describe('Inheritance', function() {
       },
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
-    const service = injector.newGet(Service);
+    const extendedService = injector.get(ExtendedService);
+    const service = injector.get(Service);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.method()).toBeInstanceOf(TestService);
     expect(service.method()).toEqual(2137);
@@ -225,8 +225,8 @@ describe('Inheritance', function() {
       TestService,
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
-    const service = injector.newGet(Service);
+    const extendedService = injector.get(ExtendedService);
+    const service = injector.get(Service);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.method()).toEqual('extendedService');
     expect(service.method()).toBeInstanceOf(TestService);
@@ -269,7 +269,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.foobar).toEqual('foobar');
     expect(extendedService.service).toBeInstanceOf(TestService);
@@ -312,7 +312,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.foobar).toEqual('foobar');
     expect(extendedService.service).toBeInstanceOf(TestService);
@@ -350,7 +350,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.foobar).toEqual('foobar');
     expect(extendedService.service).toBeInstanceOf(TestService);
@@ -387,7 +387,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const extendedService = injector.newGet(ExtendedService);
+    const extendedService = injector.get(ExtendedService);
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.foobar).toEqual('foobar');
     expect(extendedService.service).toBeInstanceOf(TestService);
@@ -438,7 +438,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const deepExtendedService = injector.newGet(DeepExtendedService);
+    const deepExtendedService = injector.get(DeepExtendedService);
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
     expect(deepExtendedService.parentService).toEqual(undefined);
@@ -491,7 +491,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const deepExtendedService = injector.newGet(DeepExtendedService);
+    const deepExtendedService = injector.get(DeepExtendedService);
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
     expect(deepExtendedService.parentService).toEqual(undefined);
@@ -547,7 +547,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const deepExtendedService = injector.newGet(DeepExtendedService);
+    const deepExtendedService = injector.get(DeepExtendedService);
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
     expect(deepExtendedService.parentService).toEqual(undefined);
@@ -611,7 +611,7 @@ describe('Inheritance', function() {
       }
     ]);
 
-    const deepExtendedService = injector.newGet(DeepExtendedService);
+    const deepExtendedService = injector.get(DeepExtendedService);
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
     expect(deepExtendedService.parentService).toEqual(undefined);
@@ -635,8 +635,8 @@ describe('Inheritance', function() {
       Service,
     ]);
 
-    const service1 = injector.newGet(ExtendedService);
-    const service2 = injector.newGet(ExtendedService);
+    const service1 = injector.get(ExtendedService);
+    const service2 = injector.get(ExtendedService);
     expect(service1).toBeInstanceOf(ExtendedService);
     expect(service2).toBeInstanceOf(ExtendedService);
     expect(service1 === service2).toEqual(false);
@@ -658,8 +658,8 @@ describe('Inheritance', function() {
       Service,
     ]);
 
-    const service1 = injector.newGet(ExtendedService);
-    const service2 = injector.newGet(ExtendedService);
+    const service1 = injector.get(ExtendedService);
+    const service2 = injector.get(ExtendedService);
     expect(service1).toBeInstanceOf(ExtendedService);
     expect(service2).toBeInstanceOf(ExtendedService);
     expect(service1 === service2).toEqual(true);

@@ -1,6 +1,5 @@
 import { SessionStatus } from "../enums";
-import { WrapperDef } from "../interfaces";
-import { createNewWrapper, createWrapper } from "../utils";
+import { createWrapper } from "../utils";
 
 interface LazyOptions {
   proxy?: boolean;
@@ -50,33 +49,7 @@ function createProxy<T = any>(createObject: () => T): T {
   return new Proxy<any>({} as object, createHandler(delayedObject)) as T;
 }
 
-function wrapper({ proxy }: LazyOptions = {}): WrapperDef {
-  return (injector, session, next) => {
-    if (session.status & SessionStatus.DRY_RUN) {
-      return next(injector, session);
-    }
-
-    if (proxy === true) {
-      // works only with objects
-      return createProxy(() => {
-        return next(injector, session)
-      });
-    }
-
-    let value: any, resolved = false;
-    return () => {
-      if (resolved === false) {
-        resolved = true;
-        value = next(injector, session);
-      }
-      return value;
-    };
-  }
-}
-
-export const Lazy = createWrapper<LazyOptions, true>(wrapper);
-
-export const NewLazy = createNewWrapper((options: LazyOptions = {}) => {
+export const Lazy = createWrapper((options: LazyOptions = {}) => {
   const proxy = options.proxy;
   return (session, next) => {
     if (session.status & SessionStatus.DRY_RUN) {

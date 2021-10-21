@@ -12,7 +12,7 @@ describe('InjectionToken', function() {
         },
       ]);
   
-      const resolvedToken = injector.newGet(Token);
+      const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
     });
 
@@ -33,7 +33,7 @@ describe('InjectionToken', function() {
         },
       ]);
   
-      const resolvedToken = injector.newGet(Token);
+      const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
     });
 
@@ -50,11 +50,11 @@ describe('InjectionToken', function() {
         },
       ]);
   
-      const resolvedToken = injector.newGet(Token);
+      const resolvedToken = injector.get(Token);
       expect(resolvedToken).toBeInstanceOf(Service);
     });
 
-    test.skip('with useExisting', function() {
+    test('with useExisting', function() {
       const Token = new InjectionToken<string>();
 
       const injector = new Injector([
@@ -82,7 +82,7 @@ describe('InjectionToken', function() {
 
       const injector = new Injector();
   
-      const resolvedToken = injector.newGet(Token);
+      const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
     });
 
@@ -102,7 +102,7 @@ describe('InjectionToken', function() {
         },
       ]);
   
-      const resolvedToken = injector.newGet(Token);
+      const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
     });
 
@@ -117,11 +117,11 @@ describe('InjectionToken', function() {
 
       const injector = new Injector();
   
-      const resolvedToken = injector.newGet(Token);
+      const resolvedToken = injector.get(Token);
       expect(resolvedToken).toBeInstanceOf(Service);
     });
 
-    test.skip('with useExisting', function() {
+    test('with useExisting', function() {
       const Token = new InjectionToken<string>({
         provideIn: 'any',
         useExisting: 'useValue',
@@ -151,7 +151,7 @@ describe('InjectionToken', function() {
         }
       ]);
   
-      const value = injector.newGet(token);
+      const value = injector.get(token);
       expect(value).toEqual("barfoo");
     });
 
@@ -171,7 +171,7 @@ describe('InjectionToken', function() {
   
       const injector = new Injector();
   
-      const value = injector.newGet(token);
+      const value = injector.get(token);
       expect(value).toEqual("foobar");
     });
 
@@ -204,7 +204,7 @@ describe('InjectionToken', function() {
       });
 
       const injector = Injector.create(ParentModule).build();
-      const value = injector.newGet(token);
+      const value = injector.get(token);
       expect(value).toEqual("foobar");
     });
   })

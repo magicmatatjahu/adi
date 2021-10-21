@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewCtx, Context } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context } from "../../src";
 
 // TODO: Fix treeskahable providers
 describe('Ctx wrapper', function () {
@@ -16,8 +16,8 @@ describe('Ctx wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewCtx(firstCtx)) readonly service1: TestService,
-        @Inject(NewCtx(secondCtx)) readonly service2: TestService,
+        @Inject(Ctx(firstCtx)) readonly service1: TestService,
+        @Inject(Ctx(secondCtx)) readonly service2: TestService,
       ) {}
     }
 
@@ -26,7 +26,7 @@ describe('Ctx wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service1.ctx).toEqual(firstCtx);
     expect(service.service2).toBeInstanceOf(TestService);

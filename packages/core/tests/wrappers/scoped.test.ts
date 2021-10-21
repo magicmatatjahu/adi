@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, NewScoped, Scope } from "../../src";
+import { Injector, Injectable, Inject, Scoped, Scope } from "../../src";
 
 describe('Scoped wrapper', function () {
   test('should inject provider using passed scope - case with TRANSIENT scope', function () {
@@ -9,8 +9,8 @@ describe('Scoped wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(NewScoped(Scope.TRANSIENT)) readonly newService1: TestService,
-        @Inject(NewScoped(Scope.TRANSIENT)) readonly newService2: TestService,
+        @Inject(Scoped(Scope.TRANSIENT)) readonly newService1: TestService,
+        @Inject(Scoped(Scope.TRANSIENT)) readonly newService2: TestService,
       ) {}
     }
 
@@ -19,7 +19,7 @@ describe('Scoped wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);
@@ -39,7 +39,7 @@ describe('Scoped wrapper', function () {
       constructor(
         readonly localService1: TestService,
         readonly localService2: TestService,
-        @Inject(NewScoped(Scope.TRANSIENT)) readonly newService: TestService,
+        @Inject(Scoped(Scope.TRANSIENT)) readonly newService: TestService,
       ) {}
     }
 
@@ -48,7 +48,7 @@ describe('Scoped wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.localService1).toBeInstanceOf(TestService);
     expect(service.localService2).toBeInstanceOf(TestService);
     expect(service.newService).toBeInstanceOf(TestService);

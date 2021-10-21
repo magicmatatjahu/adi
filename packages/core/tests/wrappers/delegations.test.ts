@@ -1,4 +1,4 @@
-import { Injector, Inject, Injectable, NewDelegate, NewDelegations } from "../../src";
+import { Injector, Inject, Injectable, Delegate, Delegations } from "../../src";
 
 describe('Delegations wrapper', function () {
   test('should works on injection based wrapper', function () {
@@ -10,13 +10,13 @@ describe('Delegations wrapper', function () {
 
     @Injectable()
     class TestService {
-      @Inject(NewDelegate('property')) readonly property: string;
+      @Inject(Delegate('property')) readonly property: string;
 
       constructor(
-        @Inject(NewDelegate('parameter')) readonly parameter: string,
+        @Inject(Delegate('parameter')) readonly parameter: string,
       ) {}
 
-      method(@Inject(NewDelegate('argument')) argument?: string) {
+      method(@Inject(Delegate('argument')) argument?: string) {
         return argument;
       }
     }
@@ -24,7 +24,7 @@ describe('Delegations wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(NewDelegations(delegations)) readonly testService: TestService,
+        @Inject(Delegations(delegations)) readonly testService: TestService,
       ) {}
     }
 
@@ -33,7 +33,7 @@ describe('Delegations wrapper', function () {
       TestService,
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.parameter).toEqual('delegation parameter');
     expect(service.testService.property).toEqual('delegation property');
@@ -49,13 +49,13 @@ describe('Delegations wrapper', function () {
 
     @Injectable()
     class Service {
-      @Inject(NewDelegate('property')) readonly property: string;
+      @Inject(Delegate('property')) readonly property: string;
 
       constructor(
-        @Inject(NewDelegate('parameter')) readonly parameter: string,
+        @Inject(Delegate('parameter')) readonly parameter: string,
       ) {}
 
-      method(@Inject(NewDelegate('argument')) argument?: string) {
+      method(@Inject(Delegate('argument')) argument?: string) {
         return argument;
       }
     }
@@ -64,11 +64,11 @@ describe('Delegations wrapper', function () {
       {
         provide: Service,
         useClass: Service,
-        useWrapper: NewDelegations(delegations),
+        useWrapper: Delegations(delegations),
       }
     ]);
 
-    const service = injector.newGet(Service);
+    const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.parameter).toEqual('delegation parameter');
     expect(service.property).toEqual('delegation property');

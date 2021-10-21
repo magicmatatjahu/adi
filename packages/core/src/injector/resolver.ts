@@ -2,17 +2,14 @@ import { Injector } from "./injector";
 import { Session } from "./session";
 import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
 import { InstanceStatus, SessionStatus } from "../enums";
-import { isNewWrapper, NewWrapper, thenable, Wrapper } from "../utils";
+import { Wrapper, thenable } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
 import { SESSION_INTERNAL } from "../constants";
 import { DestroyManager } from "./destroy-manager";
 
 export const InjectorResolver = new class {
-  inject<T>(injector: Injector, token: Token, wrapper: Wrapper | NewWrapper | Array<NewWrapper>, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
-    if (isNewWrapper(wrapper) || Array.isArray(wrapper) || parentSession.newImplementation === true) {
-      return injector.newResolveToken(wrapper as any, Session.create(token, meta, parentSession));
-    }
+  inject<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
     return injector.resolveToken(wrapper, Session.create(token, meta, parentSession));
   }
 
@@ -64,11 +61,8 @@ export const InjectorResolver = new class {
     return Promise.all(args) as unknown as Promise<void>;
   }
 
-  injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper | NewWrapper | Array<NewWrapper>, meta: InjectionMetadata, parentSession?: Session): { value: T | undefined | Promise<T | undefined>, session: Session } {
+  injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): { value: T | undefined | Promise<T | undefined>, session: Session } {
     const newSession = Session.create(token, meta, parentSession);
-    if (isNewWrapper(wrapper) || Array.isArray(wrapper) || parentSession.newImplementation === true) {
-      return { value: injector.newResolveToken(wrapper as any, newSession), session: newSession };
-    }
     return { value: injector.resolveToken(wrapper, newSession), session: newSession };
   }
 
