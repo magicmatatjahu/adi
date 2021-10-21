@@ -1,6 +1,6 @@
 import { Context, InjectionToken } from "./injector";
 import { InjectorOptions } from "./interfaces";
-import { Optional, Self } from "./wrappers";
+import { NewOptional, NewSelf } from "./wrappers";
 
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");
 
@@ -52,5 +52,5 @@ export const SESSION_INTERNAL = {
 }
 
 export const COMMON_HOOKS = {
-  OptionalSelf: Optional(Self()),
+  OptionalSelf: [NewOptional(), NewSelf()],
 }

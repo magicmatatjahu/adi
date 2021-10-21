@@ -2,7 +2,7 @@ import { SessionStatus } from "../enums";
 import { WrapperDef } from "../interfaces";
 import { Token } from "../types";
 import { thenable } from "../utils";
-import { createWrapper } from "../utils/wrappers";
+import { createNewWrapper, createWrapper } from "../utils/wrappers";
 
 // TODO: check if record and def in the session should be overrided 
 function existingWrapper(token: Token): WrapperDef {
@@ -15,6 +15,15 @@ function existingWrapper(token: Token): WrapperDef {
 }
 
 export const UseExisting = createWrapper<Token, true>(existingWrapper);
+
+export const NewUseExisting = createNewWrapper((token: Token) => {
+  return (session) => {
+    session.record = undefined;
+    session.definition = undefined;
+    session.setToken(token);
+    return session.injector.newGet(token, undefined, session);
+  }
+});
 
 function internalWrapper(inject: 'session' | 'record' | 'definition' | 'instance'): WrapperDef {
   switch (inject) {

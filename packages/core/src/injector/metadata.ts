@@ -14,7 +14,7 @@ import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
 import { copyWrappers, NewWrapper, Wrapper } from "../utils/wrappers";
-import { UseExisting } from "../wrappers/internal";
+import { NewUseExisting, UseExisting } from "../wrappers/internal";
 
 export const InjectorMetadata = new class {
   /**
@@ -90,7 +90,7 @@ export const InjectorMetadata = new class {
         wrapper.next = UseExisting(aliasProvider);
         wrapper.next.prev = wrapper.next;
       } else {
-        wrapper = UseExisting(aliasProvider);
+        wrapper = NewUseExisting(aliasProvider);
       }
       factory = () => {};
     } else if (isClassProvider(provider)) {

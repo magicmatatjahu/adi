@@ -19,7 +19,7 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { Multi } from "../wrappers";
+import { Multi, NewMulti } from "../wrappers";
 import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
 
@@ -78,7 +78,7 @@ export class Injector {
 
     this.addProviders([
       { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: Multi({ inheritance: 1 }) }
+      { provide: MODULE_INITIALIZERS, useWrapper: NewMulti({ inheritance: 1 }) }
     ]);
   }
 
@@ -132,7 +132,7 @@ export class Injector {
     const asyncMode = options?.asyncMode;
     return thenable(
       // run MODULE_INITIALIZERS
-      () => asyncMode ? this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
+      () => asyncMode ? this.newGetAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.newGet(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
       () => {
         return asyncMode ? this.getComponentAsync(MODULE_REF) : this.getComponent(MODULE_REF);
       }
@@ -401,24 +401,24 @@ export class Injector {
   /**
    * COMPONENTS
    */
-  getComponent<T>(token: Token<T>, wrapper?: Wrapper): T | undefined {
+  getComponent<T>(token: Token<T>, wrapper?: NewWrapper | Array<NewWrapper>): T | undefined {
     if (this.components.get(token) === undefined) {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
     const session = Session.create(token);
     session.status |= SessionStatus.COMPONENT_RESOLUTION; 
-    return this.resolveToken(wrapper, session);
+    return this.newResolveToken(wrapper, session);
   }
 
-  getComponentAsync<T>(token: Token<T>, wrapper?: Wrapper): Promise<T | undefined> {
+  getComponentAsync<T>(token: Token<T>, wrapper?: NewWrapper | Array<NewWrapper>): Promise<T | undefined> {
     if (this.components.get(token) === undefined) {
       throw Error(`Given component of ${String(token)} type doesn't exists`);
     }
 
     const session = Session.create(token);
     session.status |= SessionStatus.COMPONENT_RESOLUTION | SessionStatus.ASYNC; 
-    return this.resolveToken(wrapper, session);
+    return this.newResolveToken(wrapper, session);
   }
 
   addComponents(components: Provider | Provider[] = []): void {
