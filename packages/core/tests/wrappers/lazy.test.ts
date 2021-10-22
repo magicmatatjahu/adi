@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Lazy } from "../../src";
+import { Injector, Injectable, Inject, Lazy, Ref, Decorate } from "../../src";
 
 describe('Lazy wrapper', function () {
   test('should create lazy injection - normal injection.get(...) invocation', function () {
@@ -77,5 +77,76 @@ describe('Lazy wrapper', function () {
     const service = injector.get(TestService) as TestService;
     expect(service.lazyService).toBeInstanceOf(LazyService);
     expect(service.lazyService.prop).toEqual('foobar');
+  });
+
+  test('should handle circular reference using additional wrappers (in this case Decorate)', function () {
+    let onInitOrder = [];
+    let serviceA: ServiceA;
+
+    @Injectable()
+    class ServiceA {
+      public serviceB: ServiceB;
+
+      constructor(
+        @Inject([
+          Ref(() => ServiceB),
+          Lazy(),
+          Decorate({
+            decorate(value: ServiceB) {
+              if (value.serviceA === serviceA) {
+                value.calledFromServiceA = true;
+              }
+              return value;
+            },
+          }),
+        ])
+        readonly lazyServiceB: () => ServiceB,
+      ) {
+        serviceA = this;
+      }
+
+      initServiceB() {
+        this.serviceB = this.lazyServiceB();
+
+        // check that serviceB is created and has serviceA property
+        if (Object.keys(this.serviceB).length) {
+          onInitOrder.push('ServiceA');
+        }
+      }
+    }
+
+    @Injectable()
+    class ServiceB {
+      public calledFromServiceA: boolean = false;
+
+      constructor(
+        @Inject(Ref(() => ServiceA)) 
+        readonly serviceA: ServiceA,
+      ) {}
+
+      onInit() {
+        // check that serviceA is created and has serviceB property
+        if (Object.keys(this.serviceA).length) {
+          onInitOrder.push('ServiceB');
+        }
+      }
+    }
+
+    const injector = new Injector([
+      ServiceA,
+      ServiceB,
+    ]);
+
+    const service = injector.get(ServiceA);
+    expect(service).toBeInstanceOf(ServiceA);
+    expect(service.lazyServiceB).toBeInstanceOf(Function);
+    
+    service.initServiceB();
+
+    expect(service.serviceB).toBeInstanceOf(ServiceB);
+    expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
+    expect(service === service.serviceB.serviceA).toEqual(true);
+    expect(onInitOrder).toEqual(['ServiceB', 'ServiceA']);
+    expect(service.serviceB.calledFromServiceA).toEqual(true);
   });
 });

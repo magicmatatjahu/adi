@@ -1,5 +1,5 @@
 import { SessionStatus } from "../enums";
-import { createWrapper } from "../utils";
+import { createWrapper, thenable } from "../utils";
 
 interface LazyOptions {
   proxy?: boolean;
@@ -68,7 +68,10 @@ export const Lazy = createWrapper((options: LazyOptions = {}) => {
       if (resolved === false) {
         resolved = true;
         // TODO: support async mode
-        value = next(session);
+        return value = thenable(
+          () => next(session),
+          v => value = v,
+        );
       }
       return value;
     };
