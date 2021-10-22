@@ -275,10 +275,7 @@ export class Injector {
         }
       }
     } else {
-      def = 
-        session.record.getDefinition(session) ||
-        // change it 
-        session.record.getDefinition(session, true);
+      def = session.record.getDefinition(session);
     }
 
     if (def === undefined) {
@@ -507,14 +504,20 @@ export class Injector {
   private processExport(exp: ExportItem, to: Injector): void {
     exp = resolveRef(exp);
 
-    // export can be module definition
     if (typeof exp === "function") {
+       // export can be module definition
       const moduleDef = getModuleDef(exp);
-
-      // operate on Module
       if (moduleDef !== undefined) {
         this.processModuleExport(exp as Type, 'static', to);
         return;
+      }
+
+      // type provider
+      const record = this.records.get(exp);
+      if (record !== undefined) {
+        to.setImportedRecords(exp, record);
+      } else { // create new provider in the parent injector
+        to.addProviders(exp as any);
       }
     }
 
@@ -525,14 +528,15 @@ export class Injector {
       return;
     }
 
-    // Token, Provider and InjectionToken case
-    // import also imported records
-    const token: any = (exp as PlainProvider).provide || exp;
-    const record = this.getRecord(token);
-    if (record !== undefined) {
-      // to.importedRecords.set(token, record);
-      to.setImportedRecords(token, record);
+    // create new provider in the parent injector
+    if ((exp as PlainProvider).provide) {
+      to.addProviders(exp as PlainProvider);
+      return;
     }
+
+    // string, symbol or InjectionToken case
+    const record = this.records.get(exp as Token);
+    record && to.setImportedRecords(exp as Token, record);
   }
 
   private processModuleExport(mod: Type, id: ModuleID = 'static', to: Injector, providers?: Array<Provider | Token>) {

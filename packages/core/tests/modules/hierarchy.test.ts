@@ -1,5 +1,4 @@
-import { Injector, Injectable, Module, DynamicModule } from "../../src";
-import { ref } from "../../src/utils";
+import { Injector, Injectable, Module, DynamicModule, createWrapper, ref } from "../../src";
 
 describe('Module hierarchy', function() {
   test('should be able to imports another modules', function() {
@@ -394,6 +393,148 @@ describe('Module hierarchy', function() {
 
     Injector.create(ModuleA).build();
     expect(serviceA).toEqual(serviceB);
+  });
+
+  test('should create new provider in the parent module (export provider to the parent injector but without defining it in the providers array) - type provider case', function() {
+    /*
+     *  B
+     *  |
+     *  A
+     */
+
+    let serviceB: SharedService;
+    let serviceA: SharedService;
+
+    @Injectable()
+    class SharedService {}
+
+    @Module({
+      exports: [SharedService],
+    })
+    class ModuleB {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceB = service;
+      }
+    }
+
+    @Module({ 
+      imports: [ModuleB],
+    })
+    class ModuleA {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceA = service;
+      }
+    }
+
+    Injector.create(ModuleA).build();
+    expect(serviceA).toEqual(serviceB);
+  });
+
+  test('should create new provider in the parent module (export provider to the parent injector but without defining it in the providers array) - custom provider case', function() {
+    /*
+     *  B
+     *  |
+     *  A
+     */
+
+    let serviceB: SharedService;
+    let serviceA: SharedService;
+
+    @Injectable()
+    class SharedService {}
+
+    @Module({
+      exports: [{
+        provide: SharedService,
+        useClass: SharedService,
+      }],
+    })
+    class ModuleB {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceB = service;
+      }
+    }
+
+    @Module({ 
+      imports: [ModuleB],
+    })
+    class ModuleA {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceA = service;
+      }
+    }
+
+    Injector.create(ModuleA).build();
+    expect(serviceA).toEqual(serviceB);
+  });
+
+  test.only('should create new provider in the parent module (export provider to the parent injector but without defining it in the providers array) - wrapper case', function() {
+    /*
+     *  B
+     *  |
+     *  A
+     */
+
+    let calledTimes: number = 0;
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
+        calledTimes++;
+        return value;
+      }
+    });
+
+    let serviceB: SharedService;
+    let serviceA: SharedService;
+
+    @Injectable()
+    class SharedService {}
+
+    @Module({
+      providers: [
+        SharedService,
+      ],
+      exports: [
+        SharedService,
+        {
+          provide: SharedService,
+          useWrapper: TestWrapper(),
+        }
+      ],
+    })
+    class ModuleB {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceB = service;
+      }
+    }
+
+    @Module({ 
+      imports: [ModuleB],
+      providers: [
+        SharedService,
+      ]
+    })
+    class ModuleA {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceA = service;
+      }
+    }
+
+    Injector.create(ModuleA).build();
+    expect(serviceA).toEqual(serviceB);
+    expect(calledTimes).toEqual(1);
   });
 
   test('should exports providers of module when in exports array is defined given module', function() {

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Decorate, Delegate, Fallback, createWrapper } from "../../src";
+import { Injector, Injectable, Inject, Decorate, Delegate, Fallback, createWrapper, Module } from "../../src";
 
 describe('Decorate wrapper', function () {
   test('should decorate provider (injection based useWrapper) - function decorator case', function () {
@@ -577,6 +577,55 @@ describe('Decorate wrapper', function () {
       Service,
       TestService,
     ]);
+
+    const service = injector.get(Service);
+    expect(service.service).toEqual('foobar');
+  });
+
+  test('should decorate by wrapper from imported module', function () {
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    const functionDecorator = {
+      decorate(decoratee: TestService) { return decoratee.method() + 'bar' },
+    };
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject() readonly service: TestService,
+      ) {}
+    }
+
+    @Module({
+      providers: [
+        {
+          provide: TestService,
+          useWrapper: Decorate(functionDecorator),
+        }
+      ],
+      exports: [
+        TestService,
+      ]
+    })
+    class ChildModule {}
+
+    @Module({
+      imports: [
+        ChildModule,
+      ],
+      providers: [
+        Service,
+        TestService,
+      ],
+    })
+    class ParentModule {}
+
+    const injector = Injector.create(ParentModule).build();
 
     const service = injector.get(Service);
     expect(service.service).toEqual('foobar');

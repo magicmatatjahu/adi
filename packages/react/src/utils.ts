@@ -14,12 +14,12 @@ export function createComponentProvider(componentProvider: ComponentProvider): V
   };
 }
 
-const instanceWrapper = Internal('instance') as Wrapper;
-export function wrap(wrapper: Wrapper): Wrapper {
-  return {
-    ...instanceWrapper,
-    next: wrapper,
+const instanceWrapper = Internal('instance');
+export function wrap(wrappers: Wrapper | Wrapper[]): Wrapper | Wrapper[] {
+  if (Array.isArray(wrappers)) {
+    return [instanceWrapper, ...wrappers];
   }
+  return wrappers ? [instanceWrapper, wrappers] : instanceWrapper;
 }
 
 export function injectArray(injector: Injector, injections: Array<InjectionItem>): { values: any[], instances: InstanceRecord[] } {

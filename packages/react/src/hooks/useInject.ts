@@ -6,7 +6,7 @@ import { Token } from "@adi/core/lib/types";
 import { wrap } from "../utils";
 import { useInjector } from "./useInjector";
 
-export function useInject<T>(token: Token<T>, wrapper?: Wrapper): T {
+export function useInject<T>(token: Token<T>, ...wrappers: Wrapper[]): T {
   const injector = useInjector();
   const instanceRef = useRef<InstanceRecord>(null);
   const valueRef = useRef<T>(null);
@@ -25,7 +25,7 @@ export function useInject<T>(token: Token<T>, wrapper?: Wrapper): T {
   }
 
   if (instanceRef.current) return valueRef.current;
-  const [v, r] = injector.get<[T, InstanceRecord<T>]>(token as any, wrap(wrapper));
-  instanceRef.current = r;
-  return (valueRef.current = v);
+  const [value, instance] = injector.get<[T, InstanceRecord<T>]>(token as any, wrap(wrappers));
+  instanceRef.current = instance;
+  return (valueRef.current = value);
 }

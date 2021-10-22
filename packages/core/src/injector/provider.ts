@@ -111,15 +111,7 @@ export class ProviderRecord<T = any> {
 
   getDefinition(
     session?: Session,
-    getLastDefault?: boolean,
   ): DefinitionRecord | undefined {
-    if (getLastDefault === true) {
-      return this.defs[this.defs.length - 1];
-    }
-    if (this.constraintDefs.length === 0) {
-      return;
-    }
-
     const constraintDefs = this.constraintDefs;
     for (let i = constraintDefs.length - 1; i > -1; i--) {
       const def = constraintDefs[i];
@@ -127,6 +119,7 @@ export class ProviderRecord<T = any> {
         return def;
       }
     }
+    return this.defs[this.defs.length - 1];
   }
 
   filterWrappers(
@@ -134,21 +127,22 @@ export class ProviderRecord<T = any> {
   ): Array<Wrapper> {
     if (this.wrappers.length === 0) return EMPTY_ARRAY;
 
-    const wrappers = this.wrappers, satisfyingWraps: WrapperRecord[] = [];
+    const wrappers = this.wrappers, satisfyingWrappers: WrapperRecord[] = [];
     for (let i = 0, l = wrappers.length; i < l; i++) {
       const wrapper = wrappers[i];
       if (wrapper.constraint(session) === true) {
-        satisfyingWraps.push(wrapper);
+        satisfyingWrappers.push(wrapper);
       }
     }
+    if (satisfyingWrappers.length === 0) return EMPTY_ARRAY;
 
-    const returned = [] as Array<Wrapper>;
-    const sorted = satisfyingWraps.sort(compareOrder);
+    const returnedWrappers = [] as Array<Wrapper>;
+    const sorted = satisfyingWrappers.sort(compareOrder);
     for (let i = 0, l = sorted.length; i < l; i++) {
       const w = sorted[i].wrapper
-      if (Array.isArray(w)) returned.push(...w as any)
-      else returned.push(w as any);
+      if (Array.isArray(w)) returnedWrappers.push(...w as any)
+      else returnedWrappers.push(w as any);
     }
-    return returned;
+    return returnedWrappers;
   }
 }
