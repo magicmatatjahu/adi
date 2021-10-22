@@ -3,6 +3,21 @@ import { Token } from "../types";
 import { thenable } from "../utils";
 import { createWrapper } from "../utils/wrappers";
 
+export const AsyncDone = createWrapper(() => {
+  return (session, next) => {
+    return thenable(
+      () => next(session),
+      value => {
+        const instance = session.instance;
+        if (instance) {
+          instance.doneResolve && instance.doneResolve(value);
+        }
+        return value;
+      },
+    );
+  }
+});
+
 export const UseExisting = createWrapper((token: Token) => {
   return (session) => {
     session.record = undefined;

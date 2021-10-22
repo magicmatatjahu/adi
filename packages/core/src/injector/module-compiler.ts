@@ -7,10 +7,14 @@ import {
   CompiledModule,
   ModuleID,
   Provider,
+  ExportItem,
+  ImportItem,
+  ExportedModule,
 } from "../interfaces"
 import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { InjectorStatus } from "../enums";
+import { getModuleDef } from "../decorators";
 
 export class ModuleCompiler {
   private asyncInitOptions = { asyncMode: true };
@@ -61,21 +65,21 @@ export class ModuleCompiler {
     await this.initModulesAsync(stack);
   }
 
-  public process(compiledModule: CompiledModule, stack: Array<Injector>) {
+  public process({ moduleDef, dynamicDef, injector, exportTo, isProxy }: CompiledModule, stack: Array<Injector>) {
     // for proxy performs only acitions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
-    const { moduleDef, dynamicDef, injector, exportTo, isProxy } = compiledModule;
     const compiledModules: Array<CompiledModule> = [];
 
     // first iterate in all imports and create injectors for given modules
-    let imports = moduleDef.imports || EMPTY_ARRAY;
+    let imports: ImportItem[];
     if (isProxy === false) {
+      imports = moduleDef.imports || EMPTY_ARRAY;
       for (let i = 0, l = imports.length; i < l; i++) {
-        this.processImport(imports[i], compiledModules, injector, stack);
+        this.processImport(imports[i], compiledModules, injector, isProxy, stack);
       }
     }
     imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
     for (let i = 0, l = imports.length; i < l; i++) {
-      this.processImport(imports[i], compiledModules, injector, stack);
+      this.processImport(imports[i], compiledModules, injector, isProxy, stack);
     }
 
     // first process all imports and go more depper in modules graph
@@ -100,18 +104,19 @@ export class ModuleCompiler {
     const compiledModules: Array<CompiledModule> = [];
 
     // first iterate in all imports and create injectors for given modules
-    let imports = moduleDef.imports || EMPTY_ARRAY;
+    let imports: ImportItem[];
     if (isProxy === false) {
+      imports = moduleDef.imports || EMPTY_ARRAY;
       for (let i = 0, l = imports.length; i < l; i++) {
-        await this.processImport(imports[i], compiledModules, injector, stack);
+        await this.processImportAsync(imports[i], compiledModules, injector, isProxy, stack);
       }
     }
     imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
     for (let i = 0, l = imports.length; i < l; i++) {
-      await this.processImport(imports[i], compiledModules, injector, stack);
+      await this.processImportAsync(imports[i], compiledModules, injector, isProxy, stack);
     }
 
-    // first process all imports and go more depper in modules graph
+    // first process all imports and then go more depper in modules graph
     for (let i = 0, l = compiledModules.length; i < l; i++) {
       await this.processAsync(compiledModules[i], stack);
     }
@@ -132,12 +137,41 @@ export class ModuleCompiler {
     _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
     compiledModules: Array<CompiledModule>,
     parentInjector: Injector,
+    isProxy: boolean,
     stack: Array<Injector>,
   ) {
-    return thenable(
-      () => this.compileMetadata(_import),
-      compiledModule => compiledModule && this.processImportItem(compiledModule, compiledModules, parentInjector, stack) as any,
-    );
+    const compiledModule = this.compileMetadata(_import) as CompiledModule;
+    if (!compiledModule) return;
+
+    this.processImportItem(compiledModule as CompiledModule, compiledModules, parentInjector, stack);
+
+    // let exports: ExportItem[];
+    // if (isProxy === false) {
+    //   exports = compiledModule.moduleDef.exports || EMPTY_ARRAY;
+    //   for (let i = 0, l = exports.length; i < l; i++) {
+    //     const exp = exports[i];
+        
+    //     const moduleDef = getModuleDef((exp as ExportedModule).module || exp);
+    //     if (moduleDef == undefined) continue;
+  
+    //     if (typeof exp === "function") { // export can be module definition
+    //       const moduleDef = getModuleDef(exp);
+    //       if (moduleDef === undefined) return;
+    //     }
+    //   }
+    // }
+  }
+
+  private async processImportAsync<T = any>(
+    _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+    compiledModules: Array<CompiledModule>,
+    parentInjector: Injector,
+    isProxy: boolean,
+    stack: Array<Injector>,
+  ) {
+    const compiledModule = await this.compileMetadata(_import);
+    if (!compiledModule) return;
+    this.processImportItem(compiledModule, compiledModules, parentInjector, stack);
   }
 
   private processImportItem(

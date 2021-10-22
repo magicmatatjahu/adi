@@ -19,12 +19,12 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     return 'Instance';
   }
 
-  public getContext(session: Session, options: InstanceScopeOptions = defaultOptions, injector: Injector): Context {
+  public getContext(session: Session, options: InstanceScopeOptions = defaultOptions): Context {
     const parent = session.parent;
 
     // if parent session in `undefined` or custom Context is passed treat scope as Transient
     if (parent === undefined || (options.reuseContext === true && session.getContext())) {
-      return Scope.TRANSIENT.getContext(session, options, injector);
+      return Scope.TRANSIENT.getContext(session, options);
     }
 
     const parentInstance = parent.instance;
@@ -42,13 +42,12 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     event: DestroyEvent,
     instance: InstanceRecord,
     options: InstanceScopeOptions = defaultOptions,
-    injector: Injector,
   ): boolean {
     const ctx = instance.ctx;
     
     // if ctx doesn't exist in the Instance scope treat scope as Transient
     if (this.contexts.has(ctx) === false) {
-      return Scope.TRANSIENT.canDestroy(event, instance, options, injector);
+      return Scope.TRANSIENT.canDestroy(event, instance, options);
     }
 
     // when no parent

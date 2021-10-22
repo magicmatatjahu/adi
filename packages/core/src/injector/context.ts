@@ -5,8 +5,12 @@ export class Context<T = Record<string | symbol, unknown>> {
   constructor(
     private readonly data?: T,
     // for debug purpose
-    private readonly name?: string,
+    private readonly _name?: string,
   ) {}
+
+  get name() {
+    return this._name;
+  }
 
   get<K extends keyof T>(key: K): T[K];
   get(): T

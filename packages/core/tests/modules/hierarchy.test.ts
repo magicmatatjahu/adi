@@ -476,7 +476,7 @@ describe('Module hierarchy', function() {
     expect(serviceA).toEqual(serviceB);
   });
 
-  test.only('should create new provider in the parent module (export provider to the parent injector but without defining it in the providers array) - wrapper case', function() {
+  test('should create new provider in the parent module (export provider to the parent injector but without defining it in the providers array) - wrapper case', function() {
     /*
      *  B
      *  |
@@ -520,9 +520,6 @@ describe('Module hierarchy', function() {
 
     @Module({ 
       imports: [ModuleB],
-      providers: [
-        SharedService,
-      ]
     })
     class ModuleA {
       constructor(

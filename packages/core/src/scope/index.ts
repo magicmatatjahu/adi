@@ -22,14 +22,12 @@ export abstract class Scope<O = any> {
   public abstract getContext(
     session: Session,
     options: O,
-    injector: Injector,
   ): Context;
 
   public abstract canDestroy(
     event: DestroyEvent,
     instance: InstanceRecord,
     options: O,
-    injector: Injector,
   ): boolean;
 
   public canBeOverrided(): boolean {

@@ -25,7 +25,7 @@ export class ProviderRecord<T = any> {
     scope: ScopeShape<S>,
     session: Session,
   ): InstanceRecord<T> {
-    const ctx = scope.kind.getContext(session, scope.options, this.host) || STATIC_CONTEXT;
+    const ctx = scope.kind.getContext(session, scope.options) || STATIC_CONTEXT;
     let instance = def.values.get(ctx);
     if (instance === undefined) {
       instance = {

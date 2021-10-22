@@ -19,7 +19,7 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { Multi } from "../wrappers";
+import { AsyncDone, Multi } from "../wrappers";
 import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
 
@@ -209,6 +209,14 @@ export class Injector {
 
   resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
     session.injector = this;
+    if (session.status & SessionStatus.ASYNC) {
+      if (wrapper) {
+        wrapper = Array.isArray(wrapper) ? [AsyncDone(), ...wrapper] : [AsyncDone(), wrapper];
+      } else {
+        wrapper = AsyncDone();
+      }
+    }
+
     if (wrapper !== undefined) {
       return runWrappers(wrapper, session, lastInjectionWrapper);
     }
@@ -288,6 +296,11 @@ export class Injector {
     session.record = def.record;
     session.definition = def;
 
+    // check dry run
+    if (session.status & SessionStatus.DRY_RUN) {
+      return;
+    }
+
     if (def.wrapper !== undefined) {
       return runWrappers(def.wrapper, session, lastDefinitionWrapper);
     }
@@ -296,11 +309,6 @@ export class Injector {
   }
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
-    // check dry run
-    if (session.status & SessionStatus.DRY_RUN) {
-      return;
-    }
-
     let scope = def.scope;
     if (scope.kind.canBeOverrided() === true) {
       scope = session.options.scope || scope;
@@ -331,11 +339,8 @@ export class Injector {
           value = Object.assign(instance.value, value);
         }
         instance.value = value;
-
         handleOnInit(instance, session);
-
         instance.status |= InstanceStatus.RESOLVED;
-        instance.doneResolve && instance.doneResolve(value);
         return instance.value;
       }
     ) as unknown as T;
