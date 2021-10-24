@@ -12,7 +12,7 @@ export const DestroyManager = new class {
 
     const scope = instance.scope;
     const shouldDestroy =
-      scope.kind.canDestroy(event, instance, scope.options, injector) ||
+      scope.kind.canDestroy(event, instance, scope.options) ||
       this.shouldForceDestroy(instance);
 
     if (!shouldDestroy) return;

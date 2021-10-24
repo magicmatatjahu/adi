@@ -272,7 +272,9 @@ describe('useComponent hook', function() {
               return (
                 <div>
                   <span>{props.prop}</span>
-                  <PreviousComponent {...props} />
+                  <PreviousComponent prop='changed prop'>
+                    {props.children}
+                  </PreviousComponent>
                 </div>
               );
             }
@@ -289,7 +291,7 @@ describe('useComponent hook', function() {
       return (
         <div>
           <Component prop="useWrapper works!">
-            <span>useWrapper works!</span>
+            <span>children prop</span>
           </Component>
         </div>
       );
@@ -303,6 +305,7 @@ describe('useComponent hook', function() {
 
     // any for error: Argument of type 'string' is not assignable to parameter of type 'SelectorMatcherOptions'
     expect(screen.queryAllByText('useWrapper works!' as any)).toBeDefined();
-    expect(screen.queryAllByText('useWrapper works!' as any)).toHaveLength(3);
+    expect(screen.queryAllByText('changed prop' as any)).toBeDefined();
+    expect(screen.queryAllByText('children prop' as any)).toBeDefined();
   });
 });
