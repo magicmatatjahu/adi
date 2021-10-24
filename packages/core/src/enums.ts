@@ -20,6 +20,7 @@ export enum InjectionKind {
   PROPERTY = 2,
   METHOD = 4,
   FUNCTION = 8,
+  // TODO: Add FACTORY and destroy transient instances in FUNCTION/CUSTOM kind
 }
 
 export enum SessionStatus {

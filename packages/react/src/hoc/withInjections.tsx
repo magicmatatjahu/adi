@@ -42,14 +42,14 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
 
   // create component with Module wrapper
   if (injectableInjector && typeof injectableInjector === 'object') {
-    // const protoInjector = Injector.createProto(injectableInjector).build();
-    return (props: Omit<TProps, TInjectedKeys>) => {
+    const ComponentWithModule = (props: Omit<TProps, TInjectedKeys>) => {
       return (
         <Module module={injectableInjector}>
           <ComponentWithInjection {...props} />
         </Module>
       );
     };
+    return ComponentWithModule;
   }
 
   return ComponentWithInjection;

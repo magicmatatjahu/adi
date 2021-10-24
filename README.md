@@ -3,17 +3,10 @@
 - Handle onInit in async mode
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
 - Think about creating modules from exports which is not imported, so they are not created before exporting
-- Add qualifier field to the provider shape:
-
-```ts
-{
-  provide: Component,
-  qualifier: 'some qualifier'
-}
-```
 
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
+- Think how to ensure the session for onDestroy hooks
 
 React:
 - Fix problem with ProtoInjector - when ProtInjector is created, before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating
@@ -80,8 +73,17 @@ React:
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
 - Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
 - Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention
+- Add qualifier field to the provider shape:
+
+  ```ts
+  {
+    provide: Component,
+    qualifier: 'some qualifier'
+  }
+  ```
+
 - Add plugins to ADI like in Vue :)
 
-  ```js
+  ```ts
   ADI.use({plugin}, {options})
   ```

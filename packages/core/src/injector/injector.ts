@@ -486,7 +486,7 @@ export class Injector {
   }
 
   async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
-    const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.PARAMETER, fun);
+    const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fun);
     const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
     return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
   }
@@ -498,7 +498,7 @@ export class Injector {
     if (
       this.status & InjectorStatus.DESTROYED || 
       to === NilInjector ||
-      this.loadOptions().disableExporting === false
+      this.options.disableExporting === false
     ) return;
 
     for (let i = 0, l = exps.length; i < l; i++) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, createElement } from "react";
-import { Injector, InjectorOptions, ModuleMetadata, ProtoInjector, Provider, Type } from "@adi/core";
+import { Injector, InjectorOptions, ModuleMetadata, Provider, Type } from "@adi/core";
 
 import { useInjector } from "../hooks";
 import { InjectorContext } from "../constants";
@@ -18,20 +18,13 @@ interface ComponentsInline {
   options?: InjectorOptions;
 }
 
-// interface InjectorInline {
-//   injector: ProtoInjector
-// }
-
 export type ModuleProps = 
  | ModuleInline
- | ComponentsInline
-//  | InjectorInline;
+ | ComponentsInline;
 
 export const Module: React.FunctionComponent<ModuleProps> = (props) => {
   const parentInjector = useInjector();
   const injectorRef = useRef<Injector>(null);
-    // isInjectorInline(props) ? props.injector.fork(parentInjector || undefined) : null
-  // );
 
   useEffect(() => {
     return () => {
@@ -64,7 +57,3 @@ function createInjector(props: ModuleInline | ComponentsInline, parentInjector: 
   if (Array.isArray(_module)) return injector;
   return injector.build();
 }
-
-// function isInjectorInline(props: ModuleProps): props is InjectorInline {
-//   return (props as InjectorInline).injector !== undefined;
-// }

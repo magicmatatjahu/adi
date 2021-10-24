@@ -1,6 +1,6 @@
 import { InjectorResolver, Session } from "../injector";
 import { InstanceRecord, StandaloneOnDestroy, StandaloneOnInit } from "../interfaces";
-import { InstanceStatus } from "../enums";
+import { InjectionKind, InstanceStatus } from "../enums";
 import { EMPTY_ARRAY, SESSION_INTERNAL, DELEGATION } from "../constants";
 import { hasOnInitHook } from ".";
 import { hasOnDestroyHook } from "./guards";
@@ -76,7 +76,8 @@ export function handleOnDestroy(instance: InstanceRecord) {
       hook(value);
     } else {
       const factory = InjectorResolver.createFactory(hook.onDestroy, hook.inject);
-      const session = new Session(undefined, undefined, undefined, undefined, { target: factory }, undefined);
+      // TODO: Add needed instance, definition etc in the session 
+      const session = new Session(undefined, undefined, undefined, undefined, { target: factory, kind: InjectionKind.STANDALONE }, undefined);
       // add delegation
       session[DELEGATION.KEY] = {
         type: 'single',
