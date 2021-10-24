@@ -60,6 +60,12 @@ export const DestroyManager = new class {
   }
 
   shouldForceDestroy(instance: InstanceRecord) {
-    return (instance.status & InstanceStatus.HOST_DESTROYED) && (instance.parents === undefined || instance.parents.size === 0);
+    const { status, parents } = instance;
+    return (
+      // Host (Injector) destroyed case
+      ((status & InstanceStatus.HOST_DESTROYED) && (parents === undefined || parents.size === 0)) ||
+      // Circular injection case
+      ((status & InstanceStatus.CIRCULAR) && (parents && parents.size === 1))
+    );
   }
 }

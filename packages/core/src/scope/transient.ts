@@ -1,3 +1,4 @@
+import { InjectionKind } from "../enums";
 import { Context, Session } from "../injector";
 import { DestroyEvent, InjectionMetadata, InstanceRecord } from "../interfaces";
 
@@ -20,8 +21,15 @@ export class TransientScope extends Scope<TransientScopeOptions> {
 
   public getContext(session: Session, options = defaultOptions): Context {
     const parent = session.parent;
-    if (parent && session.definition === parent.definition) {
-      throw Error("Cannot inject new instance of itself class (with TRANSIENT scope)");
+
+    // TODO: Check more complex example, like A -> B -> C -> D -> B (every service is in transient scope)
+    if (
+      parent &&
+      parent.parent &&
+      parent.instance.scope.kind instanceof TransientScope &&
+      session.definition === parent.parent.definition
+    ) {
+      throw Error("Circular injections are not allowed between providers with Transient scope. If required, create a new instance with the specified context.");
     }
     
     let ctx = options.reuseContext ? session.getContext() : undefined;
@@ -39,7 +47,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   ): boolean {
     const ctx = instance.ctx;
 
-    // when operating on an instance with a context passed by user
+    // operating on an instance with a context passed by user
     if (this.instancesMetadata.has(ctx) === false) {
       // destroy only with `injector` event and with no parents
       if (event === 'injector' && (instance.parents === undefined || instance.parents.size === 0)) {
@@ -55,9 +63,9 @@ export class TransientScope extends Scope<TransientScopeOptions> {
       return true;
     }
     
-    // when on method injection
+    // on method injection
     const metadata = this.instancesMetadata.get(ctx);
-    if (metadata !== undefined && metadata.propertyKey !== undefined && metadata.index !== undefined) {
+    if (metadata !== undefined && metadata.kind & InjectionKind.METHOD) {
       this.instancesMetadata.delete(ctx);
       return true;
     }

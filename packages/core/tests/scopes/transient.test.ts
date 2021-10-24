@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, DestroyableType, Destroyable } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, DestroyableType, Destroyable, Ref } from "../../src";
 
 describe('Transient scope', function () {
   test('should inject new instance per single injection', function () {
@@ -158,6 +158,78 @@ describe('Transient scope', function () {
     expect(service.service === service.singletonService).toEqual(false);
     expect(service.service.context === STATIC_CONTEXT).toEqual(false);
     expect(service.singletonService.context === STATIC_CONTEXT).toEqual(true);
+  });
+
+  test('should works with circular references', function () {
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class ServiceA {
+      constructor(
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+      ) {}
+    }
+
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class ServiceB {
+      constructor(
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+      ) {}
+    }
+
+    const injector = new Injector([
+      ServiceA,
+      ServiceB,
+    ]);
+
+    let service: ServiceA, err;
+    try {
+      service = injector.get(ServiceA);
+    } catch(e) {
+      err = e;
+    }
+
+    expect(service).toEqual(undefined);
+    expect(err !== undefined).toEqual(true);
+    expect(err.message).toEqual('Circular injections are not allowed between providers with Transient scope. If required, create a new instance with the specified context.');
+  });
+
+  test('should works with circular references', function () {
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class ServiceA {
+      constructor(
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+      ) {}
+    }
+
+    @Injectable({
+      scope: Scope.TRANSIENT,
+    })
+    class ServiceB {
+      constructor(
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+      ) {}
+    }
+
+    const injector = new Injector([
+      ServiceA,
+      ServiceB,
+    ]);
+
+    let service: ServiceA, err;
+    try {
+      service = injector.get(ServiceA);
+    } catch(e) {
+      err = e;
+    }
+
+    expect(service).toEqual(undefined);
+    expect(err !== undefined).toEqual(true);
+    expect(err.message).toEqual('Circular injections are not allowed between providers with Transient scope. If required, create a new instance with the specified context.');
   });
 
   describe('onDestroy hook', function () {

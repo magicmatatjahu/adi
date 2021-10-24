@@ -2,7 +2,7 @@
 
 - Handle onInit in async mode
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
-- Check how to call onDestroy on circular injections (in which order)
+- Think about creating modules from exports which is not imported, so they are not created before exporting
 - Add qualifier field to the provider shape:
 
 ```ts
@@ -13,6 +13,7 @@
 ```
 
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
+- Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
 
 React:
 - Fix problem with ProtoInjector - when ProtInjector is created, before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating
@@ -34,9 +35,10 @@ React:
 - Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors? - treat imported records as collection of imported records
 - Change the logic of the Value wrapper to similar as Skip 
-- Introduce wrappers for modules 
+- Introduce wrappers for modules
 - Check deep extends
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook` - it can be handled by Lazy wrapper - check the test for Lazy wrapper
+- Check how to call onDestroy on circular injections (in which order)
 
 ## IMPLEMENTED PARTIALLY BUT IT WORKS
 
@@ -59,6 +61,7 @@ React:
 - Rething SkipSelf wrapper
 - Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should destroy it in some way - hard to implement, but here can be used Destroyable wrapper
 
+
 ## NICE TO HAVE BUT NOT NEEDED
 
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules
@@ -74,7 +77,6 @@ React:
 - Add fallback to the providers like in https://github.com/angular/angular/issues/13854
 - Implement something like ContextView from Loopback https://loopback.io/doc/en/lb4/Context.html#context-view
 - Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers
-- Think about creating modules from exports which is not imported, so they are not created before exporting
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
 - Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility
 - Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention

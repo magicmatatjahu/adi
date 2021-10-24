@@ -15,6 +15,7 @@ import { InjectorResolver } from "./resolver";
 
 import { Wrapper } from "../utils/wrappers";
 import { UseExisting } from "../wrappers/internal";
+import { InjectionKind } from "../enums";
 
 export const InjectorMetadata = new class {
   /**
@@ -181,27 +182,28 @@ export const InjectorMetadata = new class {
     return moduleDef;
   }
 
-  convertDependencies(deps: Array<InjectionItem>, target: Object, methodName?: string | symbol): InjectionArgument[] {
+  convertDependencies(deps: Array<InjectionItem>, kind: InjectionKind, target: Object, methodName?: string | symbol): InjectionArgument[] {
     const converted: InjectionArgument[] = [];
     for (let i = 0, l = deps.length; i < l; i++) {
-      converted.push(this.convertDependency(deps[i], target, methodName, i));
+      converted.push(this.convertDependency(deps[i], kind, target, methodName, i));
     }
     return converted;
   }
 
-  convertDependency(dep: InjectionItem, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+  convertDependency(dep: InjectionItem, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
     if (isWrapper(dep)) {
-      return createInjectionArg(undefined, dep, target, propertyKey, index);
+      return createInjectionArg(undefined, dep, kind, target, propertyKey, index);
     }
     if ((dep as any).token !== undefined) {
-      return createInjectionArg((dep as any).token, (dep as any).wrapper, target, propertyKey, index);
+      return createInjectionArg((dep as any).token, (dep as any).wrapper, kind, target, propertyKey, index);
     }
-    return createInjectionArg(dep as Token, undefined, target, propertyKey, index);
+    return createInjectionArg(dep as Token, undefined, kind, target, propertyKey, index);
   }
 
   combineArrayDependencies(
     toCombine: Array<InjectionItem>,
     original: Array<InjectionArgument>,
+    kind: InjectionKind,
     target?: Object,
     methodName?: string,
     dynamic?: (injectionArg: InjectionArgument) => InjectionItem | undefined,
@@ -215,13 +217,13 @@ export const InjectorMetadata = new class {
       let inject: InjectionItem;
       for (let i = 0, l = newDeps.length; i < l; i++) {
         inject = dynamic(newDeps[i]);
-        inject && (newDeps[i] = this.convertDependency(inject, target, methodName, i));
+        inject && (newDeps[i] = this.convertDependency(inject, kind, target, methodName, i));
       }
     }
     if (toCombine !== undefined) {
       for (let i = 0, l = toCombine.length; i < l; i++) {
         if (toCombine[i] !== undefined) {
-          newDeps[i] = this.convertDependency(toCombine[i], target, methodName, i);
+          newDeps[i] = this.convertDependency(toCombine[i], kind, target, methodName, i);
         }
       }
     }
@@ -245,42 +247,42 @@ export const InjectorMetadata = new class {
     };
 
     if (Array.isArray(toCombine)) {
-      newDeps.parameters = this.combineArrayDependencies(toCombine, newDeps.parameters, target);
+      newDeps.parameters = this.combineArrayDependencies(toCombine, newDeps.parameters, InjectionKind.PARAMETER, target);
       return newDeps;
     }
 
     const { parameters, properties, methods, dynamic } = toCombine;
     // parameters
-    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, target, undefined, dynamic);
+    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, InjectionKind.PARAMETER, target, undefined, dynamic);
     // properties and symbols 
     if (typeof dynamic === 'function') {
       let inject: InjectionItem;
       for (const propName in newDeps.properties) {
         inject = dynamic(newDeps.properties[propName]);
-        inject && (newDeps.properties[propName] = this.convertDependency(inject, target, propName));
+        inject && (newDeps.properties[propName] = this.convertDependency(inject, InjectionKind.PROPERTY, target, propName));
       }
       for (const sb of Object.getOwnPropertySymbols(newDeps.properties)) {
         inject = dynamic(newDeps.properties[sb as unknown as string]);
-        inject && (newDeps.properties[sb as unknown as string] = this.convertDependency(inject, target, sb));
+        inject && (newDeps.properties[sb as unknown as string] = this.convertDependency(inject, InjectionKind.PROPERTY, target, sb));
       }
     }
     if (properties !== undefined) {
       for (const propName in properties) {
-        newDeps.properties[propName] = this.convertDependency(properties[propName], target, propName);
+        newDeps.properties[propName] = this.convertDependency(properties[propName], InjectionKind.PROPERTY, target, propName);
       }
       for (const sb of Object.getOwnPropertySymbols(properties)) {
-        newDeps.properties[sb as unknown as string] = this.convertDependency(properties[sb as unknown as string], target, sb);
+        newDeps.properties[sb as unknown as string] = this.convertDependency(properties[sb as unknown as string], InjectionKind.PROPERTY, target, sb);
       }
     }
     // methods
     if (typeof dynamic === 'function') {
       const m = methods || {};
       for (const methodName in newDeps.methods) {
-        newDeps.methods[methodName] = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName], target, methodName, dynamic);
+        newDeps.methods[methodName] = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName], InjectionKind.PROPERTY, target, methodName, dynamic);
       }
     } else {
       for (const methodName in methods) {
-        newDeps.methods[methodName] = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName], target, methodName);
+        newDeps.methods[methodName] = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName], InjectionKind.PROPERTY, target, methodName);
       }
     }
 

@@ -25,6 +25,35 @@ describe('Wrappers', function() {
     expect(called).toEqual(true);
   });
 
+  describe('should can use useWrapper in injectable as option and also should do not treat wrapper as global for token', function() {
+    let calledTimes: number = 0;
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
+        calledTimes++;
+        return value;
+      }
+    });
+
+    @Injectable({
+      useWrapper: TestWrapper(),
+    })
+    class Service {}
+
+    const injector = new Injector([
+      Service,
+      {
+        provide: Service,
+        useValue: 'foobar',
+        when: when.named('foobar'),
+      }
+    ]);
+
+    injector.get(Service);
+    injector.get(Service, Named('foobar'));
+    expect(calledTimes).toEqual(1);
+  });
+
   test('should not operate on original options (type of InjectionOptions) but in the copy of the options', function () {
     let lastOptions = undefined;
     let numberOfThisSameOptions = 0;

@@ -14,12 +14,12 @@ export enum ScopeFlags {
   PROXY_MODE = 4,
 }
 
-export enum InjectionPlace {
-  TYPE = 0,
-  CONSTRUCTOR_PARAMETER = 1,
+export enum InjectionKind {
+  STANDALONE = 0,
+  PARAMETER = 1,
   PROPERTY = 2,
-  METHOD_ARGUMENT = 4,
-  CUSTOM = 8,
+  METHOD = 4,
+  FUNCTION = 8,
 }
 
 export enum SessionStatus {

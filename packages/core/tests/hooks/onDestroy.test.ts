@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Scope, OnDestroyHook, Destroyable, DestroyableType, OnDestroy } from "../../src";
+import { Injector, Injectable, Inject, Scope, OnDestroyHook, Destroyable, Ref, DestroyableType, OnDestroy } from "../../src";
 
 describe('onDestroy', function() {
   test('should works in method injection', async function() {
@@ -321,5 +321,119 @@ describe('onDestroy', function() {
 
     await service.destroy();
     expect(order).toEqual(["class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+  });
+
+  test('should works with circular injections - simple dependency graph', async function() {
+    let onDestroyOrder = [];
+
+    @Injectable()
+    class ServiceA {
+      constructor(
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+      ) {}
+
+      onDestroy() {
+        onDestroyOrder.push('ServiceA');
+      }
+    }
+
+    @Injectable()
+    class ServiceB {
+      constructor(
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+      ) {}
+
+      onDestroy() {
+        onDestroyOrder.push('ServiceB');
+      }
+    }
+
+    const injector = new Injector([
+      ServiceA,
+      ServiceB,
+    ]);
+
+    const service = injector.get(ServiceA);
+    expect(service).toBeInstanceOf(ServiceA);
+    expect(service.serviceB).toBeInstanceOf(ServiceB);
+    expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
+    expect(service === service.serviceB.serviceA).toEqual(true);
+
+    expect(onDestroyOrder).toEqual([]);
+
+    await injector.destroy();
+    expect(onDestroyOrder).toEqual(['ServiceA', 'ServiceB']);
+
+    await injector.destroy();
+    expect(onDestroyOrder).toEqual(['ServiceA', 'ServiceB']);
+  });
+
+  test('should works with circular injections - complex dependency graph', async function() {
+    let onDestroyOrder = [];
+
+    @Injectable()
+    class DeepService {
+      onDestroy() {
+        onDestroyOrder.push('DeepService');
+      }
+    }
+
+    @Injectable()
+    class ServiceA {
+      constructor(
+        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        readonly deepService: DeepService,
+      ) {}
+
+      onDestroy() {
+        onDestroyOrder.push('ServiceA');
+      }
+    }
+
+    @Injectable()
+    class ServiceB {
+      constructor(
+        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        readonly deepService: DeepService,
+      ) {}
+
+      onDestroy() {
+        onDestroyOrder.push('ServiceB');
+      }
+    }
+
+    @Injectable()
+    class ZeroService {
+      constructor(
+        readonly serviceA: ServiceA,
+      ) {}
+
+      onDestroy() {
+        onDestroyOrder.push('ZeroService');
+      }
+    }
+
+    const injector = new Injector([
+      ZeroService,
+      ServiceA,
+      ServiceB,
+      DeepService,
+    ]);
+
+    const service = injector.get(ZeroService);
+    expect(service).toBeInstanceOf(ZeroService);
+    expect(service.serviceA).toBeInstanceOf(ServiceA);
+    expect(service.serviceA.serviceB).toBeInstanceOf(ServiceB);
+    expect(service.serviceA.deepService).toBeInstanceOf(DeepService);
+    expect(service.serviceA.serviceB.serviceA).toBeInstanceOf(ServiceA);
+    expect(service.serviceA === service.serviceA.serviceB.serviceA).toEqual(true);
+
+    expect(onDestroyOrder).toEqual([]);
+
+    await injector.destroy();
+    expect(onDestroyOrder).toEqual(['ZeroService', 'ServiceA', 'ServiceB', 'DeepService']);
+
+    await injector.destroy();
+    expect(onDestroyOrder).toEqual(['ZeroService', 'ServiceA', 'ServiceB', 'DeepService']);
   });
 });

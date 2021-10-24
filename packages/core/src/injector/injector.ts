@@ -6,7 +6,7 @@ import {
   ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem, WrapperRecord
 } from "../interfaces";
 import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT, MODULE_REF, EMPTY_ARRAY } from "../constants";
-import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
+import { InjectionKind, InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable, compareOrder } from "../utils";
 import { 
@@ -480,14 +480,14 @@ export class Injector {
    * MISC
    */
   invoke<T>(fun: (...args: any[]) => T, injections: Array<InjectionItem>) {
-    const deps = InjectorMetadata.convertDependencies(injections, fun);
-    const session = Session.create(undefined, { target: fun });
+    const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fun);
+    const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
     return fun(...InjectorResolver.injectDeps(deps, this, session));
   }
 
   async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
-    const deps = InjectorMetadata.convertDependencies(injections, fun);
-    const session = Session.create(undefined, { target: fun });
+    const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.PARAMETER, fun);
+    const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
     return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
   }
 

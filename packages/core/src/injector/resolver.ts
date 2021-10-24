@@ -1,7 +1,7 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
 import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
-import { InstanceStatus, SessionStatus } from "../enums";
+import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
 import { Wrapper, thenable } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
@@ -139,7 +139,7 @@ export const InjectorResolver = new class {
     factory: Function,
     deps: Array<InjectionItem>,
   ) {
-    const convertedDeps = InjectorMetadata.convertDependencies(deps, factory);
+    const convertedDeps = InjectorMetadata.convertDependencies(deps, InjectionKind.FUNCTION, factory);
     return (injector: Injector, session: Session) => {
       if (session.status & SessionStatus.ASYNC) {
         return this.injectDepsAsync(convertedDeps, injector, session).then(args => factory(...args));
@@ -162,7 +162,7 @@ export const InjectorResolver = new class {
 
     // if circular injection detected then handle it
     if (isCircular === true) {
-      return handleCircularRefs(instance, session);
+      return handleCircularInjection(instance, session);
     }
 
     // otherwise parallel injection detected (in async resolution)
@@ -176,7 +176,7 @@ function applyParallelHook<T>(instance: InstanceRecord<T>) {
   });
 }
 
-function handleCircularRefs<T>(instance: InstanceRecord<T>, session: Session): T {
+function handleCircularInjection<T>(instance: InstanceRecord<T>, session: Session): T {
   // if circular injection detected return empty prototype instance
   if (instance.status & InstanceStatus.CIRCULAR) {
     return instance.value;

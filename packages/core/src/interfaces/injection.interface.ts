@@ -2,6 +2,7 @@ import { Context } from "../injector";
 import { InjectionItem, ScopeShape, PlainInjections } from ".";
 import { Token } from "../types";
 import { Wrapper } from "../utils/wrappers";
+import { InjectionKind } from "../enums";
 
 export interface InjectionOptions<T = any> {
   token: Token<T>;
@@ -15,6 +16,7 @@ export interface InjectionMetadata {
   target: Object;
   propertyKey?: string | symbol;
   index?: number;
+  kind: InjectionKind;
 }
 
 export interface InjectionArgument<T = any> {
