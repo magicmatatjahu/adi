@@ -27,6 +27,8 @@ export type ExportItem =
   | Token
   | Provider
   | ExportedModule
+  | DynamicModule
+  | Promise<DynamicModule>
   | ForwardRef;
 
 export interface ExportedModule {

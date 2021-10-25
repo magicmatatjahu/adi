@@ -29,6 +29,7 @@ export class Session<T = any> {
   }
 
   public status: SessionStatus = SessionStatus.NONE;
+  public host: Injector;
   public injector: Injector;
 
   constructor(

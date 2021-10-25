@@ -208,7 +208,7 @@ export class Injector {
   }
 
   resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
-    session.injector = this;
+    session.injector = session.host = this;
     if (session.status & SessionStatus.ASYNC) {
       if (wrapper) {
         wrapper = Array.isArray(wrapper) ? [AsyncDone(), ...wrapper] : [AsyncDone(), wrapper];

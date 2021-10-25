@@ -1,4 +1,4 @@
-import { Injector, Token, Named, when, Ctx, Context, Labelled } from "../src";
+import { Injector, Token, Named, when, Ctx, Context, Labelled, Module } from "../src";
 
 describe('Constraint', function() {
   describe('Named constraint', function() {
@@ -78,6 +78,171 @@ describe('Constraint', function() {
       const foobar = injector.get('test') as string;
       expect(foobar[0]).toEqual('foo');
       expect(foobar[1]).toEqual('bar');
+    });
+  });
+
+  describe('Visible constraint', function() {
+    test('should works with public visibility', function () {
+      const injector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'public foobar',
+          when: when.visible('public'),
+        },
+      ]);
+  
+      const foobar = injector.get<string>('foobar');
+      expect(foobar).toEqual('public foobar');
+    });
+
+    test('should works with public visibility with hierarchical injectors', function () {
+      const parentInjector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'public foobar',
+          when: when.visible('public'),
+        },
+      ]);
+      const childInjector = new Injector([], parentInjector);
+  
+      const foobar = childInjector.get<string>('foobar');
+      expect(foobar).toEqual('public foobar');
+    });
+
+    test('should works with protected visibility', function () {
+      const injector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'protected foobar',
+          when: when.visible('protected'),
+        },
+      ]);
+  
+      const foobar = injector.get<string>('foobar');
+      expect(foobar).toEqual('protected foobar');
+    });
+
+    test('should works with protected visibility with hierarchical injectors', function () {
+      @Module({
+        providers: [
+          {
+            provide: 'foobar',
+            useValue: 'protected foobar',
+            when: when.visible('protected'),
+          },
+        ],
+        exports: [
+          'foobar',
+        ]
+      })
+      class ChildModule1 {}
+
+      @Module()
+      class ChildModule2 {}
+
+      @Module({
+        imports: [
+          ChildModule1,
+          ChildModule2,
+        ],
+      })
+      class ParenModule {}
+
+      const injector = Injector.create(ParenModule).build();
+  
+      const foobar = injector.get<string>('foobar');
+      expect(foobar).toEqual('protected foobar');
+
+      const childInjector = injector.selectChild(ChildModule2);
+      let value, err;
+      try {
+        value = childInjector.get<string>('foobar');
+      } catch(e) {
+        err = e;
+      }
+      expect(value).toEqual(undefined);
+      expect(err === undefined).toEqual(false);
+    });
+
+    test('should works with private visibility', function () {
+      const injector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'private foobar',
+          when: when.visible('private'),
+        },
+      ]);
+  
+      const foobar = injector.get<string>('foobar');
+      expect(foobar).toEqual('private foobar');
+    });
+
+    test('should works with private visibility with hierarchical injectors - exports case', function () {
+      @Module({
+        providers: [
+          {
+            provide: 'foobar',
+            useValue: 'private foobar',
+            when: when.visible('private'),
+          },
+        ],
+        exports: [
+          'foobar',
+        ]
+      })
+      class ChildModule {}
+
+      @Module({
+        imports: [
+          ChildModule,
+        ],
+      })
+      class ParenModule {}
+
+      const injector = Injector.create(ParenModule).build();
+      let value, err;
+      try {
+        value = injector.get<string>('foobar');
+      } catch(e) {
+        err = e;
+      }
+      expect(value).toEqual(undefined);
+      expect(err === undefined).toEqual(false);
+    });
+
+    test('should works with private visibility with hierarchical injectors - start resolution from imported injector case', function () {
+      @Module()
+      class ChildModule {}
+
+      @Module({
+        imports: [
+          ChildModule,
+        ],
+        providers: [
+          {
+            provide: 'foobar',
+            useValue: 'private foobar',
+            when: when.visible('private'),
+          },
+          {
+            provide: 'foobar',
+            useValue: 'public foobar',
+            when: when.visible('public'),
+          },
+        ],
+      })
+      class ParenModule {}
+
+      const injector = Injector.create(ParenModule).build();
+      const childInjector = injector.selectChild(ChildModule);
+      let value, err;
+      try {
+        value = childInjector.get<string>('foobar');
+      } catch(e) {
+        err = e;
+      }
+      expect(value).toEqual('public foobar');
+      expect(err).toEqual(undefined);
     });
   });
 

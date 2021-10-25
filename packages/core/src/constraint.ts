@@ -24,6 +24,22 @@ export function labelled(l: Record<string | symbol | number, any>): ConstraintDe
   }
 }
 
+export function visible(type: 'public' | 'protected' | 'private'): ConstraintDef {
+  return (session) => {
+    switch (type) {
+      case 'private': return session.host === session.injector;
+      case 'protected': {
+        const host = session.host;
+        if (host === session.injector) return true;
+        if (host.imports.has(session.injector.metatype as any)) return true;
+        return false;
+      }
+      // public and other cases
+      default: return true;
+    }
+  }
+}
+
 export function and(...fns: Array<ConstraintDef>): ConstraintDef {
   return (session) => {
     for (let i = 0, l = fns.length; i < l; i++) {
@@ -46,6 +62,7 @@ export const when = {
   named,
   withContext,
   labelled,
+  visible,
   and,
   or,
 }

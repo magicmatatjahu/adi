@@ -91,7 +91,7 @@ export class ProviderRecord<T = any> {
     // check if definition must be resolved with MODULE_INITIALIZERS
     // add def only to the MODULE_INITIALIZERS definitions when injector isn't initialized
     if (annotations[ANNOTATIONS.EAGER] === true && (this.host.status & InjectorStatus.INITIALIZED) === 0) {
-      this.host.getRecord(MODULE_INITIALIZERS).defs.push(def);
+      this.host.records.get(MODULE_INITIALIZERS).defs.push(def);
     }
 
     return def;
