@@ -67,7 +67,6 @@ export const Lazy = createWrapper((options: LazyOptions = {}) => {
     return () => {
       if (resolved === false) {
         resolved = true;
-        // TODO: support async mode
         return value = thenable(
           () => next(session),
           v => value = v,

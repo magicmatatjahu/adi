@@ -1,4 +1,4 @@
-import { Injector, Injectable, Module, DynamicModule, createWrapper, ref } from "../../src";
+import { Injector, Injectable, Module, DynamicModule, createWrapper, ref, Inject, Named, when } from "../../src";
 
 describe('Module hierarchy', function() {
   test('should be able to imports another modules', function() {
@@ -353,6 +353,68 @@ describe('Module hierarchy', function() {
 
     Injector.create(ModuleA).build();
     expect(serviceA).toEqual(serviceB);
+  });
+
+  test('should share this same record across modules (looking for missed provider in the parent injector) - deep case with constraint', function() {
+    /*
+     *  C
+     *  |
+     *  B
+     *  |
+     *  A
+     */
+
+    let serviceC: SharedService;
+    let serviceB: SharedService;
+    let serviceA: SharedService;
+
+    @Injectable()
+    class SharedService {}
+
+    @Module()
+    class ModuleC {
+      constructor(
+        @Inject(Named('foobar')) readonly service: SharedService,
+      ) {
+        serviceC = service;
+      }
+    }
+
+    @Module({
+      imports: [ModuleC]
+    })
+    class ModuleB {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceB = service;
+      }
+    }
+
+    @Module({ 
+      imports: [ModuleB],
+      providers: [
+        SharedService,
+        {
+          provide: SharedService,
+          useValue: 'foobar',
+          when: when.named('foobar'),
+        }
+      ],
+    })
+    class ModuleA {
+      constructor(
+        readonly service: SharedService,
+      ) {
+        serviceA = service;
+      }
+    }
+
+    Injector.create(ModuleA).build();
+    expect(serviceA).toBeInstanceOf(SharedService);
+    expect(serviceA).toEqual(serviceB);
+    expect(serviceA === serviceC).toEqual(false);
+    expect(serviceC).toEqual('foobar');
   });
 
   test('should share this same record across modules (export provider to the parent injector)', function() {
