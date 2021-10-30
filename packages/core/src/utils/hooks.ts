@@ -80,7 +80,7 @@ export async function handleOnDestroy(instance: InstanceRecord) {
     } else {
       const factory = InjectorResolver.createFactory(hook.onDestroy, hook.inject);
       // TODO: Add needed instance, definition etc in the session 
-      const session = new Session(record, def, instance, undefined, { target: factory, kind: InjectionKind.STANDALONE }, undefined);
+      const session = new Session(record, def, instance, { token: record.token }, { target: factory, kind: InjectionKind.STANDALONE }, undefined);
       // add delegation
       session[DELEGATION.KEY] = {
         type: 'single',

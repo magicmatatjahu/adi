@@ -1,7 +1,8 @@
-import { Context } from "./injector";
+import { Context, Injector, Session } from "./injector";
 import { ConstraintDef } from "./interfaces";
 import { ANNOTATIONS } from "./constants";
 import { Token } from "./types";
+import { InjectionKind } from "./enums";
 
 export function named(named: Token): ConstraintDef {
   return (session) => session.options?.labels[ANNOTATIONS.NAMED] === named;
@@ -27,9 +28,11 @@ export function labelled(l: Record<string | symbol | number, any>): ConstraintDe
 export function visible(type: 'public' | 'protected' | 'private'): ConstraintDef {
   return (session) => {
     switch (type) {
-      case 'private': return session.host === session.injector;
+      case 'private': {
+        return session.getHost() === session.injector
+      };
       case 'protected': {
-        const host = session.host;
+        const host = session.getHost();
         if (host === session.injector) return true;
         if (host.imports.has(session.injector.metatype as any)) return true;
         return false;

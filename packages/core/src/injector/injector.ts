@@ -204,17 +204,17 @@ export class Injector {
    * PROVIDERS
    */
   get<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): T | undefined {
-    return this.resolveToken(wrapper, session || Session.create(token));
+    return this.resolveToken(wrapper, session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE }));
   }
 
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): Promise<T | undefined> {
-    session = session || Session.create(token);
+    session = session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE });
     session.status |= SessionStatus.ASYNC;
-    return this.resolveToken(wrapper, session || Session.create(token));
+    return this.resolveToken(wrapper, session);
   }
 
   resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
-    session.injector = session.host = this;
+    session.injector = this;
     if (session.status & SessionStatus.ASYNC) {
       if (wrapper) {
         wrapper = Array.isArray(wrapper) ? [AsyncDone(), ...wrapper] : [AsyncDone(), wrapper];

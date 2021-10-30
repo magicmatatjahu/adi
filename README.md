@@ -2,15 +2,11 @@
 
 - Handle onInit in async mode
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
-- Think about creating modules from exports which is not imported, so they are not created before exporting
+- Think about creating modules from exports which is not imported, so they are not created before exporting - problem is with proxy modules, in other words how to check on graph resolution that given export must be created as new injector, not export providers from it - maybe by new field `create` or by changing shape of exported module in `exports` array?
 
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
 - Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory
-- Create placeholder parent session in `injector.get` function
-
-React:
-- Fix problem with ProtoInjector - when ProtInjector is created, before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating
 
 ## IMPLEMENTED
 
@@ -26,13 +22,12 @@ React:
 - Override injectable options in the `useClass` provider case - scope is overrided if can be and annotations are merged
 - Handle useWrappers (on Decorate example) in the definition (currently they are evaluated each time for instance, even for singleton). For appropriate instance it should evaluates only one time - handled by DECORATOR_ID value.
 - Add wrappers for components // ADI treats components as provdiers to it works
-- Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
-- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors? - treat imported records as collection of imported records
 - Change the logic of the Value wrapper to similar as Skip 
 - Introduce wrappers for modules
 - Check deep extends
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook` - it can be handled by Lazy wrapper - check the test for Lazy wrapper
 - Check how to call onDestroy on circular injections (in which order)
+- Create placeholder parent session in `injector.get` function
 
 ## IMPLEMENTED PARTIALLY BUT IT WORKS
 
@@ -56,6 +51,8 @@ React:
 - Destroy instances with Factory wrapper and other, similar wrappers - on every call factory can create new instance and ADI should destroy it in some way - hard to implement, but here can be used Destroyable wrapper
 - Host and visibility in the old Angular2+ Injector - https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#host--visibility // implemented by `.visibility` constraint  
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules // problem is only with async imports in sync resolution. Also it should be improved by ProtoInjector to not create graph each time when instance is created
+- Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
+- Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors? - treat imported records as collection of imported records
 
 ## NICE TO HAVE BUT NOT NEEDED
 
@@ -87,3 +84,6 @@ React:
   ```ts
   ADI.use({plugin}, {options})
   ```
+
+React:
+- Fix problem with ProtoInjector - when ProtInjector is created, before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating

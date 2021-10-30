@@ -15,11 +15,11 @@ export enum ScopeFlags {
 }
 
 export enum InjectionKind {
-  STANDALONE = 0,
-  PARAMETER = 1,
-  PROPERTY = 2,
-  METHOD = 4,
-  FUNCTION = 8,
+  STANDALONE = 1,
+  PARAMETER = 2,
+  PROPERTY = 4,
+  METHOD = 8,
+  FUNCTION = 16,
   // TODO: Add FACTORY and destroy transient instances in FUNCTION/CUSTOM kind
 }
 

@@ -7,7 +7,7 @@ import { Injector } from "./injector";
 import { Scope } from "../scope";
 import { Token } from "../types";
 import { ProviderRecord } from "./provider";
-import { SessionStatus } from "../enums";
+import { InjectionKind, SessionStatus } from "../enums";
 
 function createOptions(token: Token): InjectionOptions {
   return {
@@ -29,7 +29,6 @@ export class Session<T = any> {
   }
 
   public status: SessionStatus = SessionStatus.NONE;
-  public host: Injector;
   public injector: Injector;
 
   constructor(
@@ -98,6 +97,16 @@ export class Session<T = any> {
     } else {
       this.status &= ~SessionStatus.ASYNC;
     }
+  }
+
+  getHost(): Injector {
+    if (this.parent) {
+      return this.parent.record.host;
+    }
+    if (this.metadata.kind & InjectionKind.STANDALONE) {
+      return this.metadata.target as Injector;
+    }
+    return;
   }
 
   fork(): Session {
