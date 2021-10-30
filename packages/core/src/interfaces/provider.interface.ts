@@ -1,8 +1,7 @@
 import { Scope } from "../scope";
 import { Token } from "../types";
-import { ConstraintDef, Type } from ".";
+import { ConstraintDef, Type, InjectionItem, ModuleMetadata, PlainInjections } from ".";
 import { Wrapper } from "../utils/wrappers";
-import { InjectionItem, PlainInjections } from "./definition.interface";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -32,6 +31,8 @@ export interface ClassProvider<T = any> {
   useWrapper?: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
+  imports?: ModuleMetadata['imports'];
+  providers?: ModuleMetadata['providers'];
 }
 
 export interface FactoryProvider<T = any> {
@@ -42,6 +43,8 @@ export interface FactoryProvider<T = any> {
   useWrapper?: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
   annotations?: Record<string | symbol, any>;
+  imports?: ModuleMetadata['imports'];
+  providers?: ModuleMetadata['providers'];
 }
 
 export interface ExistingProvider<T = any> {

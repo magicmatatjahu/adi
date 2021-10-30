@@ -1,6 +1,6 @@
-import { getProviderDef, getModuleDef } from "../decorators";
+import { getModuleDef } from "../decorators";
 import { 
-  DefinitionRecord, InstanceRecord,
+  DefinitionRecord,
   Provider, Type,
   InjectorOptions, InjectorScopeType, PlainProvider,
   ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem, WrapperRecord
@@ -182,7 +182,7 @@ export class Injector {
     }
   }
 
-  private loadOptions(): InjectorOptions {    
+  private loadOptions(): InjectorOptions {
     if (this.records.has(INJECTOR_OPTIONS) === true) {
       const providerOptions = this.get(INJECTOR_OPTIONS) || EMPTY_OBJECT as InjectorOptions;
       const previousDisablingExports = this.options.disableExporting;

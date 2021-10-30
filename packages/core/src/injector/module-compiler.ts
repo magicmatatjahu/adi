@@ -9,12 +9,10 @@ import {
   Provider,
   ExportItem,
   ImportItem,
-  ExportedModule,
 } from "../interfaces"
 import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { InjectorStatus } from "../enums";
-import { getModuleDef } from "../decorators";
 
 export class ModuleCompiler {
   private asyncInitOptions = { asyncMode: true };
@@ -65,7 +63,8 @@ export class ModuleCompiler {
     await this.initModulesAsync(stack);
   }
 
-  public process({ moduleDef, dynamicDef, injector, exportTo, isProxy }: CompiledModule, stack: Array<Injector>) {
+  public process(compiledModule: CompiledModule, stack: Array<Injector>) {
+    const { moduleDef, dynamicDef, injector, isProxy } = compiledModule;
     // for proxy performs only acitions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
     const compiledModules: Array<CompiledModule> = [];
 
@@ -74,12 +73,12 @@ export class ModuleCompiler {
     if (isProxy === false) {
       imports = moduleDef.imports || EMPTY_ARRAY;
       for (let i = 0, l = imports.length; i < l; i++) {
-        this.processImport(imports[i], compiledModules, injector, isProxy, stack);
+        this.processImport(imports[i], compiledModules, injector, stack);
       }
     }
     imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
     for (let i = 0, l = imports.length; i < l; i++) {
-      this.processImport(imports[i], compiledModules, injector, isProxy, stack);
+      this.processImport(imports[i], compiledModules, injector, stack);
     }
 
     // first process all imports and go more depper in modules graph
@@ -87,19 +86,11 @@ export class ModuleCompiler {
       this.process(compiledModules[i], stack);
     }
 
-    if (isProxy === false) {
-      injector.addProviders(moduleDef.providers);
-      injector.addComponents(moduleDef.components);
-      injector.exportsProviders(moduleDef.exports, exportTo);
-    }
-    if (dynamicDef !== undefined) {
-      injector.addProviders(dynamicDef.providers);
-      injector.addComponents(dynamicDef.components);
-      injector.exportsProviders(dynamicDef.exports, exportTo);
-    }
+    this.processMetadata(compiledModule);
   }
 
-  public async processAsync({ moduleDef, dynamicDef, injector, exportTo, isProxy }: CompiledModule, stack: Array<Injector>) {
+  public async processAsync(compiledModule: CompiledModule, stack: Array<Injector>) {
+    const { moduleDef, dynamicDef, injector, isProxy } = compiledModule;
     // for proxy performs only actions on dynamicDef. Performing action when is facade on moduleDef might end up overwriting some providers
     const compiledModules: Array<CompiledModule> = [];
 
@@ -108,12 +99,12 @@ export class ModuleCompiler {
     if (isProxy === false) {
       imports = moduleDef.imports || EMPTY_ARRAY;
       for (let i = 0, l = imports.length; i < l; i++) {
-        await this.processImportAsync(imports[i], compiledModules, injector, isProxy, stack);
+        await this.processImport(imports[i], compiledModules, injector, stack);
       }
     }
     imports = (dynamicDef && dynamicDef.imports) || EMPTY_ARRAY;
     for (let i = 0, l = imports.length; i < l; i++) {
-      await this.processImportAsync(imports[i], compiledModules, injector, isProxy, stack);
+      await this.processImport(imports[i], compiledModules, injector, stack);
     }
 
     // first process all imports and then go more depper in modules graph
@@ -121,57 +112,19 @@ export class ModuleCompiler {
       await this.processAsync(compiledModules[i], stack);
     }
 
-    if (isProxy === false) {
-      injector.addProviders(moduleDef.providers);
-      injector.addComponents(moduleDef.components);
-      injector.exportsProviders(moduleDef.exports, exportTo);
-    }
-    if (dynamicDef !== undefined) {
-      injector.addProviders(dynamicDef.providers);
-      injector.addComponents(dynamicDef.components);
-      injector.exportsProviders(dynamicDef.exports, exportTo);
-    }
+    this.processMetadata(compiledModule);
   }
 
   private processImport<T = any>(
     _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
     compiledModules: Array<CompiledModule>,
     parentInjector: Injector,
-    isProxy: boolean,
     stack: Array<Injector>,
   ) {
-    const compiledModule = this.compileMetadata(_import) as CompiledModule;
-    if (!compiledModule) return;
-
-    this.processImportItem(compiledModule as CompiledModule, compiledModules, parentInjector, stack);
-
-    // let exports: ExportItem[];
-    // if (isProxy === false) {
-    //   exports = compiledModule.moduleDef.exports || EMPTY_ARRAY;
-    //   for (let i = 0, l = exports.length; i < l; i++) {
-    //     const exp = exports[i];
-        
-    //     const moduleDef = getModuleDef((exp as ExportedModule).module || exp);
-    //     if (moduleDef == undefined) continue;
-  
-    //     if (typeof exp === "function") { // export can be module definition
-    //       const moduleDef = getModuleDef(exp);
-    //       if (moduleDef === undefined) return;
-    //     }
-    //   }
-    // }
-  }
-
-  private async processImportAsync<T = any>(
-    _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
-    compiledModules: Array<CompiledModule>,
-    parentInjector: Injector,
-    isProxy: boolean,
-    stack: Array<Injector>,
-  ) {
-    const compiledModule = await this.compileMetadata(_import);
-    if (!compiledModule) return;
-    this.processImportItem(compiledModule, compiledModules, parentInjector, stack);
+    return thenable(
+      () => this.compileMetadata(_import),
+      processedModule => this.processImportItem(processedModule, compiledModules, parentInjector, stack),
+    );
   }
 
   private processImportItem(
@@ -180,6 +133,8 @@ export class ModuleCompiler {
     parentInjector: Injector,
     stack: Array<Injector>,
   ) {
+    if (!processedModule) return;
+
     const { type, dynamicDef } = processedModule;
     const id = (dynamicDef && dynamicDef.id) || 'static';
     
@@ -206,10 +161,25 @@ export class ModuleCompiler {
       parentInjector.imports.set(type, modules);
     }
     modules.set(id, injector);
+    return processedModule;
+  }
+
+  private processMetadata({ injector, isProxy, moduleDef, dynamicDef, exportTo }: CompiledModule) {
+    if (isProxy === false) {
+      injector.addProviders(moduleDef.providers);
+      injector.addComponents(moduleDef.components);
+      injector.exportsProviders(moduleDef.exports, exportTo);
+    }
+    if (dynamicDef !== undefined) {
+      injector.addProviders(dynamicDef.providers);
+      injector.addComponents(dynamicDef.components);
+      injector.exportsProviders(dynamicDef.exports, exportTo);
+    }
   }
 
   private compileMetadata<T>(
-    metatype: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>
+    metatype: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+    strict: boolean = true,
   ): CompiledModule | Promise<CompiledModule> {
     metatype = resolveRef(metatype);
     if (!metatype) {
@@ -218,11 +188,14 @@ export class ModuleCompiler {
 
     return thenable<any>(
       () => metatype,
-      this.extractMetadata,
+      m => this.extractMetadata(m, strict),
     );
   }
 
-  private extractMetadata<T>(metatype?: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T>): CompiledModule {
+  private extractMetadata<T>(
+    metatype?: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T>,
+    strict?: boolean,
+  ): CompiledModule {
     if (!metatype) {
       return;
     }
@@ -242,7 +215,10 @@ export class ModuleCompiler {
     }
 
     if (moduleDef === undefined && dynamicDef === undefined) {
-      throw new Error(`Given value/type ${metatype} cannot be used as ADI Module`);
+      if (strict === true) {
+        throw new Error(`Given value/type ${metatype} cannot be used as ADI Module`);
+      }
+      return;
     }
 
     // EMPTY_OBJECT is for case when someone pass the object as module

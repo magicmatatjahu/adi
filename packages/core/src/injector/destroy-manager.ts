@@ -13,14 +13,14 @@ export const DestroyManager = new class {
     const scope = instance.scope;
     const shouldDestroy =
       scope.kind.canDestroy(event, instance, scope.options) ||
-      this.shouldForceDestroy(instance);
+      shouldForceDestroy(instance);
 
     if (!shouldDestroy) return;
 
     handleOnDestroy(instance);
     instance.status |= InstanceStatus.DESTROYED;
     instance.def.values.delete(instance.ctx);
-    this.removeInstanceRefs(instance);
+    removeInstanceRefs(instance);
     await this.destroyAll(event, instance.children && Array.from(instance.children));
   }
 
@@ -44,28 +44,28 @@ export const DestroyManager = new class {
       }
     }
   }
+}
 
-  removeInstanceRefs(instance: InstanceRecord) {
-    // from parents
-    const parents = instance.parents;
-    parents && parents.forEach(parent => {
-      parent.children?.delete(instance);
-    });
+function removeInstanceRefs(instance: InstanceRecord) {
+  // from parents
+  const parents = instance.parents;
+  parents && parents.forEach(parent => {
+    parent.children?.delete(instance);
+  });
 
-    // from children
-    const children = instance.children;
-    children && children.forEach(child => {
-      child.parents?.delete(instance);
-    });
-  }
+  // from children
+  const children = instance.children;
+  children && children.forEach(child => {
+    child.parents?.delete(instance);
+  });
+}
 
-  shouldForceDestroy(instance: InstanceRecord) {
-    const { status, parents } = instance;
-    return (
-      // Host (Injector) destroyed case
-      ((status & InstanceStatus.HOST_DESTROYED) && (parents === undefined || parents.size === 0)) ||
-      // Circular injection case
-      ((status & InstanceStatus.CIRCULAR) && (parents && parents.size === 1))
-    );
-  }
+function   shouldForceDestroy(instance: InstanceRecord) {
+  const { status, parents } = instance;
+  return (
+    // Host (Injector) destroyed case
+    ((status & InstanceStatus.HOST_DESTROYED) && (parents === undefined || parents.size === 0)) ||
+    // Circular injection case
+    ((status & InstanceStatus.CIRCULAR) && (parents && parents.size === 1))
+  );
 }

@@ -15,7 +15,7 @@ export function Injectable<S>(options?: InjectableOptions<S>) {
 }
 
 export function injectableMixin<T, S>(target: Type<T>, options?: InjectableOptions<S>): Type<T> {
-  typeof target === 'function' && applyProviderDef(target, options);
+  applyProviderDef(target, options);
   return target;
 }
 
@@ -26,7 +26,9 @@ export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined
   return undefined;
 }
 
-export function applyProviderDef<T, S>(target: Object, options?: InjectableOptions<S>): ProviderDef<T> {
+export function applyProviderDef<T, S>(target: Object, options?: InjectableOptions<S>): ProviderDef<T> | undefined {
+  if (typeof target !== 'function') return;
+
   const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target) || EMPTY_ARRAY;
   const def = ensureProviderDef(target);
   def.options = Object.assign(def.options, options);
@@ -43,7 +45,7 @@ export function applyProviderDef<T, S>(target: Object, options?: InjectableOptio
 
   // create factory
   def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def.injections);
-  return def as ProviderDef<T>;
+  return def as unknown as ProviderDef<T>;
 }
 
 function ensureProviderDef<T>(provider: T): ProviderDef<T> {

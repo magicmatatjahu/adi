@@ -11,18 +11,20 @@ export function Module(metadata?: ModuleMetadata) {
 }
 
 export function moduleMixin<T>(target: Type<T>, metadata?: ModuleMetadata): Type<T> {
-  typeof target === 'function' && Module(metadata)(target);
+  applyModuleDef(target, metadata);
+  applyProviderDef(target, { scope: Scope.SINGLETON });
   return target;
 }
 
-export function getModuleDef(injector: unknown): ModuleDef | undefined {
-  if (injector.hasOwnProperty(PRIVATE_METADATA.MODULE) === true) {
-    return injector[PRIVATE_METADATA.MODULE];
+export function getModuleDef(target: unknown): ModuleDef | undefined {
+  if (target.hasOwnProperty(PRIVATE_METADATA.MODULE)) {
+    return target[PRIVATE_METADATA.MODULE];
   }
-  return undefined;
+  return;
 }
 
-export function applyModuleDef(target: Object, moduleMetadata: ModuleMetadata = {}): ModuleDef {
+export function applyModuleDef(target: Object, moduleMetadata: ModuleMetadata = {}): ModuleDef | undefined {
+  if (typeof target !== 'function') return;
   if (!target.hasOwnProperty(PRIVATE_METADATA.MODULE)) {
     const metadata = { ...moduleMetadata };
 
