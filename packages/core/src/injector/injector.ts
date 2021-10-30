@@ -52,7 +52,7 @@ export class Injector {
   // records from imported modules
   importedRecords = new Map<Token, Array<ProviderRecord>>();
   // scopes of injector
-  scopes: Array<InjectorScopeType> = ['any', this.metatype as any];
+  scopes: Array<InjectorScopeType>;
   // id of injector/module
   id: ModuleID = 'static';
   // status of injector
@@ -63,6 +63,8 @@ export class Injector {
     readonly parent: Injector = NilInjector,
     public options: InjectorOptions = {},
   ) {
+    this.scopes = ['any', this.metatype as any];
+    
     if (options !== undefined) {
       this.addProviders(options.setupProviders);
       this.loadOptions();
@@ -145,7 +147,7 @@ export class Injector {
 
     // first destroy and clear own components
     try {
-      await DestroyManager.destroyRecords(Array.from(this.components.values()), this);
+      await DestroyManager.destroyRecords(Array.from(this.components.values()));
     } finally {
       this.components.clear();
     }
@@ -165,7 +167,7 @@ export class Injector {
 
     // destroy and clear own records
     try {
-      await DestroyManager.destroyRecords(Array.from(this.records.values()), this);
+      await DestroyManager.destroyRecords(Array.from(this.records.values()));
     } finally {
       this.records.clear();
     }

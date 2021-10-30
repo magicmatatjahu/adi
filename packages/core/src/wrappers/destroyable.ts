@@ -9,7 +9,7 @@ function createDestroyable<T>(instance: InstanceRecord<T>): DestroyableType<T> |
   }
   return {
     value: instance.value,
-    destroy: () => DestroyManager.destroy('manually', instance, instance.def.record.host),
+    destroy: () => DestroyManager.destroy('manually', instance),
   }
 }
 

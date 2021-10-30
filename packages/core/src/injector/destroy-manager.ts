@@ -5,7 +5,7 @@ import { handleOnDestroy } from "../utils";
 import { InstanceStatus } from "../enums";
 
 export const DestroyManager = new class {
-  async destroy(event: DestroyEvent, instance: InstanceRecord, injector: Injector) {
+  async destroy(event: DestroyEvent, instance: InstanceRecord) {
     if (!instance || instance.status & InstanceStatus.DESTROYED) {
       return;
     }
@@ -21,16 +21,16 @@ export const DestroyManager = new class {
     instance.status |= InstanceStatus.DESTROYED;
     instance.def.values.delete(instance.ctx);
     this.removeInstanceRefs(instance);
-    await this.destroyAll(event, instance.children && Array.from(instance.children), injector);
+    await this.destroyAll(event, instance.children && Array.from(instance.children));
   }
 
-  async destroyAll(event: DestroyEvent, instances: InstanceRecord[] = [], injector: Injector) {
+  async destroyAll(event: DestroyEvent, instances: InstanceRecord[] = []) {
     for (let i = 0, l = instances.length; i < l; i++) {
-      await this.destroy(event, instances[i], injector);
+      await this.destroy(event, instances[i]);
     }
   }
 
-  async destroyRecords(records: ProviderRecord[], injector: Injector) {
+  async destroyRecords(records: ProviderRecord[]) {
     // for destroying the module as last
     for (let i = records.length - 1; i > -1; i--) {
       const record = records[i]
@@ -39,7 +39,7 @@ export const DestroyManager = new class {
         const instances = Array.from(definition.values.values());
         for (let instance of instances) {
           instance.status |= InstanceStatus.HOST_DESTROYED;
-          await this.destroy('injector', instance, injector);
+          await this.destroy('injector', instance);
         }
       }
     }

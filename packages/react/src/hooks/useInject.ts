@@ -13,10 +13,12 @@ export function useInject<T>(token: Token<T>, ...wrappers: Wrapper[]): T {
 
   useEffect(() => {
     return () => {
-      // change injector argument to undefined
-      DestroyManager.destroy('default', instanceRef.current, injector);
-      instanceRef.current = null;
-      valueRef.current = null;
+      setTimeout(() => {
+        // add to the end of event loop
+        DestroyManager.destroy('default', instanceRef.current);
+        instanceRef.current = null;
+        valueRef.current = null;
+      }, 0);
     };
   }, []);
 

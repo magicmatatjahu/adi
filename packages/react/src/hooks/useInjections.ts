@@ -20,10 +20,12 @@ export function useInjections(...injections: Array<InjectionItem>): any[] {
 
   useEffect(() => {
     return () => {
-      // change injector argument to undefined
-      DestroyManager.destroyAll('default', instancesRef.current, injector);
-      instancesRef.current = null;
-      valuesRef.current = null;
+      setTimeout(() => {
+        // add to the end of event loop
+        DestroyManager.destroyAll('default', instancesRef.current);
+        instancesRef.current = null;
+        valuesRef.current = null;
+      }, 0);
     };
   }, []);
 

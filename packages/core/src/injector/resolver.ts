@@ -61,9 +61,9 @@ export const InjectorResolver = new class {
     return Promise.all(args) as unknown as Promise<void>;
   }
 
-  injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): { value: T | undefined | Promise<T | undefined>, session: Session } {
+  injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): [T | undefined | Promise<T | undefined>, Session] {
     const newSession = Session.create(token, meta, parentSession);
-    return { value: injector.resolveToken(wrapper, newSession), session: newSession };
+    return [injector.resolveToken(wrapper, newSession), newSession];
   }
 
   injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, parentSession: Session): void {
@@ -71,35 +71,31 @@ export const InjectorResolver = new class {
     for (const name in methods) {
       const methodDeps = methods[name];
       const originalMethod = instance[name];
-      const cachedDeps: Array<{ value: any }> = [];
+      const cachedDeps: any[] = [];
 
       instance[name] = (...args: any) => {
         let methodProp: InjectionArgument = undefined;
         let toRemove: InstanceRecord[];
 
         for (let i = 0, l = methodDeps.length; i < l; i++) {
+          args[i] = args[i] || cachedDeps[i];
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            if (cachedDeps[i] !== undefined) {
-              args[i] = cachedDeps[i].value;
+            const [v, s] = this.injectMethodArgument(injector, methodProp.token, methodProp.wrapper, methodProp.metadata, parentSession);
+            args[i] = v;
+            
+            // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
+            if (s.status & SessionStatus.SIDE_EFFECTS) {
+              (toRemove || (toRemove = [])).push(s.instance);
             } else {
-              const injected = this.injectMethodArgument(injector, methodProp.token, methodProp.wrapper, methodProp.metadata, parentSession);
-              args[i] = injected.value;
-              // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
-              if (injected.session.status & SessionStatus.SIDE_EFFECTS) {
-                (toRemove || (toRemove = [])).push(injected.session.instance);
-              } else {
-                // cache also falsy values 
-                cachedDeps[i] = { value: injected.value };
-              }
+              cachedDeps[i] = v;
             }
           }
         }
-
-        const result = isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args);
+        
         return thenable(
-          () => result,
+          () => isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args),
           value => {
-            DestroyManager.destroyAll('default', toRemove, injector);
+            DestroyManager.destroyAll('default', toRemove);
             return value;
           }
         );

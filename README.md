@@ -6,7 +6,8 @@
 
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
-- Think how to ensure the session for onDestroy hooks
+- Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory
+- Create placeholder parent session in `injector.get` function
 
 React:
 - Fix problem with ProtoInjector - when ProtInjector is created, before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating

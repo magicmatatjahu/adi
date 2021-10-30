@@ -18,11 +18,14 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
     const valuesRef = useRef<Record<string | symbol, any>>(null);
   
     useEffect(() => {
+      
       return () => {
-        // change injector argument to undefined
-        DestroyManager.destroyAll('default', instancesRef.current, injector);
-        instancesRef.current = null;
-        valuesRef.current = null;
+        setTimeout(() => {
+          // add to the end of event loop
+          DestroyManager.destroyAll('default', instancesRef.current);
+          instancesRef.current = null;
+          valuesRef.current = null;
+        }, 0);
       };
     }, []);
 
