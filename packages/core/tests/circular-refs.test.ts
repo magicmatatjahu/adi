@@ -347,6 +347,6 @@ describe('Circular refs', function() {
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
     expect(service === service.serviceB.serviceA).toEqual(true);
-    expect(onInitOrder).toEqual(['ServiceB', 'ServiceB useWrapper', 'ServiceA', 'ServiceA useWrapper']);
+    expect(onInitOrder).toEqual(['ServiceB', 'ServiceA', 'ServiceB useWrapper', 'ServiceA useWrapper']);
   });
 });

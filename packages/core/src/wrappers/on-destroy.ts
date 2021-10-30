@@ -1,6 +1,8 @@
 import { SessionStatus } from "../enums";
-import { StandaloneOnDestroy } from "../interfaces";
+import { InjectorResolver } from "../injector";
+import { FactoryDef, StandaloneOnDestroy } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
+import { Delegate } from "./delegate";
 
 export const OnDestroyHook = createWrapper((hook: StandaloneOnDestroy) => {
   return (session, next) => {
@@ -13,7 +15,15 @@ export const OnDestroyHook = createWrapper((hook: StandaloneOnDestroy) => {
       value => {
         const instance = session.instance as any;
         const hooks = (instance.destroyHooks || (instance.destroyHooks = []));
-        hooks.push(hook);
+
+        let factory: FactoryDef;
+        if (typeof hook === 'function') {
+          factory = InjectorResolver.createFactory(hook, [Delegate()]);
+        } else {
+          factory = InjectorResolver.createFactory(hook.onDestroy, hook.inject);
+        }
+        hooks.push(factory);
+
         return value;
       }
     );
