@@ -61,29 +61,32 @@ export function handleOnInit(instance: InstanceRecord, session: Session) {
   }
 }
 
-export function handleOnDestroy(instance: InstanceRecord) {  
+export async function handleOnDestroy(instance: InstanceRecord) {  
   const value = instance.value;
-  hasOnDestroyHook(value) && value.onDestroy();
+  hasOnDestroyHook(value) && await value.onDestroy();
 
   const onDestroyHooks = ((instance as any).destroyHooks || EMPTY_ARRAY) as StandaloneOnDestroy[];
   if (onDestroyHooks.length === 0) return;
 
-  const injector = instance.def.record.host;
+  const def = instance.def;
+  const record = def.record;
+  const injector = record.host;
+
   // run from last to first - in the reverse order of when they were added
   for (let i = 0, l = onDestroyHooks.length; i < l; i++) {
     const hook = onDestroyHooks[i];
     if (typeof hook === 'function') {
-      hook(value);
+      await hook(value);
     } else {
       const factory = InjectorResolver.createFactory(hook.onDestroy, hook.inject);
       // TODO: Add needed instance, definition etc in the session 
-      const session = new Session(undefined, undefined, undefined, undefined, { target: factory, kind: InjectionKind.STANDALONE }, undefined);
+      const session = new Session(record, def, instance, undefined, { target: factory, kind: InjectionKind.STANDALONE }, undefined);
       // add delegation
       session[DELEGATION.KEY] = {
         type: 'single',
         values: value,
       };
-      factory(injector, session);
+      await factory(injector, session);
     }
   }
   delete (instance as any).destroyHooks;

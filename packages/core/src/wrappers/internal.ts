@@ -1,7 +1,9 @@
 import { SessionStatus } from "../enums";
+import { Injector, Session } from "../injector";
 import { Token } from "../types";
 import { thenable } from "../utils";
 import { createWrapper } from "../utils/wrappers";
+import { OnDestroyHook } from "./on-destroy";
 
 export const AsyncDone = createWrapper(() => {
   return (session, next) => {
@@ -27,10 +29,11 @@ export const UseExisting = createWrapper((token: Token) => {
   }
 });
 
-export const Internal = createWrapper((inject: 'session' | 'record' | 'definition' | 'instance') => {
+export const Internal = createWrapper((inject: 'session' | 'record' | 'definition' | 'instance', skipResolution: boolean = false) => {
   switch (inject) {
     case 'session': {
       return (session, next) => {
+        if (skipResolution) return session;
         return thenable(
           () => next(session),
           value => [value, session],
@@ -39,6 +42,7 @@ export const Internal = createWrapper((inject: 'session' | 'record' | 'definitio
     };
     case 'instance': {
       return (session, next) => {
+        if (session.instance) return session.instance;
         return thenable(
           () => next(session),
           value => [value, session.instance],
@@ -68,4 +72,16 @@ export const Internal = createWrapper((inject: 'session' | 'record' | 'definitio
       }
     };
   }
+});
+
+export const DestroyInjector = OnDestroyHook({
+  onDestroy(session: Session) {
+    const instance = session.parent && session.parent.instance;
+    if (!instance) return;
+    const injector = (instance as any).injector as Injector;
+    if (!injector) return;
+    delete (instance as any).injector;
+    return injector.destroy();
+  },
+  inject: [Internal('session', true)],
 });

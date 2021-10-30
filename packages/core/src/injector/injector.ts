@@ -134,10 +134,14 @@ export class Injector {
     const asyncMode = options?.asyncMode;
     return thenable(
       // run MODULE_INITIALIZERS
-      () => asyncMode ? this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf) : this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf),
       () => {
-        return asyncMode ? this.getComponentAsync(MODULE_REF) : this.getComponent(MODULE_REF);
-      }
+        if (asyncMode) return this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
+        return this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
+      },
+      () => {
+        if (asyncMode) return this.getComponentAsync(MODULE_REF)
+        return this.getComponent(MODULE_REF);
+      },
     );
   }
 

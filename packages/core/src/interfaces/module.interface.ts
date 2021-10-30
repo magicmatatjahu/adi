@@ -21,6 +21,7 @@ export type ImportItem =
   | Type
   | DynamicModule
   | Promise<DynamicModule>
+  | Promise<Type | DynamicModule>
   | ForwardRef;
 
 export type ExportItem = 

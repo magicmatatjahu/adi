@@ -17,7 +17,7 @@ export const DestroyManager = new class {
 
     if (!shouldDestroy) return;
 
-    handleOnDestroy(instance);
+    await handleOnDestroy(instance);
     instance.status |= InstanceStatus.DESTROYED;
     instance.def.values.delete(instance.ctx);
     removeInstanceRefs(instance);

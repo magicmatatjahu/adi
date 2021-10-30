@@ -1,6 +1,7 @@
-import { WRAPPER_DEF } from "../constants";
 import { NextWrapper, WrapperDef } from "../interfaces";
 import { ProviderRecord, Session } from "../injector";
+
+export const WRAPPER_DEF = {};
 
 export interface Wrapper {
   func: WrapperDef;
@@ -14,6 +15,13 @@ export function createWrapper<F extends (...args: any) => WrapperDef>(useWrapper
       $$wr: WRAPPER_DEF,
     };
   }
+}
+
+export function isWrapper(wrapper: unknown): wrapper is Wrapper | Array<Wrapper> {
+  return wrapper && (
+    (wrapper as Wrapper).$$wr === WRAPPER_DEF || 
+    Array.isArray(wrapper)
+  );
 }
 
 export function runWrappers(wrappers: Array<Wrapper> | Wrapper, session: Session, last: NextWrapper) {
@@ -38,4 +46,13 @@ export function runRecordsWrappers(wrappers: Array<{ record: ProviderRecord, wra
     return item.wrapper.func(session, next);
   }
   return nextWrapper(0)(session);
+}
+
+export function pushWrapper(wrapper: Wrapper | Array<Wrapper> | undefined, newWrapper: Wrapper) {
+  if (wrapper) {
+    if (Array.isArray(wrapper)) wrapper.push(newWrapper);
+    else wrapper = [wrapper, newWrapper];
+    return wrapper;
+  }
+  return newWrapper;
 }

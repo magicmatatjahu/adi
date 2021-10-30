@@ -116,7 +116,7 @@ export class ModuleCompiler {
   }
 
   private processImport<T = any>(
-    _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+    _import: Type<T> | ModuleMetadata | DynamicModule<T> | Promise<Type<T> | DynamicModule<T>> | ForwardRef<T>,
     compiledModules: Array<CompiledModule>,
     parentInjector: Injector,
     stack: Array<Injector>,
@@ -178,7 +178,7 @@ export class ModuleCompiler {
   }
 
   private compileMetadata<T>(
-    metatype: Type<T> | ModuleMetadata | Array<Provider> | DynamicModule<T> | Promise<DynamicModule> | ForwardRef<T>,
+    metatype: Type<T> | Array<Provider> | ModuleMetadata | DynamicModule<T> | Promise<Type<T> | DynamicModule<T>> | ForwardRef<T>,
     strict: boolean = true,
   ): CompiledModule | Promise<CompiledModule> {
     metatype = resolveRef(metatype);

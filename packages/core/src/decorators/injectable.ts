@@ -20,10 +20,10 @@ export function injectableMixin<T, S>(target: Type<T>, options?: InjectableOptio
 }
 
 export function getProviderDef<T>(provider: unknown): ProviderDef<T> | undefined {
-  if (provider.hasOwnProperty(PRIVATE_METADATA.PROVIDER) === true) {
+  if (provider && provider.hasOwnProperty(PRIVATE_METADATA.PROVIDER) === true) {
     return provider[PRIVATE_METADATA.PROVIDER];
   }
-  return undefined;
+  return;
 }
 
 export function applyProviderDef<T, S>(target: Object, options?: InjectableOptions<S>): ProviderDef<T> | undefined {

@@ -3,7 +3,7 @@ import { createInjectionArg, getModuleDef, getProviderDef, injectableMixin, modu
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata,
+  InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata, ClassProvider,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
@@ -13,8 +13,8 @@ import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
-import { Wrapper } from "../utils/wrappers";
-import { UseExisting } from "../wrappers/internal";
+import { pushWrapper, Wrapper } from "../utils/wrappers";
+import { DestroyInjector, UseExisting } from "../wrappers/internal";
 import { InjectionKind } from "../enums";
 
 export const InjectorMetadata = new class {
@@ -53,7 +53,16 @@ export const InjectorMetadata = new class {
     }
 
     const record = this.getRecord(provider, host, isComponent);
-    record.addDefinition(provDef.factory, this.getScopeShape(options.scope), undefined, options.useWrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+
+    let factory = provDef.factory;
+    let wrapper = options.useWrapper;
+    const { imports, providers } = options as ClassProvider;
+    if (imports || providers) {
+      factory = InjectorResolver.createInjectorFactory(factory, { imports, providers });
+      wrapper = pushWrapper(wrapper, DestroyInjector);
+    }
+
+    record.addDefinition(factory, this.getScopeShape(options.scope), undefined, wrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
     return record;
   }
 
@@ -76,34 +85,40 @@ export const InjectorMetadata = new class {
     }
 
     if (isFactoryProvider(provider)) {
-      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY);
+      const { useFactory, inject, imports, providers } = provider;
+      factory = InjectorResolver.createFactory(useFactory, inject || EMPTY_ARRAY);
+      if (imports || providers) {
+        factory = InjectorResolver.createInjectorFactory(factory, { imports, providers });
+        wrapper = pushWrapper(wrapper, DestroyInjector);
+      }
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
-      const aliasWrapper = UseExisting(provider.useExisting);
-      if (wrapper) {
-        if (Array.isArray(wrapper)) wrapper.push(aliasWrapper);
-        else wrapper = [wrapper, aliasWrapper]
-      } else {
-        wrapper = aliasWrapper;
-      }
+      wrapper = pushWrapper(wrapper, UseExisting(provider.useExisting))
       factory = () => {};
     } else if (isClassProvider(provider)) {
-      const classRef = provider.useClass;
-      const providerDef = this.getProviderDef(classRef, true);
-      proto = classRef;
+      const { useClass, inject, imports, providers } = provider;
 
-      const injections = this.combineDependencies(provider.inject, providerDef.injections, classRef);
-      factory = InjectorResolver.createProviderFactory(classRef, injections);
-      
-      const options = providerDef.options || EMPTY_OBJECT as InjectableOptions<any>;
-      // override scope if can be overrided
-      const targetScope = this.getScopeShape(options.scope);
-      if (targetScope && targetScope.kind.canBeOverrided() === false) {
-        scope = targetScope;
+      const providerDef = this.getProviderDef(useClass, true);
+      proto = useClass;
+
+      const injections = this.combineDependencies(inject, providerDef.injections, useClass);
+      factory = InjectorResolver.createProviderFactory(useClass, injections);
+      if (imports || providers) {
+        factory = InjectorResolver.createInjectorFactory(factory, { imports, providers });
+        wrapper = pushWrapper(wrapper, DestroyInjector);
       }
-      // override annotations
-      annotations = Object.assign(annotations === EMPTY_OBJECT ? {} : annotations, options.annotations);
+      
+      const options = providerDef.options;
+      if (options) {
+        // override scope if can be overrided
+        const targetScope = this.getScopeShape(options.scope);
+        if (targetScope && targetScope.kind.canBeOverrided() === false) {
+          scope = targetScope;
+        }
+        // override annotations
+        annotations = Object.assign(annotations === EMPTY_OBJECT ? {} : annotations, options.annotations);
+      }
     }
 
     // case with standalone `useWrapper`

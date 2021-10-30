@@ -1,4 +1,3 @@
-import { NULL_REF, WRAPPER_DEF } from "../constants";
 import { 
   ClassProvider,
   ExistingProvider,
@@ -8,11 +7,10 @@ import {
   // CustomProvider,
   OnInit,
   OnDestroy,
-  WrapperDef,
   DynamicModule,
   Type,
 } from "../interfaces";
-import { Wrapper } from "./wrappers";
+import { isWrapper } from "./wrappers";
 
 export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
   return typeof (provider as FactoryProvider).useFactory === "function";
@@ -33,13 +31,6 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 export function hasWrapperProvider(provider: unknown): provider is WrapperProvider {
   const wrapper = (provider as WrapperProvider).useWrapper;
   return isWrapper(wrapper);
-}
-
-export function isWrapper(wrapper: unknown): wrapper is Wrapper | Array<Wrapper> {
-  return wrapper && (
-    (wrapper as Wrapper).$$wr === WRAPPER_DEF || 
-    Array.isArray(wrapper)
-  );
 }
 
 export function isDynamicModule(module: Type | DynamicModule): module is DynamicModule {

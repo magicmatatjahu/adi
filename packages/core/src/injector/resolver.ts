@@ -1,6 +1,6 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem, ModuleMetadata } from "../interfaces";
 import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
 import { Wrapper, thenable } from "../utils";
 import { Token } from "../types";
@@ -106,7 +106,7 @@ export const InjectorResolver = new class {
   createProviderFactory<T>(
     provider: Type<T>, 
     injections: InjectionArguments,
-  ): FactoryDef<T> {    
+  ): FactoryDef<T> {
     return (injector: Injector, session: Session) => {
       const deps = InjectorMetadata.combineDependencies(session.options.injections, injections, provider);
       if (session.status & SessionStatus.ASYNC) {
@@ -142,6 +142,33 @@ export const InjectorResolver = new class {
       }
       return factory(...this.injectDeps(convertedDeps, injector, session));
     }
+  }
+
+  createInjectorFactory<T>(
+    factory: FactoryDef<T>,
+    metadata: ModuleMetadata,
+  ): FactoryDef<T> {
+    return (injector: Injector, session: Session) => {
+      return thenable(
+        () => this.createInjector(injector, session, metadata),
+        newInjector => {
+          (session.instance as any).injector = newInjector;
+          return factory(newInjector, session) as any;
+        },
+      ) as unknown as T;
+    }
+  }
+
+  createInjector(
+    injector: Injector,
+    session: Session,
+    metadata: ModuleMetadata,
+  ): Injector | Promise<Injector> {
+    injector = Injector.create(metadata, injector, { disableExporting: true });
+    if (session.status & SessionStatus.ASYNC) {
+      return injector.buildAsync();
+    }
+    return injector.build();
   }
 
   handleParallelInjection<T>(instance: InstanceRecord<T>, session: Session): T | Promise<T> {

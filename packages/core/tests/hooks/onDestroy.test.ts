@@ -246,7 +246,7 @@ describe('onDestroy', function() {
     })
     class TestService implements OnDestroy {
       onDestroy() {
-        order.push('class onDestroy');
+        order.push('TestService onDestroy');
       }
     }
 
@@ -255,8 +255,12 @@ describe('onDestroy', function() {
     })
     class Service {
       constructor(
-        @Inject(OnDestroyHook(hook('injection onDestroy'))) readonly testService1: TestService,
+        @Inject(OnDestroyHook(hook('TestService injection onDestroy'))) readonly testService1: TestService,
       ) {}
+
+      onDestroy() {
+        order.push('Service onDestroy');
+      }
     }
 
     const injector = new Injector([
@@ -269,10 +273,10 @@ describe('onDestroy', function() {
     expect(order).toEqual([]);
 
     await service.destroy();
-    expect(order).toEqual(['class onDestroy', 'injection onDestroy']);
+    expect(order).toEqual(['Service onDestroy', 'TestService onDestroy', 'TestService injection onDestroy']);
 
     await service.destroy();
-    expect(order).toEqual(['class onDestroy', 'injection onDestroy']);
+    expect(order).toEqual(['Service onDestroy', 'TestService onDestroy', 'TestService injection onDestroy']);
   });
 
   test('should works alongside with all injection possibilities', async function() {
