@@ -1,5 +1,6 @@
 import { SessionStatus } from "../enums";
 import { Injector, Session } from "../injector";
+import { ProxyObject, RequestShape } from "../scope/request";
 import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";
@@ -93,15 +94,25 @@ export const ProxyInstance = createWrapper(() => {
       value => {
         if (
           session.parent ||
-          session.definition.meta.proxyInstances === undefined
+          session.definition?.meta.proxyInstances === undefined
         ) {
           return value;
         }
 
-        const { obj, factory } = session.definition.meta.proxyInstances.request;
-        const created = factory();
+        const proxies = session.definition.meta.proxyInstances as Array<RequestShape>;
+        const services = [];
+        for (let i = 0, l = proxies.length; i < l; i++) {
+          const proxy = proxies[i];
+          services.push({
+            name: proxy.name,
+            def: proxy.def,
+            value: proxy.factory(),
+          });
+        }
         return new DeepProxy(value, ({ value: proxyValue, DEFAULT, PROXY }) => {
-          if (proxyValue === obj) return created;
+          if (proxyValue instanceof ProxyObject) {
+            return services.find(s => s.name === proxyValue.name && s.def === proxyValue.def).value;
+          }
           if (typeof proxyValue === 'object' && proxyValue !== null) {
             return PROXY;
           }

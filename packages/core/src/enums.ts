@@ -29,6 +29,7 @@ export enum SessionStatus {
   SIDE_EFFECTS = 2,
   DRY_RUN = 4,
   COMPONENT_RESOLUTION = 8,
+  PROXY_MODE = 16,
 }
 
 export enum InjectorStatus {

@@ -1,7 +1,21 @@
 import { Context, Session } from "../injector";
-import { ScopeFlags } from "../enums";
+import { ScopeFlags, SessionStatus } from "../enums";
 
 import { Scope } from "./index";
+import { DefinitionRecord } from "../interfaces";
+
+export interface RequestShape {
+  name: string;
+  def: DefinitionRecord;
+  factory: () => any;
+}
+
+export class ProxyObject {
+  constructor(
+    readonly name: string,
+    readonly def: DefinitionRecord,
+  ) {}
+}
 
 export interface RequestScopeOptions {
   reuseContext?: boolean;
@@ -11,7 +25,7 @@ const defaultOptions: RequestScopeOptions = {
   reuseContext: true,
 }
 
-const obj = { request: true };
+const requestContext = new Context();
 
 export class RequestScope extends Scope<RequestScopeOptions> {
   public readonly flags: ScopeFlags = ScopeFlags.CANNOT_OVERRIDE;
@@ -21,16 +35,23 @@ export class RequestScope extends Scope<RequestScopeOptions> {
   }
 
   public getContext(session: Session, options: RequestScopeOptions = defaultOptions): Context {
+    if (session.status & SessionStatus.PROXY_MODE) {
+      return new Context(session.shared.requestData);
+    }
+
     this.applyProxy(session);
     // return placeholder context
-    return new Context();
+    return requestContext;
   }
 
   public create(
     session: Session,
     options: RequestScopeOptions,
   ) {
-    return obj;
+    if (session.status & SessionStatus.PROXY_MODE) {
+      return super.create(session, options);
+    }
+    return new ProxyObject(this.name, session.definition);
   }
 
   public canDestroy(): boolean {
@@ -38,16 +59,27 @@ export class RequestScope extends Scope<RequestScopeOptions> {
     return true;
   };
 
+  // TODO: Optimize it and don't reassign proxies on Transient instances
   private applyProxy(session: Session) {
+    const requestShape: RequestShape = {
+      name: this.name,
+      def: session.definition,
+      factory: () => {
+        session.status |= SessionStatus.PROXY_MODE;
+        // TODO: Don't save instance to the values Map
+        return session.injector.resolveDefinition(session.definition, session); //session.definition.factory(session.injector, session)
+      },
+    };
+
     let parent = session.parent;
     while (parent) {
       const def = parent.definition;
       if (def) {
-        const proxies = def.meta.proxyInstances = def.meta.proxyInstances || {};
-        proxies.request = {
-          obj: obj,
-          factory: () => session.definition.factory(session.injector, session),
-        };
+        const proxies: Array<RequestShape> = def.meta.proxyInstances = def.meta.proxyInstances || [];
+        if (proxies.some(p => p.name === this.name && p.def === session.definition)) {
+          break;
+        }
+        proxies.push(requestShape);
       }
       parent = parent.parent;
     }

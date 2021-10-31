@@ -310,5 +310,74 @@ describe('Default scope', function () {
     const deepService = injector.get(DeepService);
     expect(deepService).toBeInstanceOf(DeepService);
     expect(deepService.requestService).toBeInstanceOf(RequestService);
+
+    expect(service.deepService === deepService).toEqual(false);
+    expect(service.deepService.requestService === deepService.requestService).toEqual(false);
+  });
+
+  test('should work with multiple requested providers', async function () {
+    @Injectable({
+      scope: Scope.REQUEST,
+    })
+    class RequestService1 {}
+
+    @Injectable({
+      scope: Scope.REQUEST,
+    })
+    class RequestService2 {}
+
+    @Injectable()
+    class DeepService {
+      public createdTimes: number = 0;
+
+      constructor(
+        readonly requestService1: RequestService1,
+      ) {
+        this.createdTimes++;
+      }
+    }
+
+    @Injectable()
+    class Service {
+      public createdTimes: number = 0;
+
+      constructor(
+        readonly deepService: DeepService,
+        readonly requestService1: RequestService1,
+        readonly requestService2: RequestService2,
+      ) {
+        this.createdTimes++;
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      DeepService,
+      RequestService1,
+      RequestService2,
+    ]);
+
+    let service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.deepService).toBeInstanceOf(DeepService);
+    expect(service.requestService1).toBeInstanceOf(RequestService1);
+    expect(service.requestService2).toBeInstanceOf(RequestService2);
+    expect(service.deepService.requestService1).toBeInstanceOf(RequestService1);
+    expect(service.requestService1 === service.deepService.requestService1).toEqual(true);
+    expect(service.createdTimes).toEqual(1);
+    expect(service.deepService.createdTimes).toEqual(1);
+
+    const oldService1 = service;
+    service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.requestService1).toBeInstanceOf(RequestService1);
+    expect(service.requestService2).toBeInstanceOf(RequestService2);
+    expect(service === oldService1).toEqual(false); // because they are proxies
+    expect(service.createdTimes).toEqual(1);
+    expect(service.deepService.createdTimes).toEqual(1);
+    expect(service.requestService1 === oldService1.requestService1).toEqual(false);
+    expect(service.requestService2 === oldService1.requestService2).toEqual(false);
+    expect(service.deepService.requestService1 === oldService1.deepService.requestService1).toEqual(false);
+    expect(service.requestService1 === service.deepService.requestService1).toEqual(true);
   });
 });
