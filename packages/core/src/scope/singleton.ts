@@ -24,21 +24,13 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
 
   public getContext(session: Session, options: SingletonScopeOptions = defaultOptions): Context {
     if (options.perInjector === true) {
-      const parent = session.parent;
-
-      // `injector.get()` case
-      if (parent === undefined) {
-        return STATIC_CONTEXT;
+      const hostInjector = session.getHost();
+      let ctx = this.contexts.get(hostInjector);
+      if (ctx === undefined) {
+        ctx = new Context(STATIC_CONTEXT.get());
+        this.contexts.set(hostInjector, ctx);
       }
-      else {
-        const parentInjector = parent.record.host;
-        let ctx = this.contexts.get(parentInjector);
-        if (ctx === undefined) {
-          ctx = new Context(STATIC_CONTEXT.get());
-          this.contexts.set(parentInjector, ctx);
-        }
-        return ctx;
-      }
+      return ctx;
     }
 
     const ctx = session.getContext();

@@ -60,7 +60,7 @@ function removeInstanceRefs(instance: InstanceRecord) {
   });
 }
 
-function   shouldForceDestroy(instance: InstanceRecord) {
+function shouldForceDestroy(instance: InstanceRecord) {
   const { status, parents } = instance;
   return (
     // Host (Injector) destroyed case

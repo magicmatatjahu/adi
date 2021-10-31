@@ -1,7 +1,7 @@
 import { SessionStatus } from "../enums";
 import { Injector, Session } from "../injector";
 import { Token } from "../types";
-import { thenable } from "../utils";
+import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";
 import { OnDestroyHook } from "./on-destroy";
 
@@ -18,7 +18,7 @@ export const AsyncDone = createWrapper(() => {
       },
     );
   }
-});
+})();
 
 export const UseExisting = createWrapper((token: Token) => {
   return (session) => {
@@ -85,3 +85,29 @@ export const DestroyInjector = OnDestroyHook({
   },
   inject: [Internal('session', true)],
 });
+
+export const ProxyInstance = createWrapper(() => {
+  return (session, next) => {
+    return thenable(
+      () => next(session),
+      value => {
+        if (
+          session.parent ||
+          session.definition.meta.proxyInstances === undefined
+        ) {
+          return value;
+        }
+
+        const { obj, factory } = session.definition.meta.proxyInstances.request;
+        const created = factory();
+        return new DeepProxy(value, ({ value: proxyValue, DEFAULT, PROXY }) => {
+          if (proxyValue === obj) return created;
+          if (typeof proxyValue === 'object' && proxyValue !== null) {
+            return PROXY;
+          }
+          return DEFAULT;
+        });
+      }
+    );
+  }
+})();

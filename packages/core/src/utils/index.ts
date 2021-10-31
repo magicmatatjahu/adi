@@ -1,4 +1,5 @@
 export * from "./common";
+export * from "./deep-proxy";
 export * from "./guards";
 export * from "./hooks";
 export * from "./ref";

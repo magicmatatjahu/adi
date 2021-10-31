@@ -12,8 +12,8 @@ function wrapper(session: Session) {
   newSession.definition = inquirerSession.definition;
   newSession.instance = inquirerSession.instance;
   newSession.injector = inquirerSession.injector;
-  newSession.injector = inquirerSession.injector;
-  return newSession.injector.resolveInstance(newSession);
+  newSession.shared = inquirerSession.shared;
+  return newSession.injector.resolveInstance(newSession, inquirerSession.instance.scope);
 }
 
 export const Inquirer = createWrapper(() => wrapper);

@@ -3,7 +3,7 @@ import {
   DefinitionRecord,
   Provider, Type,
   InjectorOptions, InjectorScopeType, PlainProvider,
-  ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem, WrapperRecord
+  ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem, WrapperRecord, ScopeShape
 } from "../interfaces";
 import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT, MODULE_REF, EMPTY_ARRAY } from "../constants";
 import { InjectionKind, InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
@@ -19,7 +19,7 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { AsyncDone, Multi } from "../wrappers";
+import { AsyncDone, Multi, ProxyInstance } from "../wrappers";
 import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
 
@@ -215,12 +215,10 @@ export class Injector {
 
   resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
     session.injector = this;
-    if (session.status & SessionStatus.ASYNC) {
-      if (wrapper) {
-        wrapper = Array.isArray(wrapper) ? [AsyncDone(), ...wrapper] : [AsyncDone(), wrapper];
-      } else {
-        wrapper = AsyncDone();
-      }
+    if (wrapper) {
+      wrapper = Array.isArray(wrapper) ? [ProxyInstance, AsyncDone, ...wrapper] : [ProxyInstance, AsyncDone, wrapper];
+    } else {
+      wrapper = [ProxyInstance, AsyncDone];
     }
 
     if (wrapper !== undefined) {
@@ -321,11 +319,12 @@ export class Injector {
     }
 
     session.instance = def.record.getInstance(def, scope, session);
-    return this.resolveInstance(session);
+    return this.resolveInstance(session, scope);
   }
 
   resolveInstance<T>(
     session: Session,
+    scope: ScopeShape,
   ): T {
     const instance = session.instance;
     if (instance.status & InstanceStatus.RESOLVED) {
@@ -339,7 +338,7 @@ export class Injector {
 
     instance.status |= InstanceStatus.PENDING;
     return thenable(
-      () => session.definition.factory(session.record.host, session) as T,
+      () => scope.kind.create(session, scope.options), // session.definition.factory(session.record.host, session) as T,
       value => {
         if (instance.status & InstanceStatus.CIRCULAR) {
           value = Object.assign(instance.value, value);

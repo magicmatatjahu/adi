@@ -13,6 +13,7 @@ export interface DefinitionRecord<T = any, S = any> {
   scope: ScopeShape<S>;
   annotations: Record<string | symbol, any>;
   proto: Type<T> | undefined;
+  meta: Record<string | symbol, any>;
 }
 
 export interface InstanceRecord<T = any> {

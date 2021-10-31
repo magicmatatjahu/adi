@@ -79,6 +79,7 @@ export class ProviderRecord<T = any> {
       wrapper,
       annotations,
       proto: proto || undefined,
+      meta: {},
     };
 
     // add definition to the defs/constraintDefs array

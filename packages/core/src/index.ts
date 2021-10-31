@@ -5,12 +5,14 @@ import { SingletonScope } from "./scope/singleton";
 import { TransientScope } from "./scope/transient";
 import { InstanceScope } from "./scope/instance";
 import { LocalScope } from "./scope/local";
+import { RequestScope } from "./scope/request";
 
 Scope.DEFAULT = new DefaultScope();
 Scope.SINGLETON = new SingletonScope();
 Scope.TRANSIENT = new TransientScope();
 Scope.INSTANCE = new InstanceScope();
 Scope.LOCAL = new LocalScope();
+Scope.REQUEST = new RequestScope();
 
 export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
