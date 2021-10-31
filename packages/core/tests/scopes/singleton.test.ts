@@ -317,5 +317,61 @@ describe('Singleton scope', function () {
       await injector.destroy();
       expect(destroyOrder).toEqual(['ChildModule', 'Transient', 'Singleton', 'MainModule']);
     });
+
+    test('should destroy instance per injector after destroying the module where new instance is used' , async function() {
+      let destroyOrder: string[] = [];
+
+      @Injectable({
+        scope: {
+          kind: Scope.SINGLETON,
+          options: {
+            perInjector: true,
+          }
+        }
+      })
+      class Singleton {
+        onDestroy() {
+          destroyOrder.push('Singleton');
+        }
+      }
+
+      @Module()
+      class ChildModule {
+        constructor(
+          readonly service: Singleton,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('ChildModule');
+        }
+      }
+
+      @Module({
+        imports: [
+          ChildModule,
+        ],
+        providers: [
+          Singleton,
+        ]
+      })
+      class MainModule {
+        constructor(
+          readonly service: Singleton,
+        ) {}
+
+        onDestroy() {
+          destroyOrder.push('MainModule');
+        }
+      }
+
+      const injector = Injector.create(MainModule).build();
+      const childInjector = injector.selectChild(ChildModule);
+
+      await childInjector.destroy();
+      expect(destroyOrder).toEqual(['ChildModule', 'Singleton']);
+
+      await injector.destroy();
+      expect(destroyOrder).toEqual(['ChildModule', 'Singleton', 'MainModule', 'Singleton']);
+    });
   });
 });

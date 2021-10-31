@@ -7,6 +7,7 @@
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
 - Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory
 - Add possibility to define providers and imports in every standalone wrapper where user can define inject 
+- Create `Request` scope - partially done, left to support: destroy, method injection and generic class `ProxyScope`, also check how it works with nested wrappers
 
 ## IMPLEMENTED
 
@@ -56,7 +57,6 @@
 
 ## NICE TO HAVE BUT NOT NEEDED
 
-- Create `Request` scope
 - Add tree-shakable wrappers, eg for Multi purpose
 - Allow change wrappers on runtime - in another, previous in wrappers' chain wrapper. Also have definition of next wrappers in single wrapper - it will be awesome feature for collections wrappers like `Multi`
 - Add `deep` config for `Delegate` wrapper

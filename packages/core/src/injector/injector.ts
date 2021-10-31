@@ -203,6 +203,7 @@ export class Injector {
   /**
    * PROVIDERS
    */
+  // TODO: Add support for shared object as third argument (union with Session)
   get<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): T | undefined {
     return this.resolveToken(wrapper, session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE }));
   }

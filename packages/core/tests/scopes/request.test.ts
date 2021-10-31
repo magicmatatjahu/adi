@@ -1,4 +1,4 @@
-import { Injector, Injectable, Scope } from "../../src";
+import { Injector, Injectable, Scope, Inject } from "../../src";
 
 describe('Default scope', function () {
   test('should create new instance by each resolution', function () {
@@ -379,5 +379,29 @@ describe('Default scope', function () {
     expect(service.requestService2 === oldService1.requestService2).toEqual(false);
     expect(service.deepService.requestService1 === oldService1.deepService.requestService1).toEqual(false);
     expect(service.requestService1 === service.deepService.requestService1).toEqual(true);
+  });
+
+  // TODO: Support method injection
+  test.skip('should work with method injection', async function () {
+    @Injectable({
+      scope: Scope.REQUEST,
+    })
+    class RequestService {}
+
+    @Injectable()
+    class Service {
+      method(@Inject() requestService?: RequestService) {
+        return requestService;
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      RequestService,
+    ]);
+
+    let service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.method()).toBeInstanceOf(RequestService);
   });
 });

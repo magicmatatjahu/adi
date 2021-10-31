@@ -12,6 +12,7 @@ const defaultOptions: InstanceScopeOptions = {
 }
 
 export class InstanceScope extends Scope<InstanceScopeOptions> {
+  // TODO: Reverse names
   private instances = new WeakMap<InstanceRecord, Context>();
   private contexts = new WeakMap<Context, InstanceRecord>();
 

@@ -29,6 +29,7 @@ const defaultOptions: LocalScopeOptions = {
 }
 
 export class LocalScope extends Scope<LocalScopeOptions> {
+  // TODO: Reverse names
   private instances = new WeakMap<InstanceRecord, Context>();
   private contexts = new WeakMap<Context, InstanceRecord>();
 
