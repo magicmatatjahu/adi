@@ -7,7 +7,7 @@
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
 - Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory
 - Add possibility to define providers and imports in every standalone wrapper where user can define inject 
-- Create `Request` scope - partially done, left to support: destroy, method injection and generic class `ProxyScope`, also check how it works with nested wrappers
+- Create `Request` scope - partially done, left to support: destroy, method injection and generic class `ProxyScope`, also check how it works with nested wrappers like Factory
 
 ## IMPLEMENTED
 

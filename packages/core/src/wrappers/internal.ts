@@ -91,12 +91,12 @@ export const ProxyInstance = createWrapper(() => {
   return (session, next) => {
     return thenable(
       () => next(session),
-      value => {
+      instanceValue => {
         if (
           session.parent ||
           session.definition?.meta.proxyInstances === undefined
         ) {
-          return value;
+          return instanceValue;
         }
 
         const proxies = session.definition.meta.proxyInstances as Array<RequestShape>;
@@ -109,16 +109,32 @@ export const ProxyInstance = createWrapper(() => {
             value: proxy.factory(),
           });
         }
-        return new DeepProxy(value, ({ value: proxyValue, DEFAULT, PROXY }) => {
-          if (proxyValue instanceof ProxyObject) {
-            return services.find(s => s.name === proxyValue.name && s.def === proxyValue.def).value;
+        while (proxies.length !== services.length) {
+          for (let i = services.length, l = proxies.length; i < l; i++) {
+            const proxy = proxies[i];
+            services.push({
+              name: proxy.name,
+              def: proxy.def,
+              value: proxy.factory(),
+            });
           }
-          if (typeof proxyValue === 'object' && proxyValue !== null) {
-            return PROXY;
-          }
-          return DEFAULT;
-        });
+        }
+        return createProxy(instanceValue, services);
       }
     );
   }
 })();
+
+function createProxy(instanceValue: any, services: any[]) {
+  return new DeepProxy(instanceValue, ({ value, DEFAULT, PROXY }) => {
+    if (value instanceof ProxyObject) {
+      const service = services.find(s => s.name === value.name && s.def === value.def).value;
+      // console.log(service)
+      return createProxy(service, services);
+    }
+    if (typeof value === 'object' && value !== null) {
+      return PROXY;
+    }
+    return DEFAULT;
+  });
+}

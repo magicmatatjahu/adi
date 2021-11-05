@@ -1,5 +1,5 @@
 import { Context, Session } from "../injector";
-import { ScopeFlags, SessionStatus } from "../enums";
+import { SessionStatus } from "../enums";
 
 import { Scope } from "./index";
 import { DefinitionRecord } from "../interfaces";
@@ -25,10 +25,8 @@ const defaultOptions: RequestScopeOptions = {
   reuseContext: true,
 }
 
-const requestContext = new Context();
-
 export class RequestScope extends Scope<RequestScopeOptions> {
-  public readonly flags: ScopeFlags = ScopeFlags.CANNOT_OVERRIDE;
+  private requestContext: Context = new Context();
 
   get name() {
     return 'Request';
@@ -41,7 +39,7 @@ export class RequestScope extends Scope<RequestScopeOptions> {
 
     this.applyProxy(session);
     // return placeholder context
-    return requestContext;
+    return this.requestContext;
   }
 
   public create(
@@ -54,12 +52,12 @@ export class RequestScope extends Scope<RequestScopeOptions> {
     return new ProxyObject(this.name, session.definition);
   }
 
+  // TODO: Destroy only when user destroy manually
   public canDestroy(): boolean {
     // always destroy
     return true;
   };
 
-  // TODO: Optimize it and don't reassign proxies on Transient instances
   private applyProxy(session: Session) {
     const requestShape: RequestShape = {
       name: this.name,

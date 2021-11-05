@@ -82,6 +82,7 @@ const trap = function <T extends TTarget>(
 
   if (result === DEFAULT) {
     // eslint-disable-next-line
+    // @ts-ignore
     return Reflect[trapName](target as TTarget & Function, prop, val, receiver)
   }
 

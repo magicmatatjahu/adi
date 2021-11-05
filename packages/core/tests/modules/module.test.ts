@@ -402,6 +402,49 @@ describe('Module', function() {
     expect(service.foobar).toEqual('named provider');
   });
 
+  test('should work as dynamic module with undecorated class', function() {
+    class ChildModule {}
+
+    @Injectable()
+    class HelperService {}
+
+    @Injectable()
+    class Service {  
+      constructor(
+        readonly service: HelperService,
+        @Inject('token') readonly foobar: string,
+      ) {}
+    }
+
+    class AppModule {
+      static module: ModuleMetadata = {
+        imports: [
+          {
+            module: ChildModule,
+            providers: [
+              {
+                provide: 'token',
+                useValue: 'foobar',
+              },
+            ],
+            exports: [
+              'token',
+            ]
+          }
+        ],
+        providers: [Service, HelperService],
+      }
+    }
+
+    const injector = Injector.create(AppModule).build();
+
+    const service = injector.get(Service);
+
+    expect(service).toBeInstanceOf(Service);
+    expect(service.service).toBeInstanceOf(HelperService);
+    expect(service.foobar).toEqual('foobar');
+  });
+
   describe('should works with inlined module def', function() {
     test('simple case', function() {
       class ChildModule {
