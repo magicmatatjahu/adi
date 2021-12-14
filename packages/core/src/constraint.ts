@@ -1,11 +1,12 @@
-import { Context, Injector, Session } from "./injector";
+import { Context } from "./injector";
 import { ConstraintDef } from "./interfaces";
 import { ANNOTATIONS } from "./constants";
 import { Token } from "./types";
-import { InjectionKind } from "./enums";
 
 export function named(named: Token): ConstraintDef {
-  return (session) => session.options?.labels[ANNOTATIONS.NAMED] === named;
+  return (session) => 
+    session.options?.labels[ANNOTATIONS.NAMED] === named ||
+    session.metadata.annotations?.[ANNOTATIONS.NAMED] === named;
 }
 
 export function withContext(ctx: Context): ConstraintDef {

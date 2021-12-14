@@ -1,7 +1,7 @@
 import { Injector, Context, Session } from ".";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, MODULE_INITIALIZERS, EMPTY_ARRAY } from "../constants";
 import { InjectorStatus, InstanceStatus } from "../enums";
-import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape } from "../interfaces";
+import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape, Annotations } from "../interfaces";
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { Wrapper, compareOrder } from "../utils";
@@ -63,7 +63,7 @@ export class ProviderRecord<T = any> {
     scope?: ScopeShape<S>,
     constraint?: ConstraintDef,
     wrapper?: Wrapper | Array<Wrapper>,
-    annotations?: Record<string | symbol, any>,
+    annotations?: Annotations,
     proto?: Type,
   ): DefinitionRecord {
     const def: DefinitionRecord = {
@@ -101,7 +101,7 @@ export class ProviderRecord<T = any> {
   addWrapper(
     wrapper: Wrapper | Array<Wrapper>,
     constraint?: ConstraintDef,
-    annotations?: Record<string | symbol, any>,
+    annotations?: Annotations,
   ): void {
     this.wrappers.push({
       wrapper,

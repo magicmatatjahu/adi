@@ -3,7 +3,7 @@ import { createInjectionArg, getModuleDef, getProviderDef, injectableMixin, modu
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
-  InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata, ClassProvider,
+  InjectionArgument, PlainProvider, InjectableOptions, ScopeShape, ScopeType, InjectionArguments, PlainInjections, InjectionItem, ModuleMetadata, ClassProvider, Annotations, PlainInjectionItem,
 } from "../interfaces";
 import { isFactoryProvider, isValueProvider, isClassProvider, isExistingProvider, hasWrapperProvider, isWrapper } from "../utils";
 import { Token } from "../types";
@@ -77,7 +77,7 @@ export const InjectorMetadata = new class {
     let factory: FactoryDef = undefined,
       wrapper: Wrapper | Array<Wrapper> = undefined,
       scope: ScopeShape = this.getScopeShape((provider as any).scope),
-      annotations: Record<string | symbol, any> = provider.annotations || EMPTY_OBJECT,
+      annotations: Annotations = provider.annotations || EMPTY_OBJECT,
       proto = undefined;
 
     if (hasWrapperProvider(provider)) {
@@ -207,12 +207,12 @@ export const InjectorMetadata = new class {
 
   convertDependency(dep: InjectionItem, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
     if (isWrapper(dep)) {
-      return createInjectionArg(undefined, dep, kind, target, propertyKey, index);
+      return createInjectionArg(undefined, dep, undefined, kind, target, propertyKey, index);
     }
     if ((dep as any).token !== undefined) {
-      return createInjectionArg((dep as any).token, (dep as any).wrapper, kind, target, propertyKey, index);
+      return createInjectionArg((dep as PlainInjectionItem).token, (dep as PlainInjectionItem).wrapper, (dep as PlainInjectionItem).annotations, kind, target, propertyKey, index);
     }
-    return createInjectionArg(dep as Token, undefined, kind, target, propertyKey, index);
+    return createInjectionArg(dep as Token, undefined, undefined, kind, target, propertyKey, index);
   }
 
   combineArrayDependencies(

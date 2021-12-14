@@ -16,3 +16,5 @@ export interface DestroyableType<T> {
   value: T;
   destroy(): Promise<void>;
 };
+
+export type Annotations = Record<string | symbol, any>;

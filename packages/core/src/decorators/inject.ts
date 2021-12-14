@@ -2,14 +2,28 @@ import { applyInjectionArg } from "./injectable";
 import { Token } from "../types";
 import { Reflection, isWrapper } from "../utils";
 import { Wrapper } from "../utils/wrappers";
+import { Annotations } from "../interfaces";
+import { InjectionToken } from "../injector";
 
-export function Inject<T = any>(token?: Token<T>, wrapper?: Wrapper | Array<Wrapper>);
+export function Inject<T = any>(token?: Token<T>);
 export function Inject<T = any>(wrapper?: Wrapper | Array<Wrapper>);
-export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper>, wrapper?: Wrapper | Array<Wrapper>) {
-  if (isWrapper(token)) {
-    wrapper = token as Wrapper | Array<Wrapper>;
+export function Inject<T = any>(annotations?: Annotations);
+export function Inject<T = any>(token?: Token<T>, annotations?: Annotations);
+export function Inject<T = any>(wrapper?: Wrapper | Array<Wrapper>, annotations?: Annotations);
+export function Inject<T = any>(token?: Token<T>, wrapper?: Wrapper | Array<Wrapper>, annotations?: Annotations);
+export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper> | Annotations, wrapper?: Wrapper | Array<Wrapper> | Annotations, annotations?: Annotations) {
+  if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
+    if (isWrapper(token)) {
+      annotations = wrapper as Annotations;
+      wrapper = token;
+    } else {
+      annotations = token as Annotations;
+    }
     token = undefined;
-  };
+  } else if (typeof wrapper === 'object' && !isWrapper(wrapper)) { // case with two arguments argument
+    annotations = wrapper as Annotations;
+    wrapper = undefined;
+  }
 
   return function(target: Object, key: string | symbol, index?: number | PropertyDescriptor) {
     if (token === undefined) {
@@ -24,7 +38,7 @@ export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper>, wra
           const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target, key);
           for (let i = 0, l = paramtypes.length; i < l; i++) {
             // TODO: test passing `useWrapper` from main `@Injector` decorator on method
-            const arg = applyInjectionArg(paramtypes[i], wrapper, target, key, i);
+            const arg = applyInjectionArg(paramtypes[i], wrapper as Wrapper | Array<Wrapper>, annotations, target, key, i);
             arg.token = arg.token || paramtypes[i];
           }
           return;
@@ -33,6 +47,6 @@ export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper>, wra
         }
       }
     }
-    applyInjectionArg(token as Token, wrapper, target, key, index);
+    applyInjectionArg(token as Token, wrapper as Wrapper | Array<Wrapper>, annotations, target, key, index);
   }
 }

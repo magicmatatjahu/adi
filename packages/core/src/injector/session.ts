@@ -1,5 +1,5 @@
 import { 
-  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord, ScopeShape,
+  InstanceRecord, InjectionOptions, InjectionMetadata, ProviderDef, DefinitionRecord, ScopeShape, Annotations,
 } from "../interfaces";
 
 import { Context } from "./context";
@@ -74,7 +74,7 @@ export class Session<T = any> {
     this.options.scope.options = options;
   }
 
-  getLabels(): Record<string | symbol, any> {
+  getLabels(): Annotations {
     return this.options.labels;
   }
 
@@ -82,7 +82,7 @@ export class Session<T = any> {
     this.options.labels[key as any] = value;
   }
 
-  addLabels(labels: Record<string | symbol, any>) {
+  addLabels(labels: Annotations) {
     this.options.labels = { ...this.options.labels, ...labels };
   }
 

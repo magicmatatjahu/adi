@@ -1,4 +1,4 @@
-import { InjectionItem } from "./definition.interface";
+import { InjectionItem } from "./injection.interface";
 
 export interface OnInit {
   onInit(): void | Promise<void>;

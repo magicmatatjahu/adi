@@ -2,6 +2,7 @@ import { Scope } from "../scope";
 import { Token } from "../types";
 import { ConstraintDef, Type, InjectionItem, ModuleMetadata, PlainInjections } from ".";
 import { Wrapper } from "../utils/wrappers";
+import { Annotations } from "./common.interface";
 
 export type Provider<T = any> =
   | TypeProvider<T>
@@ -30,7 +31,7 @@ export interface ClassProvider<T = any> {
   scope?: Scope;
   useWrapper?: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
-  annotations?: Record<string | symbol, any>;
+  annotations?: Annotations;
   imports?: ModuleMetadata['imports'];
   providers?: ModuleMetadata['providers'];
 }
@@ -42,7 +43,7 @@ export interface FactoryProvider<T = any> {
   scope?: Scope;
   useWrapper?: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
-  annotations?: Record<string | symbol, any>;
+  annotations?: Annotations;
   imports?: ModuleMetadata['imports'];
   providers?: ModuleMetadata['providers'];
 }
@@ -52,7 +53,7 @@ export interface ExistingProvider<T = any> {
   useExisting: Token;
   useWrapper?: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
-  annotations?: Record<string | symbol, any>;
+  annotations?: Annotations;
 }
 
 export interface ValueProvider<T = any> {
@@ -60,12 +61,12 @@ export interface ValueProvider<T = any> {
   useValue: T;
   useWrapper?: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
-  annotations?: Record<string | symbol, any>;
+  annotations?: Annotations;
 }
 
 export interface WrapperProvider<T = any> {
   provide: Token<T>;
   useWrapper: Wrapper | Array<Wrapper>;
   when?: ConstraintDef;
-  annotations?: Record<string | symbol, any>;
+  annotations?: Annotations;
 }

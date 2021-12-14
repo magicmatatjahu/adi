@@ -1,8 +1,8 @@
-import { Injector, Token, Named, when, Ctx, Context, Labelled, Module } from "../src";
+import { Injector, Token, Named, when, Ctx, Context, Labelled, Module, ANNOTATIONS, Injectable, Inject } from "../src";
 
 describe('Constraint', function() {
   describe('Named constraint', function() {
-    test('should works', function () {
+    test('should work with wrapper', function () {
       const injector = new Injector([
         {
           provide: 'foobar',
@@ -23,6 +23,56 @@ describe('Constraint', function() {
       const foobar = injector.get('test') as string[];
       expect(foobar[0]).toEqual('bar');
       expect(foobar[1]).toEqual('foo');
+    });
+
+    test('should work with inline annotation', function () {
+      const injector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'foo',
+        },
+        {
+          provide: 'foobar',
+          useValue: 'bar',
+          when: when.named('bar'),
+        },
+        {
+          provide: 'test',
+          useFactory() { return arguments },
+          inject: [{ token: 'foobar', annotations: { [ANNOTATIONS.NAMED]: 'bar' } }, 'foobar'],
+        }
+      ]);
+  
+      const foobar = injector.get('test') as string[];
+      expect(foobar[0]).toEqual('bar');
+      expect(foobar[1]).toEqual('foo');
+    });
+
+    test('should work with inline annotation - using Inject decorator', function () {
+      @Injectable()
+      class TestService {
+        constructor(
+          @Inject('foobar') readonly foo: string,
+          @Inject('foobar', { [ANNOTATIONS.NAMED]: 'bar' }) readonly bar: string,
+        ) {}
+      }
+
+      const injector = new Injector([
+        {
+          provide: 'foobar',
+          useValue: 'foo',
+        },
+        {
+          provide: 'foobar',
+          useValue: 'bar',
+          when: when.named('bar'),
+        },
+        TestService
+      ]);
+  
+      const foobar = injector.get(TestService);
+      expect(foobar.bar).toEqual('bar');
+      expect(foobar.foo).toEqual('foo');
     });
   });
 

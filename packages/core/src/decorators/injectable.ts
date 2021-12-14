@@ -1,4 +1,4 @@
-import { InjectableOptions, InjectionArgument, ProviderDef, InjectableMetadata, Type } from "../interfaces";
+import { InjectableOptions, InjectionArgument, ProviderDef, InjectableMetadata, Type, Annotations } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
@@ -101,7 +101,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
     const inheritedParameters = inheritedInjections.parameters;
     for (let i = 0, l = inheritedParameters.length; i < l; i++) {
       const param = inheritedParameters[i]
-      parameters[i] = createInjectionArg(param.token, param.wrapper, InjectionKind.PARAMETER, target, undefined, i);
+      parameters[i] = createInjectionArg(param.token, param.wrapper, param.metadata.annotations, InjectionKind.PARAMETER, target, undefined, i);
     }
   }
 
@@ -111,7 +111,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
   for (let key in inheritedProps) {
     const inheritedProp = inheritedProps[key];
     // shallow copy injection argument and override target
-    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.wrapper, target, key);
+    props[key] = props[key] || createInjectionArg(inheritedProp.token, inheritedProp.wrapper, inheritedProp.metadata.annotations, target, key);
   }
   // override/adjust symbols injection
   const symbols = Object.getOwnPropertySymbols(inheritedProps);
@@ -119,7 +119,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
     const sym = symbols[i] as unknown as string;
     const inheritedProp = inheritedProps[sym];
     // shallow copy injection argument and override target
-    props[sym] = props[sym] || createInjectionArg(inheritedProp.token, inheritedProp.wrapper, target, sym);
+    props[sym] = props[sym] || createInjectionArg(inheritedProp.token, inheritedProp.wrapper, inheritedProp.metadata.annotations, target, sym);
   }
 
   const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
@@ -134,7 +134,7 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
       for (let i = 0, l = method.length; i < l; i++) {
         const arg = method[i];
         // shallow copy injection argument and override target
-        copiedMethod[i] = createInjectionArg(arg.token, arg.wrapper, InjectionKind.METHOD, target, key, i);
+        copiedMethod[i] = createInjectionArg(arg.token, arg.wrapper, arg.metadata.annotations, InjectionKind.METHOD, target, key, i);
       }
       injections.methods[key] = copiedMethod;
     }
@@ -143,13 +143,14 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
 
 function mergeParameters(definedArgs: Array<InjectionArgument>, paramtypes: Array<Type>, target: Object): void {
   for (let i = 0, l = paramtypes.length; i < l; i++) {
-    definedArgs[i] = definedArgs[i] || createInjectionArg(paramtypes[i], undefined, InjectionKind.PARAMETER, target, undefined, i);
+    definedArgs[i] = definedArgs[i] || createInjectionArg(paramtypes[i], undefined, undefined, InjectionKind.PARAMETER, target, undefined, i);
   }
 }
 
 export function applyInjectionArg(
   token: Token,
   wrapper: Wrapper | Array<Wrapper>,
+  annotations: Annotations,
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
@@ -162,16 +163,16 @@ export function applyInjectionArg(
     if (typeof index === "number") {
       // methods
       const method = (injections.methods[key as string] || (injections.methods[key as string] = []));
-      return method[index] || (method[index] = createInjectionArg(token, wrapper, InjectionKind.METHOD, target, key, index));
+      return method[index] || (method[index] = createInjectionArg(token, wrapper, annotations, InjectionKind.METHOD, target, key, index));
     }
     // properties
-    return injections.properties[key as string] = createInjectionArg(token, wrapper, InjectionKind.PROPERTY, target, key);
+    return injections.properties[key as string] = createInjectionArg(token, wrapper, annotations, InjectionKind.PROPERTY, target, key);
   }
   // constructor parameters
-  return injections.parameters[index as number] = createInjectionArg(token, wrapper, InjectionKind.PARAMETER, target, undefined, index as number);
+  return injections.parameters[index as number] = createInjectionArg(token, wrapper, annotations, InjectionKind.PARAMETER, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrapper>, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrapper>, annotations: Annotations, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   if (wrapper !== undefined) {
     wrapper = Array.isArray(wrapper) ? [Cache(), ...wrapper] : [Cache(), wrapper];
   } else {
@@ -185,6 +186,7 @@ export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrappe
       target,
       propertyKey,
       index,
+      annotations,
       kind,
     },
   }

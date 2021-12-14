@@ -1,4 +1,3 @@
-import { Injector } from "./injector";
 import { DestroyEvent, InstanceRecord } from "../interfaces";
 import { ProviderRecord } from "./provider";
 import { handleOnDestroy } from "../utils";

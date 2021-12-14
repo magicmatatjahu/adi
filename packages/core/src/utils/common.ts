@@ -1,7 +1,8 @@
 import { ANNOTATIONS } from "../constants";
+import { Annotations } from "../interfaces";
 
 interface WithAnnotations {
-  annotations: Record<string | symbol, any>;
+  annotations: Annotations;
 }
 
 export function compareOrder(a: WithAnnotations, b: WithAnnotations): number {
