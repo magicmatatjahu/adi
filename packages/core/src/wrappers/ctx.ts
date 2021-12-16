@@ -6,4 +6,4 @@ export const Ctx = createWrapper((ctx: Context) => {
     session.setContext(ctx);
     return next(session);
   }
-});
+}, { name: "Ctx" });

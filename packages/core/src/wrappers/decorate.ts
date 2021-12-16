@@ -66,4 +66,4 @@ export const Decorate = createWrapper((decorator: Type | DecorateOptions) => {
       }
     );
   }
-});
+}, { name: "Decorate" });

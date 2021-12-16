@@ -10,4 +10,4 @@ export const New = createWrapper((ctxData?: any) => {
     session.setScope(Scope.TRANSIENT);
     return next(session);
   }
-});
+}, { name: 'New' });

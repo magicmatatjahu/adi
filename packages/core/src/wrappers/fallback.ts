@@ -33,4 +33,4 @@ export const Fallback = createWrapper((options: Token | FallbackProvider) => {
       }
     );
   }
-});
+}, { name: 'Fallback' });

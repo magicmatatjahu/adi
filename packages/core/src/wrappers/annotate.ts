@@ -1,9 +1,9 @@
 import { Annotations } from "../interfaces";
 import { createWrapper } from "../utils";
 
-export const Labelled = createWrapper((labels: Annotations) => {
+export const Annotate = createWrapper((annotations: Annotations) => {
   return (session, next) => {
-    session.addLabels(labels);
+    session.addAnnotations(annotations);
     return next(session);
   }
-});
+}, { name: 'Annotate' });

@@ -19,7 +19,7 @@ export const AsyncDone = createWrapper(() => {
       },
     );
   }
-})();
+}, { name: 'AsyncDone' })();
 
 export const UseExisting = createWrapper((token: Token) => {
   return (session) => {
@@ -28,7 +28,7 @@ export const UseExisting = createWrapper((token: Token) => {
     session.setToken(token);
     return session.injector.get(token, undefined, session);
   }
-});
+}, { name: 'UseExisting' });
 
 export const Internal = createWrapper((inject: 'session' | 'record' | 'definition' | 'instance', skipResolution: boolean = false) => {
   switch (inject) {
@@ -73,7 +73,7 @@ export const Internal = createWrapper((inject: 'session' | 'record' | 'definitio
       }
     };
   }
-});
+}, { name: 'Internal' });
 
 export const DestroyInjector = OnDestroyHook({
   onDestroy(session: Session) {
@@ -123,7 +123,7 @@ export const ProxyInstance = createWrapper(() => {
       }
     );
   }
-})();
+}, { name: 'ProxyInstance' })();
 
 function createProxy(instanceValue: any, services: any[]) {
   return new DeepProxy(instanceValue, ({ value, DEFAULT, PROXY }) => {

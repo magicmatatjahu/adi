@@ -6,4 +6,4 @@ export const WithDependencies = createWrapper((injections: Array<InjectionItem> 
     session.options.injections = injections;
     return next(session);
   }
-});
+}, { name: 'WithDependencies' });

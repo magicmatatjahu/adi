@@ -16,4 +16,4 @@ function wrapper(session: Session) {
   return newSession.injector.resolveInstance(newSession, inquirerSession.instance.scope);
 }
 
-export const Inquirer = createWrapper(() => wrapper);
+export const Inquirer = createWrapper(() => wrapper, { name: 'Inquirer' });

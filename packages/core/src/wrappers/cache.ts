@@ -30,4 +30,4 @@ function wrapper(session: Session, next: NextWrapper) {
   );
 }
 
-export const Cache = createWrapper(() => wrapper);
+export const Cache = createWrapper(() => wrapper, { name: "Cache" });

@@ -30,4 +30,4 @@ export const Delegate = createWrapper((arg?: string | number) => {
     const { type, values } = delegate as DelegateOptions;
     return type === 'single' ? values : values[arg];
   }
-});
+}, { name: "Delegate" });

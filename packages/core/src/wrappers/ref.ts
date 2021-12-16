@@ -6,4 +6,4 @@ export const Ref = createWrapper((ref: () => Token) => {
     session.setToken(ref());
     return next(session);
   }
-});
+}, { name: 'Ref' });

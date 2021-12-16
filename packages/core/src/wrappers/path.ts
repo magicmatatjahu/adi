@@ -34,4 +34,4 @@ export const Path = createWrapper((path: string) => {
       value => getDeepValue(value, props),
     );
   }
-});
+}, { name: 'Path' });

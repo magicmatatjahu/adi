@@ -1,5 +1,4 @@
-import { PlainSansProvider, PlainInjections, ScopeType, Type } from ".";
-import { Annotations } from "./common.interface";
+import { PlainSansProvider, PlainInjections, ScopeType, Type, Annotations } from ".";
 
 export type ProvideInType = string | symbol | Type | 'any';
 
@@ -17,5 +16,5 @@ export type InjectionTokenOptions<S> = {
 
 export interface InjectableMetadata<S = any> {
   options?: InjectableOptions<S>;
-  injections?: Omit<PlainInjections, 'dynamic'>;
+  injections?: Omit<PlainInjections, 'override'>;
 }

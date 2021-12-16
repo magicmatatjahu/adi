@@ -9,8 +9,8 @@ interface PortalOptions {
   deep?: boolean;
 } 
 
-function dynamicInjection(injector: Injector, deep: boolean) {
-  return function dynamic(arg: InjectionArgument): InjectionItem {
+function override(injector: Injector, deep: boolean) {
+  return function override(arg: InjectionArgument): InjectionItem {
     const basicWrappers = [WithInjector(injector)];
     if (arg.wrapper) {
       Array.isArray(arg.wrapper) ? basicWrappers.push(...arg.wrapper) : basicWrappers.push(arg.wrapper);
@@ -51,8 +51,8 @@ export const Portal = createWrapper((providersOrOptions: Provider[] | PortalOpti
     }
     session.injector = injector;
     session.options.injections = {
-      dynamic: dynamicInjection(injector, deep), 
+      override: override(injector, deep), 
     };
     return next(session);
   }
-});
+}, { name: 'Portal' });

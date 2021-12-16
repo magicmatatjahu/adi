@@ -20,4 +20,4 @@ function wrapper(session: Session, next: NextWrapper) {
   );
 }
 
-export const Destroyable = createWrapper(() => wrapper);
+export const Destroyable = createWrapper(() => wrapper, { name: 'Destroyable' });

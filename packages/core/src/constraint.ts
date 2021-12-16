@@ -5,24 +5,25 @@ import { Token } from "./types";
 
 export function named(named: Token): ConstraintDef {
   return (session) => 
-    session.options?.labels[ANNOTATIONS.NAMED] === named ||
+    session.options?.annotations[ANNOTATIONS.NAMED] === named ||
     session.metadata.annotations?.[ANNOTATIONS.NAMED] === named;
 }
 
+// TODO: rename to `context`
 export function withContext(ctx: Context): ConstraintDef {
   return (session) => session.options?.ctx === ctx;
 }
 
-export function labelled(l: Record<string | symbol | number, any>): ConstraintDef {
-  const labelsLength = Object.keys(l).length;
+export function annotated(l: Record<string | symbol | number, any>): ConstraintDef {
+  const annotationsLength = Object.keys(l).length;
   return (session) => {
-    const labels = session.options?.labels;
-    if (!labels) return false;
+    const annotations = session.options?.annotations;
+    if (!annotations) return false;
     let checks = 0;
-    for (const label in labels) {
-      if (labels[label] === l[label]) checks++;
+    for (const annotation in annotations) {
+      if (annotations[annotation] === l[annotation]) checks++;
     }
-    return labelsLength === checks;
+    return annotationsLength === checks;
   }
 }
 
@@ -65,7 +66,7 @@ export function or(...fns: Array<ConstraintDef>): ConstraintDef {
 export const when = {
   named,
   withContext,
-  labelled,
+  annotated,
   visible,
   and,
   or,

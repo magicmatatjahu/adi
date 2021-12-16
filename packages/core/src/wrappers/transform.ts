@@ -38,4 +38,4 @@ export const Transform = createWrapper((transform: TransformOptions) => {
       }
     );
   }
-});
+}, { name: 'Transform' });

@@ -1,13 +1,14 @@
 # ADIJS
 
 - Handle onInit in async mode
-- Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations?
 - Think about creating modules from exports which is not imported, so they are not created before exporting - problem is with proxy modules, in other words how to check on graph resolution that given export must be created as new injector, not export providers from it - maybe by new field `create` or by changing shape of exported module in `exports` array?
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
 - Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory
 - Add possibility to define providers and imports in every standalone wrapper where user can define inject 
 - Create `Request` scope - partially done, left to support: destroy, method injection and generic class `ProxyScope`, also check how it works with nested wrappers like Factory
+- Rename `Multi` wrapper to the `All`
+- Rename `wrappers` to `hooks` and provider `useWrapper` to `useHook`
 
 ## IMPLEMENTED
 
@@ -37,6 +38,7 @@
 - Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack // it's good order like in C++ destructors
 - Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers - done by `DRY_RUN` session's status
 - Implement Portals injectors as custom Wrapper like in DryIOC - https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/KindsOfChildContainer.md#facade
+- Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations? // in decorator user have possibility to pass object with annotations
 
 ## RETHING - WORKS BUT IT SHOULD BE BETTER
 

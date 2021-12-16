@@ -24,4 +24,4 @@ function wrapper(session: Session, next: NextWrapper) {
   }
 }
 
-export const Factory = createWrapper(() => wrapper);
+export const Factory = createWrapper(() => wrapper, { name: 'Factory' });

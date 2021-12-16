@@ -1,6 +1,6 @@
-import { InjectionKind } from "../enums";
 import { Context, Session } from "../injector";
 import { DestroyEvent, InjectionMetadata, InstanceRecord } from "../interfaces";
+import { InjectionKind } from "../enums";
 
 import { Scope } from "./index";
 
@@ -57,15 +57,15 @@ export class TransientScope extends Scope<TransientScopeOptions> {
       return false;
     }
 
-    // with no parents parents - mainly `manually` event
+    // with no parents - mainly `manually` event
     if (instance.parents === undefined || instance.parents.size === 0) {
       this.instancesMetadata.delete(ctx);
       return true;
     }
     
-    // on method injection
+    // on method and function injection
     const metadata = this.instancesMetadata.get(ctx);
-    if (metadata !== undefined && metadata.kind & InjectionKind.METHOD) {
+    if (metadata && (metadata.kind & InjectionKind.METHOD || metadata.kind & InjectionKind.FUNCTION)) {
       this.instancesMetadata.delete(ctx);
       return true;
     }

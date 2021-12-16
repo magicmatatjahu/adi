@@ -1,4 +1,4 @@
-import { Injector, Token, Named, when, Ctx, Context, Labelled, Module, ANNOTATIONS, Injectable, Inject } from "../src";
+import { Injector, Token, Named, when, Ctx, Context, Annotate, Module, ANNOTATIONS, Injectable, Inject } from "../src";
 
 describe('Constraint', function() {
   describe('Named constraint', function() {
@@ -103,7 +103,7 @@ describe('Constraint', function() {
     });
   });
 
-  describe('Labelled constraint', function() {
+  describe('Annotated constraint', function() {
     test('should works', function () {
       const injector = new Injector([
         {
@@ -113,7 +113,7 @@ describe('Constraint', function() {
         {
           provide: 'foobar',
           useValue: 'bar',
-          when: when.labelled({
+          when: when.annotated({
             foo: 'bar',
             bar: 'foo',
           }),
@@ -121,7 +121,7 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', [Token('foobar'), Labelled({ foo: 'bar', bar: 'foo' })]],
+          inject: ['foobar', [Token('foobar'), Annotate({ foo: 'bar', bar: 'foo' })]],
         }
       ]);
   
@@ -308,7 +308,7 @@ describe('Constraint', function() {
         {
           provide: 'foobar',
           useValue: 'bar',
-          when: when.and(when.labelled({
+          when: when.and(when.annotated({
             foo: 'bar',
             bar: 'foo',
           }), when.withContext(ctx)),
@@ -316,7 +316,7 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', [Token('foobar'), Labelled({ foo: 'bar', bar: 'foo' }), Ctx(ctx)]],
+          inject: ['foobar', [Token('foobar'), Annotate({ foo: 'bar', bar: 'foo' }), Ctx(ctx)]],
         }
       ]);
   
@@ -338,7 +338,7 @@ describe('Constraint', function() {
         {
           provide: 'foobar',
           useValue: 'bar',
-          when: when.or(when.labelled({
+          when: when.or(when.annotated({
             abc: 'abc',
             def: 'def',
           }), when.withContext(ctx)),
@@ -346,7 +346,7 @@ describe('Constraint', function() {
         {
           provide: 'test',
           useFactory() { return arguments },
-          inject: ['foobar', [Token('foobar'), Labelled({ foo: 'bar', bar: 'foo' }), Ctx(ctx)]],
+          inject: ['foobar', [Token('foobar'), Annotate({ foo: 'bar', bar: 'foo' }), Ctx(ctx)]],
         }
       ]);
   

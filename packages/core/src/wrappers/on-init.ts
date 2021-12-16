@@ -22,4 +22,4 @@ export const OnInitHook = createWrapper((hook: StandaloneOnInit) => {
 
     return next(session);
   }
-});
+}, { name: 'OnInitHook' });

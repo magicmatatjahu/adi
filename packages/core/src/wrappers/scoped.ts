@@ -10,4 +10,4 @@ export const Scoped = createWrapper((scope: Scope | ScopeType) => {
     session.setScope(scope as Scope, options);
     return next(session);
   }
-});
+}, { name: 'Scoped' });

@@ -9,4 +9,4 @@ export const Delegations = createWrapper((delegations: Record<string | symbol, a
     };
     return next(session);
   }
-});
+}, { name: "Delegations" });

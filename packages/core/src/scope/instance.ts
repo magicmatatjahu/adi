@@ -1,20 +1,23 @@
-import { Context, Injector, Session } from "../injector";
-import { DestroyEvent, InstanceRecord } from "../interfaces";
+import { Context, Session } from "../injector";
+import { DestroyEvent, InjectionMetadata, InstanceRecord } from "../interfaces";
+import { InjectionKind } from "../enums";
 
 import { Scope } from "./index";
 
 export interface InstanceScopeOptions {
   reuseContext?: boolean;
+  destroy?: boolean;
 }
 
 const defaultOptions: InstanceScopeOptions = {
-  reuseContext: true
+  reuseContext: true,
+  destroy: true,
 }
 
 export class InstanceScope extends Scope<InstanceScopeOptions> {
-  // TODO: Reverse names
-  private instances = new WeakMap<InstanceRecord, Context>();
-  private contexts = new WeakMap<Context, InstanceRecord>();
+  private contexts = new WeakMap<InstanceRecord, Context>();
+  private instances = new WeakMap<Context, InstanceRecord>();
+  private instancesMetadata = new WeakMap<Context, InjectionMetadata>();
 
   get name() {
     return 'Instance';
@@ -29,11 +32,12 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     }
 
     const parentInstance = parent.instance;
-    let ctx: Context = this.instances.get(parentInstance);
+    let ctx: Context = this.contexts.get(parentInstance);
     if (ctx === undefined) {
       ctx = new Context();
-      this.instances.set(parentInstance, ctx);
-      this.contexts.set(ctx, parentInstance);
+      this.contexts.set(parentInstance, ctx);
+      this.instances.set(ctx, parentInstance);
+      this.instancesMetadata.set(ctx, session.metadata);
     }
     session.setSideEffect(true);
     return ctx;
@@ -46,16 +50,23 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
   ): boolean {
     const ctx = instance.ctx;
     
-    // if ctx doesn't exist in the Instance scope treat scope as Transient
-    if (this.contexts.has(ctx) === false) {
+    // passed custom context - treat scope as Transient
+    if (this.instances.has(ctx) === false) {
       return Scope.TRANSIENT.canDestroy(event, instance, options);
     }
 
     // when no parent
     if (instance.parents === undefined || instance.parents.size === 0) {
-      const parentInstance = this.contexts.get(ctx);
-      this.instances.delete(parentInstance);
-      this.contexts.delete(ctx);
+      const parentInstance = this.instances.get(ctx);
+      this.contexts.delete(parentInstance);
+      this.instances.delete(ctx);
+      return true;
+    }
+
+    // on function injection
+    const metadata = this.instancesMetadata.get(ctx);
+    if (metadata && metadata.kind & InjectionKind.FUNCTION) {
+      this.instancesMetadata.delete(ctx);
       return true;
     }
 

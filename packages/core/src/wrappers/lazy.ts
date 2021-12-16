@@ -75,4 +75,4 @@ export const Lazy = createWrapper((options: LazyOptions = {}) => {
       return value;
     };
   }
-});
+}, { name: 'Lazy' });

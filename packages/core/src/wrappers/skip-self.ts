@@ -63,4 +63,4 @@ export const SkipSelf = createWrapper((injector?: Type | ForwardRef<Type>) => {
     return parentWrapper(injector);
   }
   return plainWrapper;
-});
+}, { name: 'SkipSelf' });

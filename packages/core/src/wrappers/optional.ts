@@ -12,4 +12,4 @@ export const Optional = createWrapper((defaultValue?: any) => {
       }
     );
   }
-});
+}, { name: 'Optional' });

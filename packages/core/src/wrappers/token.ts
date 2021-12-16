@@ -6,4 +6,4 @@ export const Token = createWrapper((token: ProviderToken) => {
     if (token) session.setToken(token);
     return next(session);
   }
-});
+}, { name: 'Token' });

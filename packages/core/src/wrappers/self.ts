@@ -18,4 +18,4 @@ function wrapper(session: Session, next: NextWrapper) {
   return next(session);
 }
 
-export const Self = createWrapper(() => wrapper);
+export const Self = createWrapper(() => wrapper, { name: 'Self' });

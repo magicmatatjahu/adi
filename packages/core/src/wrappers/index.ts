@@ -1,3 +1,4 @@
+export * from "./annotate";
 export * from "./ctx";
 export * from "./decorate";
 export * from "./delegate";
@@ -8,7 +9,6 @@ export * from "./factory";
 export * from "./fallback";
 export * from "./inquirer";
 export * from "./internal";
-export * from "./labelled";
 export * from "./lazy";
 export * from "./memo";
 export * from "./multi";

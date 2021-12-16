@@ -12,4 +12,4 @@ function wrapper(session: Session, next: NextWrapper) {
   );
 }
 
-export const Memo = createWrapper(() => wrapper);
+export const Memo = createWrapper(() => wrapper, { name: 'Memo' });

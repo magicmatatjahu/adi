@@ -28,4 +28,4 @@ export const OnDestroyHook = createWrapper((hook: StandaloneOnDestroy) => {
       }
     );
   }
-});
+}, { name: 'OnDestroyHook' });

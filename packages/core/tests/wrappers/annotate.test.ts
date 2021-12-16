@@ -1,6 +1,6 @@
-import { Injector, Injectable, Inject, Labelled, when } from "../../src";
+import { Injector, Injectable, Inject, Annotate, when } from "../../src";
 
-describe('Labelled wrapper', function () {
+describe('Annotate wrapper', function () {
   test('should inject labeled provider', function () {
     @Injectable()
     class TestService {}
@@ -9,8 +9,8 @@ describe('Labelled wrapper', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(Labelled({ foo: 'bar' })) readonly foobar: TestService,
-        @Inject(Labelled({ bar: 'foo' })) readonly barfoo: TestService,
+        @Inject(Annotate({ foo: 'bar' })) readonly foobar: TestService,
+        @Inject(Annotate({ bar: 'foo' })) readonly barfoo: TestService,
       ) {}
     }
 
@@ -20,12 +20,12 @@ describe('Labelled wrapper', function () {
       {
         provide: TestService,
         useValue: 'foobar',
-        when: when.labelled({ foo: 'bar' }),
+        when: when.annotated({ foo: 'bar' }),
       },
       {
         provide: TestService,
         useValue: 'barfoo',
-        when: when.labelled({ bar: 'foo' }),
+        when: when.annotated({ bar: 'foo' }),
       },
     ]);
 

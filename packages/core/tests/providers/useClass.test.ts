@@ -233,7 +233,7 @@ describe('useClass', function() {
     expect(args[1]).toEqual('argument injection');
   });
 
-  test('should have possibility to inject custom injections by "dynamic" function', function() {
+  test('should have possibility to inject custom injections by "override" function', function() {
     @Injectable()
     class HelperService {}
 
@@ -270,7 +270,7 @@ describe('useClass', function() {
         provide: 'useClass',
         useClass: Service,
         inject: {
-          dynamic(arg) {
+          override(arg) {
             const { propertyKey, index } = arg.metadata;
             // constructor injection
             if (!propertyKey && index === 1) {
@@ -304,7 +304,7 @@ describe('useClass', function() {
     expect(args[1]).toEqual('argument injection');
   });
 
-  test('should have possibility to inject custom injections by "dynamic" function - case with plain injections', function() {
+  test('should have possibility to inject custom injections by "override" function - case with plain injections', function() {
     @Injectable()
     class HelperService {}
 
@@ -348,7 +348,7 @@ describe('useClass', function() {
           methods: {
             method: [undefined, HelperService],
           },
-          dynamic(arg) {
+          override(arg) {
             const { propertyKey, index } = arg.metadata;
             // constructor injection
             if (!propertyKey && index === 1) {

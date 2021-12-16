@@ -7,7 +7,6 @@ import {
   CompiledModule,
   ModuleID,
   Provider,
-  ExportItem,
   ImportItem,
 } from "../interfaces"
 import { resolveRef, thenable } from "../utils";

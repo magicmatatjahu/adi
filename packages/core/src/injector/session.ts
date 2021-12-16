@@ -14,7 +14,7 @@ function createOptions(token: Token): InjectionOptions {
     token,
     ctx: undefined,
     scope: undefined,
-    labels: {},
+    annotations: {},
     injections: undefined,
   };
 }
@@ -74,16 +74,30 @@ export class Session<T = any> {
     this.options.scope.options = options;
   }
 
-  getLabels(): Annotations {
-    return this.options.labels;
+  getAnnotations(): Annotations {
+    return this.options.annotations;
   }
 
-  addLabel(key: string | symbol, value: any) {
-    this.options.labels[key as any] = value;
+  addAnnotations(annotations: Annotations): void;
+  addAnnotations(key: string | symbol, value: any): void;
+  addAnnotations(keyOrAnnotations: string | symbol | Annotations, value?: any) {
+    if (typeof keyOrAnnotations === 'object') {
+      this.options.annotations = { ...this.options.annotations, ...keyOrAnnotations };
+    } else {
+      this.options.annotations[keyOrAnnotations as any] = value;
+    }
   }
 
-  addLabels(labels: Annotations) {
-    this.options.labels = { ...this.options.labels, ...labels };
+  setFlag(flag: SessionStatus) {
+    this.status |= flag;
+  }
+
+  removeFlag(flag: SessionStatus) {
+    this.status &= ~flag;
+  }
+
+  hasFlag(flag: SessionStatus) {
+    return (this.status & flag) > 0;
   }
 
   setSideEffect(sideEffect: boolean) {
@@ -113,7 +127,7 @@ export class Session<T = any> {
   }
 
   fork(): Session {
-    const newOptions = { ...this.options, labels: { ...this.options.labels } };
+    const newOptions: InjectionOptions = { ...this.options, annotations: { ...this.options.annotations } };
     const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.metadata, this.parent);
     newSession.status = this.status;
     newSession.injector = this.injector;

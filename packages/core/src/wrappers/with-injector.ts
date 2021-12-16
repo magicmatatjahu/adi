@@ -6,4 +6,4 @@ export const WithInjector = createWrapper((injector: Injector) => {
     session.injector = injector;
     return next(session);
   }
-});
+}, { name: 'WithInjector' });

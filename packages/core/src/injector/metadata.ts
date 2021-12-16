@@ -221,17 +221,17 @@ export const InjectorMetadata = new class {
     kind: InjectionKind,
     target?: Object,
     methodName?: string,
-    dynamic?: (injectionArg: InjectionArgument) => InjectionItem | undefined,
+    override?: (injectionArg: InjectionArgument) => InjectionItem | undefined,
   ): Array<InjectionArgument> {
-    if (toCombine === undefined && dynamic === undefined) {
+    if (toCombine === undefined && override === undefined) {
       return original;
     }
     const newDeps = original ? [...original] : [];
 
-    if (typeof dynamic === 'function') {
+    if (typeof override === 'function') {
       let inject: InjectionItem;
       for (let i = 0, l = newDeps.length; i < l; i++) {
-        inject = dynamic(newDeps[i]);
+        inject = override(newDeps[i]);
         inject && (newDeps[i] = this.convertDependency(inject, kind, target, methodName, i));
       }
     }
@@ -266,18 +266,18 @@ export const InjectorMetadata = new class {
       return newDeps;
     }
 
-    const { parameters, properties, methods, dynamic } = toCombine;
+    const { parameters, properties, methods, override } = toCombine;
     // parameters
-    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, InjectionKind.PARAMETER, target, undefined, dynamic);
+    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, InjectionKind.PARAMETER, target, undefined, override);
     // properties and symbols 
-    if (typeof dynamic === 'function') {
+    if (typeof override === 'function') {
       let inject: InjectionItem;
       for (const propName in newDeps.properties) {
-        inject = dynamic(newDeps.properties[propName]);
+        inject = override(newDeps.properties[propName]);
         inject && (newDeps.properties[propName] = this.convertDependency(inject, InjectionKind.PROPERTY, target, propName));
       }
       for (const sb of Object.getOwnPropertySymbols(newDeps.properties)) {
-        inject = dynamic(newDeps.properties[sb as unknown as string]);
+        inject = override(newDeps.properties[sb as unknown as string]);
         inject && (newDeps.properties[sb as unknown as string] = this.convertDependency(inject, InjectionKind.PROPERTY, target, sb));
       }
     }
@@ -290,10 +290,10 @@ export const InjectorMetadata = new class {
       }
     }
     // methods
-    if (typeof dynamic === 'function') {
+    if (typeof override === 'function') {
       const m = methods || {};
       for (const methodName in newDeps.methods) {
-        newDeps.methods[methodName] = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName], InjectionKind.PROPERTY, target, methodName, dynamic);
+        newDeps.methods[methodName] = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName], InjectionKind.PROPERTY, target, methodName, override);
       }
     } else {
       for (const methodName in methods) {

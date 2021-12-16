@@ -16,9 +16,9 @@ export function moduleMixin<T>(target: Type<T>, metadata?: ModuleMetadata): Type
   return target;
 }
 
-export function getModuleDef(target: unknown): ModuleDef | undefined {
-  if (target && target.hasOwnProperty(PRIVATE_METADATA.MODULE)) {
-    return target[PRIVATE_METADATA.MODULE];
+export function getModuleDef(mod: unknown): ModuleDef | undefined {
+  if (mod && mod.hasOwnProperty(PRIVATE_METADATA.MODULE)) {
+    return mod[PRIVATE_METADATA.MODULE];
   }
   return;
 }

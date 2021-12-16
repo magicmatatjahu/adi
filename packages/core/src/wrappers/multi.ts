@@ -101,4 +101,4 @@ export const Multi = createWrapper((options: MultiOptions = {}) => {
     }
     return isAsync ? Promise.all(values) : values;
   }
-});
+}, { name: 'Multi' });

@@ -3,15 +3,21 @@ import { ProviderRecord, Session } from "../injector";
 
 export const WRAPPER_DEF = {};
 
+export interface WrapperOptions {
+  name: string;
+}
+
 export interface Wrapper {
   func: WrapperDef;
+  options: WrapperOptions;
   $$wr: object;
 }
 
-export function createWrapper<F extends (...args: any) => WrapperDef>(useWrapper: F): (...args: Parameters<F>) => Wrapper {
+export function createWrapper<F extends (...args: any) => WrapperDef>(useWrapper: F, options: WrapperOptions): (...args: Parameters<F>) => Wrapper {
   return function(...args: any): Wrapper {
     return {
       func: useWrapper(...args),
+      options,
       $$wr: WRAPPER_DEF,
     };
   }
