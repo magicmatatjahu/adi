@@ -100,6 +100,45 @@ describe('WithDependencies wrapper', function () {
     expect(service.testService.property).toEqual(helpService);
   });
 
+  test('should have possibility to inject custom factory injections', function() {
+    const customInjections = [undefined, 'custom'];
+
+    @Injectable()
+    class HelperService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('foobar', WithDependencies(customInjections)) readonly foobar: [HelperService, string],
+      ) {}
+    }
+
+    const injector = new Injector([
+      {
+        provide: 'custom',
+        useValue: 'custom injection',
+      },
+      {
+        provide: 'normal',
+        useValue: 'normal injection',
+      },
+      {
+        provide: 'foobar',
+        useFactory: (...args: any[]) => args,
+        inject: [HelperService, 'normal']
+      },
+      HelperService,
+      Service,
+    ]);
+
+    const service = injector.get(Service);
+    const helpService = injector.get(HelperService);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.foobar).toBeInstanceOf(Array);
+    expect(service.foobar[0]).toBeInstanceOf(HelperService);
+    expect(service.foobar[1]).toEqual('custom injection');
+  });
+
   test('should have possibility to override injection by custom injections', function() {
     const customInjections = {
       parameters: [undefined, Token('parameter')],

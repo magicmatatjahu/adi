@@ -1,10 +1,8 @@
 import { SessionStatus } from "../enums";
-import { Injector, Session } from "../injector";
 import { ProxyObject, RequestShape } from "../scope/request";
 import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";
-import { OnDestroyHook } from "./on-destroy";
 
 export const AsyncDone = createWrapper(() => {
   return (session, next) => {
@@ -74,18 +72,6 @@ export const Internal = createWrapper((inject: 'session' | 'record' | 'definitio
     };
   }
 }, { name: 'Internal' });
-
-export const DestroyInjector = OnDestroyHook({
-  onDestroy(session: Session) {
-    const instance = session.parent && session.parent.instance;
-    if (!instance) return;
-    const injector = (instance as any).injector as Injector;
-    if (!injector) return;
-    delete (instance as any).injector;
-    return injector.destroy();
-  },
-  inject: [Internal('session', true)],
-});
 
 export const ProxyInstance = createWrapper(() => {
   return (session, next) => {

@@ -6,10 +6,12 @@ import { Scope } from "./index";
 
 export interface TransientScopeOptions {
   reuseContext?: boolean;
+  destroy?: boolean;
 }
 
 const defaultOptions: TransientScopeOptions = {
-  reuseContext: true
+  reuseContext: true,
+  destroy: false,
 }
 
 export class TransientScope extends Scope<TransientScopeOptions> {
@@ -44,6 +46,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   public canDestroy(
     event: DestroyEvent,
     instance: InstanceRecord,
+    options: TransientScopeOptions = defaultOptions,
   ): boolean {
     const ctx = instance.ctx;
 
@@ -65,7 +68,10 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     
     // on method and function injection
     const metadata = this.instancesMetadata.get(ctx);
-    if (metadata && (metadata.kind & InjectionKind.METHOD || metadata.kind & InjectionKind.FUNCTION)) {
+    if (metadata && (
+      (metadata.kind & InjectionKind.FUNCTION && options.destroy) ||
+      metadata.kind & InjectionKind.METHOD
+    )) {
       this.instancesMetadata.delete(ctx);
       return true;
     }

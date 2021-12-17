@@ -24,17 +24,7 @@ export class Context<T = Record<string | symbol, unknown>> {
     options: {
       provideIn: 'any',
       useWrapper: {
-        func: (newSession: Session, session: Session) => {
-          if (newSession instanceof Session) {
-            const parent = newSession.parent;
-            if (parent === undefined) {
-              throw new Error('Context provider can be only used in other providers');
-            }
-            newSession.setSideEffect(true);
-            return parent.instance.ctx;
-          }
-
-          // old implementation 
+        func: (session: Session) => {
           const parent = session.parent;
           if (parent === undefined) {
             throw new Error('Context provider can be only used in other providers');

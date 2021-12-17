@@ -7,7 +7,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
 
       onInit() {
@@ -21,7 +21,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
 
       onInit() {
@@ -51,7 +51,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
 
       onInit() {
@@ -65,7 +65,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceC)) readonly serviceC: ServiceC,
+        @Inject(Ref(() => ServiceC)) readonly serviceC: any,
       ) {}
 
       onInit() {
@@ -79,7 +79,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceC {
       constructor(
-        @Inject(Ref(() => ServiceD)) readonly serviceD: ServiceD,
+        @Inject(Ref(() => ServiceD)) readonly serviceD: any,
       ) {}
 
       onInit() {
@@ -127,7 +127,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
 
       onInit() {
@@ -141,7 +141,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceC)) readonly serviceC: ServiceC,
+        @Inject(Ref(() => ServiceC)) readonly serviceC: any,
       ) {}
 
       onInit() {
@@ -155,8 +155,8 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceC {
       constructor(
-        @Inject(Ref(() => ServiceD)) readonly serviceD: ServiceD,
-        @Inject(Ref(() => ServiceE)) readonly serviceE: ServiceE,
+        @Inject(Ref(() => ServiceD)) readonly serviceD: any,
+        @Inject(Ref(() => ServiceE)) readonly serviceE: any,
       ) {}
 
       onInit() {
@@ -185,7 +185,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceE {
       constructor(
-        @Inject(Ref(() => ServiceF)) readonly serviceF: ServiceF,
+        @Inject(Ref(() => ServiceF)) readonly serviceF: any,
       ) {}
 
       onInit() {
@@ -199,7 +199,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceF {
       constructor(
-        @Inject(Ref(() => ServiceG)) readonly serviceG: ServiceG,
+        @Inject(Ref(() => ServiceG)) readonly serviceG: any,
       ) {}
 
       onInit() {
@@ -260,7 +260,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
 
       onInit() {
@@ -274,7 +274,7 @@ describe('Circular refs', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
 
       onInit() {
@@ -308,7 +308,7 @@ describe('Circular refs', function() {
     })
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
 
       onInit() {
@@ -326,7 +326,7 @@ describe('Circular refs', function() {
     })
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
 
       onInit() {

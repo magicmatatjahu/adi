@@ -21,6 +21,7 @@ export const DestroyManager = new class {
     instance.def.values.delete(instance.ctx);
     removeInstanceRefs(instance);
     await this.destroyAll(event, instance.children && Array.from(instance.children));
+    instance.meta.hostInjector && await instance.meta.hostInjector.destroy();
   }
 
   async destroyAll(event: DestroyEvent, instances: InstanceRecord[] = []) {

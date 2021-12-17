@@ -333,7 +333,7 @@ describe('onDestroy', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
 
       onDestroy() {
@@ -344,7 +344,7 @@ describe('onDestroy', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
 
       onDestroy() {
@@ -385,7 +385,7 @@ describe('onDestroy', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
         readonly deepService: DeepService,
       ) {}
 
@@ -397,7 +397,7 @@ describe('onDestroy', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
         readonly deepService: DeepService,
       ) {}
 

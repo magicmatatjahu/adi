@@ -14,7 +14,7 @@ import { ProviderRecord } from "./provider";
 import { InjectorResolver } from "./resolver";
 
 import { pushWrapper, Wrapper } from "../utils/wrappers";
-import { DestroyInjector, UseExisting } from "../wrappers/internal";
+import { UseExisting } from "../wrappers/internal";
 import { InjectionKind } from "../enums";
 
 export const InjectorMetadata = new class {
@@ -58,8 +58,7 @@ export const InjectorMetadata = new class {
     let wrapper = options.useWrapper;
     const { imports, providers } = options as ClassProvider;
     if (imports || providers) {
-      factory = InjectorResolver.createInjectorFactory(factory, { imports, providers });
-      wrapper = pushWrapper(wrapper, DestroyInjector);
+      factory = InjectorResolver.createInjectorFactory(factory, imports, providers);
     }
 
     record.addDefinition(factory, this.getScopeShape(options.scope), undefined, wrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
@@ -86,11 +85,7 @@ export const InjectorMetadata = new class {
 
     if (isFactoryProvider(provider)) {
       const { useFactory, inject, imports, providers } = provider;
-      factory = InjectorResolver.createFactory(useFactory, inject || EMPTY_ARRAY);
-      if (imports || providers) {
-        factory = InjectorResolver.createInjectorFactory(factory, { imports, providers });
-        wrapper = pushWrapper(wrapper, DestroyInjector);
-      }
+      factory = InjectorResolver.createFactory(useFactory, inject || EMPTY_ARRAY, imports, providers);
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
@@ -103,11 +98,7 @@ export const InjectorMetadata = new class {
       proto = useClass;
 
       const injections = this.combineDependencies(inject, providerDef.injections, useClass);
-      factory = InjectorResolver.createProviderFactory(useClass, injections);
-      if (imports || providers) {
-        factory = InjectorResolver.createInjectorFactory(factory, { imports, providers });
-        wrapper = pushWrapper(wrapper, DestroyInjector);
-      }
+      factory = InjectorResolver.createProviderFactory(useClass, injections, imports, providers);
       
       const options = providerDef.options;
       if (options) {
@@ -248,13 +239,31 @@ export const InjectorMetadata = new class {
 
   // split this function to separate ones and optimize it
   combineDependencies(
+    toCombine: Array<InjectionItem>,
+    original: Array<InjectionArgument>,
+    target: Object,
+  ): Array<InjectionArgument>
+  combineDependencies(
     toCombine: Array<InjectionItem> | PlainInjections,
     original: InjectionArguments,
     target: Object,
-  ): InjectionArguments {
+  ): InjectionArguments
+  combineDependencies(
+    toCombine: Array<InjectionItem> | PlainInjections,
+    original: Array<InjectionArgument> | InjectionArguments,
+    target: Object,
+  ): Array<InjectionArgument> | InjectionArguments {
     if (toCombine === undefined) {
       return original;
     }
+
+    if (Array.isArray(original)) {
+      if (Array.isArray(toCombine)) {
+        return this.combineArrayDependencies(toCombine, original, InjectionKind.PARAMETER, target);
+      }
+      return this.combineArrayDependencies(toCombine.parameters, original, InjectionKind.PARAMETER, target, undefined, toCombine.override);
+    }
+
     const newDeps: InjectionArguments = {
       parameters: [...original.parameters],
       properties: { ...original.properties },

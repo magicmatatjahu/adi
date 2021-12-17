@@ -34,6 +34,7 @@ export class ProviderRecord<T = any> {
         def,
         status: InstanceStatus.UNKNOWN,
         scope,
+        meta: {},
         donePromise: undefined,
         doneResolve: undefined,
         // what is injected to instance

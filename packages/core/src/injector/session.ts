@@ -68,10 +68,10 @@ export class Session<T = any> {
     return this.options.scope;
   }
 
-  setScope<T>(scope: Scope<T>, options?: T) {
-    this.options.scope = this.options.scope || {} as ScopeShape;
-    this.options.scope.kind = scope;
-    this.options.scope.options = options;
+  setScope<T>(scope: Scope<T> | undefined, options?: T) {
+    const scopeShape = this.options.scope = this.options.scope || {} as ScopeShape;
+    scopeShape.kind = scope || scopeShape.kind;
+    scopeShape.options = options || scopeShape.options;
   }
 
   getAnnotations(): Annotations {
@@ -100,6 +100,7 @@ export class Session<T = any> {
     return (this.status & flag) > 0;
   }
 
+  // remove that method
   setSideEffect(sideEffect: boolean) {
     if (sideEffect === true) {
       this.status |= SessionStatus.SIDE_EFFECTS;
@@ -108,6 +109,7 @@ export class Session<T = any> {
     }
   }
 
+  // remove that method
   setAsync(async: boolean) {
     if (async === true) {
       this.status |= SessionStatus.ASYNC;
@@ -141,16 +143,7 @@ export class Session<T = any> {
     options: {
       provideIn: 'any',
       useWrapper: {
-        func: (newSession: Session, session: Session) => {
-          if (newSession instanceof Session) {
-            const parent = newSession.parent;
-            if (parent === undefined) {
-              throw new Error('Session provider can be only used in other providers');
-            }
-            newSession.setSideEffect(true);
-            return parent;
-          }
-
+        func: (session: Session) => {
           const parent = session.parent;
           if (parent === undefined) {
             throw new Error('Session provider can be only used in other providers');

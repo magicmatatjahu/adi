@@ -46,7 +46,7 @@ function handleOnInitCircular(instance: InstanceRecord, session: Session) {
   }
 }
 
-export function handleOnInit(instance: InstanceRecord, session: Session) {  
+export function handleOnInit(instance: InstanceRecord, session: Session) {
   if (session[SESSION_INTERNAL.CIRCULAR]) { // when resolution chain has circular reference
     handleOnInitCircular(instance, session);
   } else if (session.parent?.[SESSION_INTERNAL.CIRCULAR] === undefined) {

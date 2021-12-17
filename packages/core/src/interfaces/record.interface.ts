@@ -30,6 +30,7 @@ export interface InstanceRecord<T = any> {
   children?: Set<InstanceRecord>;
   // where instance is injected
   parents?: Set<InstanceRecord>;
+  meta: Record<string | symbol, any>;
 }
 
 export interface WrapperRecord {

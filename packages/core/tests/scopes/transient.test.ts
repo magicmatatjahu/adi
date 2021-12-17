@@ -166,7 +166,7 @@ describe('Transient scope', function () {
     })
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
     }
 
@@ -175,7 +175,7 @@ describe('Transient scope', function () {
     })
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
     }
 
@@ -202,7 +202,7 @@ describe('Transient scope', function () {
     })
     class ServiceA {
       constructor(
-        @Inject(Ref(() => ServiceB)) readonly serviceB: ServiceB,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
     }
 
@@ -211,7 +211,7 @@ describe('Transient scope', function () {
     })
     class ServiceB {
       constructor(
-        @Inject(Ref(() => ServiceA)) readonly serviceA: ServiceA,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
     }
 

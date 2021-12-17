@@ -13,7 +13,7 @@ export interface Wrapper {
   $$wr: object;
 }
 
-export function createWrapper<F extends (...args: any) => WrapperDef>(useWrapper: F, options: WrapperOptions): (...args: Parameters<F>) => Wrapper {
+export function createWrapper<F extends (...args: any) => WrapperDef>(useWrapper: F, options?: WrapperOptions): (...args: Parameters<F>) => Wrapper {
   return function(...args: any): Wrapper {
     return {
       func: useWrapper(...args),

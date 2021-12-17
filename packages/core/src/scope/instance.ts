@@ -11,7 +11,7 @@ export interface InstanceScopeOptions {
 
 const defaultOptions: InstanceScopeOptions = {
   reuseContext: true,
-  destroy: true,
+  destroy: false,
 }
 
 export class InstanceScope extends Scope<InstanceScopeOptions> {
@@ -65,7 +65,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
 
     // on function injection
     const metadata = this.instancesMetadata.get(ctx);
-    if (metadata && metadata.kind & InjectionKind.FUNCTION) {
+    if (metadata && metadata.kind & InjectionKind.FUNCTION && options.destroy) {
       this.instancesMetadata.delete(ctx);
       return true;
     }

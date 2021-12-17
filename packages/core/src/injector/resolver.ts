@@ -106,8 +106,10 @@ export const InjectorResolver = new class {
   createProviderFactory<T>(
     provider: Type<T>, 
     injections: InjectionArguments,
+    imports?: ModuleMetadata['imports'],
+    providers?: ModuleMetadata['providers'],
   ): FactoryDef<T> {
-    return (injector: Injector, session: Session) => {
+    let fn = (injector: Injector, session: Session) => {
       const deps = InjectorMetadata.combineDependencies(session.options.injections, injections, provider);
       if (session.status & SessionStatus.ASYNC) {
         return this.createProviderAsync(provider, injections, injector, session);
@@ -117,6 +119,10 @@ export const InjectorResolver = new class {
       this.injectMethods(instance, deps.methods, injector, session);
       return instance;
     }
+    if (imports || providers) {
+      fn = InjectorResolver.createInjectorFactory(fn, imports, providers);
+    }
+    return fn;
   }
 
   async createProviderAsync<T>(
@@ -131,44 +137,47 @@ export const InjectorResolver = new class {
     return instance;
   }
 
-  createFactory(
+  createFactory<T>(
     factory: Function,
-    deps: Array<InjectionItem>,
-  ) {
-    const convertedDeps = InjectorMetadata.convertDependencies(deps, InjectionKind.FUNCTION, factory);
-    return (injector: Injector, session: Session) => {
+    injections: Array<InjectionItem>,
+    imports?: ModuleMetadata['imports'],
+    providers?: ModuleMetadata['providers'],
+  ): FactoryDef<T> {
+    const convertedDeps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, factory);
+    let fn = (injector: Injector, session: Session) => {
+      // TODO: fix error related to overloading
+      const deps = (InjectorMetadata.combineDependencies as any)(session.options.injections, convertedDeps, factory);
       if (session.status & SessionStatus.ASYNC) {
-        return this.injectDepsAsync(convertedDeps, injector, session).then(args => factory(...args));
+        return this.injectDepsAsync(deps, injector, session).then(args => factory(...args));
       }
-      return factory(...this.injectDeps(convertedDeps, injector, session));
+      return factory(...this.injectDeps(deps, injector, session));
     }
+    if (imports || providers) {
+      fn = InjectorResolver.createInjectorFactory(fn, imports, providers);
+    }
+    return fn;
   }
 
   createInjectorFactory<T>(
     factory: FactoryDef<T>,
-    metadata: ModuleMetadata,
+    imports?: ModuleMetadata['imports'],
+    providers?: ModuleMetadata['providers'],
   ): FactoryDef<T> {
     return (injector: Injector, session: Session) => {
       return thenable(
-        () => this.createInjector(injector, session, metadata),
+        () => {
+          injector = Injector.create({ imports, providers }, injector, { disableExporting: true });
+          if (session.status & SessionStatus.ASYNC) {
+            return injector.buildAsync();
+          }
+          return injector.build();
+        },
         newInjector => {
-          (session.instance as any).injector = newInjector;
+          session.instance.meta.hostInjector = newInjector;
           return factory(newInjector, session) as any;
         },
       ) as unknown as T;
     }
-  }
-
-  createInjector(
-    injector: Injector,
-    session: Session,
-    metadata: ModuleMetadata,
-  ): Injector | Promise<Injector> {
-    injector = Injector.create(metadata, injector, { disableExporting: true });
-    if (session.status & SessionStatus.ASYNC) {
-      return injector.buildAsync();
-    }
-    return injector.build();
   }
 
   handleParallelInjection<T>(instance: InstanceRecord<T>, session: Session): T | Promise<T> {
@@ -214,7 +223,7 @@ function handleCircularInjection<T>(instance: InstanceRecord<T>, session: Sessio
   // add flag that resolution session has circular reference. 
   // `OnInitHook` wrapper will handle later this flag to run `onInit` hook in proper order 
   instance.value = Object.create(proto);
-  session.parent[SESSION_INTERNAL.CIRCULAR] = session.parent[SESSION_INTERNAL.CIRCULAR] || true;
+  session.parent[SESSION_INTERNAL.CIRCULAR] = session.parent[SESSION_INTERNAL.CIRCULAR] || [];
   session.parent[SESSION_INTERNAL.START_CIRCULAR] = instance;
   return instance.value;
 }
