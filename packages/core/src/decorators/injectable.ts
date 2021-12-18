@@ -3,6 +3,7 @@ import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
+import { CoreHook } from "../wrappers/internal";
 import { Wrapper } from "../utils/wrappers";
 import { InjectorMetadata } from "../injector";
 import { PRIVATE_METADATA, METADATA, EMPTY_ARRAY } from "../constants";
@@ -174,9 +175,9 @@ export function applyInjectionArg(
 
 export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrapper>, annotations: Annotations, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
   if (wrapper !== undefined) {
-    wrapper = Array.isArray(wrapper) ? [Cache(), ...wrapper] : [Cache(), wrapper];
+    wrapper = Array.isArray(wrapper) ? [Cache(), CoreHook(), ...wrapper] : [Cache(), CoreHook(), wrapper];
   } else {
-    wrapper = Cache();
+    wrapper = [Cache(), CoreHook()];
   }
 
   return {

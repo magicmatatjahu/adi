@@ -19,7 +19,8 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { AsyncDone, Multi, ProxyInstance } from "../wrappers";
+import { Multi } from "../wrappers";
+import { CoreHook } from "../wrappers/internal";
 import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
 
@@ -205,10 +206,20 @@ export class Injector {
    */
   // TODO: Add support for shared object as third argument (union with Session)
   get<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): T | undefined {
+    if (wrapper) {
+      wrapper = Array.isArray(wrapper) ? [CoreHook(), ...wrapper] : [CoreHook(), wrapper];
+    } else {
+      wrapper = CoreHook();
+    }
     return this.resolveToken(wrapper, session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE }));
   }
 
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): Promise<T | undefined> {
+    if (wrapper) {
+      wrapper = Array.isArray(wrapper) ? [CoreHook(), ...wrapper] : [CoreHook(), wrapper];
+    } else {
+      wrapper = CoreHook();
+    }
     session = session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE });
     session.status |= SessionStatus.ASYNC;
     return this.resolveToken(wrapper, session);
@@ -216,12 +227,6 @@ export class Injector {
 
   resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
     session.injector = this;
-    if (wrapper) {
-      wrapper = Array.isArray(wrapper) ? [ProxyInstance, AsyncDone, ...wrapper] : [ProxyInstance, AsyncDone, wrapper];
-    } else {
-      wrapper = [ProxyInstance, AsyncDone];
-    }
-
     if (wrapper !== undefined) {
       return runWrappers(wrapper, session, lastInjectionWrapper);
     }

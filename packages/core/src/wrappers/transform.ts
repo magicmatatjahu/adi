@@ -1,17 +1,15 @@
 import { InjectorResolver } from "../injector";
-import { InjectionItem } from "../interfaces";
+import { FunctionInjections } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
 import { DELEGATION } from "../constants";
-import { Delegate } from "./delegate";
 import { SessionStatus } from "../enums";
 
-interface TransformOptions {
+export interface TransformOptions extends FunctionInjections {
   transform: (...args: any[]) => any | Promise<any>;
-  inject?: Array<InjectionItem>;
 }
 
-export const Transform = createWrapper((transform: TransformOptions) => {
-  const factory = InjectorResolver.createFactory(transform.transform, transform.inject || [Delegate()]);
+export const Transform = createWrapper((options: TransformOptions) => {
+  const transform = InjectorResolver.createFunction(options.transform, options, true);
 
   return (session, next) => {
     if (session.status & SessionStatus.DRY_RUN) {
@@ -26,13 +24,14 @@ export const Transform = createWrapper((transform: TransformOptions) => {
       value => {
         // mark session with side effect
         session.setSideEffect(false);
+
         // add delegation
-        forkedSession[DELEGATION.KEY] = {
-          type: 'single',
-          values: value,
-        };
+        forkedSession.meta[DELEGATION.KEY] = {
+          [options.delegationKey || DELEGATION.DEFAULT]: value,
+        }
+
         return thenable(
-          () => factory(forkedSession.injector, forkedSession),
+          () => transform(forkedSession.injector, forkedSession),
           transformedValue => transformedValue,
         );
       }

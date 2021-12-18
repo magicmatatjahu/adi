@@ -1,12 +1,13 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem, ModuleMetadata } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem, ModuleMetadata, FunctionInjections } from "../interfaces";
 import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
 import { Wrapper, thenable } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
-import { SESSION_INTERNAL } from "../constants";
+import { DELEGATION, SESSION_INTERNAL } from "../constants";
 import { DestroyManager } from "./destroy-manager";
+import { Delegate } from "..";
 
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
@@ -61,11 +62,6 @@ export const InjectorResolver = new class {
     return Promise.all(args) as unknown as Promise<void>;
   }
 
-  injectMethodArgument<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): [T | undefined | Promise<T | undefined>, Session] {
-    const newSession = Session.create(token, meta, parentSession);
-    return [injector.resolveToken(wrapper, newSession), newSession];
-  }
-
   injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, parentSession: Session): void {
     const isAsync = parentSession.status & SessionStatus.ASYNC;
     for (const name in methods) {
@@ -80,14 +76,14 @@ export const InjectorResolver = new class {
         for (let i = 0, l = methodDeps.length; i < l; i++) {
           args[i] = args[i] || cachedDeps[i];
           if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            const [v, s] = this.injectMethodArgument(injector, methodProp.token, methodProp.wrapper, methodProp.metadata, parentSession);
-            args[i] = v;
+            const argSession = Session.create(methodProp.token, methodProp.metadata, parentSession);
+            const value = args[i] = injector.resolveToken(methodProp.wrapper, argSession);
             
             // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
-            if (s.status & SessionStatus.SIDE_EFFECTS) {
-              (toRemove || (toRemove = [])).push(s.instance);
+            if (argSession.status & SessionStatus.SIDE_EFFECTS) {
+              (toRemove || (toRemove = [])).push(argSession.instance);
             } else {
-              cachedDeps[i] = v;
+              cachedDeps[i] = value;
             }
           }
         }
@@ -109,7 +105,7 @@ export const InjectorResolver = new class {
     imports?: ModuleMetadata['imports'],
     providers?: ModuleMetadata['providers'],
   ): FactoryDef<T> {
-    let fn = (injector: Injector, session: Session) => {
+    let factory = (injector: Injector, session: Session) => {
       const deps = InjectorMetadata.combineDependencies(session.options.injections, injections, provider);
       if (session.status & SessionStatus.ASYNC) {
         return this.createProviderAsync(provider, injections, injector, session);
@@ -120,9 +116,9 @@ export const InjectorResolver = new class {
       return instance;
     }
     if (imports || providers) {
-      fn = InjectorResolver.createInjectorFactory(fn, imports, providers);
+      factory = InjectorResolver.createInjectorFactory(factory, imports, providers);
     }
-    return fn;
+    return factory;
   }
 
   async createProviderAsync<T>(
@@ -137,25 +133,39 @@ export const InjectorResolver = new class {
     return instance;
   }
 
+  createFunction<T>(
+    fn: Function,
+    options: FunctionInjections = {},
+    withValue: boolean = false,
+  ): FactoryDef<T> {
+    let { inject = [], withDelegation, delegationKey } = options;
+    if (withValue && !withDelegation) {
+      inject = [Delegate(delegationKey || DELEGATION.DEFAULT), ...inject]
+    }
+    return this.createFactory(fn, inject, options.imports, options.providers);
+  }
+
   createFactory<T>(
-    factory: Function,
+    fn: Function,
     injections: Array<InjectionItem>,
     imports?: ModuleMetadata['imports'],
     providers?: ModuleMetadata['providers'],
   ): FactoryDef<T> {
-    const convertedDeps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, factory);
-    let fn = (injector: Injector, session: Session) => {
-      // TODO: fix error related to overloading
-      const deps = (InjectorMetadata.combineDependencies as any)(session.options.injections, convertedDeps, factory);
-      if (session.status & SessionStatus.ASYNC) {
-        return this.injectDepsAsync(deps, injector, session).then(args => factory(...args));
-      }
-      return factory(...this.injectDeps(deps, injector, session));
+    const convertedDeps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fn);
+    let factory = (injector: Injector, session: Session) => {
+      const deps = (InjectorMetadata.combineDependencies as any)(session.options.injections, convertedDeps, fn);
+      return thenable(
+        () => session.status & SessionStatus.ASYNC ? this.injectDepsAsync(deps, injector, session).then(args => fn(...args)) : fn(...this.injectDeps(deps, injector, session)),
+        value => {
+          DestroyManager.destroyAll('default', session.meta?.toDestroy);
+          return value;
+        }
+      );
     }
     if (imports || providers) {
-      fn = InjectorResolver.createInjectorFactory(fn, imports, providers);
+      factory = InjectorResolver.createInjectorFactory(factory, imports, providers);
     }
-    return fn;
+    return factory;
   }
 
   createInjectorFactory<T>(

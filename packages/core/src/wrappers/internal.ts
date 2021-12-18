@@ -1,8 +1,68 @@
-import { SessionStatus } from "../enums";
+import { Session } from "../injector";
+import { InjectionKind, SessionStatus } from "../enums";
 import { ProxyObject, RequestShape } from "../scope/request";
 import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";
+
+function coreHook<T>(value: T, session: Session): T {
+  const instance = session.instance;
+
+  // async resolution
+  if (instance && instance.doneResolve) {
+    instance.doneResolve(value);
+  }
+
+  // collect instances to destroy
+  if (
+    session.metadata?.kind & InjectionKind.FUNCTION &&
+    session.status & SessionStatus.SIDE_EFFECTS &&
+    session.parent 
+  ) {
+    const toDestroy = session.parent.meta.toDestroy = session.parent.meta.toDestroy || [];
+    toDestroy.push(session.instance);
+  }
+
+  // without proxies
+  if (
+    session.parent ||
+    session.definition?.meta.proxyInstances === undefined
+  ) {
+    return value;
+  }
+
+  // with proxies
+  const proxies = session.definition.meta.proxyInstances as Array<RequestShape>;
+  const services = [];
+  for (let i = 0, l = proxies.length; i < l; i++) {
+    const proxy = proxies[i];
+    services.push({
+      name: proxy.name,
+      def: proxy.def,
+      value: proxy.factory(),
+    });
+  }
+  while (proxies.length !== services.length) {
+    for (let i = services.length, l = proxies.length; i < l; i++) {
+      const proxy = proxies[i];
+      services.push({
+        name: proxy.name,
+        def: proxy.def,
+        value: proxy.factory(),
+      });
+    }
+  }
+  return createProxy(value, services);
+}
+
+export const CoreHook = createWrapper(() => {
+  return (session, next) => {
+    return thenable(
+      () => next(session),
+      value => coreHook(value, session),
+    );
+  };
+});
 
 export const AsyncDone = createWrapper(() => {
   return (session, next) => {
@@ -10,8 +70,8 @@ export const AsyncDone = createWrapper(() => {
       () => next(session),
       value => {
         const instance = session.instance;
-        if (instance) {
-          instance.doneResolve && instance.doneResolve(value);
+        if (instance && instance.doneResolve) {
+          instance.doneResolve(value);
         }
         return value;
       },

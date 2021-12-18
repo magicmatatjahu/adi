@@ -8,7 +8,7 @@
     "noLib": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "target": "es5",
+    "target": "ES2015",
     "sourceMap": false,
     "allowJs": true,
     "outDir": "lib",

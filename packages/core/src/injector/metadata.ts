@@ -84,8 +84,7 @@ export const InjectorMetadata = new class {
     }
 
     if (isFactoryProvider(provider)) {
-      const { useFactory, inject, imports, providers } = provider;
-      factory = InjectorResolver.createFactory(useFactory, inject || EMPTY_ARRAY, imports, providers);
+      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY, provider.imports, provider.providers);
     } else if (isValueProvider(provider)) {
       factory = () => provider.useValue;
     } else if (isExistingProvider(provider)) {
@@ -200,8 +199,9 @@ export const InjectorMetadata = new class {
     if (isWrapper(dep)) {
       return createInjectionArg(undefined, dep, undefined, kind, target, propertyKey, index);
     }
-    if ((dep as any).token !== undefined) {
-      return createInjectionArg((dep as PlainInjectionItem).token, (dep as PlainInjectionItem).wrapper, (dep as PlainInjectionItem).annotations, kind, target, propertyKey, index);
+    if ((dep as PlainInjectionItem).token !== undefined) {
+      const plainDep = dep as PlainInjectionItem;
+      return createInjectionArg(plainDep.token, plainDep.wrapper, plainDep.annotations, kind, target, propertyKey, index);
     }
     return createInjectionArg(dep as Token, undefined, undefined, kind, target, propertyKey, index);
   }
@@ -234,7 +234,6 @@ export const InjectorMetadata = new class {
       }
     }
     return newDeps;
-
   }
 
   // split this function to separate ones and optimize it

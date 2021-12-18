@@ -14,10 +14,7 @@ function wrapper(session: Session, next: NextWrapper) {
     const newSession = oldSession.fork();
     if (Array.isArray(args) && args.length > 0) {
       // add delegation
-      newSession[DELEGATION.KEY] = {
-        type: 'multiple',
-        values: args,
-      };
+      newSession.meta[DELEGATION.KEY] = args;
       return next(newSession);
     }
     return next(newSession);

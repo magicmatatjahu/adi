@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Decorate, Delegate, Fallback, createWrapper, Module } from "../../src";
+import { Injector, Injectable, Inject, Decorate, Delegate, Fallback, createWrapper, Module, DecorateOptions } from "../../src";
 
 describe('Decorate wrapper', function () {
   test('should decorate provider (injection based useWrapper) - function decorator case', function () {
@@ -11,7 +11,6 @@ describe('Decorate wrapper', function () {
 
     const functionDecorator = {
       decorate(decoratee: TestService) { return decoratee.method() + 'bar' },
-      inject: [Delegate()],
     };
 
     @Injectable()
@@ -30,7 +29,7 @@ describe('Decorate wrapper', function () {
     expect(service.service).toEqual('foobar');
   });
 
-  test('should decorate provider (injection based useWrapper) - function decorator case with Delegate wrapper as second argument in inject array', function () {
+  test('should decorate provider (injection based useWrapper) - function decorator case with Delegate wrapper as second argument in inject array (custom delegation)', function () {
     @Injectable()
     class TestService {
       method() {
@@ -38,9 +37,10 @@ describe('Decorate wrapper', function () {
       }
     }
 
-    const functionDecorator = {
+    const functionDecorator: DecorateOptions = {
       decorate(bar: string, decoratee: TestService) { return bar + decoratee.method() },
       inject: ['bar', Delegate()],
+      withDelegation: true,
     };
 
     @Injectable()
@@ -78,14 +78,15 @@ describe('Decorate wrapper', function () {
       }
     }
 
-    const decorator1 = {
+    const decorator1: DecorateOptions = {
       decorate(service: AwesomeService, decoratee: TestService) { return decoratee.method() + 'bar' + service.addAwesome() },
       inject: [AwesomeService, Delegate()],
+      withDelegation: true,
     };
 
     const decorator2 = {
       decorate(value: string, exclamation: string) { return `(${value + exclamation})` },
-      inject: [Delegate(), 'exclamation'],
+      inject: ['exclamation'],
     };
 
     @Injectable()
@@ -458,7 +459,7 @@ describe('Decorate wrapper', function () {
         useValue: 'foobar',
         useWrapper: Decorate({
           decorate(decoratee: string, exclamation: string) { return decoratee + exclamation; },
-          inject: [Delegate(), 'exclamation'],
+          inject: ['exclamation'],
         }),
       },
       {

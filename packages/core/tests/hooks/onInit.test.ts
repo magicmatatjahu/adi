@@ -254,7 +254,8 @@ describe('onInit', function() {
           checkInit = true;
         } 
       },
-      inject: ['foobar', Delegate()]
+      inject: ['foobar', Delegate()],
+      withDelegation: true,
     }
 
     @Injectable({

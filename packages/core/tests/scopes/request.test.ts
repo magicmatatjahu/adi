@@ -1,6 +1,6 @@
 import { Injector, Injectable, Scope, Inject } from "../../src";
 
-describe('Default scope', function () {
+describe('Request scope', function () {
   test('should create new instance by each resolution', function () {
     @Injectable({
       scope: Scope.REQUEST,

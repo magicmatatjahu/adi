@@ -34,6 +34,7 @@ export enum METADATA {
 
 export const DELEGATION = {
   KEY: '@adi/delegation',
+  DEFAULT: '$$default',
 };
 
 export const ALWAYS_CONSTRAINT = () => true;

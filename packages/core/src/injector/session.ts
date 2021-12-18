@@ -31,6 +31,7 @@ export class Session<T = any> {
   public status: SessionStatus = SessionStatus.NONE;
   public injector: Injector;
   public shared: any;
+  public meta: any;
 
   constructor(
     public record: ProviderRecord<T>,
@@ -46,6 +47,7 @@ export class Session<T = any> {
       this.shared = parent.shared;
     }
     this.shared = {};
+    this.meta = {};
   }
 
   getToken(): Token {
@@ -131,6 +133,7 @@ export class Session<T = any> {
   fork(): Session {
     const newOptions: InjectionOptions = { ...this.options, annotations: { ...this.options.annotations } };
     const newSession = new Session(this.record, this.definition, this.instance, newOptions, this.metadata, this.parent);
+    newSession.meta = { ...newSession.meta };
     newSession.status = this.status;
     newSession.injector = this.injector;
     newSession.shared = this.shared;

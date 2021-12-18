@@ -3,10 +3,7 @@ import { DELEGATION } from "../constants";
 
 export const Delegations = createWrapper((delegations: Record<string | symbol, any>) => {
   return (session, next) => {
-    session[DELEGATION.KEY] = {
-      type: 'multiple',
-      values: delegations,
-    };
+    session.meta[DELEGATION.KEY] = delegations;
     return next(session);
   }
 }, { name: "Delegations" });

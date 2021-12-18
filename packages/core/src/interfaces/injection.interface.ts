@@ -52,8 +52,10 @@ export interface PlainInjections {
   override?: (injectionArg: InjectionArgument) => InjectionItem | undefined;
 }
 
-export interface StandaloneInjections {
+export interface FunctionInjections {
   inject?: Array<InjectionItem>;
   imports?: ModuleMetadata['imports'];
   providers?: ModuleMetadata['providers'];
+  withDelegation?: boolean;
+  delegationKey?: string | symbol | number;
 }

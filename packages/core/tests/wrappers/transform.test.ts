@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Delegate, Transform } from "../../src";
+import { Injector, Injectable, Inject, Delegate, Transform, TransformOptions } from "../../src";
 
 describe('Transform wrapper', function () {
   test('should transform returned value (injection based useWrapper)', function () {
@@ -11,7 +11,6 @@ describe('Transform wrapper', function () {
 
     const transformer = {
       transform(value: TestService) { return value.method() + 'bar' },
-      inject: [Delegate()],
     };
 
     @Injectable()
@@ -30,7 +29,7 @@ describe('Transform wrapper', function () {
     expect(service.service).toEqual('foobar');
   });
 
-  test('should transform returned value (injection based useWrapper) - case with Delegate wrapper as second argument in inject array', function () {
+  test('should transform returned value (injection based useWrapper) - case with Delegate wrapper as second argument in inject array (custom delegation)', function () {
     @Injectable()
     class TestService {
       method() {
@@ -38,9 +37,10 @@ describe('Transform wrapper', function () {
       }
     }
 
-    const transformer = {
+    const transformer: TransformOptions = {
       transform(bar: string, value: TestService) { return bar + value.method() },
       inject: ['bar', Delegate()],
+      withDelegation: true,
     };
 
     @Injectable()
@@ -78,14 +78,15 @@ describe('Transform wrapper', function () {
       }
     }
 
-    const transformer1 = {
+    const transformer1: TransformOptions = {
       transform(service: AwesomeService, decoratee: TestService) { return decoratee.method() + 'bar' + service.addAwesome() },
       inject: [AwesomeService, Delegate()],
+      withDelegation: true,
     }
 
     const transformer2 = {
       transform(value: string, exclamation: string) { return `(${value + exclamation})` },
-      inject: [Delegate(), 'exclamation'],
+      inject: ['exclamation'],
     }
 
     @Injectable()
@@ -153,7 +154,7 @@ describe('Transform wrapper', function () {
         useValue: 'foobar',
         useWrapper: Transform({
           transform(value: string, exclamation: string) { return value + exclamation; },
-          inject: [Delegate(), 'exclamation'],
+          inject: ['exclamation'],
         }),
       },
       {

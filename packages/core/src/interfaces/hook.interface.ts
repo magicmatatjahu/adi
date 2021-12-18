@@ -1,4 +1,4 @@
-import { InjectionItem } from "./injection.interface";
+import { FunctionInjections } from "./injection.interface";
 
 export interface OnInit {
   onInit(): void | Promise<void>;
@@ -6,7 +6,7 @@ export interface OnInit {
 
 export type StandaloneOnInit<T = any> = 
   | ((value: T) => void | Promise<void>)
-  | { onInit: (...args: any[]) => void | Promise<void>, inject: Array<InjectionItem> };
+  | { onInit: (...args: any[]) => void | Promise<void> } & FunctionInjections;
 
 export interface OnDestroy {
   onDestroy(): void | Promise<void>;
@@ -14,6 +14,6 @@ export interface OnDestroy {
 
 export type StandaloneOnDestroy<T = any> = 
   | ((value: T) => void | Promise<void>)
-  | { onDestroy: (...args: any[]) => void | Promise<void>, inject: Array<InjectionItem> };
+  | { onDestroy: (...args: any[]) => void | Promise<void> } & FunctionInjections;
 
 export type DestroyEvent = 'default' | 'injector' | 'manually';

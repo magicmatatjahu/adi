@@ -2,32 +2,30 @@ import { Session } from "../injector";
 import { NULL_REF, DELEGATION } from "../constants";
 import { createWrapper } from "../utils/wrappers";
 
-interface DelegateOptions {
-  type: 'single' | 'multiple',
-  values: object;
-}
+// interface DelegateOptions {
+//   type: 'single' | 'multiple',
+//   values: object;
+// }
 
 function retrieveDeepSessionMetadata(session: Session, key: string) {
-  while (session.hasOwnProperty(key) === false && session.parent) {
-    session = session.parent || NULL_REF as any;
+  while (session.meta?.[DELEGATION.KEY] === undefined && session.parent) {
+    session = session.parent;
   }
-  if (session.hasOwnProperty(key)) {
-    return session[key];
-  }
-  return NULL_REF;
+  return session.meta?.[DELEGATION.KEY]
 }
 
-export const Delegate = createWrapper((arg?: string | number) => {
+export const Delegate = createWrapper((key: string | symbol | number = DELEGATION.DEFAULT) => {
   return function(session, next) {
     const delegate = retrieveDeepSessionMetadata(session, DELEGATION.KEY);
-
+    
     // delegate isn't set
-    if (delegate === NULL_REF) {
+    if (delegate === undefined) {
       return next(session);
     }
 
     session.setSideEffect(true);
-    const { type, values } = delegate as DelegateOptions;
-    return type === 'single' ? values : values[arg];
+    return delegate[key];
+    // const { type, values } = delegate as DelegateOptions;
+    // return type === 'single' ? values : values[key];
   }
 }, { name: "Delegate" });
