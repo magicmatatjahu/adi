@@ -275,4 +275,49 @@ describe('onInit', function() {
     expect(service).toBeInstanceOf(Service);
     expect(checkInit).toEqual(true);
   });
+
+  test('should works in async mode', async function() {
+    const order: number[] = [];
+
+    async function hook1(value: string) {
+      if (value === 'value from factory') {
+        order.push(1);
+      }
+    }
+    function hook2(value: string) {
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          if (value === 'value from factory') {
+            order.push(2);
+          }
+          resolve();
+        }, 20);
+      });
+    }
+    async function hook3(value: string) {
+      if (value === 'value from factory') {
+        order.push(3);
+      }
+    }
+
+    const injector = new Injector([
+      {
+        provide: 'foobar',
+        useFactory: () => {
+          return 'value from factory';
+        },
+        useWrapper: [
+          OnInitHook(hook3), 
+          OnInitHook(hook2), 
+          OnInitHook(hook1),
+        ],
+      }
+    ]);
+
+    await injector.getAsync('foobar');
+    await injector.getAsync('foobar');
+    const foobar = await injector.getAsync('foobar');
+    expect(foobar).toEqual('value from factory');
+    expect(order).toEqual([1, 2, 3]);
+  });
 });

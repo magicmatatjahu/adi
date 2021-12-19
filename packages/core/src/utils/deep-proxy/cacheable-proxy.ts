@@ -12,9 +12,9 @@ import {
   DeepProxyConstructor,
 } from './interface'
 
-import { getFromCache } from './cache'
+import { addToCache, getFromCache } from './cache'
 
-export const DEFAULT = Symbol('deep-proxy:default')
+export const DEFAULT = Symbol('default')
 
 const trapNames = Object.keys(
   Object.getOwnPropertyDescriptors(Reflect),
@@ -121,6 +121,7 @@ export const createDeepProxy: TProxyFactory = function <T extends TTarget>(
   {
     path,
     root,
+    cache,
   }: TProxyFactoryOptions = {}
 ) {
   checkTarget(target)
@@ -130,10 +131,17 @@ export const createDeepProxy: TProxyFactory = function <T extends TTarget>(
   const _path = path || _this.path || []
   const _root = _this.root || root || target
 
+  if (cache) {
+    const _proxy = getFromCache(_root, target, _path);
+    if (_proxy) return _proxy;
+  }
+
   const traps = createTraps(_handler, _root, _path)
   const proxy = new Proxy(target, traps)
 
-  return proxy;
+  addToCache(_root, target, _path, traps, proxy)
+
+  return proxy
 }
 
 export const DeepProxy = class<T extends TTarget> {
@@ -144,4 +152,4 @@ export const DeepProxy = class<T extends TTarget> {
   ) {
     return createDeepProxy(target, handler, options)
   }
-} as DeepProxyConstructor;
+} as DeepProxyConstructor

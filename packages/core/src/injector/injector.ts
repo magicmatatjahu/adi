@@ -19,7 +19,7 @@ import { InjectorMetadata } from "./metadata";
 import { InjectorResolver } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
-import { Multi } from "../wrappers";
+import { All } from "../wrappers";
 import { CoreHook } from "../wrappers/internal";
 import { NilInjectorError } from "../errors";
 import { DestroyManager } from "./destroy-manager";
@@ -81,7 +81,7 @@ export class Injector {
 
     this.addProviders([
       { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: Multi({ inheritance: 1 }) }
+      { provide: MODULE_INITIALIZERS, useWrapper: All({ inheritance: 1 }) }
     ]);
   }
 
@@ -211,7 +211,7 @@ export class Injector {
     } else {
       wrapper = CoreHook();
     }
-    return this.resolveToken(wrapper, session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE }));
+    return this.resolveToken(wrapper, session || Session.createStandalone(token, this));
   }
 
   async getAsync<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>, session?: Session): Promise<T | undefined> {
@@ -220,7 +220,7 @@ export class Injector {
     } else {
       wrapper = CoreHook();
     }
-    session = session || Session.create(token, { target: this, kind: InjectionKind.STANDALONE });
+    session = session || Session.createStandalone(token, this);
     session.status |= SessionStatus.ASYNC;
     return this.resolveToken(wrapper, session);
   }
@@ -344,15 +344,19 @@ export class Injector {
 
     instance.status |= InstanceStatus.PENDING;
     return thenable(
-      () => scope.kind.create(session, scope.options), // session.definition.factory(session.record.host, session) as T,
+      () => scope.kind.create(session, scope.options),
       value => {
         if (instance.status & InstanceStatus.CIRCULAR) {
           value = Object.assign(instance.value, value);
         }
         instance.value = value;
-        handleOnInit(instance, session);
-        instance.status |= InstanceStatus.RESOLVED;
-        return instance.value;
+        return thenable(
+          () => handleOnInit(instance, session),
+          () => {
+            instance.status |= InstanceStatus.RESOLVED;
+            return instance.value;
+          }
+        );
       }
     ) as unknown as T;
   }

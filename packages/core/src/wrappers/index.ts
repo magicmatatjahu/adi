@@ -11,7 +11,7 @@ export * from "./inquirer";
 export * from "./internal";
 export * from "./lazy";
 export * from "./memo";
-export * from "./multi";
+export * from "./all";
 export * from "./named";
 export * from "./new";
 export * from "./on-init";

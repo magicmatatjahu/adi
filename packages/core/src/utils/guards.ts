@@ -4,7 +4,6 @@ import {
   FactoryProvider,
   WrapperProvider,
   ValueProvider,
-  // CustomProvider,
   OnInit,
   OnDestroy,
   DynamicModule,

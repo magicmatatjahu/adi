@@ -3,7 +3,6 @@ import { isPromiseLike } from "./guards";
 const noopThen = <T>(value: T) => { return value; }
 const noopCatch = (err: unknown) => { throw err; }
 
-// TODO: Improve Return type
 export function thenable<T>(
   action: () => T,
   thenAction: (value: Exclude<T, PromiseLike<T>>) => T | never = noopThen,

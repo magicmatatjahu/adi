@@ -48,7 +48,7 @@ function getDefinitions(
   return defs.sort(compareOrder);
 }
 
-export const Multi = createWrapper((options: MultiOptions = {}) => {
+export const All = createWrapper((options: MultiOptions = {}) => {
   return (session, next) => {
     if (session.status & SessionStatus.DRY_RUN) {
       return next(session);
@@ -101,4 +101,4 @@ export const Multi = createWrapper((options: MultiOptions = {}) => {
     }
     return isAsync ? Promise.all(values) : values;
   }
-}, { name: 'Multi' });
+}, { name: 'All' });

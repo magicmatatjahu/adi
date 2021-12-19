@@ -1,11 +1,15 @@
 import { Session } from "../injector";
 import { InstanceRecord } from "../interfaces";
-import { InjectionKind, InstanceStatus } from "../enums";
+import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
 import { SESSION_INTERNAL, DELEGATION } from "../constants";
 import { hasOnInitHook } from ".";
 import { hasOnDestroyHook } from "./guards";
 
 function runInitHook(instance: InstanceRecord, session: Session) {
+  if (session.status & SessionStatus.ASYNC) {
+    return runInitHookAsync(instance, session);
+  }
+
   const value = instance.value;
   hasOnInitHook(value) && value.onInit();
   if (!session.meta.initHooks) return;
@@ -20,6 +24,25 @@ function runInitHook(instance: InstanceRecord, session: Session) {
       [hook.delegationKey || DELEGATION.DEFAULT]: value,
     };
     hook.onInit(injector, newSession);
+  }
+  delete session.meta.initHooks;
+}
+
+async function runInitHookAsync(instance: InstanceRecord, session: Session) {
+  const value = instance.value;
+  hasOnInitHook(value) && await value.onInit();
+  if (!session.meta.initHooks) return;
+
+  const hooks = session.meta.initHooks;
+  const injector = instance.def.record.host;
+  for (let i = hooks.length - 1; i > -1; i--) {
+    const hook = hooks[i];
+    const newSession = session.fork();
+    // add delegation
+    newSession.meta[DELEGATION.KEY] = {
+      [hook.delegationKey || DELEGATION.DEFAULT]: value,
+    };
+    await hook.onInit(injector, newSession);
   }
   delete session.meta.initHooks;
 }
@@ -47,9 +70,9 @@ function handleOnInitCircular(instance: InstanceRecord, session: Session) {
 
 export function handleOnInit(instance: InstanceRecord, session: Session) {
   if (session[SESSION_INTERNAL.CIRCULAR]) { // when resolution chain has circular reference
-    handleOnInitCircular(instance, session);
+    return handleOnInitCircular(instance, session);
   } else if (session.parent?.[SESSION_INTERNAL.CIRCULAR] === undefined) {
-    runInitHook(instance, session);
+    return runInitHook(instance, session);
   }
 }
 

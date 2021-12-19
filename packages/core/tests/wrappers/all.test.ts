@@ -1,6 +1,6 @@
-import { Injector, Injectable, Inject, Module, Multi, Named, Path, when, ANNOTATIONS } from "../../src";
+import { Injector, Injectable, Inject, Module, All, Named, Path, when, ANNOTATIONS } from "../../src";
 
-describe('Multi wrapper', function () {
+describe('All wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
     @Injectable()
     class MultiProvider extends Array<string> {}
@@ -16,7 +16,7 @@ describe('Multi wrapper', function () {
       Service,
       {
         provide: MultiProvider,
-        useWrapper: Multi(),
+        useWrapper: All(),
       },
       {
         provide: MultiProvider,
@@ -43,7 +43,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(Multi()) readonly multi: MultiProvider,
+        @Inject(All()) readonly multi: MultiProvider,
       ) {}
     }
 
@@ -82,7 +82,7 @@ describe('Multi wrapper', function () {
       Service,
       {
         provide: MultiProvider,
-        useWrapper: Multi(),
+        useWrapper: All(),
       },
       {
         provide: MultiProvider,
@@ -109,7 +109,7 @@ describe('Multi wrapper', function () {
     class Service {
       constructor(
         @Inject('token', [
-          Multi(),
+          All(),
           Named('multi'),
         ])
         readonly multi: Array<string>,
@@ -146,7 +146,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi({ metaKey: "metaKey" })) readonly multi: Array<string>,
+        @Inject('token', All({ metaKey: "metaKey" })) readonly multi: Array<string>,
       ) {}
     }
 
@@ -184,7 +184,7 @@ describe('Multi wrapper', function () {
     class Service {
       constructor(
         @Inject('token', [
-          Multi({ metaKey: "metaKey" }),
+          All({ metaKey: "metaKey" }),
           Named('multi'), 
         ]) 
         readonly multi: Array<string>,
@@ -245,7 +245,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -289,7 +289,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -323,7 +323,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi({ metaKey: "metaKey" })) readonly multi: Array<string>,
+        @Inject('token', All({ metaKey: "metaKey" })) readonly multi: Array<string>,
       ) {}
     }
 
@@ -366,7 +366,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -412,7 +412,7 @@ describe('Multi wrapper', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', Multi()) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -497,7 +497,7 @@ describe('Multi wrapper', function () {
     class Service {
       constructor(
         @Inject('token', [
-          Multi(),
+          All(),
           Named('multi'),
         ]) 
         readonly multi: Array<string>,

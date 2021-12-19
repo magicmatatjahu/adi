@@ -1,11 +1,11 @@
 import { Session } from "../injector";
 import { InjectionKind, SessionStatus } from "../enums";
-import { ProxyObject, RequestShape } from "../scope/request";
+import { ProxyRecord, ProxyInstance, ProxyPlaceholder } from "../scope/request";
 import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";
 
-function coreHook<T>(value: T, session: Session): T {
+function coreHook<T>(value: T, session: Session): any {
   const instance = session.instance;
 
   // async resolution
@@ -26,33 +26,48 @@ function coreHook<T>(value: T, session: Session): T {
   // without proxies
   if (
     session.parent ||
-    session.definition?.meta.proxyInstances === undefined
+    session.definition?.meta.proxies === undefined
   ) {
     return value;
   }
 
   // with proxies
-  const proxies = session.definition.meta.proxyInstances as Array<RequestShape>;
-  const services = [];
-  for (let i = 0, l = proxies.length; i < l; i++) {
-    const proxy = proxies[i];
-    services.push({
-      name: proxy.name,
-      def: proxy.def,
-      value: proxy.factory(),
-    });
-  }
-  while (proxies.length !== services.length) {
-    for (let i = services.length, l = proxies.length; i < l; i++) {
+  const proxies = session.definition.meta.proxies as Array<ProxyRecord>;
+  const instances: ProxyInstance[] = [];
+  session.shared.proxies = [];
+  while (proxies.length !== instances.length) {
+    for (let i = instances.length, l = proxies.length; i < l; i++) {
       const proxy = proxies[i];
-      services.push({
-        name: proxy.name,
+      instances.push({
+        id: proxy.id,
         def: proxy.def,
-        value: proxy.factory(),
+        value: proxy.factory(session.shared),
       });
     }
   }
-  return createProxy(value, services);
+  if (session.status & SessionStatus.ASYNC) {
+    return thenable(
+      () => Promise.all(instances.map(async instance => {
+        return { ...instance, value: await value };
+      })),
+      values => createProxy(value, values as any)
+    );
+  }
+  return createProxy(value, instances);
+}
+
+function createProxy(instanceValue: any, services: ProxyInstance[]) {
+  return new DeepProxy(instanceValue, ({ value, DEFAULT, PROXY }) => {
+    if (value instanceof ProxyPlaceholder) {
+      const service = services.find(s => s.id === value.id && s.def === value.def).value;
+      // console.log(service)
+      return createProxy(service, services);
+    }
+    if (typeof value === 'object' && value !== null) {
+      return PROXY;
+    }
+    return DEFAULT;
+  });
 }
 
 export const CoreHook = createWrapper(() => {
@@ -133,54 +148,40 @@ export const Internal = createWrapper((inject: 'session' | 'record' | 'definitio
   }
 }, { name: 'Internal' });
 
-export const ProxyInstance = createWrapper(() => {
-  return (session, next) => {
-    return thenable(
-      () => next(session),
-      instanceValue => {
-        if (
-          session.parent ||
-          session.definition?.meta.proxyInstances === undefined
-        ) {
-          return instanceValue;
-        }
+// export const ProxyInstance = createWrapper(() => {
+//   return (session, next) => {
+//     return thenable(
+//       () => next(session),
+//       instanceValue => {
+//         if (
+//           session.parent ||
+//           session.definition?.meta.proxyInstances === undefined
+//         ) {
+//           return instanceValue;
+//         }
 
-        const proxies = session.definition.meta.proxyInstances as Array<RequestShape>;
-        const services = [];
-        for (let i = 0, l = proxies.length; i < l; i++) {
-          const proxy = proxies[i];
-          services.push({
-            name: proxy.name,
-            def: proxy.def,
-            value: proxy.factory(),
-          });
-        }
-        while (proxies.length !== services.length) {
-          for (let i = services.length, l = proxies.length; i < l; i++) {
-            const proxy = proxies[i];
-            services.push({
-              name: proxy.name,
-              def: proxy.def,
-              value: proxy.factory(),
-            });
-          }
-        }
-        return createProxy(instanceValue, services);
-      }
-    );
-  }
-}, { name: 'ProxyInstance' })();
-
-function createProxy(instanceValue: any, services: any[]) {
-  return new DeepProxy(instanceValue, ({ value, DEFAULT, PROXY }) => {
-    if (value instanceof ProxyObject) {
-      const service = services.find(s => s.name === value.name && s.def === value.def).value;
-      // console.log(service)
-      return createProxy(service, services);
-    }
-    if (typeof value === 'object' && value !== null) {
-      return PROXY;
-    }
-    return DEFAULT;
-  });
-}
+//         const proxies = session.definition.meta.proxyInstances as Array<RequestShape>;
+//         const services = [];
+//         for (let i = 0, l = proxies.length; i < l; i++) {
+//           const proxy = proxies[i];
+//           services.push({
+//             name: proxy.name,
+//             def: proxy.def,
+//             value: proxy.factory(),
+//           });
+//         }
+//         while (proxies.length !== services.length) {
+//           for (let i = services.length, l = proxies.length; i < l; i++) {
+//             const proxy = proxies[i];
+//             services.push({
+//               name: proxy.name,
+//               def: proxy.def,
+//               value: proxy.factory(),
+//             });
+//           }
+//         }
+//         return createProxy(instanceValue, services);
+//       }
+//     );
+//   }
+// }, { name: 'ProxyInstance' })();

@@ -18,6 +18,10 @@ export class Context<T = Record<string | symbol, unknown>> {
     return key ? this.data[key] : this.data;
   }
 
+  set(key: string | symbol, value: any) {
+    this.data[key] = value;
+  }
+
   static $$prov: ProviderDef = {
     token: Context,
     factory: () => {},

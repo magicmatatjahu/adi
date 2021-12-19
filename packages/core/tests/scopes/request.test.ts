@@ -1,4 +1,4 @@
-import { Injector, Injectable, Scope, Inject } from "../../src";
+import { Injector, Injectable, Scope, Inject, Context, Session, DestroyManager } from "../../src";
 
 describe('Request scope', function () {
   test('should create new instance by each resolution', function () {
@@ -488,6 +488,52 @@ describe('Request scope', function () {
     expect(service.createdTimes).toEqual(1);
   });
 
+  test('should pass requestData from session to the created context', async function () {
+    @Injectable({
+      scope: Scope.REQUEST,
+    })
+    class RequestService {
+      constructor(
+        readonly context: Context,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      public createdTimes: number = 0;
+
+      constructor(
+        // two instances to check that every instance has this same request data
+        readonly requestService1: RequestService,
+        readonly requestService2: RequestService,
+      ) {
+        this.createdTimes++;
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      RequestService,
+    ]);
+
+    const session = Session.createStandalone(Service, injector);
+    session.shared.requestData = { foo: 'bar' }
+    let service = injector.get(Service, undefined, session);
+    expect(service).toBeInstanceOf(Service);
+    expect(service.requestService1).toBeInstanceOf(RequestService);
+    expect(service.requestService1.context.get('foo')).toEqual('bar');
+    expect(service.requestService2).toBeInstanceOf(RequestService);
+    expect(service.requestService2.context.get('foo')).toEqual('bar');
+    expect(service.requestService1 === service.requestService2).toEqual(false); // because they are proxies
+    expect(service.requestService1.context.get() === service.requestService2.context.get()).toEqual(false); // because they are proxies
+    expect(service.createdTimes).toEqual(1);
+
+    // check that contexts share that same data
+    service.requestService1.context.set('bar', 'foo')
+    expect(service.requestService1.context.get('bar')).toEqual('foo');
+    expect(service.requestService2.context.get('bar')).toEqual('foo');
+  });
+
   // TODO: Support method injection
   test.skip('should work with method injection', async function () {
     @Injectable({
@@ -511,4 +557,51 @@ describe('Request scope', function () {
     expect(service).toBeInstanceOf(Service);
     expect(service.method()).toBeInstanceOf(RequestService);
   });
+
+  describe('onDestroy hook', function () {
+    test('should remove on manual destruction', async function () {
+      let destroyOrder: string[] = [];
+
+      @Injectable({
+        scope: Scope.REQUEST,
+      })
+      class RequestService {
+        onDestroy() {
+          destroyOrder.push('requestService');
+        }
+      }
+  
+      @Injectable()
+      class Service {
+        public createdTimes: number = 0;
+  
+        constructor(
+          // two instances to check that every instance has this same request data
+          readonly requestService1: RequestService,
+          readonly requestService2: RequestService,
+        ) {
+          this.createdTimes++;
+        }
+      }
+  
+      const injector = Injector.create([
+        Service,
+        RequestService,
+      ]);
+  
+      const session = Session.createStandalone(Service, injector);
+      session.shared.requestData = { foo: 'bar' }
+      let service = injector.get(Service, undefined, session);
+
+      expect(service).toBeInstanceOf(Service);
+      expect(service.requestService1).toBeInstanceOf(RequestService);
+      expect(service.requestService1 === service.requestService2).toEqual(false); // because they are proxies
+      
+      expect(destroyOrder).toEqual([]);
+      DestroyManager.destroyAll('manually', session.shared.proxies);
+      expect(destroyOrder).toEqual(['requestService']);
+      DestroyManager.destroyAll('manually', session.shared.proxies);
+      expect(destroyOrder).toEqual(['requestService']);
+    });
+  })
 });
