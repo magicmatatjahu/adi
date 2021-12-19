@@ -5,6 +5,7 @@ import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, Cons
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { Wrapper, compareOrder } from "../utils";
+import { DestroyManager } from "..";
 
 export class ProviderRecord<T = any> {
   /**
@@ -83,6 +84,16 @@ export class ProviderRecord<T = any> {
       meta: {},
     };
 
+    // override case
+    if (annotations[ANNOTATIONS.OVERRIDE]) {
+      const override = annotations[ANNOTATIONS.OVERRIDE];
+      if (override === 'all') { // override all definitions
+        this.host.remove(this.token);
+      } else if (override === 'definition') { // override definition defined by name
+        this.host.remove(this.token, def.name);
+      }
+    }
+
     // add definition to the defs/constraintDefs array
     if (constraint === undefined) {
       this.defs.push(def);
@@ -92,7 +103,7 @@ export class ProviderRecord<T = any> {
 
     // check if definition must be resolved with MODULE_INITIALIZERS
     // add def only to the MODULE_INITIALIZERS definitions when injector isn't initialized
-    if (annotations[ANNOTATIONS.EAGER] === true && (this.host.status & InjectorStatus.INITIALIZED) === 0) {
+    if (annotations[ANNOTATIONS.EAGER] === true && !(this.host.status & InjectorStatus.INITIALIZED)) {
       this.host.records.get(MODULE_INITIALIZERS).defs.push(def);
     }
 

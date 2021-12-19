@@ -1,4 +1,4 @@
-import { DestroyEvent, InstanceRecord } from "../interfaces";
+import { DestroyEvent, InstanceRecord, DefinitionRecord } from "../interfaces";
 import { ProviderRecord } from "./provider";
 import { handleOnDestroy } from "../utils";
 import { InstanceStatus } from "../enums";
@@ -20,29 +20,39 @@ export const DestroyManager = new class {
     await handleOnDestroy(instance);
     instance.def.values.delete(instance.ctx);
     removeInstanceRefs(instance);
-    await this.destroyAll(event, instance.children && Array.from(instance.children));
+    await this.destroyAll(instance.children && Array.from(instance.children), event);
     instance.meta.hostInjector && await instance.meta.hostInjector.destroy();
   }
 
-  async destroyAll(event: DestroyEvent, instances: InstanceRecord[] = []) {
+  async destroyAll(instances: InstanceRecord[] = [], event: DestroyEvent = 'default') {
     for (let i = 0, l = instances.length; i < l; i++) {
       await this.destroy(event, instances[i]);
     }
   }
 
-  async destroyRecords(records: ProviderRecord[]) {
+  async destroyRecords(records: ProviderRecord[], event: DestroyEvent = 'default') {
     // for destroying the module as last
     for (let i = records.length - 1; i > -1; i--) {
-      const record = records[i]
-      const definitions = [...record.defs, ...record.constraintDefs];
-      for (let definition of definitions) {
-        const instances = Array.from(definition.values.values());
-        for (let instance of instances) {
-          instance.status |= InstanceStatus.HOST_DESTROYED;
-          await this.destroy('injector', instance);
-        }
-      }
+      await this.destroyRecord(records[i], event);
     }
+  }
+
+  async destroyRecord(record: ProviderRecord, event: DestroyEvent = 'default') {
+    const definitions = [...record.defs, ...record.constraintDefs];
+    for (let definition of definitions) {
+      await this.destroyDefinition(definition, event);
+    }
+    record.defs = [];
+    record.constraintDefs = [];
+  }
+
+  async destroyDefinition(definition: DefinitionRecord, event: DestroyEvent = 'default') {
+    const instances = Array.from(definition.values.values());
+    for (let instance of instances) {
+      instance.status |= InstanceStatus.DEF_DESTROYED;
+      await this.destroy(event, instance);
+    }
+    definition.values = new Map();
   }
 }
 
@@ -63,8 +73,8 @@ function removeInstanceRefs(instance: InstanceRecord) {
 function shouldForceDestroy(instance: InstanceRecord) {
   const { status, parents } = instance;
   return (
-    // Host (Injector) destroyed case
-    ((status & InstanceStatus.HOST_DESTROYED) && (parents === undefined || parents.size === 0)) ||
+    // Definition destroyed case
+    ((status & InstanceStatus.DEF_DESTROYED) && (parents === undefined || parents.size === 0)) ||
     // Circular injection case
     ((status & InstanceStatus.CIRCULAR) && (parents && parents.size === 1))
   );

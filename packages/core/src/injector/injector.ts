@@ -152,7 +152,7 @@ export class Injector {
 
     // first destroy and clear own components
     try {
-      await DestroyManager.destroyRecords(Array.from(this.components.values()));
+      await DestroyManager.destroyRecords(Array.from(this.components.values()), 'injector');
     } finally {
       this.components.clear();
     }
@@ -172,7 +172,7 @@ export class Injector {
 
     // destroy and clear own records
     try {
-      await DestroyManager.destroyRecords(Array.from(this.records.values()));
+      await DestroyManager.destroyRecords(Array.from(this.records.values()), 'injector');
     } finally {
       this.records.clear();
     }
@@ -456,6 +456,29 @@ export class Injector {
     return this.scopes.includes(provideIn);
   }
 
+  remove(token: Token, defName?: string | symbol) {
+    const record = this.records.get(token);
+    if (!record) {
+      return;
+    }
+
+    if (defName) {
+      const definitions = [...record.defs, ...record.constraintDefs];
+      const def = definitions.find(def => def.name === defName);
+      def && DestroyManager.destroyDefinition(def);
+    } else {
+      DestroyManager.destroyRecord(record);
+    }
+  }
+
+  clear(): void {
+    try {
+      DestroyManager.destroyRecords(Array.from(this.records.values()));
+    } finally {
+      this.records.clear();
+    }
+  }
+
   /**
    * COMPONENTS
    */
@@ -494,17 +517,17 @@ export class Injector {
   /**
    * MISC
    */
-  invoke<T>(fun: (...args: any[]) => T, injections: Array<InjectionItem>) {
-    const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fun);
-    const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
-    return fun(...InjectorResolver.injectDeps(deps, this, session));
-  }
+  // invoke<T>(fun: (...args: any[]) => T, injections: Array<InjectionItem>) {
+  //   const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fun);
+  //   const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
+  //   return fun(...InjectorResolver.injectDeps(deps, this, session));
+  // }
 
-  async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
-    const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fun);
-    const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
-    return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
-  }
+  // async invokeAsync<T>(fun: (...args: any[]) => Promise<T>, injections: Array<InjectionItem>): Promise<T> {
+  //   const deps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fun);
+  //   const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
+  //   return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
+  // }
 
   /**
    * EXPORTS

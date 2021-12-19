@@ -17,8 +17,9 @@ export const ANNOTATIONS = {
   NAME: '@adi/name',
   NAMED: '@adi/named',
   EAGER: '@adi/eager',
-  EXPORT: '@adi/export',
   ORDER: '@adi/order',
+  OVERRIDE: '@adi/override',
+  EXPORT: '@adi/export',
   LOCAL_SCOPE: '@adi/local-scope',
 };
 

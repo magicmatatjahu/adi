@@ -5,7 +5,7 @@ import { Wrapper } from "../utils/wrappers";
 import { Annotations } from "./common.interface";
 
 export interface DefinitionRecord<T = any, S = any> {
-  name: string;
+  name: string | symbol;
   values: Map<Context, InstanceRecord<T>>;
   record: ProviderRecord<T>;
   factory: FactoryDef<T> | undefined;

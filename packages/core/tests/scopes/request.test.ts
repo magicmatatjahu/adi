@@ -598,9 +598,9 @@ describe('Request scope', function () {
       expect(service.requestService1 === service.requestService2).toEqual(false); // because they are proxies
       
       expect(destroyOrder).toEqual([]);
-      DestroyManager.destroyAll('manually', session.shared.proxies);
+      DestroyManager.destroyAll(session.shared.proxies, 'manually');
       expect(destroyOrder).toEqual(['requestService']);
-      DestroyManager.destroyAll('manually', session.shared.proxies);
+      DestroyManager.destroyAll(session.shared.proxies, 'manually');
       expect(destroyOrder).toEqual(['requestService']);
     });
   })

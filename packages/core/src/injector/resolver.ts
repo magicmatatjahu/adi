@@ -91,7 +91,7 @@ export const InjectorResolver = new class {
         return thenable(
           () => isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args),
           value => {
-            DestroyManager.destroyAll('default', toRemove);
+            DestroyManager.destroyAll(toRemove);
             return value;
           }
         );
@@ -157,7 +157,7 @@ export const InjectorResolver = new class {
       return thenable(
         () => session.status & SessionStatus.ASYNC ? this.injectDepsAsync(deps, injector, session).then(args => fn(...args)) : fn(...this.injectDeps(deps, injector, session)),
         value => {
-          DestroyManager.destroyAll('default', session.meta?.toDestroy);
+          DestroyManager.destroyAll(session.meta?.toDestroy);
           return value;
         }
       );
