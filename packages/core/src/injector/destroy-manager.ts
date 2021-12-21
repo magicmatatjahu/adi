@@ -16,10 +16,10 @@ export const DestroyManager = new class {
 
     if (!shouldDestroy) return;
     instance.status |= InstanceStatus.DESTROYED;
-
-    await handleOnDestroy(instance);
+    
     instance.def.values.delete(instance.ctx);
     removeInstanceRefs(instance);
+    await handleOnDestroy(instance);
     await this.destroyAll(instance.children && Array.from(instance.children), event);
     instance.meta.hostInjector && await instance.meta.hostInjector.destroy();
   }
@@ -37,22 +37,24 @@ export const DestroyManager = new class {
     }
   }
 
-  async destroyRecord(record: ProviderRecord, event: DestroyEvent = 'default') {
+  destroyRecord(record: ProviderRecord, event: DestroyEvent = 'default') {
     const definitions = [...record.defs, ...record.constraintDefs];
-    for (let definition of definitions) {
-      await this.destroyDefinition(definition, event);
-    }
     record.defs = [];
     record.constraintDefs = [];
+    return (async () => {
+      for (let definition of definitions) {
+        await this.destroyDefinition(definition, event);
+      }
+    })();
   }
 
-  async destroyDefinition(definition: DefinitionRecord, event: DestroyEvent = 'default') {
+  destroyDefinition(definition: DefinitionRecord, event: DestroyEvent = 'default') {
     const instances = Array.from(definition.values.values());
-    for (let instance of instances) {
-      instance.status |= InstanceStatus.DEF_DESTROYED;
-      await this.destroy(event, instance);
-    }
     definition.values = new Map();
+    instances.forEach(instance => {
+      instance.status |= InstanceStatus.DEF_DESTROYED;
+    });
+    return this.destroyAll(instances, event);
   }
 }
 

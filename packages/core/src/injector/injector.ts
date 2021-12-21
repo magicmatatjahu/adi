@@ -171,11 +171,7 @@ export class Injector {
     }
 
     // destroy and clear own records
-    try {
-      await DestroyManager.destroyRecords(Array.from(this.records.values()), 'injector');
-    } finally {
-      this.records.clear();
-    }
+    await this.clear();
 
     // only clear imported values
     this.importedRecords.clear();
@@ -436,7 +432,7 @@ export class Injector {
     return record;
   }
 
-  addProviders(providers: Provider | Provider[] = []): void {
+  addProviders(providers: Provider | Provider[]): void {
     if (this.status & InjectorStatus.DESTROYED) return;
 
     if (Array.isArray(providers)) {
@@ -465,18 +461,15 @@ export class Injector {
     if (defName) {
       const definitions = [...record.defs, ...record.constraintDefs];
       const def = definitions.find(def => def.name === defName);
-      def && DestroyManager.destroyDefinition(def);
-    } else {
-      DestroyManager.destroyRecord(record);
+      return def ? DestroyManager.destroyDefinition(def) : undefined;
     }
+    return DestroyManager.destroyRecord(record);
   }
 
-  clear(): void {
-    try {
-      DestroyManager.destroyRecords(Array.from(this.records.values()));
-    } finally {
-      this.records.clear();
-    }
+  clear() {
+    const records = Array.from(this.records.values());
+    this.records.clear();
+    return DestroyManager.destroyRecords(records);
   }
 
   /**

@@ -435,9 +435,21 @@ describe('onDestroy', function() {
     expect(onDestroyOrder).toEqual([]);
 
     await injector.destroy();
+    // wait 10ms to resolve all promises in DestroyManager
+    await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(undefined);
+      }, 10);
+    });
     expect(onDestroyOrder).toEqual(['ZeroService', 'ServiceA', 'ServiceB', 'DeepService']);
 
     await injector.destroy();
+    // wait 10ms to resolve all promises in DestroyManager
+    await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(undefined);
+      }, 10);
+    });
     expect(onDestroyOrder).toEqual(['ZeroService', 'ServiceA', 'ServiceB', 'DeepService']);
   });
 });

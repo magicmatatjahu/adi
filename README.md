@@ -1,14 +1,9 @@
 # ADIJS
 
-- Handle onInit in async mode
-- Think about creating modules from exports which is not imported, so they are not created before exporting - problem is with proxy modules, in other words how to check on graph resolution that given export must be created as new injector, not export providers from it - maybe by new field `create` or by changing shape of exported module in `exports` array?
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
-- Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed.
-- Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory
-- Add possibility to define providers and imports in every standalone wrapper where user can define inject 
-- Create `Request` scope - partially done, left to support: destroy, method injection and generic class `ProxyScope`, also check how it works with nested wrappers like Factory
-- Rename `Multi` wrapper to the `All`
+- Create `Request` scope - partially done, left to support: method injection, also check how it works with nested wrappers like Factory
 - Rename `wrappers` to `hooks` and provider `useWrapper` to `useHook`
+- Add Pipe, Interceptor and ErrorHandler functionality/decorators
 
 ## IMPLEMENTED
 
@@ -36,13 +31,13 @@
 - Implement the `onDestroy` hook
 - Implement ProtoInjector and think how to reuse the created modules from the scope, it means how to reuse the modules that will be create in the hierarchy one time and then reuse - the main problem is with imported modules and with `exports` - probably in react (and in other front-end tools) exports isn't good solution
 - Think about order of initializing and destroying modules - at the moment initializing is from end and destroying from beginning stack // it's good order like in C++ destructors
-- Reuse wrappers in the wrappers chain in the Fallback, Multi and Decorate wrappers - it can be also useful in the other custom wrappers - done by `DRY_RUN` session's status
+- Reuse wrappers in the wrappers chain in the Fallback, All and Decorate wrappers - it can be also useful in the other custom wrappers - done by `DRY_RUN` session's status
 - Implement Portals injectors as custom Wrapper like in DryIOC - https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/KindsOfChildContainer.md#facade
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations? // in decorator user have possibility to pass object with annotations
 
 ## RETHING - WORKS BUT IT SHOULD BE BETTER
 
-- Rethink the `Multi` wrapper
+- Rethink the `All` wrapper
 - Rethink the modules and exporting of the provider
 - Rethink proxy modules
 - Rething caching in `Cache` wrapping
@@ -56,14 +51,17 @@
 - Add providers and imports in the providers and components as metadata - create for providers/components separate injector like in Angular for @Component - `providers` will be easier than `imports` to implement, because I don't know how to handle the async dynamic modules, when resolve the modules... - create Proto Injector like in old Angular https://github.com/angular/angular/blob/a92a89b0eb127a59d7e071502b5850e57618ec2d/packages/docs/di/di_advanced.md#protoinjector-and-injector and also how to dispose given modules // problem is only with async imports in sync resolution. Also it should be improved by ProtoInjector to not create graph each time when instance is created
 - Rethink components - inherite logic from providers - in another solution ADI can treat component as constraint definition of provider // components are treated as providers bur are saved inside components collection
 - Rethink imported records - they can be handled in this way that they will merged with providers in parents by references to the definitions - it's not a good idea - how then handle new definitions in children injectors? - treat imported records as collection of imported records
+- Add possibility to define providers and imports in every standalone wrapper where user can define inject - check destruction of transient instances
+- Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed. // Context is needed to share data
+- Handle onInit in async mode - maybe not wait for every hook but make Promise.all?
+- Rethink destruction - maybe don't wait for destruction
+- Add rebind/remove/clear functionality - partially done - rethink if it should be async or sync
 
 ## NICE TO HAVE BUT NOT NEEDED
 
-- Add tree-shakable wrappers, eg for Multi purpose
-- Allow change wrappers on runtime - in another, previous in wrappers' chain wrapper. Also have definition of next wrappers in single wrapper - it will be awesome feature for collections wrappers like `Multi`
+- Add tree-shakable wrappers, eg for All purpose
+- Allow change wrappers on runtime - in another, previous in wrappers' chain wrapper. Also have definition of next wrappers in single wrapper - it will be awesome feature for collections wrappers like `All`
 - Add `deep` config for `Delegate` wrapper
-- Add Pipe, Interceptor and ErrorHandler functionality/decorators
-- Add rebind/remove/clear functionality
 - Implement multiple constructors -> https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/SelectConstructorOrFactoryMethod.md#multiple-constructors base logic on the static methods - in this way ADI can treat static methods as factories
 - Add `PROVIDER` Injection Token which will be used to wrap all defined providers in module
 - Implement https://autofac.readthedocs.io/en/latest/advanced/pooled-instances.html scope - note about custom hooks like `OnGetFromPool`, probably in the Scope ADI should create the new instance of given provider (definition), or maybe not - ADI can always change reference to the definition in the session
@@ -72,6 +70,8 @@
 - Implement something like `.of` or `createPortal` like in TypeDI - https://docs.typestack.community/typedi/#using-multiple-containers-and-scoped-containers - here `PROVIDER` Injection Token should help - by this we can dynamically change every injection
 - Hot module reloading for modules/providers/components - https://github.com/nestjs/nest/issues/7961, https://github.com/nestjs/nest/issues/442
 - Config for binding in Loopback - https://loopback.io/doc/en/lb4/Context.html#configuration-by-convention
+- Think how to ensure the session for onDestroy hooks to pass it in the `onDestroy` factory // it is probably not needed, ADI should in some cases "cut" possibilities
+- Think about creating modules from exports which is not imported, so they are not created before exporting - problem is with proxy modules, in other words how to check on graph resolution that given export must be created as new injector, not export providers from it - maybe by new field `create` or by changing shape of exported module in `exports` array?
 - Add qualifier field to the provider shape:
 
   ```ts
