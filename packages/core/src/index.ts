@@ -16,7 +16,7 @@ Scope.REQUEST = new RequestScope();
 
 export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
-export { Inject, Injectable, Module, injectableMixin, moduleMixin } from "./decorators";
+export { Inject, Injectable, Module, UseInterceptors, UsePipes, Pipe, injectableMixin, moduleMixin } from "./decorators";
 export { Context, Session, Injector, ProtoInjector, InjectionToken, InjectorMetadata, InjectorResolver, DestroyManager } from "./injector";
 export * from "./interfaces";
 export * from "./wrappers";

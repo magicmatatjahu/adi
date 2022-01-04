@@ -25,28 +25,33 @@ export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper> | An
     wrapper = undefined;
   }
 
-  return function(target: Object, key: string | symbol, index?: number | PropertyDescriptor) {
+  return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
+    let handler: Function | undefined;
     if (token === undefined) {
       if (key === undefined) { // constructor injection
-        token = Reflection.getOwnMetadata("design:paramtypes", target)[index as number];
+        token = Reflection.getOwnMetadata("design:paramtypes", target)[indexOrDescriptor as number];
       } else {
-        if (index === undefined) { // property injection
+        if (indexOrDescriptor === undefined) { // property injection
           token = Reflection.getOwnMetadata("design:type", target, key);
-        } else if (typeof index === 'number') { // method injection
-          token = Reflection.getOwnMetadata("design:paramtypes", target, key)[index];
-        } else if (typeof index.value === 'function') { // whole method injection
+        } else if (typeof indexOrDescriptor === 'number') { // method injection
+          token = Reflection.getOwnMetadata("design:paramtypes", target, key)[indexOrDescriptor];
+          handler = Object.getOwnPropertyDescriptor(target, key).value;
+        } else if (typeof indexOrDescriptor.value === 'function') { // whole method injection
           const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target, key);
+          handler = indexOrDescriptor.value;
           for (let i = 0, l = paramtypes.length; i < l; i++) {
-            // TODO: test passing `useWrapper` from main `@Injector` decorator on method
-            const arg = applyInjectionArg(paramtypes[i], wrapper as Wrapper | Array<Wrapper>, annotations, target, key, i);
+            // TODO: test passing `useWrapper` from `@Inject` decorator on method
+            const arg = applyInjectionArg(paramtypes[i], wrapper as Wrapper | Array<Wrapper>, annotations, target, key, i, handler);
             arg.token = arg.token || paramtypes[i];
           }
           return;
         } else { // setter injection
           token = Reflection.getOwnMetadata("design:type", target, key);
+          handler = indexOrDescriptor.value;
+          indexOrDescriptor = undefined;
         }
       }
     }
-    applyInjectionArg(token as Token, wrapper as Wrapper | Array<Wrapper>, annotations, target, key, index);
+    applyInjectionArg(token as Token, wrapper as Wrapper | Array<Wrapper>, annotations, target, key, indexOrDescriptor, handler);
   }
 }

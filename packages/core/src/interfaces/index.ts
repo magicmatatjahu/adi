@@ -1,5 +1,6 @@
 export * from "./common.interface";
 export * from "./definition.interface";
+export * from "./extensions";
 export * from "./hook.interface";
 export * from "./injectable.interface";
 export * from "./injection.interface";

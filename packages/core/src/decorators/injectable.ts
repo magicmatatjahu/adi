@@ -1,4 +1,4 @@
-import { InjectableOptions, InjectionArgument, ProviderDef, InjectableMetadata, Type, Annotations } from "../interfaces";
+import { InjectableOptions, InjectionArgument, InjectionMethod, ProviderDef, InjectableMetadata, Type, Annotations } from "../interfaces";
 import { InjectorResolver } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
@@ -49,7 +49,7 @@ export function applyProviderDef<T, S>(target: Object, options?: InjectableOptio
   return def as unknown as ProviderDef<T>;
 }
 
-function ensureProviderDef<T>(provider: T): ProviderDef<T> {
+export function ensureProviderDef<T>(provider: T): ProviderDef<T> {
   if (!provider.hasOwnProperty(PRIVATE_METADATA.PROVIDER)) {
     Object.defineProperty(provider, PRIVATE_METADATA.PROVIDER, { value: defineProviderDef(provider), enumerable: true });
   }
@@ -131,13 +131,14 @@ function inheritance(target: any, def: ProviderDef, paramtypes: Array<Type>): vo
     // if not, copy injections from parent class
     if (targetMethods.includes(key) === false) {
       const copiedMethod: InjectionArgument[] = [];
-      const method = inheritedInjections.methods[key];
+      const method = inheritedInjections.methods[key].injections;
       for (let i = 0, l = method.length; i < l; i++) {
         const arg = method[i];
         // shallow copy injection argument and override target
-        copiedMethod[i] = createInjectionArg(arg.token, arg.wrapper, arg.metadata.annotations, InjectionKind.METHOD, target, key, i);
+        // TODO: Check what handler should be passed, from new class or from parent class 
+        copiedMethod[i] = createInjectionArg(arg.token, arg.wrapper, arg.metadata.annotations, InjectionKind.METHOD, target, key, i, arg.metadata.handler);
       }
-      injections.methods[key] = copiedMethod;
+      injections.methods[key].injections = copiedMethod;
     }
   }
 }
@@ -155,25 +156,45 @@ export function applyInjectionArg(
   target: Object,
   key?: string | symbol,
   index?: number | PropertyDescriptor,
+  handler?: Function,
 ): InjectionArgument {
   if (key !== undefined) {
     target = target.constructor;
   }
-  let injections = ensureProviderDef(target).injections;
   if (key !== undefined) {
     if (typeof index === "number") {
       // methods
-      const method = (injections.methods[key as string] || (injections.methods[key as string] = []));
-      return method[index] || (method[index] = createInjectionArg(token, wrapper, annotations, InjectionKind.METHOD, target, key, index));
+      const method = getMethod(target, key);
+      return method.injections[index] || (method.injections[index] = createInjectionArg(token, wrapper, annotations, InjectionKind.METHOD, target, key, index, handler));
     }
     // properties
-    return injections.properties[key as string] = createInjectionArg(token, wrapper, annotations, InjectionKind.PROPERTY, target, key);
+    const properties = ensureProviderDef(target).injections.properties;
+    return properties[key as string] = createInjectionArg(token, wrapper, annotations, InjectionKind.PROPERTY, target, key);
   }
   // constructor parameters
-  return injections.parameters[index as number] = createInjectionArg(token, wrapper, annotations, InjectionKind.PARAMETER, target, undefined, index as number);
+  const parameters = ensureProviderDef(target).injections.parameters;
+  return parameters[index as number] = createInjectionArg(token, wrapper, annotations, InjectionKind.PARAMETER, target, undefined, index as number);
 }
 
-export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrapper>, annotations: Annotations, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+export function getMethod(target: Object, methodName: string | symbol) {
+  const injections = ensureProviderDef(target).injections;
+  return (injections.methods[methodName as string] || (injections.methods[methodName as string] = createMethodInjection()));
+}
+
+export function createMethodInjection(): InjectionMethod {
+  return { injections: [], interceptors: [], guards: [], pipes: [], eHandlers: [] }
+}
+
+export function createInjectionArg(
+  token: Token, 
+  wrapper: Wrapper | Array<Wrapper>, 
+  annotations: Annotations, 
+  kind: InjectionKind, 
+  target: Object, 
+  propertyKey?: string | symbol, 
+  index?: number, 
+  handler?: Function,
+): InjectionArgument {
   if (wrapper !== undefined) {
     wrapper = Array.isArray(wrapper) ? [Cache(), CoreHook(), ...wrapper] : [Cache(), CoreHook(), wrapper];
   } else {
@@ -187,6 +208,7 @@ export function createInjectionArg(token: Token, wrapper: Wrapper | Array<Wrappe
       target,
       propertyKey,
       index,
+      handler,
       annotations,
       kind,
     },

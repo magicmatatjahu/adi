@@ -1,6 +1,6 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem, ModuleMetadata, FunctionInjections } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem, InjectionMethod, ModuleMetadata, FunctionInjections } from "../interfaces";
 import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
 import { Wrapper, thenable } from "../utils";
 import { Token } from "../types";
@@ -62,10 +62,10 @@ export const InjectorResolver = new class {
     return Promise.all(args) as unknown as Promise<void>;
   }
 
-  injectMethods<T>(instance: T, methods: Record<string, InjectionArgument[]>, injector: Injector, parentSession: Session): void {
+  injectMethods<T>(instance: T, methods: Record<string, InjectionMethod>, injector: Injector, parentSession: Session): void {
     const isAsync = parentSession.status & SessionStatus.ASYNC;
     for (const name in methods) {
-      const methodDeps = methods[name];
+      const methodDeps = methods[name].injections;
       const originalMethod = instance[name];
       const cachedDeps: any[] = [];
 
@@ -183,6 +183,7 @@ export const InjectorResolver = new class {
           return injector.build();
         },
         newInjector => {
+          // TODO: atm in Decorate and Transform wrapper it is saved to the previous one instance in session. It should be saved in different place in normal injection and in standalone factory injection and injector should be destroyed
           session.instance.meta.hostInjector = newInjector;
           return factory(newInjector, session) as any;
         },

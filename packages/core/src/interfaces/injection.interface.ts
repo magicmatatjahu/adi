@@ -3,7 +3,7 @@ import { Annotations, ScopeShape } from "./common.interface";
 import { Token } from "../types";
 import { Wrapper } from "../utils/wrappers";
 import { InjectionKind } from "../enums";
-import { ModuleMetadata } from ".";
+import { ExtensionItem, ModuleMetadata } from ".";
 
 export interface InjectionOptions<T = any> {
   token: Token<T>;
@@ -17,6 +17,7 @@ export interface InjectionMetadata {
   target: Object;
   propertyKey?: string | symbol;
   index?: number;
+  handler?: Function;
   annotations?: Annotations;
   kind: InjectionKind;
 }
@@ -27,15 +28,23 @@ export interface InjectionArgument<T = any> {
   metadata: InjectionMetadata;
 }
 
+export interface InjectionMethod {
+  injections: InjectionArgument[];
+  interceptors: ExtensionItem[];
+  guards: ExtensionItem[];
+  pipes: ExtensionItem[];
+  eHandlers: ExtensionItem[];
+}
+
 export interface InjectionArguments {
   parameters: Array<InjectionArgument>;
   properties: Record<string | symbol, InjectionArgument>;
-  methods: Record<string, InjectionArgument[]>;
+  methods: Record<string, InjectionMethod>;
 }
 
 export type InjectionItem<T = any> = 
   Token<T> | 
-  Wrapper | 
+  Wrapper |
   Array<Wrapper> | 
   PlainInjectionItem<T>;
 
@@ -52,6 +61,8 @@ export interface PlainInjections {
   override?: (injectionArg: InjectionArgument) => InjectionItem | undefined;
 }
 
+// TODO: split to two types FunctionInjections and FunctionInjectionsWithValue
+// TODO: think about delagation. Is it necessary?
 export interface FunctionInjections {
   inject?: Array<InjectionItem>;
   imports?: ModuleMetadata['imports'];

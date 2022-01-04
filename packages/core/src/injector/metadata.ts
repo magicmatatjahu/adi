@@ -1,5 +1,5 @@
 import { Injector } from ".";
-import { createInjectionArg, getModuleDef, getProviderDef, injectableMixin, moduleMixin } from "../decorators";
+import { createInjectionArg, createMethodInjection, getModuleDef, getProviderDef, injectableMixin, moduleMixin } from "../decorators";
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
@@ -195,24 +195,28 @@ export const InjectorMetadata = new class {
     return converted;
   }
 
-  convertDependency(dep: InjectionItem, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number): InjectionArgument {
+  convertDependency(dep: InjectionItem, kind: InjectionKind, target: Object, propertyKey?: string | symbol, index?: number, handler?: Function): InjectionArgument {
+    // wrapper case
     if (isWrapper(dep)) {
-      return createInjectionArg(undefined, dep, undefined, kind, target, propertyKey, index);
+      return createInjectionArg(undefined, dep, undefined, kind, target, propertyKey, index, handler);
     }
+    // plain injection case
     if ((dep as PlainInjectionItem).token !== undefined) {
       const plainDep = dep as PlainInjectionItem;
-      return createInjectionArg(plainDep.token, plainDep.wrapper, plainDep.annotations, kind, target, propertyKey, index);
+      return createInjectionArg(plainDep.token, plainDep.wrapper, plainDep.annotations, kind, target, propertyKey, index, handler);
     }
-    return createInjectionArg(dep as Token, undefined, undefined, kind, target, propertyKey, index);
+    // standalone token case
+    return createInjectionArg(dep as Token, undefined, undefined, kind, target, propertyKey, index, handler);
   }
 
   combineArrayDependencies(
     toCombine: Array<InjectionItem>,
     original: Array<InjectionArgument>,
     kind: InjectionKind,
+    override?: (injectionArg: InjectionArgument) => InjectionItem | undefined,
     target?: Object,
     methodName?: string,
-    override?: (injectionArg: InjectionArgument) => InjectionItem | undefined,
+    handler?: Function,
   ): Array<InjectionArgument> {
     if (toCombine === undefined && override === undefined) {
       return original;
@@ -223,13 +227,13 @@ export const InjectorMetadata = new class {
       let inject: InjectionItem;
       for (let i = 0, l = newDeps.length; i < l; i++) {
         inject = override(newDeps[i]);
-        inject && (newDeps[i] = this.convertDependency(inject, kind, target, methodName, i));
+        inject && (newDeps[i] = this.convertDependency(inject, kind, target, methodName, i, handler));
       }
     }
     if (toCombine !== undefined) {
       for (let i = 0, l = toCombine.length; i < l; i++) {
         if (toCombine[i] !== undefined) {
-          newDeps[i] = this.convertDependency(toCombine[i], kind, target, methodName, i);
+          newDeps[i] = this.convertDependency(toCombine[i], kind, target, methodName, i, handler);
         }
       }
     }
@@ -258,9 +262,9 @@ export const InjectorMetadata = new class {
 
     if (Array.isArray(original)) {
       if (Array.isArray(toCombine)) {
-        return this.combineArrayDependencies(toCombine, original, InjectionKind.PARAMETER, target);
+        return this.combineArrayDependencies(toCombine, original, InjectionKind.PARAMETER, undefined, target);
       }
-      return this.combineArrayDependencies(toCombine.parameters, original, InjectionKind.PARAMETER, target, undefined, toCombine.override);
+      return this.combineArrayDependencies(toCombine.parameters, original, InjectionKind.PARAMETER, toCombine.override, target);
     }
 
     const newDeps: InjectionArguments = {
@@ -270,13 +274,13 @@ export const InjectorMetadata = new class {
     };
 
     if (Array.isArray(toCombine)) {
-      newDeps.parameters = this.combineArrayDependencies(toCombine, newDeps.parameters, InjectionKind.PARAMETER, target);
+      newDeps.parameters = this.combineArrayDependencies(toCombine, newDeps.parameters, InjectionKind.PARAMETER, undefined, target);
       return newDeps;
     }
 
     const { parameters, properties, methods, override } = toCombine;
     // parameters
-    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, InjectionKind.PARAMETER, target, undefined, override);
+    newDeps.parameters = this.combineArrayDependencies(parameters, newDeps.parameters, InjectionKind.PARAMETER, override, target);
     // properties and symbols 
     if (typeof override === 'function') {
       let inject: InjectionItem;
@@ -301,11 +305,15 @@ export const InjectorMetadata = new class {
     if (typeof override === 'function') {
       const m = methods || {};
       for (const methodName in newDeps.methods) {
-        newDeps.methods[methodName] = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName], InjectionKind.PROPERTY, target, methodName, override);
+        newDeps.methods[methodName] = newDeps.methods[methodName] || createMethodInjection();
+        const handler = Object.getOwnPropertyDescriptor((target as any).prototype, methodName);
+        newDeps.methods[methodName].injections = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName].injections, InjectionKind.METHOD, override, target, methodName, handler && handler.value);
       }
     } else {
       for (const methodName in methods) {
-        newDeps.methods[methodName] = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName], InjectionKind.PROPERTY, target, methodName);
+        newDeps.methods[methodName] = newDeps.methods[methodName] || createMethodInjection();
+        const handler = Object.getOwnPropertyDescriptor((target as any).prototype, methodName);
+        newDeps.methods[methodName].injections = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName].injections, InjectionKind.METHOD, undefined, target, methodName, handler.value);
       }
     }
 
