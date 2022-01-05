@@ -305,15 +305,15 @@ export const InjectorMetadata = new class {
     if (typeof override === 'function') {
       const m = methods || {};
       for (const methodName in newDeps.methods) {
-        newDeps.methods[methodName] = newDeps.methods[methodName] || createMethodInjection();
-        const handler = Object.getOwnPropertyDescriptor((target as any).prototype, methodName);
-        newDeps.methods[methodName].injections = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName].injections, InjectionKind.METHOD, override, target, methodName, handler && handler.value);
+        newDeps.methods[methodName] = newDeps.methods[methodName] || createMethodInjection(target, methodName);
+        const handler = newDeps.methods[methodName].handler;
+        newDeps.methods[methodName].injections = this.combineArrayDependencies(m[methodName], newDeps.methods[methodName].injections, InjectionKind.METHOD, override, target, methodName, handler);
       }
     } else {
       for (const methodName in methods) {
-        newDeps.methods[methodName] = newDeps.methods[methodName] || createMethodInjection();
-        const handler = Object.getOwnPropertyDescriptor((target as any).prototype, methodName);
-        newDeps.methods[methodName].injections = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName].injections, InjectionKind.METHOD, undefined, target, methodName, handler.value);
+        newDeps.methods[methodName] = newDeps.methods[methodName] || createMethodInjection(target, methodName);
+        const handler = newDeps.methods[methodName].handler;
+        newDeps.methods[methodName].injections = this.combineArrayDependencies(methods[methodName], newDeps.methods[methodName].injections, InjectionKind.METHOD, undefined, target, methodName, handler);
       }
     }
 

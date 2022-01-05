@@ -19,3 +19,7 @@ export function thenable<T>(
   }
   return thenAction(result as any);
 }
+
+export function multiThenable() {
+  
+}

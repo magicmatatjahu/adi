@@ -1,6 +1,5 @@
-import { InjectionItem } from '.';
 import { ExecutionContext } from '../injector/execution-context';
-import { FunctionInjections } from './injection.interface';
+import { InjectionArgument, FunctionInjections } from './injection.interface';
 import { Type } from './type.interface';
 
 export interface Interceptor<R = any> {
@@ -42,6 +41,6 @@ export interface ArgumentMetadata {
 }
 
 export interface ExtensionItem {
-  item?: InjectionItem;
+  arg?: InjectionArgument;
   func?: Function;
 }

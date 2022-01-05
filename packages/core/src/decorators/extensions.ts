@@ -1,4 +1,5 @@
-import { InjectorResolver } from "../injector";
+import { InjectionKind } from "../enums";
+import { InjectorResolver, InjectorMetadata } from "../injector";
 import { 
   Interceptor, StandaloneInterceptor,
   Guard, StandaloneGuard,
@@ -47,7 +48,8 @@ function applyExtensions(
   key?: string | symbol, 
   method?: TypedPropertyDescriptor<any>
 ) {
-  const converted = items.map(item => convertDependency(item, methodName));
+  target = target.constructor;
+  const converted = items.map(item => convertDependency(item, methodName, target, key, method));
   // defined on method level
   if (method) {
     const method = getMethod(target, key);
@@ -64,17 +66,20 @@ function applyExtensions(
 }
 
 // TODO: Handle instance of classes
-function convertDependency(item: InjectionItem): ExtensionItem;
-function convertDependency(item: FunctionInjections, methodName: string): ExtensionItem;
 function convertDependency(
   item: InjectionItem | FunctionInjections,
-  methodName?: string,
+  methodName: string,
+  target: Object, 
+  key?: string | symbol, 
+  method?: TypedPropertyDescriptor<any>
 ): ExtensionItem {
   if (typeof item === 'object' && typeof item[methodName] === 'function') {
     return {
       func: InjectorResolver.createFunction(item[methodName], item as FunctionInjections),
-      item: item as InjectionItem,
+      arg: undefined,
     };
   }
-  return { item: item as InjectionItem, func: undefined };
+  // change injection kind
+  const arg = InjectorMetadata.convertDependency(item as InjectionItem, InjectionKind.METHOD, target, key, undefined, method && method.value);
+  return { arg, func: undefined };
 }

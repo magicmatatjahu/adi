@@ -178,11 +178,12 @@ export function applyInjectionArg(
 
 export function getMethod(target: Object, methodName: string | symbol) {
   const injections = ensureProviderDef(target).injections;
-  return (injections.methods[methodName as string] || (injections.methods[methodName as string] = createMethodInjection()));
+  return (injections.methods[methodName as string] || (injections.methods[methodName as string] = createMethodInjection(target, methodName)));
 }
 
-export function createMethodInjection(): InjectionMethod {
-  return { injections: [], interceptors: [], guards: [], pipes: [], eHandlers: [] }
+export function createMethodInjection(target: Object, methodName: string | symbol): InjectionMethod {
+  const handler = Object.getOwnPropertyDescriptor((target as any).prototype, methodName);
+  return { handler: handler?.value, injections: [], interceptors: [], guards: [], pipes: [], eHandlers: [] }
 }
 
 export function createInjectionArg(

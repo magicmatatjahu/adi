@@ -1,101 +1,127 @@
 import { Injector } from "./injector";
 import { Session } from "./session";
-import { InjectionArgument, InjectionMetadata, FactoryDef, Type, InstanceRecord, InjectionArguments, InjectionItem, InjectionMethod, ModuleMetadata, FunctionInjections } from "../interfaces";
+import { InjectionArgument, InjectionMetadata, FactoryDef, Type, ExtensionItem, InstanceRecord, InjectionArguments, InjectionItem, InjectionMethod, ModuleMetadata, FunctionInjections } from "../interfaces";
 import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
 import { Wrapper, thenable } from "../utils";
 import { Token } from "../types";
 import { InjectorMetadata } from "./metadata";
 import { DELEGATION, SESSION_INTERNAL } from "../constants";
 import { DestroyManager } from "./destroy-manager";
-import { Delegate } from "..";
+import { Delegate } from "../wrappers";
+import { createExecutionContext } from "./execution-context";
 
 export const InjectorResolver = new class {
-  inject<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, meta: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
-    return injector.resolveToken(wrapper, Session.create(token, meta, parentSession));
+  inject<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, metadata: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
+    return injector.resolveToken(wrapper, Session.create(token, metadata, parentSession));
   }
 
-  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session): Array<any> {
+  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session, async?: false): Array<any>;
+  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session, async?: true): Promise<Array<any>>;
+  injectDeps(deps: Array<InjectionArgument>, injector: Injector, session: Session, async: boolean = false): Array<any> | Promise<Array<any>> {
     const args: Array<any> = [];
     for (let i = 0, l = deps.length; i < l; i++) {
       const arg = deps[i];
       args.push(this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
     };
-    return args;
+    return async ? Promise.all(args) : args;
   }
 
-  injectDepsAsync(deps: Array<InjectionArgument>, injector: Injector, session: Session): Promise<any[]> {
-    const args: Array<Promise<any>> = [];
-    for (let i = 0, l = deps.length; i < l; i++) {
-      const arg = deps[i];
-      args.push(this.inject(injector, arg.token, arg.wrapper, arg.metadata, session));
-    };
-    return Promise.all(args);
+  injectProperty<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): any {
+    return thenable(
+      () => this.inject(injector, prop.token, prop.wrapper, prop.metadata, session),
+      value => instance[propName] = value,
+    );
   }
 
-  injectProperty<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): void {
-    instance[propName] = this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-  }
-
-  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): void {
+  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session, async?: false): void;
+  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session, async?: true): Promise<void>;
+  injectProperties<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session, async: boolean = false): void | Promise<void> {
+    const args: Array<any> = [];
     for (const propName in props) {
-      this.injectProperty(instance, propName, props[propName], injector, session);
+      args.push(this.injectProperty(instance, propName, props[propName], injector, session));
     }
     // inject to symbols
     for (const sb of Object.getOwnPropertySymbols(props)) {
-      this.injectProperty(instance, sb, props[sb as any as string], injector, session);
+      args.push(this.injectProperty(instance, sb, props[sb as any as string], injector, session));
     }
+    return (async ? Promise.all(args) : args) as unknown as void;
   }
 
-  async injectPropertyAsync<T>(instance: T, propName: string | symbol, prop: InjectionArgument, injector: Injector, session: Session): Promise<void> {
-    instance[propName] = await this.inject(injector, prop.token, prop.wrapper, prop.metadata, session);
-  }
-
-  injectPropertiesAsync<T>(instance: T, props: Record<string, InjectionArgument>, injector: Injector, session: Session): Promise<void> {
-    const args: Array<Promise<void>> = [];
-    for (const propName in props) {
-      args.push(this.injectPropertyAsync(instance, propName, props[propName], injector, session));
-    }
-    // inject to symbols
-    for (const sb of Object.getOwnPropertySymbols(props)) {
-      args.push(this.injectPropertyAsync(instance, sb, props[sb as any as string], injector, session));
-    }
-    return Promise.all(args) as unknown as Promise<void>;
-  }
-
-  injectMethods<T>(instance: T, methods: Record<string, InjectionMethod>, injector: Injector, parentSession: Session): void {
-    const isAsync = parentSession.status & SessionStatus.ASYNC;
+  injectMethods<T>(provider: Type<T>, instance: T, methods: Record<string, InjectionMethod>, injector: Injector, parentSession: Session): void {
+    const isAsync = (parentSession.status & SessionStatus.ASYNC) > 0;
     for (const name in methods) {
-      const methodDeps = methods[name].injections;
-      const originalMethod = instance[name];
-      const cachedDeps: any[] = [];
+      const method = methods[name];
 
-      instance[name] = (...args: any) => {
-        let methodProp: InjectionArgument = undefined;
-        let toRemove: InstanceRecord[];
-
-        for (let i = 0, l = methodDeps.length; i < l; i++) {
-          args[i] = args[i] || cachedDeps[i];
-          if (args[i] === undefined && (methodProp = methodDeps[i]) !== undefined) {
-            const argSession = Session.create(methodProp.token, methodProp.metadata, parentSession);
-            const value = args[i] = injector.resolveToken(methodProp.wrapper, argSession);
-            
-            // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
-            if (argSession.status & SessionStatus.SIDE_EFFECTS) {
-              (toRemove || (toRemove = [])).push(argSession.instance);
-            } else {
-              cachedDeps[i] = value;
-            }
-          }
-        }
-        
-        return thenable(
-          () => isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args),
-          value => {
-            DestroyManager.destroyAll(toRemove);
-            return value;
-          }
+      if (method.injections.length) {
+        instance[name] = this.injectMethod(
+          instance,
+          instance[name],
+          method.injections,
+          injector,
+          parentSession,
+          isAsync,
         );
       }
+
+      const guards = method.guards;
+      const interceptors = method.interceptors;
+      const pipes = method.pipes;
+      const eHandlers = method.eHandlers;
+      
+      const hasExtensions = interceptors.length || pipes.length || eHandlers.length || guards.length;
+      if (!hasExtensions) return;
+
+      if (pipes.length) {
+        instance[name] = handlePipes(pipes, instance[name]);
+      }
+      if (interceptors.length) {
+        instance[name] = handleInterceptors(interceptors, instance[name], injector, parentSession, isAsync);
+      }
+      if (guards.length) {
+        instance[name] = handleGuards(guards, instance[name]);
+      }
+      if (eHandlers.length) {
+        instance[name] = handleErrorHandlers(eHandlers, instance[name]);
+      }
+      instance[name] = handleExecutionContext(provider, method.handler, instance[name]);
+    }
+  }
+
+  injectMethod<T>(
+    instance: T,
+    originalMethod: Function,
+    injections: InjectionArgument[],
+    injector: Injector,
+    parentSession: Session,
+    isAsync: boolean,
+  ) {
+    const cachedDeps: any[] = [];
+    return (...args: any) => {
+      let methodProp: InjectionArgument = undefined;
+      let toRemove: InstanceRecord[];
+
+      for (let i = 0, l = injections.length; i < l; i++) {
+        args[i] = args[i] || cachedDeps[i];
+        if (args[i] === undefined && (methodProp = injections[i]) !== undefined) {
+          const argSession = Session.create(methodProp.token, methodProp.metadata, parentSession);
+          const value = args[i] = injector.resolveToken(methodProp.wrapper, argSession);
+          
+          // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
+          if (argSession.status & SessionStatus.SIDE_EFFECTS) {
+            (toRemove || (toRemove = [])).push(argSession.instance);
+          } else {
+            cachedDeps[i] = value;
+          }
+        }
+      }
+      
+      return thenable(
+        () => isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args),
+        value => {
+          DestroyManager.destroyAll(toRemove);
+          return value;
+        }
+      );
     }
   }
 
@@ -110,9 +136,9 @@ export const InjectorResolver = new class {
       if (session.status & SessionStatus.ASYNC) {
         return this.createProviderAsync(provider, injections, injector, session);
       }
-      const instance = new provider(...this.injectDeps(deps.parameters, injector, session));
-      this.injectProperties(instance, deps.properties, injector, session);
-      this.injectMethods(instance, deps.methods, injector, session);
+      const instance = new provider(...this.injectDeps(deps.parameters, injector, session, false));
+      this.injectProperties(instance, deps.properties, injector, session, false);
+      this.injectMethods(provider, instance, deps.methods, injector, session);
       return instance;
     }
     if (imports || providers) {
@@ -127,9 +153,9 @@ export const InjectorResolver = new class {
     injector: Injector,
     session: Session,
   ) {
-    const instance = new provider(...await this.injectDepsAsync(injections.parameters, injector, session));
-    await this.injectPropertiesAsync(instance, injections.properties, injector, session);
-    this.injectMethods(instance, injections.methods, injector, session);
+    const instance = new provider(...await this.injectDeps(injections.parameters, injector, session, true));
+    await this.injectProperties(instance, injections.properties, injector, session, true);
+    this.injectMethods(provider, instance, injections.methods, injector, session);
     return instance;
   }
 
@@ -154,8 +180,9 @@ export const InjectorResolver = new class {
     const convertedDeps = InjectorMetadata.convertDependencies(injections, InjectionKind.FUNCTION, fn);
     let factory = (injector: Injector, session: Session) => {
       const deps = (InjectorMetadata.combineDependencies as any)(session.options.injections, convertedDeps, fn);
+      const isAsync = session.status & SessionStatus.ASYNC;
       return thenable(
-        () => session.status & SessionStatus.ASYNC ? this.injectDepsAsync(deps, injector, session).then(args => fn(...args)) : fn(...this.injectDeps(deps, injector, session)),
+        () => isAsync ? this.injectDeps(deps, injector, session, true).then(args => fn(...args)) : fn(...this.injectDeps(deps, injector, session, false)),
         value => {
           DestroyManager.destroyAll(session.meta?.toDestroy);
           return value;
@@ -177,10 +204,7 @@ export const InjectorResolver = new class {
       return thenable(
         () => {
           injector = Injector.create({ imports, providers }, injector, { disableExporting: true });
-          if (session.status & SessionStatus.ASYNC) {
-            return injector.buildAsync();
-          }
-          return injector.build();
+          return session.status & SessionStatus.ASYNC ? injector.buildAsync() : injector.build();
         },
         newInjector => {
           // TODO: atm in Decorate and Transform wrapper it is saved to the previous one instance in session. It should be saved in different place in normal injection and in standalone factory injection and injector should be destroyed
@@ -211,6 +235,58 @@ export const InjectorResolver = new class {
     // otherwise parallel injection detected (in async resolution)
     return instance.donePromise || applyParallelHook(instance);
   }
+}
+
+function handlePipes(pipes: ExtensionItem[], previousMethod: Function) {
+  return (...args: any[]) => {
+    return previousMethod(...args);
+  }
+}
+
+function handleInterceptors(
+  interceptors: ExtensionItem[], 
+  previousMethod: Function,
+  injector: Injector, 
+  parentSession: Session, 
+  isAsync: boolean,
+) {
+  const cachedDeps: any[] = [];
+  return (...args: any[]) => {
+    return previousMethod(...args);
+  }
+}
+
+function handleGuards(guards: ExtensionItem[], previousMethod: Function) {
+  
+  return (...args: any[]) => {
+    return previousMethod(...args);
+  }
+}
+
+function handleErrorHandlers(handlers: ExtensionItem[], previousMethod: Function) {
+  return (...args: any[]) => {
+    return previousMethod(...args);
+  }
+}
+
+function handleExecutionContext(provider: Type, handler: Function, previousMethod: Function) {
+  return (...args: any[]) => {
+    const executionContext = createExecutionContext('default', args, provider, handler);
+    args = args ? [...args, executionContext] : [executionContext];
+    return previousMethod(...args);
+  }
+}
+
+function injectExtensions(extensions: ExtensionItem[], injector: Injector, parentSession: Session, isAsync: boolean) {
+  const args: Array<any> = [];
+  for (let i = 0, l = extensions.length; i < l; i++) {
+    const ext = extensions[i];
+    if (ext.arg) {
+      const arg = ext.arg;
+      args.push(InjectorResolver.inject(injector, arg.token, arg.wrapper, arg.metadata, parentSession));
+    }
+  };
+  return isAsync ? Promise.all(args) : args;
 }
 
 function applyParallelHook<T>(instance: InstanceRecord<T>) {

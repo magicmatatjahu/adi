@@ -4,8 +4,8 @@ export class ExecutionContext {
   constructor(
     private readonly type: string,
     private readonly args: any[],
-    private readonly clazz: Type<any> = null,
-    private readonly handler: Function = null,
+    private readonly clazz: Type<any>,
+    private readonly handler: Function,
   ) {}
 
   getType(): string {
@@ -28,4 +28,13 @@ export class ExecutionContext {
     } 
     return this.args;
   }
+}
+
+export function createExecutionContext(
+  type: string,
+  args: any[],
+  clazz: Type<any> = null,
+  handler: Function = null,
+): ExecutionContext {
+  return new ExecutionContext(type, args, clazz, handler);
 }
