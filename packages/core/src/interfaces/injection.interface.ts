@@ -3,7 +3,7 @@ import { Annotations, ScopeShape } from "./common.interface";
 import { Token } from "../types";
 import { Wrapper } from "../utils/wrappers";
 import { InjectionKind } from "../enums";
-import { ExtensionItem, ModuleMetadata } from ".";
+import { ExtensionItem, PipeItem, ModuleMetadata } from ".";
 
 export interface InjectionOptions<T = any> {
   token: Token<T>;
@@ -33,8 +33,8 @@ export interface InjectionMethod {
   injections: InjectionArgument[];
   interceptors: ExtensionItem[];
   guards: ExtensionItem[];
-  pipes: ExtensionItem[];
   eHandlers: ExtensionItem[];
+  pipes: PipeItem[];
 }
 
 export interface InjectionArguments {

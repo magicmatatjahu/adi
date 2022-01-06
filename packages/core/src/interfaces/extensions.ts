@@ -3,11 +3,15 @@ import { InjectionArgument, FunctionInjections } from './injection.interface';
 import { Type } from './type.interface';
 
 export interface Interceptor<R = any> {
-  intercept(context: ExecutionContext, next: Function): R | Promise<R>;
+  intercept(context: ExecutionContext, next: NextInterceptor<R>): R | Promise<R>;
 };
 
 export interface StandaloneInterceptor<R = any> extends FunctionInjections {
-  intercept(context: ExecutionContext, next: Function, ...injections: any[]): R | Promise<R>;
+  intercept(context: ExecutionContext, next: NextInterceptor, ...injections: any[]): R | Promise<R>;
+};
+
+export interface NextInterceptor<R = any> {
+  (): R | Promise<R>;
 };
 
 export interface Guard {
@@ -34,13 +38,32 @@ export interface StandalonePipeTransform<T = any, R = any> extends FunctionInjec
   transform(value: T, argMetadata: ArgumentMetadata, context: ExecutionContext, ...injections: any[]): R | Promise<R>;
 };
 
-export interface ArgumentMetadata {
-  readonly type?: string;
-  readonly metatype?: Type<any> | undefined;
-  readonly data?: any;
+export interface PipeDecorator<Data = unknown> {
+  (data: Data): ParameterDecorator;
+  decorators?: ParameterDecorator[];
+}
+export type PipeFactory<Data = unknown, Result = unknown> = (metadata: ArgumentMetadata<Data>, context: ExecutionContext) => Result;
+
+export interface ArgumentMetadata<Data = unknown> {
+  readonly type: string;
+  readonly metatype: Type<any> | undefined;
+  readonly index: number; 
+  readonly data: Data;
+}
+
+export interface PipeItem<Data = unknown> {
+  decorator: (ctx: ExecutionContext) => unknown;
+  metadata: ArgumentMetadata<Data>
+  pipes: ExtensionItem[];
 }
 
 export interface ExtensionItem {
   arg?: InjectionArgument;
   func?: Function;
+}
+
+export interface ExecutionContextArgs<T = unknown> {
+  _this: T;
+  ctx?: ExecutionContext;
+  args?: any[];
 }

@@ -539,6 +539,46 @@ describe('Request scope', function () {
     @Injectable({
       scope: Scope.REQUEST,
     })
+    class RequestService {
+      public prop = {};
+
+      method(@Inject('foobar') foobar?: string) {
+        return this;
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly requestService1: RequestService,
+        readonly requestService2: RequestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      RequestService,
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+      }
+    ]);
+
+    let service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+    // console.log(service.requestService1 === service.requestService2);
+    // console.log(service.requestService1.prop === service.requestService2.prop);
+    // console.log(service.requestService1.prop);
+    // console.log(service.requestService2.prop);
+    console.log(service.requestService1.method() === service.requestService2.method());
+    // expect(service.method()).toBeInstanceOf(RequestService);
+  });
+
+  // TODO: Support method injection
+  test.skip('should work with method injection', async function () {
+    @Injectable({
+      scope: Scope.REQUEST,
+    })
     class RequestService {}
 
     @Injectable()

@@ -60,7 +60,6 @@ function createProxy(instanceValue: any, services: ProxyInstance[]) {
   return new DeepProxy(instanceValue, ({ value, DEFAULT, PROXY }) => {
     if (value instanceof ProxyPlaceholder) {
       const service = services.find(s => s.id === value.id && s.def === value.def).value;
-      // console.log(service)
       return createProxy(service, services);
     }
     if (typeof value === 'object' && value !== null) {

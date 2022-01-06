@@ -5,6 +5,7 @@ export class ExecutionContext {
     private readonly type: string,
     private readonly args: any[],
     private readonly clazz: Type<any>,
+    private readonly instance: any,
     private readonly handler: Function,
   ) {}
 
@@ -14,6 +15,10 @@ export class ExecutionContext {
 
   getClass<T = any>(): Type<T> {
     return this.clazz;
+  }
+
+  getInstance<T = any>(): T {
+    return this.instance;
   }
 
   getHandler(): Function {
@@ -34,7 +39,8 @@ export function createExecutionContext(
   type: string,
   args: any[],
   clazz: Type<any> = null,
+  instance: any = null,
   handler: Function = null,
 ): ExecutionContext {
-  return new ExecutionContext(type, args, clazz, handler);
+  return new ExecutionContext(type, args, clazz, instance, handler);
 }

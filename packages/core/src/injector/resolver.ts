@@ -8,7 +8,8 @@ import { InjectorMetadata } from "./metadata";
 import { DELEGATION, SESSION_INTERNAL } from "../constants";
 import { DestroyManager } from "./destroy-manager";
 import { Delegate } from "../wrappers";
-import { createExecutionContext } from "./execution-context";
+import { injectExtensions } from "./extensions";
+import { ExecutionContext } from "./execution-context";
 
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, metadata: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
@@ -49,79 +50,18 @@ export const InjectorResolver = new class {
 
   injectMethods<T>(provider: Type<T>, instance: T, methods: Record<string, InjectionMethod>, injector: Injector, parentSession: Session): void {
     const isAsync = (parentSession.status & SessionStatus.ASYNC) > 0;
-    for (const name in methods) {
-      const method = methods[name];
-
+    for (const methodName in methods) {
+      const method = methods[methodName];
       if (method.injections.length) {
-        instance[name] = this.injectMethod(
-          instance,
-          instance[name],
+        instance[methodName] = injectMethod(
+          instance[methodName],
           method.injections,
           injector,
           parentSession,
           isAsync,
         );
       }
-
-      const guards = method.guards;
-      const interceptors = method.interceptors;
-      const pipes = method.pipes;
-      const eHandlers = method.eHandlers;
-      
-      const hasExtensions = interceptors.length || pipes.length || eHandlers.length || guards.length;
-      if (!hasExtensions) return;
-
-      if (pipes.length) {
-        instance[name] = handlePipes(pipes, instance[name]);
-      }
-      if (interceptors.length) {
-        instance[name] = handleInterceptors(interceptors, instance[name], injector, parentSession, isAsync);
-      }
-      if (guards.length) {
-        instance[name] = handleGuards(guards, instance[name]);
-      }
-      if (eHandlers.length) {
-        instance[name] = handleErrorHandlers(eHandlers, instance[name]);
-      }
-      instance[name] = handleExecutionContext(provider, method.handler, instance[name]);
-    }
-  }
-
-  injectMethod<T>(
-    instance: T,
-    originalMethod: Function,
-    injections: InjectionArgument[],
-    injector: Injector,
-    parentSession: Session,
-    isAsync: boolean,
-  ) {
-    const cachedDeps: any[] = [];
-    return (...args: any) => {
-      let methodProp: InjectionArgument = undefined;
-      let toRemove: InstanceRecord[];
-
-      for (let i = 0, l = injections.length; i < l; i++) {
-        args[i] = args[i] || cachedDeps[i];
-        if (args[i] === undefined && (methodProp = injections[i]) !== undefined) {
-          const argSession = Session.create(methodProp.token, methodProp.metadata, parentSession);
-          const value = args[i] = injector.resolveToken(methodProp.wrapper, argSession);
-          
-          // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
-          if (argSession.status & SessionStatus.SIDE_EFFECTS) {
-            (toRemove || (toRemove = [])).push(argSession.instance);
-          } else {
-            cachedDeps[i] = value;
-          }
-        }
-      }
-      
-      return thenable(
-        () => isAsync ? Promise.all(args).then(deps => originalMethod.apply(instance, deps)) : originalMethod.apply(instance, args),
-        value => {
-          DestroyManager.destroyAll(toRemove);
-          return value;
-        }
-      );
+      injectExtensions(provider, instance, methodName, method, injector, parentSession);
     }
   }
 
@@ -237,56 +177,41 @@ export const InjectorResolver = new class {
   }
 }
 
-function handlePipes(pipes: ExtensionItem[], previousMethod: Function) {
-  return (...args: any[]) => {
-    return previousMethod(...args);
-  }
-}
-
-function handleInterceptors(
-  interceptors: ExtensionItem[], 
-  previousMethod: Function,
-  injector: Injector, 
-  parentSession: Session, 
+function injectMethod<T>(
+  originalMethod: Function,
+  injections: InjectionArgument[],
+  injector: Injector,
+  parentSession: Session,
   isAsync: boolean,
 ) {
   const cachedDeps: any[] = [];
-  return (...args: any[]) => {
-    return previousMethod(...args);
-  }
-}
+  return function fn(this: T, ...args: any[]) {
+    let methodProp: InjectionArgument = undefined;
+    let toRemove: InstanceRecord[];
 
-function handleGuards(guards: ExtensionItem[], previousMethod: Function) {
-  
-  return (...args: any[]) => {
-    return previousMethod(...args);
-  }
-}
-
-function handleErrorHandlers(handlers: ExtensionItem[], previousMethod: Function) {
-  return (...args: any[]) => {
-    return previousMethod(...args);
-  }
-}
-
-function handleExecutionContext(provider: Type, handler: Function, previousMethod: Function) {
-  return (...args: any[]) => {
-    const executionContext = createExecutionContext('default', args, provider, handler);
-    args = args ? [...args, executionContext] : [executionContext];
-    return previousMethod(...args);
-  }
-}
-
-function injectExtensions(extensions: ExtensionItem[], injector: Injector, parentSession: Session, isAsync: boolean) {
-  const args: Array<any> = [];
-  for (let i = 0, l = extensions.length; i < l; i++) {
-    const ext = extensions[i];
-    if (ext.arg) {
-      const arg = ext.arg;
-      args.push(InjectorResolver.inject(injector, arg.token, arg.wrapper, arg.metadata, parentSession));
+    for (let i = 0, l = injections.length; i < l; i++) {
+      args[i] = args[i] || cachedDeps[i];
+      if (args[i] === undefined && (methodProp = injections[i]) !== undefined) {
+        const argSession = Session.create(methodProp.token, methodProp.metadata, parentSession);
+        const value = args[i] = injector.resolveToken(methodProp.wrapper, argSession);
+        
+        // if injection has side effects, then save instance record to destroy in the future, otherwise cache it
+        if (argSession.status & SessionStatus.SIDE_EFFECTS) {
+          (toRemove || (toRemove = [])).push(argSession.instance);
+        } else {
+          cachedDeps[i] = value;
+        }
+      }
     }
-  };
-  return isAsync ? Promise.all(args) : args;
+    
+    return thenable(
+      () => isAsync ? Promise.all(args).then(deps => originalMethod.apply(this, deps)) : originalMethod.apply(this, args),
+      value => {
+        DestroyManager.destroyAll(toRemove);
+        return value;
+      }
+    );
+  }
 }
 
 function applyParallelHook<T>(instance: InstanceRecord<T>) {

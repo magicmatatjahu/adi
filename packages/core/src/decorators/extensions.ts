@@ -4,9 +4,10 @@ import {
   Interceptor, StandaloneInterceptor,
   Guard, StandaloneGuard,
   ErrorHandler, StandaloneErrorHandler, 
-  PipeTransform, StandalonePipeTransform,
+  PipeTransform, StandalonePipeTransform, PipeDecorator, PipeFactory, ArgumentMetadata,
   InjectionItem, ExtensionItem, FunctionInjections
 } from "../interfaces";
+import { Reflection } from "../utils";
 import { getMethod, getProviderDef } from "./injectable";
 
 export function UseInterceptors(...interceptors: (InjectionItem | Interceptor | StandaloneInterceptor)[]) {
@@ -28,16 +29,64 @@ export function UseErrorHandlers(...handlers: (InjectionItem | ErrorHandler | St
 }
 
 export function UsePipes(...pipes: (InjectionItem | PipeTransform | StandalonePipeTransform)[]) {
-  return function(target: Object, key?: string | symbol, method?: TypedPropertyDescriptor<any>) {
-    applyExtensions(pipes, 'pipes', 'transform', target, key, method);
+  return function(target: Object, key?: string | symbol, descriptorOrIndex?: TypedPropertyDescriptor<any> | number) {
+    if (key !== undefined) {
+      target = target.constructor
+    }
+    const converted = pipes.map(item => convertDependency(item as any, 'transform', target, key, descriptorOrIndex));
+
+    // defined on method level
+    if (descriptorOrIndex) {
+      const method = getMethod(target, key);
+      if (typeof descriptorOrIndex === 'number' && method.pipes[descriptorOrIndex]) {
+        const index = method.pipes[descriptorOrIndex];
+        method.pipes[descriptorOrIndex].pipes = converted;
+        return;
+      }
+      method.pipes.forEach(pipe => pipe.pipes = [...converted, ...pipe.pipes]);
+      return;
+    }
+    
+    // defined on class level
+    const def = getProviderDef(target);
+    if (!def) return;
+    const methods = def.injections.methods;
+    Object.values(methods).forEach(method => {
+      method.pipes.forEach(pipe => pipe.pipes = [...converted, ...pipe.pipes]);
+    });
   }
 }
 
-export function Pipe(...pipes: (InjectionItem | PipeTransform | StandalonePipeTransform)[]) {
-  return function(target: Object, key: string | symbol, index: number) {
-    const method = getMethod(target, key);
-    // method.pipes[index] = [...pipes as any];
+export function createParameterDecorator<
+  Data = unknown,
+  Result = unknown,
+>(
+  factory: PipeFactory<Data, Result>,
+  type: string,
+  decorators: ParameterDecorator[] = [],
+): PipeDecorator<Data> {
+  const decorator: PipeDecorator = (data: Data) => {
+    return function(target: Object, key: string | symbol, index: number) {
+      const metatype = Reflection.getOwnMetadata("design:paramtypes", target, key)[index];
+      const method = getMethod(target.constructor, key);
+      const metadata: ArgumentMetadata<Data> = {
+        type,
+        metatype,
+        index,
+        data,
+      };
+      method.pipes[index] = {
+        decorator: (ctx) => factory(metadata, ctx),
+        metadata,
+        pipes: [],
+      }
+      if (Array.isArray(decorator.decorators)) {
+        decorator.decorators.forEach(fn => fn(target, key, index));
+      }
+      decorators.forEach(fn => fn(target, key, index));
+    }
   }
+  return decorator;
 }
 
 function applyExtensions(
@@ -48,7 +97,9 @@ function applyExtensions(
   key?: string | symbol, 
   method?: TypedPropertyDescriptor<any>
 ) {
-  target = target.constructor;
+  if (key !== undefined) {
+    target = target.constructor
+  }
   const converted = items.map(item => convertDependency(item, methodName, target, key, method));
   // defined on method level
   if (method) {
@@ -71,7 +122,7 @@ function convertDependency(
   methodName: string,
   target: Object, 
   key?: string | symbol, 
-  method?: TypedPropertyDescriptor<any>
+  method?: TypedPropertyDescriptor<any> | number,
 ): ExtensionItem {
   if (typeof item === 'object' && typeof item[methodName] === 'function') {
     return {
@@ -80,6 +131,13 @@ function convertDependency(
     };
   }
   // change injection kind
-  const arg = InjectorMetadata.convertDependency(item as InjectionItem, InjectionKind.METHOD, target, key, undefined, method && method.value);
+  const arg = InjectorMetadata.convertDependency(
+    item as InjectionItem, 
+    InjectionKind.METHOD, 
+    target, 
+    key, 
+    typeof method === 'number' ? method : undefined, 
+    typeof method !== 'number' ? method.value : undefined
+  );
   return { arg, func: undefined };
 }
