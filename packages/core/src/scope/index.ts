@@ -5,7 +5,7 @@ import { ScopeFlags } from "../enums";
 import { DefaultScopeOptions } from "./default";
 import { SingletonScopeOptions } from "./singleton";
 import { LocalScopeOptions } from "./local";
-import { RequestScopeOptions } from "./request";
+import { ResolutionScopeOptions } from "./resolution";
 import { InstanceScopeOptions } from "./instance";
 import { TransientScopeOptions } from "./transient";
 
@@ -17,7 +17,7 @@ export abstract class Scope<O = any> {
   public static TRANSIENT: Scope<TransientScopeOptions>;
   public static INSTANCE: Scope<InstanceScopeOptions>;
   public static LOCAL: Scope<LocalScopeOptions>;
-  public static REQUEST: Scope<RequestScopeOptions>;
+  public static RESOLUTION: Scope<ResolutionScopeOptions>;
 
   abstract get name(): string;
 

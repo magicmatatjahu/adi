@@ -133,7 +133,7 @@ function convertDependency<T>(
     if ((item as FunctionInjections).inject) {
       return {
         type: 'func',
-        arg: InjectorResolver.createFunction(item[methodName], item as FunctionInjections),
+        arg: [item[methodName], item as FunctionInjections],
       };
     }
     return {

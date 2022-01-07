@@ -17,6 +17,7 @@ export interface ProviderDef<T = any, S = any> {
 export type FactoryDef<T = any> = (
   injector: Injector, 
   session: Session, 
+  ...args: any[]
 ) => Promise<T | undefined> | T | undefined;
 
 export type ConstraintDef = (session: Session) => boolean;

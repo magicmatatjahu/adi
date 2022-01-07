@@ -72,7 +72,7 @@ export type ExtensionItem<T = any> =
     }
   | {
       type: 'func';
-      arg: Function;
+      arg: [Function, FunctionInjections];
     }
   | {
       type: 'val';

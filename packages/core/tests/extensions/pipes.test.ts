@@ -1,4 +1,4 @@
-import { Injector, Injectable, UseInterceptors, Interceptor, createParameterDecorator, Inject, Scope } from "../../src";
+import { Injector, Injectable, Interceptor, createParameterDecorator, Inject, Scope } from "../../src";
 import { ExecutionContext } from "../../src/injector/execution-context";
 
 describe('Pipes', function() {
@@ -10,7 +10,7 @@ describe('Pipes', function() {
     @Injectable()
     class InterceptorService2 implements Interceptor {
       intercept(context: ExecutionContext, next: Function) {
-        // console.log('lol')
+        // console.log('foobar')
         next();
       }
     }
@@ -25,48 +25,48 @@ describe('Pipes', function() {
 
     @Injectable()
     class Service {
-      method(@TestParam('lol') lol: string) {
-        // console.log(lol);
+      method(@TestParam('foobar') foobar: string) {
+        // console.log(foobar);
       }
     }
 
     const injector = new Injector([Service, InterceptorService1, InterceptorService2]);
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    service.method('dupa');
+    service.method('foobar');
   });
 
   test('should work with method injection', function() {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class DeepRequestService {
+    class DeepResolutionService {
       public date: number = 0;
 
       constructor() {
         this.date++;
       }
 
-      async method(@TestParam('lol') lol: string, @Inject('foobar') injectedValue?: string, @TestParam('lol2') lol2?: string) {
+      async method(@TestParam('foobar') foobar: string, @Inject('foobar') injectedValue?: string, @TestParam('lol2') lol2?: string) {
         // console.log(this);
-        // console.log(lol, injectedValue, lol2, this.date);
+        // console.log(foobar, injectedValue, lol2, this.date);
       }
     }
 
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {
+    class ResolutionService {
       constructor(
-        readonly deepRequestService1: DeepRequestService,
-        readonly deepRequestService2: DeepRequestService,
+        readonly deepResolutionService1: DeepResolutionService,
+        readonly deepResolutionService2: DeepResolutionService,
       ) {}
 
-      async method(@TestParam('lol') lol: string, @Inject('foobar') injectedValue?: string) {
+      async method(@TestParam('foobar') foobar: string, @Inject('foobar') injectedValue?: string) {
         // console.log(this);
-        // console.log(lol, injectedValue);
-        this.deepRequestService1.method('dupa');
-        this.deepRequestService2.method('dupa');
+        // console.log(foobar, injectedValue);
+        this.deepResolutionService1.method('foobar');
+        this.deepResolutionService2.method('foobar');
       }
     }
 
@@ -75,7 +75,7 @@ describe('Pipes', function() {
       public createdTimes: number = 0;
 
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -83,8 +83,8 @@ describe('Pipes', function() {
 
     const injector = new Injector([
       Service,
-      RequestService,
-      DeepRequestService,
+      ResolutionService,
+      DeepResolutionService,
       {
         provide: 'foobar',
         useValue: 'foobar',
@@ -92,6 +92,6 @@ describe('Pipes', function() {
     ]);
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    service.requestService.method('dupa');
+    service.resolutionService.method('foobar');
   });
 });

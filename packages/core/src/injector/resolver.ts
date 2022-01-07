@@ -9,7 +9,6 @@ import { DELEGATION, SESSION_INTERNAL } from "../constants";
 import { DestroyManager } from "./destroy-manager";
 import { Delegate } from "../wrappers";
 import { injectExtensions } from "./extensions";
-import { ExecutionContext } from "./execution-context";
 
 export const InjectorResolver = new class {
   inject<T>(injector: Injector, token: Token, wrapper: Wrapper | Array<Wrapper>, metadata: InjectionMetadata, parentSession?: Session): T | undefined | Promise<T | undefined> {
@@ -109,16 +108,27 @@ export const InjectorResolver = new class {
     return this.createFactory(fn, inject, options.imports, options.providers);
   }
 
-  createFunction2<T>(
+  createFunctionNew<T>(
     fn: Function,
     options: FunctionInjections = {},
-    withValue: boolean = false,
   ): FactoryDef<T> {
-    let { inject = [], withDelegation, delegationKey } = options;
-    if (withValue && !withDelegation) {
-      inject = [Delegate(delegationKey || DELEGATION.DEFAULT), ...inject]
+    const { inject, imports, providers } = options;
+    const convertedDeps = InjectorMetadata.convertDependencies(inject || [], InjectionKind.FUNCTION, fn);
+    let factory = (injector: Injector, session: Session, ...args: any[]) => {
+      const deps = (InjectorMetadata.combineDependencies as any)(session.options.injections, convertedDeps, fn);
+      const isAsync = session.status & SessionStatus.ASYNC;
+      return thenable(
+        () => isAsync ? this.injectDeps(deps, injector, session, true).then(injected => fn(...args, ...injected)) : fn(...args ,...this.injectDeps(deps, injector, session, false)),
+        value => {
+          DestroyManager.destroyAll(session.meta?.toDestroy);
+          return value;
+        }
+      );
     }
-    return this.createFactory(fn, inject, options.imports, options.providers);
+    if (imports || providers) {
+      factory = InjectorResolver.createInjectorFactory(factory, imports, providers);
+    }
+    return factory;
   }
 
   createFactory<T>(

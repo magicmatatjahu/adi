@@ -3,16 +3,16 @@ import { Injector, Injectable, Scope, Inject, Context, Session, DestroyManager }
 describe('Request scope', function () {
   test('should create new instance by each resolution', function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
     @Injectable()
     class Service {
       public createdTimes: number = 0;
 
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -20,46 +20,46 @@ describe('Request scope', function () {
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service.createdTimes).toEqual(1);
       
     const oldService1 = service;
     service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service === oldService1).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
-    expect(service.requestService === oldService1.requestService).toEqual(false);
+    expect(service.resolutionService === oldService1.resolutionService).toEqual(false);
 
     const oldService2 = service;
     service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service === oldService1).toEqual(false); // because they are proxies
     expect(service === oldService2).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
-    expect(service.requestService === oldService1.requestService).toEqual(false);
-    expect(service.requestService === oldService2.requestService).toEqual(false);
-    expect(oldService1.requestService === oldService2.requestService).toEqual(false);
+    expect(service.resolutionService === oldService1.resolutionService).toEqual(false);
+    expect(service.resolutionService === oldService2.resolutionService).toEqual(false);
+    expect(oldService1.resolutionService === oldService2.resolutionService).toEqual(false);
   });
 
   test('should create new instance by each resolution - deep case', function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
     @Injectable()
     class DeepService {
       public createdTimes: number = 0;
 
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -79,53 +79,53 @@ describe('Request scope', function () {
     const injector = Injector.create([
       Service,
       DeepService,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
     expect(service.deepService.createdTimes).toEqual(1);
-    expect(service.deepService.requestService).toBeInstanceOf(RequestService);
+    expect(service.deepService.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service.createdTimes).toEqual(1);
 
     const oldService1 = service;
     service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
-    expect(service.deepService.requestService).toBeInstanceOf(RequestService);
+    expect(service.deepService.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service === oldService1).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
     expect(service.deepService === oldService1.deepService).toEqual(false); // because they are proxies
     expect(service.deepService.createdTimes).toEqual(1);
-    expect(service.deepService.requestService === oldService1.deepService.requestService).toEqual(false);
+    expect(service.deepService.resolutionService === oldService1.deepService.resolutionService).toEqual(false);
 
     const oldService2 = service;
     service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
-    expect(service.deepService.requestService).toBeInstanceOf(RequestService);
+    expect(service.deepService.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service === oldService2).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
     expect(service.deepService === oldService2.deepService).toEqual(false); // because they are proxies
     expect(service.deepService.createdTimes).toEqual(1);
-    expect(service.deepService.requestService === oldService1.deepService.requestService).toEqual(false);
-    expect(service.deepService.requestService === oldService2.deepService.requestService).toEqual(false);
-    expect(oldService1.deepService.requestService === oldService2.deepService.requestService).toEqual(false);
+    expect(service.deepService.resolutionService === oldService1.deepService.resolutionService).toEqual(false);
+    expect(service.deepService.resolutionService === oldService2.deepService.resolutionService).toEqual(false);
+    expect(oldService1.deepService.resolutionService === oldService2.deepService.resolutionService).toEqual(false);
   });
 
   test('should share this same instance', function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
     @Injectable()
     class DeepService {
       public createdTimes: number = 0;
 
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -137,7 +137,7 @@ describe('Request scope', function () {
 
       constructor(
         readonly deepService: DeepService,
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -146,35 +146,35 @@ describe('Request scope', function () {
     const injector = Injector.create([
       Service,
       DeepService,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service.deepService.createdTimes).toEqual(1);
-    expect(service.deepService.requestService).toBeInstanceOf(RequestService);
-    expect(service.requestService === service.deepService.requestService).toEqual(false); // because they are proxies
-    // expect(service.requestService === service.deepService.requestService).toEqual(true);
+    expect(service.deepService.resolutionService).toBeInstanceOf(ResolutionService);
+    expect(service.resolutionService === service.deepService.resolutionService).toEqual(false); // because they are proxies
+    // expect(service.resolutionService === service.deepService.resolutionService).toEqual(true);
     expect(service.createdTimes).toEqual(1);
 
     const oldService1 = service;
     service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
-    expect(service.requestService).toBeInstanceOf(RequestService);
-    expect(service.deepService.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
+    expect(service.deepService.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service === oldService1).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
     expect(service.deepService === oldService1.deepService).toEqual(false); // because they are proxies
     expect(service.deepService.createdTimes).toEqual(1);
-    expect(service.requestService === service.deepService.requestService).toEqual(false); // because they are proxies
-    // expect(service.requestService === service.deepService.requestService).toEqual(true);
-    expect(oldService1.requestService === oldService1.deepService.requestService).toEqual(false); // because they are proxies
-    // expect(oldService1.requestService === oldService1.deepService.requestService).toEqual(true);
-    expect(service.requestService === oldService1.requestService).toEqual(false);
-    expect(service.deepService.requestService === oldService1.deepService.requestService).toEqual(false);
+    expect(service.resolutionService === service.deepService.resolutionService).toEqual(false); // because they are proxies
+    // expect(service.resolutionService === service.deepService.resolutionService).toEqual(true);
+    expect(oldService1.resolutionService === oldService1.deepService.resolutionService).toEqual(false); // because they are proxies
+    // expect(oldService1.resolutionService === oldService1.deepService.resolutionService).toEqual(true);
+    expect(service.resolutionService === oldService1.resolutionService).toEqual(false);
+    expect(service.deepService.resolutionService === oldService1.deepService.resolutionService).toEqual(false);
   });
 
   test('should handle normal non requested services', function () {
@@ -188,9 +188,9 @@ describe('Request scope', function () {
     }
 
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {
+    class ResolutionService {
       constructor(
         readonly normalService: NormalService,
       ) {}
@@ -203,7 +203,7 @@ describe('Request scope', function () {
     @Injectable()
     class Service {
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
         readonly normalService: NormalService,
       ) {}
 
@@ -215,85 +215,85 @@ describe('Request scope', function () {
     const injector = Injector.create([
       Service,
       NormalService,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     expect(service.normalService).toBeInstanceOf(NormalService);
     expect(service.method()).toBeInstanceOf(NormalService);
     expect(service.method() === service.normalService).toEqual(false); // because they are proxies
-    // expect(service.method() === service.requestService).toEqual(true);
+    // expect(service.method() === service.resolutionService).toEqual(true);
     expect(service.normalService.createdTimes).toEqual(1);
     expect(service.method().createdTimes).toEqual(1);
-    expect(service.requestService.normalService).toBeInstanceOf(NormalService);
-    expect(service.requestService.method()).toBeInstanceOf(NormalService);
-    expect(service.requestService.method() === service.requestService.normalService).toEqual(false); // because they are proxies
-    // expect(service.requestService.method() === service.requestService.normalService).toEqual(true);
-    expect(service.requestService.normalService.createdTimes).toEqual(1);
-    expect(service.requestService.method().createdTimes).toEqual(1);
+    expect(service.resolutionService.normalService).toBeInstanceOf(NormalService);
+    expect(service.resolutionService.method()).toBeInstanceOf(NormalService);
+    expect(service.resolutionService.method() === service.resolutionService.normalService).toEqual(false); // because they are proxies
+    // expect(service.resolutionService.method() === service.resolutionService.normalService).toEqual(true);
+    expect(service.resolutionService.normalService.createdTimes).toEqual(1);
+    expect(service.resolutionService.method().createdTimes).toEqual(1);
   });
 
   test('should handle this argument', function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
     @Injectable()
     class Service {
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {}
 
       method() {
-        return this.requestService;
+        return this.resolutionService;
       }
     }
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
-    expect(service.method()).toBeInstanceOf(RequestService);
-    expect(service.method() === service.requestService).toEqual(false); // because they are proxies
-    // expect(service.method() === service.requestService).toEqual(true);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
+    expect(service.method()).toBeInstanceOf(ResolutionService);
+    expect(service.method() === service.resolutionService).toEqual(false); // because they are proxies
+    // expect(service.method() === service.resolutionService).toEqual(true);
   });
 
   test('should handle this argument in closures', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
-    let requestService: RequestService;
+    let resolutionService: ResolutionService;
 
     @Injectable()
     class Service {
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {}
 
       method() {
         setTimeout(() => {
-          requestService = this.requestService;
+          resolutionService = this.resolutionService;
         }, 10);
       }
     }
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     service.method();
 
     await new Promise(resolve => {
@@ -301,28 +301,28 @@ describe('Request scope', function () {
         resolve(undefined);
       }, 20);
     });
-    expect(requestService === service.requestService).toEqual(false); // because they are proxies
-    // expect(requestService === service.requestService).toEqual(true);
+    expect(resolutionService === service.resolutionService).toEqual(false); // because they are proxies
+    // expect(resolutionService === service.resolutionService).toEqual(true);
   });
 
   test('should handle this argument in deep closures', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
-    let requestService: RequestService;
+    let resolutionService: ResolutionService;
 
     @Injectable()
     class Service {
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {}
 
       method() {
         return () => {
           return {
-            requestService: this.requestService,
+            resolutionService: this.resolutionService,
           }
         }
       }
@@ -330,28 +330,28 @@ describe('Request scope', function () {
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
     const fn = service.method();
-    expect(fn().requestService).toBeInstanceOf(RequestService);
-    expect(fn().requestService === service.requestService).toEqual(false); // because they are proxies
-    // expect(fn().requestService === service.requestService).toEqual(true);
+    expect(fn().resolutionService).toBeInstanceOf(ResolutionService);
+    expect(fn().resolutionService === service.resolutionService).toEqual(false); // because they are proxies
+    // expect(fn().resolutionService === service.resolutionService).toEqual(true);
   });
 
   test('should work with every provider which has in deps tree request scope', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
     @Injectable()
     class DeepService {
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {}
     }
 
@@ -365,30 +365,30 @@ describe('Request scope', function () {
     const injector = Injector.create([
       Service,
       DeepService,
-      RequestService,
+      ResolutionService,
     ]);
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
-    expect(service.deepService.requestService).toBeInstanceOf(RequestService);
+    expect(service.deepService.resolutionService).toBeInstanceOf(ResolutionService);
 
     const deepService = injector.get(DeepService);
     expect(deepService).toBeInstanceOf(DeepService);
-    expect(deepService.requestService).toBeInstanceOf(RequestService);
+    expect(deepService.resolutionService).toBeInstanceOf(ResolutionService);
 
     expect(service.deepService === deepService).toEqual(false);
-    expect(service.deepService.requestService === deepService.requestService).toEqual(false);
+    expect(service.deepService.resolutionService === deepService.resolutionService).toEqual(false);
   });
 
   test('should work with multiple requested providers', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
     class RequestService1 {}
 
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
     class RequestService2 {}
 
@@ -397,7 +397,7 @@ describe('Request scope', function () {
       public createdTimes: number = 0;
 
       constructor(
-        readonly requestService1: RequestService1,
+        readonly resolutionService1: RequestService1,
       ) {
         this.createdTimes++;
       }
@@ -409,8 +409,8 @@ describe('Request scope', function () {
 
       constructor(
         readonly deepService: DeepService,
-        readonly requestService1: RequestService1,
-        readonly requestService2: RequestService2,
+        readonly resolutionService1: RequestService1,
+        readonly resolutionService2: RequestService2,
       ) {
         this.createdTimes++;
       }
@@ -426,39 +426,39 @@ describe('Request scope', function () {
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.deepService).toBeInstanceOf(DeepService);
-    expect(service.requestService1).toBeInstanceOf(RequestService1);
-    expect(service.requestService2).toBeInstanceOf(RequestService2);
-    expect(service.deepService.requestService1).toBeInstanceOf(RequestService1);
-    expect(service.requestService1 === service.deepService.requestService1).toEqual(false); // because they are proxies
-    // expect(service.requestService1 === service.deepService.requestService1).toEqual(true); 
+    expect(service.resolutionService1).toBeInstanceOf(RequestService1);
+    expect(service.resolutionService2).toBeInstanceOf(RequestService2);
+    expect(service.deepService.resolutionService1).toBeInstanceOf(RequestService1);
+    expect(service.resolutionService1 === service.deepService.resolutionService1).toEqual(false); // because they are proxies
+    // expect(service.resolutionService1 === service.deepService.resolutionService1).toEqual(true); 
     expect(service.createdTimes).toEqual(1);
     expect(service.deepService.createdTimes).toEqual(1);
 
     const oldService1 = service;
     service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService1).toBeInstanceOf(RequestService1);
-    expect(service.requestService2).toBeInstanceOf(RequestService2);
+    expect(service.resolutionService1).toBeInstanceOf(RequestService1);
+    expect(service.resolutionService2).toBeInstanceOf(RequestService2);
     expect(service === oldService1).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
     expect(service.deepService.createdTimes).toEqual(1);
-    expect(service.requestService1 === oldService1.requestService1).toEqual(false);
-    expect(service.requestService2 === oldService1.requestService2).toEqual(false);
-    expect(service.deepService.requestService1 === oldService1.deepService.requestService1).toEqual(false);
-    expect(service.requestService1 === service.deepService.requestService1).toEqual(false); // because they are proxies
-    // expect(service.requestService1 === service.deepService.requestService1).toEqual(true);
+    expect(service.resolutionService1 === oldService1.resolutionService1).toEqual(false);
+    expect(service.resolutionService2 === oldService1.resolutionService2).toEqual(false);
+    expect(service.deepService.resolutionService1 === oldService1.deepService.resolutionService1).toEqual(false);
+    expect(service.resolutionService1 === service.deepService.resolutionService1).toEqual(false); // because they are proxies
+    // expect(service.resolutionService1 === service.deepService.resolutionService1).toEqual(true);
   });
 
   test('should work with nested requested providers', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
     class DeepRequestService {}
 
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {
+    class ResolutionService {
       constructor(
         readonly deepRequestService: DeepRequestService,
       ) {}
@@ -469,7 +469,7 @@ describe('Request scope', function () {
       public createdTimes: number = 0;
 
       constructor(
-        readonly requestService: RequestService,
+        readonly resolutionService: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -477,22 +477,22 @@ describe('Request scope', function () {
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
       DeepRequestService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService).toBeInstanceOf(RequestService);
-    expect(service.requestService.deepRequestService).toBeInstanceOf(DeepRequestService);
+    expect(service.resolutionService).toBeInstanceOf(ResolutionService);
+    expect(service.resolutionService.deepRequestService).toBeInstanceOf(DeepRequestService);
     expect(service.createdTimes).toEqual(1);
   });
 
   test('should pass requestData from session to the created context', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {
+    class ResolutionService {
       constructor(
         readonly context: Context,
       ) {}
@@ -504,8 +504,8 @@ describe('Request scope', function () {
 
       constructor(
         // two instances to check that every instance has this same request data
-        readonly requestService1: RequestService,
-        readonly requestService2: RequestService,
+        readonly resolutionService1: ResolutionService,
+        readonly resolutionService2: ResolutionService,
       ) {
         this.createdTimes++;
       }
@@ -513,33 +513,33 @@ describe('Request scope', function () {
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
     ]);
 
     const session = Session.createStandalone(Service, injector);
     session.shared.requestData = { foo: 'bar' }
     let service = injector.get(Service, undefined, session);
     expect(service).toBeInstanceOf(Service);
-    expect(service.requestService1).toBeInstanceOf(RequestService);
-    expect(service.requestService1.context.get('foo')).toEqual('bar');
-    expect(service.requestService2).toBeInstanceOf(RequestService);
-    expect(service.requestService2.context.get('foo')).toEqual('bar');
-    expect(service.requestService1 === service.requestService2).toEqual(false); // because they are proxies
-    expect(service.requestService1.context.get() === service.requestService2.context.get()).toEqual(false); // because they are proxies
+    expect(service.resolutionService1).toBeInstanceOf(ResolutionService);
+    expect(service.resolutionService1.context.get('foo')).toEqual('bar');
+    expect(service.resolutionService2).toBeInstanceOf(ResolutionService);
+    expect(service.resolutionService2.context.get('foo')).toEqual('bar');
+    expect(service.resolutionService1 === service.resolutionService2).toEqual(false); // because they are proxies
+    expect(service.resolutionService1.context.get() === service.resolutionService2.context.get()).toEqual(false); // because they are proxies
     expect(service.createdTimes).toEqual(1);
 
     // check that contexts share that same data
-    service.requestService1.context.set('bar', 'foo')
-    expect(service.requestService1.context.get('bar')).toEqual('foo');
-    expect(service.requestService2.context.get('bar')).toEqual('foo');
+    service.resolutionService1.context.set('bar', 'foo')
+    expect(service.resolutionService1.context.get('bar')).toEqual('foo');
+    expect(service.resolutionService2.context.get('bar')).toEqual('foo');
   });
 
   // TODO: Support method injection
   test.skip('should work with method injection', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {
+    class ResolutionService {
       public prop = {};
 
       method(@Inject('foobar') foobar?: string) {
@@ -550,14 +550,14 @@ describe('Request scope', function () {
     @Injectable()
     class Service {
       constructor(
-        readonly requestService1: RequestService,
-        readonly requestService2: RequestService,
+        readonly resolutionService1: ResolutionService,
+        readonly resolutionService2: ResolutionService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
       {
         provide: 'foobar',
         useValue: 'foobar',
@@ -566,36 +566,36 @@ describe('Request scope', function () {
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    // console.log(service.requestService1 === service.requestService2);
-    // console.log(service.requestService1.prop === service.requestService2.prop);
-    // console.log(service.requestService1.prop);
-    // console.log(service.requestService2.prop);
-    console.log(service.requestService1.method() === service.requestService2.method());
-    // expect(service.method()).toBeInstanceOf(RequestService);
+    // console.log(service.resolutionService1 === service.resolutionService2);
+    // console.log(service.resolutionService1.prop === service.resolutionService2.prop);
+    // console.log(service.resolutionService1.prop);
+    // console.log(service.resolutionService2.prop);
+    console.log(service.resolutionService1.method() === service.resolutionService2.method());
+    // expect(service.method()).toBeInstanceOf(ResolutionService);
   });
 
   // TODO: Support method injection
   test.skip('should work with method injection', async function () {
     @Injectable({
-      scope: Scope.REQUEST,
+      scope: Scope.RESOLUTION,
     })
-    class RequestService {}
+    class ResolutionService {}
 
     @Injectable()
     class Service {
-      method(@Inject() requestService?: RequestService) {
-        return requestService;
+      method(@Inject() resolutionService?: ResolutionService) {
+        return resolutionService;
       }
     }
 
     const injector = Injector.create([
       Service,
-      RequestService,
+      ResolutionService,
     ]);
 
     let service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
-    expect(service.method()).toBeInstanceOf(RequestService);
+    expect(service.method()).toBeInstanceOf(ResolutionService);
   });
 
   describe('onDestroy hook', function () {
@@ -603,11 +603,11 @@ describe('Request scope', function () {
       let destroyOrder: string[] = [];
 
       @Injectable({
-        scope: Scope.REQUEST,
+        scope: Scope.RESOLUTION,
       })
-      class RequestService {
+      class ResolutionService {
         onDestroy() {
-          destroyOrder.push('requestService');
+          destroyOrder.push('resolutionService');
         }
       }
   
@@ -617,8 +617,8 @@ describe('Request scope', function () {
   
         constructor(
           // two instances to check that every instance has this same request data
-          readonly requestService1: RequestService,
-          readonly requestService2: RequestService,
+          readonly resolutionService1: ResolutionService,
+          readonly resolutionService2: ResolutionService,
         ) {
           this.createdTimes++;
         }
@@ -626,7 +626,7 @@ describe('Request scope', function () {
   
       const injector = Injector.create([
         Service,
-        RequestService,
+        ResolutionService,
       ]);
   
       const session = Session.createStandalone(Service, injector);
@@ -634,14 +634,14 @@ describe('Request scope', function () {
       let service = injector.get(Service, undefined, session);
 
       expect(service).toBeInstanceOf(Service);
-      expect(service.requestService1).toBeInstanceOf(RequestService);
-      expect(service.requestService1 === service.requestService2).toEqual(false); // because they are proxies
+      expect(service.resolutionService1).toBeInstanceOf(ResolutionService);
+      expect(service.resolutionService1 === service.resolutionService2).toEqual(false); // because they are proxies
       
       expect(destroyOrder).toEqual([]);
       DestroyManager.destroyAll(session.shared.proxies, 'manually');
-      expect(destroyOrder).toEqual(['requestService']);
+      expect(destroyOrder).toEqual(['resolutionService']);
       DestroyManager.destroyAll(session.shared.proxies, 'manually');
-      expect(destroyOrder).toEqual(['requestService']);
+      expect(destroyOrder).toEqual(['resolutionService']);
     });
   })
 });

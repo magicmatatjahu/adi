@@ -1,6 +1,6 @@
 import { Session } from "../injector";
 import { InjectionKind, SessionStatus } from "../enums";
-import { ProxyRecord, ProxyInstance, ProxyPlaceholder } from "../scope/request";
+import { ProxyRecord, ProxyInstance, ProxyPlaceholder } from "../scope/resolution";
 import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";

@@ -93,15 +93,15 @@ export abstract class ProxyScope<O> extends Scope<O> {
   }
 }
 
-export interface RequestScopeOptions {
+export interface ResolutionScopeOptions {
   reuseContext?: boolean;
 }
 
-const defaultOptions: RequestScopeOptions = {
+const defaultOptions: ResolutionScopeOptions = {
   reuseContext: true,
 }
 
-export class RequestScope extends ProxyScope<RequestScopeOptions> {
+export class ResolutionScope extends ProxyScope<ResolutionScopeOptions> {
   private placeholderContext = new Context();
 
   get name() {

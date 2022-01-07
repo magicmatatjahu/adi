@@ -4,8 +4,8 @@ import { ExecutionContext } from './execution-context';
 import { Type, ExtensionItem, OptimizedExtensionItem, PipeItem, InjectionMethod, ExecutionContextArgs, ArgumentMetadata } from "../interfaces";
 import { thenable } from '../utils';
 import { NOOP_FN } from '../constants';
+import { InjectorResolver } from '..';
 
-// TODO: Create optimized function and save it to the cache and return for every that same DefinitionRecord (it can be retrieved from parentSession)
 export function injectExtensions<T>(provider: Type<T>, instance: T, methodName: string, method: InjectionMethod, injector: Injector, parentSession: Session) {
   const eHandlers = method.eHandlers;
   const middlewares = method.middlewares;
@@ -16,7 +16,7 @@ export function injectExtensions<T>(provider: Type<T>, instance: T, methodName: 
   const hasExtensions = interceptors.length || pipes.length || middlewares.length || eHandlers.length || guards.length;
   if (!hasExtensions) return;
 
-  instance[methodName] = handlResult(instance[methodName]);
+  instance[methodName] = handleResult(instance[methodName]);
   if (pipes.length) {
     instance[methodName] = handlePipes(pipes, instance[methodName], injector, parentSession);
   }
@@ -35,7 +35,7 @@ export function injectExtensions<T>(provider: Type<T>, instance: T, methodName: 
   instance[methodName] = handleExecutionContext(provider, method.handler, instance[methodName]);
 }
 
-function handlResult(previousMethod: Function) {
+function handleResult(previousMethod: Function) {
   return (args: ExecutionContextArgs) => {
     return previousMethod.apply(args._this, args.args);
   }
@@ -216,7 +216,9 @@ function prepareExtensions(extensions: ExtensionItem[], methodName: string, inje
         );
       }
     } else if (ext.type === 'func') {
-
+      const [fn, options] = ext.arg;
+      const injectedFn = InjectorResolver.createFunctionNew(fn, options);
+      func = (...args: any[]) => injectedFn(injector, parentSession, ...args);
     } else {
       func = (...args: any[]) => arg[methodName](...args);
     }

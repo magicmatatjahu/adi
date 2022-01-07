@@ -114,12 +114,12 @@ describe('Fallback wrapper', function () {
 
     const injector = new Injector([
       {
-        provide: "lol",
+        provide: "foobar",
         useValue: "foobar"
       },
       {
         provide: Service,
-        useWrapper: Fallback('lol'),
+        useWrapper: Fallback('foobar'),
       }
     ]);
 
