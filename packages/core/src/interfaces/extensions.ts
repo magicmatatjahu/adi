@@ -2,6 +2,14 @@ import { ExecutionContext } from '../injector/execution-context';
 import { InjectionArgument, FunctionInjections } from './injection.interface';
 import { Type } from './type.interface';
 
+export interface Middleware {
+  use(context: ExecutionContext, next: () => void): void;
+};
+
+export interface StandaloneMiddleware extends FunctionInjections {
+  use(context: ExecutionContext, next: () => void): void;
+};
+
 export interface Interceptor<R = any> {
   intercept(context: ExecutionContext, next: NextInterceptor<R>): R | Promise<R>;
 };
@@ -52,14 +60,27 @@ export interface ArgumentMetadata<Data = unknown> {
 }
 
 export interface PipeItem<Data = unknown> {
-  decorator: (ctx: ExecutionContext) => unknown;
+  extractor: (ctx: ExecutionContext) => unknown;
   metadata: ArgumentMetadata<Data>
   pipes: ExtensionItem[];
 }
 
-export interface ExtensionItem {
-  arg?: InjectionArgument;
-  func?: Function;
+export type ExtensionItem<T = any> = 
+  | {
+      type: 'inj';
+      arg: InjectionArgument;
+    }
+  | {
+      type: 'func';
+      arg: Function;
+    }
+  | {
+      type: 'val';
+      arg: T;
+    }
+
+export interface OptimizedExtensionItem {
+  func: (...args: any[]) => unknown;
 }
 
 export interface ExecutionContextArgs<T = unknown> {

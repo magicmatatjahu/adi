@@ -33,25 +33,24 @@ export function isWrapper(wrapper: unknown): wrapper is Wrapper | Array<Wrapper>
 export function runWrappers(wrappers: Array<Wrapper> | Wrapper, session: Session, last: NextWrapper) {
   if (Array.isArray(wrappers)) {
     const length = wrappers.length - 1;
-    const nextWrapper = (i: number) => (session: Session) => {
-      const next: NextWrapper = i === length ? last : (s: Session) => nextWrapper(i+1)(s);
+    const nextWrapper = (session: Session, i: number) => {
+      const next: NextWrapper = i === length ? last : (s: Session) => nextWrapper(s, i+1);
       return wrappers[i].func(session, next);
     }
-    return nextWrapper(0)(session);
+    return nextWrapper(session, 0);
   }
   return wrappers.func(session, last);
 }
 
 export function runRecordsWrappers(wrappers: Array<{ record: ProviderRecord, wrapper: Wrapper }>, session: Session, last: NextWrapper) {
   const length = wrappers.length - 1;
-  const nextWrapper = (i: number) => (session: Session) => {
-    const next: NextWrapper = i === length ? last : (s: Session) => nextWrapper(i+1)(s);
+  const nextWrapper = (session: Session, i: number) => {
+    const next: NextWrapper = i === length ? last : (s: Session) => nextWrapper(s, i+1);
     const item = wrappers[i];
-    session.record = item.record;
-    session.injector = item.record.host;
+    session.injector = (session.record = item.record).host;
     return item.wrapper.func(session, next);
   }
-  return nextWrapper(0)(session);
+  return nextWrapper(session, 0);
 }
 
 export function pushWrapper(wrapper: Wrapper | Array<Wrapper> | undefined, newWrapper: Wrapper) {

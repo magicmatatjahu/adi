@@ -31,6 +31,7 @@ export interface InjectionArgument<T = any> {
 export interface InjectionMethod {
   handler: Function;
   injections: InjectionArgument[];
+  middlewares: ExtensionItem[];
   interceptors: ExtensionItem[];
   guards: ExtensionItem[];
   eHandlers: ExtensionItem[];

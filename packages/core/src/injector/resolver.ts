@@ -49,7 +49,6 @@ export const InjectorResolver = new class {
   }
 
   injectMethods<T>(provider: Type<T>, instance: T, methods: Record<string, InjectionMethod>, injector: Injector, parentSession: Session): void {
-    const isAsync = (parentSession.status & SessionStatus.ASYNC) > 0;
     for (const methodName in methods) {
       const method = methods[methodName];
       if (method.injections.length) {
@@ -58,7 +57,6 @@ export const InjectorResolver = new class {
           method.injections,
           injector,
           parentSession,
-          isAsync,
         );
       }
       injectExtensions(provider, instance, methodName, method, injector, parentSession);
@@ -100,6 +98,18 @@ export const InjectorResolver = new class {
   }
 
   createFunction<T>(
+    fn: Function,
+    options: FunctionInjections = {},
+    withValue: boolean = false,
+  ): FactoryDef<T> {
+    let { inject = [], withDelegation, delegationKey } = options;
+    if (withValue && !withDelegation) {
+      inject = [Delegate(delegationKey || DELEGATION.DEFAULT), ...inject]
+    }
+    return this.createFactory(fn, inject, options.imports, options.providers);
+  }
+
+  createFunction2<T>(
     fn: Function,
     options: FunctionInjections = {},
     withValue: boolean = false,
@@ -182,8 +192,8 @@ function injectMethod<T>(
   injections: InjectionArgument[],
   injector: Injector,
   parentSession: Session,
-  isAsync: boolean,
 ) {
+  const isAsync = (parentSession.status & SessionStatus.ASYNC) > 0;
   const cachedDeps: any[] = [];
   return function fn(this: T, ...args: any[]) {
     let methodProp: InjectionArgument = undefined;

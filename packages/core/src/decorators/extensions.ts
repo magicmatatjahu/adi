@@ -1,6 +1,7 @@
 import { InjectionKind } from "../enums";
 import { InjectorResolver, InjectorMetadata } from "../injector";
 import { 
+  Middleware, StandaloneMiddleware,
   Interceptor, StandaloneInterceptor,
   Guard, StandaloneGuard,
   ErrorHandler, StandaloneErrorHandler, 
@@ -9,6 +10,12 @@ import {
 } from "../interfaces";
 import { Reflection } from "../utils";
 import { getMethod, getProviderDef } from "./injectable";
+
+export function UseMiddlewares(...interceptors: (InjectionItem | Middleware | StandaloneMiddleware)[]) {
+  return function(target: Object, key?: string | symbol, method?: TypedPropertyDescriptor<any>) {
+    applyExtensions(interceptors, 'middlewares', 'use', target, key, method);
+  }
+}
 
 export function UseInterceptors(...interceptors: (InjectionItem | Interceptor | StandaloneInterceptor)[]) {
   return function(target: Object, key?: string | symbol, method?: TypedPropertyDescriptor<any>) {
@@ -37,9 +44,9 @@ export function UsePipes(...pipes: (InjectionItem | PipeTransform | StandalonePi
 
     // defined on method level
     if (descriptorOrIndex) {
+      // TODO: create pipeItem when `pipes` is undefined
       const method = getMethod(target, key);
       if (typeof descriptorOrIndex === 'number' && method.pipes[descriptorOrIndex]) {
-        const index = method.pipes[descriptorOrIndex];
         method.pipes[descriptorOrIndex].pipes = converted;
         return;
       }
@@ -76,7 +83,7 @@ export function createParameterDecorator<
         data,
       };
       method.pipes[index] = {
-        decorator: (ctx) => factory(metadata, ctx),
+        extractor: (ctx) => factory(metadata, ctx),
         metadata,
         pipes: [],
       }
@@ -110,34 +117,39 @@ function applyExtensions(
   // defined on class level
   const def = getProviderDef(target);
   if (!def) return;
-  const methods = def.injections.methods;
-  Object.values(methods).forEach(method => {
+  Object.values(def.injections.methods).forEach(method => {
     method[type] = [...converted, ...method[type]];
   });
 }
 
-// TODO: Handle instance of classes
-function convertDependency(
-  item: InjectionItem | FunctionInjections,
+function convertDependency<T>(
+  item: InjectionItem | FunctionInjections | T,
   methodName: string,
   target: Object, 
   key?: string | symbol, 
   method?: TypedPropertyDescriptor<any> | number,
 ): ExtensionItem {
   if (typeof item === 'object' && typeof item[methodName] === 'function') {
+    if ((item as FunctionInjections).inject) {
+      return {
+        type: 'func',
+        arg: InjectorResolver.createFunction(item[methodName], item as FunctionInjections),
+      };
+    }
     return {
-      func: InjectorResolver.createFunction(item[methodName], item as FunctionInjections),
-      arg: undefined,
+      type: 'val',
+      arg: item,
     };
   }
   // change injection kind
+  const hasIndex = typeof method === 'number';
   const arg = InjectorMetadata.convertDependency(
     item as InjectionItem, 
     InjectionKind.METHOD, 
     target, 
     key, 
-    typeof method === 'number' ? method : undefined, 
-    typeof method !== 'number' ? method.value : undefined
+    hasIndex ? method : undefined, 
+    !hasIndex ? method.value : undefined
   );
-  return { arg, func: undefined };
+  return { type: 'inj', arg };
 }

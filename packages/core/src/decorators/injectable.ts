@@ -183,7 +183,7 @@ export function getMethod(target: Object, methodName: string | symbol) {
 
 export function createMethodInjection(target: Object, methodName: string | symbol): InjectionMethod {
   const handler = Object.getOwnPropertyDescriptor((target as any).prototype, methodName);
-  return { handler: handler?.value, injections: [], interceptors: [], guards: [], pipes: [], eHandlers: [] }
+  return { handler: handler?.value, injections: [], middlewares: [], interceptors: [], guards: [], pipes: [], eHandlers: [] }
 }
 
 export function createInjectionArg(

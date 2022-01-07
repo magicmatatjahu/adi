@@ -1,34 +1,38 @@
 import { Injector } from './injector';
 import { Session } from './session';
-import { createExecutionContext, ExecutionContext } from './execution-context';
-import { Type, ExtensionItem, PipeItem, InjectionMethod, ExecutionContextArgs, Interceptor, Guard, ErrorHandler, PipeTransform, ArgumentMetadata } from "../interfaces";
-import { SessionStatus } from '../enums';
+import { ExecutionContext } from './execution-context';
+import { Type, ExtensionItem, OptimizedExtensionItem, PipeItem, InjectionMethod, ExecutionContextArgs, ArgumentMetadata } from "../interfaces";
 import { thenable } from '../utils';
+import { NOOP_FN } from '../constants';
 
+// TODO: Create optimized function and save it to the cache and return for every that same DefinitionRecord (it can be retrieved from parentSession)
 export function injectExtensions<T>(provider: Type<T>, instance: T, methodName: string, method: InjectionMethod, injector: Injector, parentSession: Session) {
+  const eHandlers = method.eHandlers;
+  const middlewares = method.middlewares;
   const guards = method.guards;
   const interceptors = method.interceptors;
   const pipes = method.pipes;
-  const eHandlers = method.eHandlers;
   
-  const hasExtensions = interceptors.length || pipes.length || eHandlers.length || guards.length;
+  const hasExtensions = interceptors.length || pipes.length || middlewares.length || eHandlers.length || guards.length;
   if (!hasExtensions) return;
-  const isAsync = (parentSession.status & SessionStatus.ASYNC) > 0;
 
   instance[methodName] = handlResult(instance[methodName]);
   if (pipes.length) {
-    instance[methodName] = handlePipes(pipes, instance[methodName], injector, parentSession, isAsync);
+    instance[methodName] = handlePipes(pipes, instance[methodName], injector, parentSession);
   }
   if (interceptors.length) {
-    instance[methodName] = handleInterceptors(interceptors, instance[methodName], injector, parentSession, isAsync);
+    instance[methodName] = handleInterceptors(interceptors, instance[methodName], injector, parentSession);
   }
   if (guards.length) {
-    instance[methodName] = handleGuards(guards, instance[methodName], injector, parentSession, isAsync);
+    instance[methodName] = handleGuards(guards, instance[methodName], injector, parentSession);
+  }
+  if (middlewares.length) {
+    instance[methodName] = handleMiddlewares(middlewares, instance[methodName], injector, parentSession);
   }
   if (eHandlers.length) {
-    instance[methodName] = handleErrorHandlers(eHandlers, instance[methodName], injector, parentSession, isAsync);
+    instance[methodName] = handleErrorHandlers(eHandlers, instance[methodName], injector, parentSession);
   }
-  instance[methodName] = handleExecutionContext(provider, instance, method.handler, instance[methodName]);
+  instance[methodName] = handleExecutionContext(provider, method.handler, instance[methodName]);
 }
 
 function handlResult(previousMethod: Function) {
@@ -42,9 +46,8 @@ function handlePipes(
   previousMethod: Function,
   injector: Injector, 
   parentSession: Session, 
-  isAsync: boolean,
 ) {
-  const pipes = pipeItems.filter(Boolean).map(pipe => handlePipeItem(pipe, injector, parentSession, isAsync));
+  const pipes = pipeItems.filter(Boolean).map(pipe => handlePipeItem(pipe, injector, parentSession));
   return (args: ExecutionContextArgs) => {
     return runPipeItems(pipes, 0, args, previousMethod);
   }
@@ -65,17 +68,15 @@ function runPipeItems(
 
 function handlePipeItem(
   pipe: PipeItem,
-  injector: Injector, 
-  parentSession: Session, 
-  isAsync: boolean,
+  injector: Injector,
+  parentSession: Session,
 ) {
-  let cached: any[] | Promise<any[]> = pipe.pipes.length ? undefined : [];
+  const cached = prepareExtensions(pipe.pipes, 'transform', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    cached = cached || (cached = injectExtensionItems(pipe.pipes, injector, parentSession, isAsync));
     return thenable(
-      () => pipe.decorator(args.ctx),
+      () => pipe.extractor(args.ctx),
       value => thenable(
-        () => runPipes(cached as any, 0, value, pipe.metadata, args.ctx),
+        () => runPipes(cached, 0, value, pipe.metadata, args.ctx),
         result => args.args[pipe.metadata.index] = result,
       ),
     );
@@ -83,15 +84,15 @@ function handlePipeItem(
 }
 
 function runPipes(
-  pipes: PipeTransform[], 
-  idx: number, 
+  pipes: OptimizedExtensionItem[],
+  idx: number,
   value: unknown,
   metadata: ArgumentMetadata,
-  ctx: ExecutionContext, 
+  ctx: ExecutionContext,
 ) {
   if (pipes.length === idx) return value;
   return thenable(
-    () => pipes[idx].transform(value, metadata, ctx),
+    () => pipes[idx].func(value, metadata, ctx),
     result => runPipes(pipes, ++idx, result, metadata, ctx),
   );
 }
@@ -101,22 +102,20 @@ function handleInterceptors(
   previousMethod: Function,
   injector: Injector, 
   parentSession: Session, 
-  isAsync: boolean,
 ) {
-  let cached: any[] | Promise<any[]>;
+  const cached = prepareExtensions(interceptors, 'intercept', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    cached = cached || (cached = injectExtensionItems(interceptors, injector, parentSession, isAsync));
-    return runInterceptors(cached as Interceptor[], args.ctx, () => previousMethod(args));
+    return runInterceptors(cached, args.ctx, () => previousMethod(args));
   }
 }
 
-function runInterceptors(interceptors: Interceptor[], ctx: ExecutionContext, last: () => any) {
+function runInterceptors(interceptors: OptimizedExtensionItem[], ctx: ExecutionContext, last: () => any) {
   const length = interceptors.length - 1;
-  const nextInterceptor = (i: number) => () => {
-    const next = i === length ? last : () => nextInterceptor(i+1)();
-    return interceptors[i].intercept(ctx, next);
+  const nextInterceptor = (i: number) => {
+    const next = i === length ? last : () => nextInterceptor(i+1);
+    return interceptors[i].func(ctx, next);
   }
-  return nextInterceptor(0)();
+  return nextInterceptor(0);
 }
 
 function handleGuards(
@@ -124,24 +123,46 @@ function handleGuards(
   previousMethod: Function,
   injector: Injector, 
   parentSession: Session, 
-  isAsync: boolean,
 ) {
-  let cached: any[] | Promise<any[]>;
+  const cached = prepareExtensions(guards, 'canPerform', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    cached = cached || (cached = injectExtensionItems(guards, injector, parentSession, isAsync));
-    return runGuards(cached as Guard[], 0, args.ctx, () => previousMethod(args));
+    return runGuards(cached, 0, args.ctx, () => previousMethod(args));
   }
 }
 
-function runGuards(guards: Guard[], idx: number, ctx: ExecutionContext, last: () => any) {
+function runGuards(guards: OptimizedExtensionItem[], idx: number, ctx: ExecutionContext, last: () => any) {
   if (guards.length === idx) return last();
   return thenable(
-    () => guards[idx].canPerform(ctx),
+    () => guards[idx].func(ctx),
     result => {
       if (!result) return;
-      return runGuards(guards, idx++, ctx, last);
+      return runGuards(guards, ++idx, ctx, last);
     }
   );
+}
+
+function handleMiddlewares(
+  middlewares: ExtensionItem[], 
+  previousMethod: Function,
+  injector: Injector, 
+  parentSession: Session, 
+) {
+  const cached = prepareExtensions(middlewares, 'use', injector, parentSession);
+  return (args: ExecutionContextArgs) => {
+    return thenable(
+      () => runMiddlewares(cached, args.ctx),
+      () => previousMethod(args),
+    );
+  }
+}
+
+function runMiddlewares(middlewares: OptimizedExtensionItem[], ctx: ExecutionContext) {
+  const length = middlewares.length - 1;
+  const nextMiddleware = (i: number) => {
+    const next = i === length ? NOOP_FN : () => nextMiddleware(i+1);
+    return middlewares[i].func(ctx, next);
+  }
+  return nextMiddleware(0);
 }
 
 function handleErrorHandlers(
@@ -149,42 +170,57 @@ function handleErrorHandlers(
   previousMethod: Function,
   injector: Injector, 
   parentSession: Session, 
-  isAsync: boolean,
 ) {
-  let cached: any[] | Promise<any[]>;
+  const cached = prepareExtensions(eHandlers, 'catch', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    cached = cached || (cached = injectExtensionItems(eHandlers, injector, parentSession, isAsync));
-    return runErrorHandlers(cached as ErrorHandler[], args.ctx, () => previousMethod(args));
+    return runErrorHandlers([...cached], args.ctx, () => previousMethod(args));
   }
 }
 
-function runErrorHandlers(eHandlers: ErrorHandler[], ctx: ExecutionContext, callback: () => any) {
+function runErrorHandlers(eHandlers: OptimizedExtensionItem[], ctx: ExecutionContext, callback: () => any) {
+  if (eHandlers.length === 0) return;
   return thenable(
     callback,
-    undefined,
+    result => result,
     error => {
-      return eHandlers[0].catch(error, ctx);
+      const shifted = eHandlers.shift();
+      return runErrorHandlers(eHandlers, ctx, () => shifted.func(error, ctx));
     }
   );
 }
 
-function handleExecutionContext<T>(provider: Type, instance: T, handler: Function, previousMethod: Function) {
+function handleExecutionContext<T>(provider: Type, handler: Function, previousMethod: Function) {
   return function(this: T, ...args: any[]) {
-    const executionContext = createExecutionContext('default', args, provider, instance, handler);
-    const newArgs: ExecutionContextArgs<T> = { _this: this, args: [...args], ctx: executionContext };
+    const ctx = ExecutionContext.tryFromHost(args, provider, handler);
+    const newArgs: ExecutionContextArgs<T> = { _this: this, args: [...ctx.getArgs()], ctx };
     return previousMethod(newArgs);
   }
 }
 
-function injectExtensionItems(extensions: ExtensionItem[], injector: Injector, parentSession: Session, isAsync: boolean) {  
-  const args: Array<any> = [];
+function prepareExtensions(extensions: ExtensionItem[], methodName: string, injector: Injector, parentSession: Session): Array<OptimizedExtensionItem> {  
+  const args: Array<OptimizedExtensionItem> = [];
   for (let i = 0, l = extensions.length; i < l; i++) {
     const ext = extensions[i];
-    if (ext.arg) {
-      const arg = ext.arg;
-      const argSession = Session.create(arg.token, arg.metadata, parentSession);
-      args.push(injector.resolveToken(arg.wrapper, argSession));
+    const arg = ext.arg;
+    let func: (...args: any[]) => unknown;
+    if (ext.type === 'inj') {
+      let cached: any;
+      func = (...args: any[]) => {
+        if (cached) return cached[methodName](...args);
+        return thenable(
+          () => {
+            const argSession = Session.create(arg.token, arg.metadata, parentSession);
+            return injector.resolveToken(arg.wrapper, argSession);
+          },
+          value => (cached = value)[methodName](...args),
+        );
+      }
+    } else if (ext.type === 'func') {
+
+    } else {
+      func = (...args: any[]) => arg[methodName](...args);
     }
+    args.push({ func });
   };
-  return isAsync ? Promise.all(args) : args;
+  return args;
 }
