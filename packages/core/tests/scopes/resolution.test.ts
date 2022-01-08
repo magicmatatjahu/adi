@@ -1,4 +1,5 @@
-import { Injector, Injectable, Scope, Inject, Context, Session, DestroyManager } from "../../src";
+import { Injector, Injectable, Scope, Inject, Context, Session } from "../../src";
+import { destroyAll } from "../../src/injector/destroy-manager";
 
 describe('Request scope', function () {
   test('should create new instance by each resolution', function () {
@@ -638,9 +639,9 @@ describe('Request scope', function () {
       expect(service.resolutionService1 === service.resolutionService2).toEqual(false); // because they are proxies
       
       expect(destroyOrder).toEqual([]);
-      DestroyManager.destroyAll(session.shared.proxies, 'manually');
+      destroyAll(session.shared.proxies, 'manually');
       expect(destroyOrder).toEqual(['resolutionService']);
-      DestroyManager.destroyAll(session.shared.proxies, 'manually');
+      destroyAll(session.shared.proxies, 'manually');
       expect(destroyOrder).toEqual(['resolutionService']);
     });
   })

@@ -1,5 +1,5 @@
 import { Session } from "../injector";
-import { DestroyManager } from "../injector/destroy-manager";
+import { destroy } from "../injector/destroy-manager";
 import { DestroyableType, InstanceRecord, NextWrapper } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
 
@@ -9,7 +9,7 @@ function createDestroyable<T>(instance: InstanceRecord<T>): DestroyableType<T> |
   }
   return {
     value: instance.value,
-    destroy: () => DestroyManager.destroy('manually', instance),
+    destroy: () => destroy(instance, 'manually'),
   }
 }
 

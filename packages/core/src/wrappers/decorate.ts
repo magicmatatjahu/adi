@@ -1,4 +1,4 @@
-import { InjectorMetadata, InjectorResolver } from "../injector";
+import { getProviderDef, createFunction } from "../injector";
 import { FunctionDef, Type, FunctionInjections } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
 import { DELEGATION } from "../constants";
@@ -14,8 +14,8 @@ interface DecorateClass {
   delegationKey: string | symbol;
 }
 
-interface DecorateFunction extends FunctionInjections {
-  decorate: (...args: any[]) => any;
+interface DecorateFunction<T = any> extends FunctionInjections {
+  decorate: (decorated: T, ...args: any[]) => any;
 }
 
 function isDecorateClass(decorator: unknown): decorator is DecorateClass {
@@ -40,13 +40,12 @@ export const Decorate = createWrapper((decoratorOrOptions: DecorateOptions) => {
   let delegationKey: any;
 
   if (isDecorateFunction(decoratorOrOptions)) { // function based decorator
-    factory = InjectorResolver.createFunction(decoratorOrOptions.decorate, decoratorOrOptions);
-    delegationKey = decoratorOrOptions.delegationKey;
+    factory = createFunction(decoratorOrOptions.decorate, decoratorOrOptions);
   } else if (isDecorateClass(decoratorOrOptions)) { // type based decorator with `useClass` property
-    factory = InjectorMetadata.getProviderDef(decoratorOrOptions.useClass).factory;
+    factory = getProviderDef(decoratorOrOptions.useClass).factory;
     delegationKey = decoratorOrOptions.delegationKey || 'decorated';
   } else { // type based decorator
-    factory = InjectorMetadata.getProviderDef(decoratorOrOptions).factory;
+    factory = getProviderDef(decoratorOrOptions).factory;
     delegationKey = 'decorated'
   }
 
@@ -72,11 +71,6 @@ export const Decorate = createWrapper((decoratorOrOptions: DecorateOptions) => {
             [delegationKey]: decoratee,
           }
         }
-
-        // // add delegation
-        // forkedSession.meta[DELEGATION.KEY] = {
-        //   [delegationKey || DELEGATION.DEFAULT]: decoratee,
-        // }
 
         // resolve decorator and save decorated value to the instance value
         return thenable(

@@ -1,5 +1,5 @@
 import { InjectableOptions, InjectionArgument, InjectionMethod, ProviderDef, InjectableMetadata, Type, Annotations } from "../interfaces";
-import { InjectorResolver } from "../injector/resolver";
+import { createProviderFactory } from "../injector/resolver";
 import { Token } from "../types";
 import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
@@ -46,7 +46,7 @@ export function applyProviderDef<T, S>(target: Object, options?: InjectableOptio
   inheritance(target, def, paramtypes);
 
   // create factory
-  def.factory = InjectorResolver.createProviderFactory(target as Type<any>, def.injections);
+  def.factory = createProviderFactory(target as Type<any>, def.injections);
   return def as unknown as ProviderDef<T>;
 }
 

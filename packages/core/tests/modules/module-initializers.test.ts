@@ -196,55 +196,55 @@ describe('MODULE_INITIALIZERS provider', function() {
     expect(timesCalled).toEqual(3);
   });
 
-  test('should properly run with proto injector', function() {
-    let timesCalled: number = 0;
+  // test('should properly run with proto injector', function() {
+  //   let timesCalled: number = 0;
 
-    @Module({ 
-      providers: [
-        {
-          provide: 'foobar',
-          useValue: 'foobar',
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: (value: string) => {
-            if (value === 'foobar') {
-              timesCalled++;
-            }
-          },
-          inject: ['foobar'],
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: (value: string) => {
-            if (value === 'foobar') {
-              timesCalled++;
-            }
-          },
-          inject: ['foobar'],
-        },
-        {
-          provide: MODULE_INITIALIZERS,
-          useFactory: (value: string) => {
-            if (value === 'foobar') {
-              timesCalled++;
-            }
-          },
-          inject: ['foobar'],
-        },
-      ],
-    })
-    class RootModule {}
+  //   @Module({ 
+  //     providers: [
+  //       {
+  //         provide: 'foobar',
+  //         useValue: 'foobar',
+  //       },
+  //       {
+  //         provide: MODULE_INITIALIZERS,
+  //         useFactory: (value: string) => {
+  //           if (value === 'foobar') {
+  //             timesCalled++;
+  //           }
+  //         },
+  //         inject: ['foobar'],
+  //       },
+  //       {
+  //         provide: MODULE_INITIALIZERS,
+  //         useFactory: (value: string) => {
+  //           if (value === 'foobar') {
+  //             timesCalled++;
+  //           }
+  //         },
+  //         inject: ['foobar'],
+  //       },
+  //       {
+  //         provide: MODULE_INITIALIZERS,
+  //         useFactory: (value: string) => {
+  //           if (value === 'foobar') {
+  //             timesCalled++;
+  //           }
+  //         },
+  //         inject: ['foobar'],
+  //       },
+  //     ],
+  //   })
+  //   class RootModule {}
 
-    const injector = Injector.createProto(RootModule).build();
+  //   const injector = Injector.createProto(RootModule).build();
 
-    injector.fork();
-    expect(timesCalled).toEqual(3);
+  //   injector.fork();
+  //   expect(timesCalled).toEqual(3);
 
-    injector.fork();
-    expect(timesCalled).toEqual(6);
+  //   injector.fork();
+  //   expect(timesCalled).toEqual(6);
 
-    injector.fork();
-    expect(timesCalled).toEqual(9);
-  });
+  //   injector.fork();
+  //   expect(timesCalled).toEqual(9);
+  // });
 });

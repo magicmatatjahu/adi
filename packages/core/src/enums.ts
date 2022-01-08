@@ -4,14 +4,7 @@ export enum InstanceStatus {
   RESOLVED = 4,
   DESTROYED = 8,
   CIRCULAR = 16,
-  // provider definition is destroyed
   DEF_DESTROYED = 32,
-}
-
-export enum ScopeFlags {
-  NONE = 0,
-  CANNOT_OVERRIDE = 1,
-  PROXY_MODE = 4,
 }
 
 export enum InjectionKind {

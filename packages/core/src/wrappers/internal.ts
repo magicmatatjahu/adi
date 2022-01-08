@@ -1,5 +1,5 @@
 import { Session } from "../injector";
-import { InjectionKind, SessionStatus } from "../enums";
+import { SessionStatus } from "../enums";
 import { ProxyRecord, ProxyInstance, ProxyPlaceholder } from "../scope/resolution";
 import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
@@ -11,16 +11,6 @@ function coreHook<T>(value: T, session: Session): any {
   // async resolution
   if (instance && instance.doneResolve) {
     instance.doneResolve(value);
-  }
-
-  // collect instances to destroy
-  if (
-    session.metadata?.kind & InjectionKind.FUNCTION &&
-    session.status & SessionStatus.SIDE_EFFECTS &&
-    session.parent 
-  ) {
-    const toDestroy = session.parent.meta.toDestroy = session.parent.meta.toDestroy || [];
-    toDestroy.push(session.instance);
   }
 
   // without proxies
@@ -77,21 +67,6 @@ export const CoreHook = createWrapper(() => {
     );
   };
 });
-
-export const AsyncDone = createWrapper(() => {
-  return (session, next) => {
-    return thenable(
-      () => next(session),
-      value => {
-        const instance = session.instance;
-        if (instance && instance.doneResolve) {
-          instance.doneResolve(value);
-        }
-        return value;
-      },
-    );
-  }
-}, { name: 'AsyncDone' })();
 
 export const UseExisting = createWrapper((token: Token) => {
   return (session) => {

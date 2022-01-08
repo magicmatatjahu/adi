@@ -1,6 +1,6 @@
 import { Context, Injector, Session } from "../injector";
 import { STATIC_CONTEXT } from "../constants";
-import { InjectorStatus, ScopeFlags } from "../enums";
+import { InjectorStatus } from "../enums";
 
 import { Scope } from "./index";
 import { DestroyEvent, InstanceRecord } from "../interfaces";
@@ -13,9 +13,7 @@ const defaultOptions: SingletonScopeOptions = {
   perInjector: false
 }
 
-export class SingletonScope extends Scope<SingletonScopeOptions> {
-  public readonly flags: ScopeFlags = ScopeFlags.CANNOT_OVERRIDE;
-  
+export class SingletonScope extends Scope<SingletonScopeOptions> {  
   private contexts = new WeakMap<Injector, Context>();
   private injectors = new WeakMap<Context, Injector>();
 
@@ -53,5 +51,9 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
       return false;
     }
     return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
+  }
+
+  public canBeOverrided(): boolean {
+    return false;
   }
 }

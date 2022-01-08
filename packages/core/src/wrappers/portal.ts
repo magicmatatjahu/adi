@@ -1,4 +1,4 @@
-import { Injector, ProtoInjector } from "../injector";
+import { Injector } from "../injector";
 import { InjectionArgument, InjectionItem, Provider } from "../interfaces";
 import { WithInjector } from "./with-injector";
 import { createWrapper, Wrapper } from "../utils/wrappers";
@@ -20,12 +20,13 @@ function override(injector: Injector, deep: boolean) {
   }
 }
 
+// let ProtoInjector: any;
 export const Portal = createWrapper((providersOrOptions: Provider[] | PortalOptions) => {
-  let protoInjector: ProtoInjector, deep: boolean = false, deepInjector: Injector = undefined;
+  let providers: Provider[], deep: boolean = false, deepInjector: Injector = undefined;
   if (Array.isArray(providersOrOptions)) {
-    protoInjector = ProtoInjector.create(providersOrOptions);
+    providers = providersOrOptions;
   } else if (typeof providersOrOptions === 'object') {
-    protoInjector = ProtoInjector.create(providersOrOptions.providers);
+    providers =providersOrOptions.providers;
     deep = providersOrOptions.deep;
     deepInjector = (providersOrOptions as any).injector;
   }
@@ -46,8 +47,8 @@ export const Portal = createWrapper((providersOrOptions: Provider[] | PortalOpti
 
     // deepInjector or retrieve host injector from provider's record 
     let injector = deepInjector || forkedSession.definition.record.host;
-    if (protoInjector) {
-      injector = protoInjector.fork(injector);
+    if (providers) {
+      injector = Injector.create(providers, injector, { disableExporting: true });
     }
     session.injector = injector;
     session.options.injections = {

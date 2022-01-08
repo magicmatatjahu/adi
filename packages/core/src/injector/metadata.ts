@@ -1,5 +1,5 @@
 import { Injector } from ".";
-import { createInjectionArg, createMethodInjection, getModuleDef as getModuleDefSans, getProviderDef, injectableMixin, moduleMixin } from "../decorators";
+import { createInjectionArg, createMethodInjection, getModuleDef as getModuleDefSans, getProviderDef as getProviderDefSans, injectableMixin, moduleMixin } from "../decorators";
 import { 
   Provider, TypeProvider,
   ProviderDef, FactoryDef, Type,
@@ -11,169 +11,141 @@ import { Scope } from "../scope";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 
 import { ProviderRecord } from "./provider";
-import { InjectorResolver } from "./resolver";
+import { createProviderFactory, createFactory, createInjectorFactory } from "./resolver";
 
 import { pushWrapper, Wrapper } from "../utils/wrappers";
 import { UseExisting } from "../wrappers/internal";
 import { InjectionKind } from "../enums";
 
-export const InjectorMetadata = new class {
-  /**
-   * PROVIDERS
-   */
-  toRecord<T>(
-    provider: Provider<T>,
-    host: Injector,
-    isComponent: boolean = false,
-  ): ProviderRecord {
-    if (typeof provider === "function") {
-      return this.typeProviderToRecord(provider, host, isComponent);
-    } else {
-      return this.customProviderToRecord(provider.provide, provider, host, isComponent);
+export function toRecord<T>(
+  provider: Provider<T>,
+  host: Injector,
+  isComponent: boolean = false,
+): ProviderRecord {
+  if (typeof provider === "function") {
+    return typeProviderToRecord(provider, host, isComponent);
+  } else {
+    return customProviderToRecord(provider.provide, provider, host, isComponent);
+  }
+}
+
+export function typeProviderToRecord<T>(
+  provider: TypeProvider<T>,
+  host: Injector,
+  isComponent?: boolean,
+): ProviderRecord {
+  const provDef = getProviderDef(provider);
+  const options = provDef.options || EMPTY_OBJECT as InjectableOptions<any>;
+
+  if (
+    'useFactory' in options ||
+    'useValue' in options ||
+    'useExisting' in options ||
+    'useClass' in options
+  ) {
+    // shallow copy provDef
+    const customProvider = { ...options as any, useClass: (options as any).useClass || provider } as PlainProvider;
+    return customProviderToRecord(provider, customProvider, host, isComponent);
+  }
+
+  const record = getRecord(provider, host, isComponent);
+
+  let factory = provDef.factory;
+  let wrapper = options.useWrapper;
+  const { imports, providers } = options as ClassProvider;
+  if (imports || providers) {
+    factory = createInjectorFactory(factory, imports, providers);
+  }
+
+  record.addDefinition(factory, getScopeShape(options.scope), undefined, wrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+  return record;
+}
+
+export function customProviderToRecord<T>(
+  token: Token<T>,
+  provider: PlainProvider<T>,
+  host: Injector,
+  isComponent?: boolean,
+): ProviderRecord {
+  const record = getRecord(token, host, isComponent);
+  const constraint = provider.when;
+  let factory: FactoryDef = undefined,
+    wrapper: Wrapper | Array<Wrapper> = undefined,
+    scope: ScopeShape = getScopeShape((provider as any).scope),
+    annotations: Annotations = provider.annotations || EMPTY_OBJECT,
+    proto = undefined;
+
+  if (hasWrapperProvider(provider)) {
+    wrapper = provider.useWrapper;
+  }
+
+  if (isFactoryProvider(provider)) {
+    factory = createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY, provider.imports, provider.providers);
+  } else if (isValueProvider(provider)) {
+    factory = () => provider.useValue;
+  } else if (isExistingProvider(provider)) {
+    wrapper = pushWrapper(wrapper, UseExisting(provider.useExisting))
+    factory = () => {};
+  } else if (isClassProvider(provider)) {
+    const { useClass, inject, imports, providers } = provider;
+
+    const providerDef = getProviderDef(useClass, true);
+    proto = useClass;
+
+    const injections = combineDependencies(inject, providerDef.injections, useClass);
+    factory = createProviderFactory(useClass, injections, imports, providers);
+    
+    const options = providerDef.options;
+    if (options) {
+      // override scope if can be overrided
+      const targetScope = getScopeShape(options.scope);
+      if (targetScope && targetScope.kind.canBeOverrided() === false) {
+        scope = targetScope;
+      }
+      // override annotations
+      annotations = Object.assign(annotations === EMPTY_OBJECT ? {} : annotations, options.annotations);
     }
   }
 
-  typeProviderToRecord<T>(
-    provider: TypeProvider<T>,
-    host: Injector,
-    isComponent?: boolean,
-  ): ProviderRecord {
-    const provDef = this.getProviderDef(provider);
-    const options = provDef.options || EMPTY_OBJECT as InjectableOptions<any>;
-
-    if (
-      'useFactory' in options ||
-      'useValue' in options ||
-      'useExisting' in options ||
-      'useClass' in options
-    ) {
-      // shallow copy provDef
-      const customProvider = { ...options as any, useClass: (options as any).useClass || provider } as PlainProvider;
-      return this.customProviderToRecord(provider, customProvider, host, isComponent);
-    }
-
-    const record = this.getRecord(provider, host, isComponent);
-
-    let factory = provDef.factory;
-    let wrapper = options.useWrapper;
-    const { imports, providers } = options as ClassProvider;
-    if (imports || providers) {
-      factory = InjectorResolver.createInjectorFactory(factory, imports, providers);
-    }
-
-    record.addDefinition(factory, this.getScopeShape(options.scope), undefined, wrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+  // case with standalone `useWrapper`
+  if (factory === undefined && wrapper !== undefined) {
+    record.addWrapper(wrapper, constraint, annotations);
     return record;
   }
 
-  customProviderToRecord<T>(
-    token: Token<T>,
-    provider: PlainProvider<T>,
-    host: Injector,
-    isComponent?: boolean,
-  ): ProviderRecord {
-    const record = this.getRecord(token, host, isComponent);
-    const constraint = provider.when;
-    let factory: FactoryDef = undefined,
-      wrapper: Wrapper | Array<Wrapper> = undefined,
-      scope: ScopeShape = this.getScopeShape((provider as any).scope),
-      annotations: Annotations = provider.annotations || EMPTY_OBJECT,
-      proto = undefined;
+  record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
+  return record;
+}
 
-    if (hasWrapperProvider(provider)) {
-      wrapper = provider.useWrapper;
-    }
-
-    if (isFactoryProvider(provider)) {
-      factory = InjectorResolver.createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY, provider.imports, provider.providers);
-    } else if (isValueProvider(provider)) {
-      factory = () => provider.useValue;
-    } else if (isExistingProvider(provider)) {
-      wrapper = pushWrapper(wrapper, UseExisting(provider.useExisting))
-      factory = () => {};
-    } else if (isClassProvider(provider)) {
-      const { useClass, inject, imports, providers } = provider;
-
-      const providerDef = this.getProviderDef(useClass, true);
-      proto = useClass;
-
-      const injections = combineDependencies(inject, providerDef.injections, useClass);
-      factory = InjectorResolver.createProviderFactory(useClass, injections, imports, providers);
-      
-      const options = providerDef.options;
-      if (options) {
-        // override scope if can be overrided
-        const targetScope = this.getScopeShape(options.scope);
-        if (targetScope && targetScope.kind.canBeOverrided() === false) {
-          scope = targetScope;
-        }
-        // override annotations
-        annotations = Object.assign(annotations === EMPTY_OBJECT ? {} : annotations, options.annotations);
-      }
-    }
-
-    // case with standalone `useWrapper`
-    if (factory === undefined && wrapper !== undefined) {
-      record.addWrapper(wrapper, constraint, annotations);
-      return record;
-    }
-
-    record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
-    return record;
+function getRecord<T>(
+  token: Token<T>,
+  host: Injector,
+  isComponent: boolean,
+): ProviderRecord {
+  let records: Map<Token, ProviderRecord> = host.records;
+  if (isComponent === true) {
+    records = host.components;
   }
 
-  getRecord<T>(
-    token: Token<T>,
-    host: Injector,
-    isComponent: boolean,
-  ): ProviderRecord {
-    let records: Map<Token, ProviderRecord> = host.records;
-    if (isComponent === true) {
-      records = host.components;
-    }
-
-    let record = records.get(token);
-    if (record === undefined) {
-      record = new ProviderRecord(token, host, isComponent);
-      records.set(token, record);
-    }
-    return record;
+  let record = records.get(token);
+  if (record === undefined) {
+    record = new ProviderRecord(token, host, isComponent);
+    records.set(token, record);
   }
+  return record;
+}
 
-  /**
-   * COMPONENTS
-   */
-  toComponent<T>(
-    component: Provider<T>,
-    host: Injector,
-  ): ProviderRecord {
-    return this.toRecord(component, host, true);
-  }
-
-  /**
-   * HELPERS
-   */
-  getScopeShape(scope: ScopeType): ScopeShape {
-    if (scope && (scope as ScopeShape).kind === undefined) {
-      scope = {
-        kind: scope as Scope,
-        options: undefined,
-      }
+export function getProviderDef(token: unknown, strict: boolean = true): ProviderDef {
+  let providerDef = getProviderDefSans(token);
+  if (providerDef === undefined || providerDef.factory === undefined) {
+    // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable() or @Module()
+    // collect only constructor params
+    providerDef = getProviderDefSans(injectableMixin(token as Type));
+    if (providerDef === undefined && strict === true) {
+      throw new Error('Cannot get provider def');
     }
-    return scope as ScopeShape;
   }
-
-  getProviderDef(token: unknown, strict: boolean = true): ProviderDef {
-    let providerDef = getProviderDef(token);
-    if (providerDef === undefined || providerDef.factory === undefined) {
-      // using injectableMixin() as fallback for decorated classes with different decorator than @Injectable() or @Module()
-      // collect only constructor params
-      providerDef = getProviderDef(injectableMixin(token as Type));
-      if (providerDef === undefined && strict === true) {
-        throw new Error('Cannot get provider def');
-      }
-    }
-    return providerDef;
-  }
+  return providerDef;
 }
 
 export function getModuleDef(target: unknown, strict: boolean = true): ModuleMetadata {
@@ -186,6 +158,16 @@ export function getModuleDef(target: unknown, strict: boolean = true): ModuleMet
     }
   }
   return moduleDef;
+}
+
+function getScopeShape(scope: ScopeType): ScopeShape {
+  if (scope && (scope as ScopeShape).kind === undefined) {
+    scope = {
+      kind: scope as Scope,
+      options: undefined,
+    }
+  }
+  return scope as ScopeShape;
 }
 
 export function convertDependencies(deps: Array<InjectionItem>, kind: InjectionKind, target: Object, methodName?: string | symbol): InjectionArgument[] {
@@ -210,7 +192,7 @@ export function convertDependency(dep: InjectionItem, kind: InjectionKind, targe
   return createInjectionArg(dep as Token, undefined, undefined, kind, target, propertyKey, index, handler);
 }
 
-// split this function to separate ones and optimize it
+// split function to separate ones and optimize it
 export function combineDependencies(
   toCombine: Array<InjectionItem>,
   original: Array<InjectionArgument>,

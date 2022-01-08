@@ -17,7 +17,7 @@ Scope.RESOLUTION = new ResolutionScope();
 export { when } from "./constraint";
 export { STATIC_CONTEXT, INJECTOR_OPTIONS, MODULE_INITIALIZERS, ANNOTATIONS } from "./constants";
 export { Inject, Injectable, Module, UseMiddlewares, UseInterceptors, UseGuards, UseErrorHandlers, UsePipes, createParamDecorator, injectableMixin, moduleMixin } from "./decorators";
-export { Context, Session, Injector, ProtoInjector, InjectionToken, InjectorMetadata, InjectorResolver, DestroyManager, ExecutionContext, ExecutionContextHost } from "./injector";
+export { Context, Session, Injector, InjectionToken, ExecutionContext, ExecutionContextHost } from "./injector";
 export * from "./interfaces";
 export * from "./wrappers";
 export { Scope } from "./scope";

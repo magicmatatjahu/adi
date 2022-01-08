@@ -14,15 +14,16 @@ import {
   runWrappers, Wrapper,
 } from "../utils/wrappers";
 
-import { Compiler } from "./module-compiler";
-import { InjectorMetadata } from "./metadata";
-import { handleParallelInjection } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
 import { All } from "../wrappers";
 import { CoreHook } from "../wrappers/internal";
 import { NilInjectorError } from "../errors";
-import { DestroyManager } from "./destroy-manager";
+
+import { build, buildAsync } from "./module-compiler";
+import { getProviderDef, toRecord, typeProviderToRecord, customProviderToRecord } from "./metadata";
+import { handleParallelInjection } from "./resolver";
+import { destroyRecords, destroyRecord, destroyDefinition } from "./destroy-manager";
 
 export class Injector {
   static create(
@@ -31,14 +32,6 @@ export class Injector {
     options?: InjectorOptions,
   ): Injector {
     return new Injector(metatype, parent, options);
-  }
-
-  static createProto(
-    metatype: Type<any> | ModuleMetadata | Array<Provider> = [],
-    parent: Injector = NilInjector,
-    options?: InjectorOptions,
-  ): ProtoInjector {
-    return ProtoInjector.create(metatype, parent, options);
   }
 
   /**
@@ -68,7 +61,7 @@ export class Injector {
     
     if (options !== undefined) {
       this.addProviders(options.setupProviders);
-      this.loadOptions();
+      loadOptions(this);
     }
 
     Array.isArray(metatype) && this.addProviders(metatype);
@@ -112,7 +105,7 @@ export class Injector {
     this.status |= InjectorStatus.BUILDED;
 
     if (Array.isArray(this.metatype)) return;
-    Compiler.build(this);
+    build(this);
     return this;
   }
 
@@ -121,29 +114,8 @@ export class Injector {
     this.status |= InjectorStatus.BUILDED;
 
     if (Array.isArray(this.metatype)) return;
-    await Compiler.buildAsync(this);
+    await buildAsync(this);
     return this;
-  }
-
-  init(options?: { asyncMode: boolean }) {
-    if (this.status & InjectorStatus.INITIALIZED) return; 
-    this.status |= InjectorStatus.INITIALIZED;
-
-    // resolve INJECTOR_OPTIONS provider again
-    this.loadOptions();
-
-    const asyncMode = options?.asyncMode;
-    return thenable(
-      // run MODULE_INITIALIZERS
-      () => {
-        if (asyncMode) return this.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
-        return this.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
-      },
-      () => {
-        if (asyncMode) return this.getComponentAsync(MODULE_REF)
-        return this.getComponent(MODULE_REF);
-      },
-    );
   }
 
   async destroy() {
@@ -152,7 +124,7 @@ export class Injector {
 
     // first destroy and clear own components
     try {
-      await DestroyManager.destroyRecords(Array.from(this.components.values()), 'injector');
+      await destroyRecords(Array.from(this.components.values()), 'injector');
     } finally {
       this.components.clear();
     }
@@ -181,20 +153,6 @@ export class Injector {
       const importInParent = this.parent.imports.get(this.metatype as any);
       importInParent && importInParent.delete(this.id);
     }
-  }
-
-  private loadOptions(): InjectorOptions {
-    if (this.records.has(INJECTOR_OPTIONS) === true) {
-      const providerOptions = this.get(INJECTOR_OPTIONS) || EMPTY_OBJECT as InjectorOptions;
-      const previousDisablingExports = this.options.disableExporting;
-      this.options = Object.assign(this.options, providerOptions);
-      this.options.disableExporting = previousDisablingExports;
-    }
-
-    const { scope, id } = this.options;
-    this.id = id || this.id;
-    scope && (this.scopes = this.scopes.concat(scope));
-    return this.options;
   }
 
   /**
@@ -241,7 +199,7 @@ export class Injector {
     }
 
     if (Array.isArray(record)) {
-      const wrappers = this.getRecordsWrappers(record, session);
+      const wrappers = getRecordsWrappers(record, session);
       if (wrappers.length > 0) {
         return runRecordsWrappers(wrappers, session, (s: Session) => s.injector.getDefinition(s, record as Array<ProviderRecord>));
       }
@@ -316,8 +274,8 @@ export class Injector {
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
     let scope = def.scope;
-    if (scope.kind.canBeOverrided() === true) {
-      scope = session.options.scope || scope;
+    if (scope.kind.canBeOverrided()) {
+      scope = session.getScope() || scope;
     }
 
     session.instance = def.record.getInstance(def, scope, session);
@@ -364,71 +322,9 @@ export class Injector {
 
     // check for treeshakable provider - `providedIn` case
     if (record === undefined) {
-      const def = InjectorMetadata.getProviderDef(token, false);
-      const provideIn = def?.options?.provideIn;
-      if (provideIn === undefined) {
-        return;
-      }
-
-      if (this.isProviderInScope(provideIn)) {
-        if (typeof token === "function") { // type provider case
-          record = InjectorMetadata.typeProviderToRecord(token as Type, this);
-        } else { // injection token case
-          record = InjectorMetadata.customProviderToRecord(token, def as any, this);
-        }
-      } else { // imports case
-        const annotations = def?.options?.annotations || EMPTY_OBJECT;
-        if (annotations[ANNOTATIONS.EXPORT] !== true) {
-          return;
-        }
-
-        this.imports.forEach(imp => imp.forEach(inj => {
-          if (inj.isProviderInScope(provideIn) === false) return;
-
-          if (typeof token === "function") { // type provider case
-            record = InjectorMetadata.typeProviderToRecord(token as Type, inj);
-          } else { // injection token case
-            record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
-          }
-          this.setImportedRecords(token, record);
-        }));
-      }
+      record = checkTreeshakable(this, token);
     }
 
-    return record;
-  }
-
-  checkTreeshakable(token: Token): ProviderRecord {
-    const def = InjectorMetadata.getProviderDef(token, false);
-    const provideIn = def?.options?.provideIn;
-    if (provideIn === undefined) {
-      return;
-    }
-
-    let record: ProviderRecord;
-    if (this.isProviderInScope(provideIn)) {
-      if (typeof token === "function") { // type provider case
-        record = InjectorMetadata.typeProviderToRecord(token as Type, this);
-      } else { // injection token case
-        record = InjectorMetadata.customProviderToRecord(token, def as any, this);
-      }
-    } else { // imports case
-      const annotations = def?.options?.annotations || EMPTY_OBJECT;
-      if (annotations[ANNOTATIONS.EXPORT] !== true) {
-        return;
-      }
-
-      this.imports.forEach(imp => imp.forEach(inj => {
-        if (inj.isProviderInScope(provideIn) === false) return;
-
-        if (typeof token === "function") { // type provider case
-          record = InjectorMetadata.typeProviderToRecord(token as Type, inj);
-        } else { // injection token case
-          record = InjectorMetadata.customProviderToRecord(token, def as any, inj);
-        }
-        this.setImportedRecords(token, record);
-      }));
-    }
     return record;
   }
 
@@ -437,19 +333,11 @@ export class Injector {
 
     if (Array.isArray(providers)) {
       for (let i = 0, l = providers.length; i < l; i++) {
-        providers[i] && InjectorMetadata.toRecord(providers[i], this);
+        providers[i] && toRecord(providers[i], this);
       }
       return;
     }
-    providers && InjectorMetadata.toRecord(providers, this);
-  }
-
-  // TODO: add case with imported modules
-  private isProviderInScope(provideIn?: InjectorScopeType | InjectorScopeType[]): boolean {
-    if (Array.isArray(provideIn)) {
-      return provideIn.some(scope => this.scopes.includes(scope));
-    }
-    return this.scopes.includes(provideIn);
+    providers && toRecord(providers, this);
   }
 
   remove(token: Token, defName?: string | symbol) {
@@ -461,15 +349,15 @@ export class Injector {
     if (defName) {
       const definitions = [...record.defs, ...record.constraintDefs];
       const def = definitions.find(def => def.name === defName);
-      return def ? DestroyManager.destroyDefinition(def) : undefined;
+      return def ? destroyDefinition(def) : undefined;
     }
-    return DestroyManager.destroyRecord(record);
+    return destroyRecord(record);
   }
 
   clear() {
     const records = Array.from(this.records.values());
     this.records.clear();
-    return DestroyManager.destroyRecords(records);
+    return destroyRecords(records);
   }
 
   /**
@@ -500,11 +388,11 @@ export class Injector {
 
     if (Array.isArray(components)) {
       for (let i = 0, l = components.length; i < l; i++) {
-        components[i] && InjectorMetadata.toRecord(components[i], this, true);
+        components[i] && toRecord(components[i], this, true);
       }
       return;
     }
-    components && InjectorMetadata.toRecord(components, this, true);
+    components && toRecord(components, this, true);
   }
 
   /**
@@ -527,9 +415,9 @@ export class Injector {
    */
   exportsProviders(exps: Array<ExportItem> = [], to: Injector): void {
     if (
+      this.options.disableExporting ||
       this.status & InjectorStatus.DESTROYED || 
-      to === NilInjector ||
-      this.options.disableExporting === false
+      to === NilInjector
     ) return;
 
     for (let i = 0, l = exps.length; i < l; i++) {
@@ -619,7 +507,7 @@ export class Injector {
 
   private filterRecords(session: Session): ProviderRecord | Array<ProviderRecord> | undefined {
     const token = session.getToken();
-    const record = this.records.get(token) || this.checkTreeshakable(token);
+    const record = this.records.get(token) || checkTreeshakable(this, token);
     let importedRecords = this.importedRecords.get(token);
     if (importedRecords) {
       importedRecords = [...importedRecords];
@@ -628,41 +516,41 @@ export class Injector {
     }
     return record;
   }
+}
 
-  private getRecordsWrappers(records: Array<ProviderRecord>, session: Session): Array<{ record: ProviderRecord, wrapper: Wrapper }> {
-    const wrappers: Array<{ record: ProviderRecord, wrapper: Wrapper, annotations: Record<string, any> }> = [];
-    for (let i = records.length - 1; i > -1; i--) {
-      const record = records[i];
-      const filteredWrappers = this.filterRecordWrappers(record, session);
-      for (let j = filteredWrappers.length - 1; j > -1; j--) {
-        const { wrapper, annotations } = filteredWrappers[j];
-        if (Array.isArray(wrapper)) {
-          for (let k = 0, l = wrapper.length; k < l; k++) {
-            wrappers.push({ record, wrapper: wrapper[k], annotations });
-          }
-        } else {
-          wrappers.push({ record, wrapper, annotations });
+function getRecordsWrappers(records: Array<ProviderRecord>, session: Session): Array<{ record: ProviderRecord, wrapper: Wrapper }> {
+  const wrappers: Array<{ record: ProviderRecord, wrapper: Wrapper, annotations: Record<string, any> }> = [];
+  for (let i = records.length - 1; i > -1; i--) {
+    const record = records[i];
+    const filteredWrappers = filterRecordWrappers(record, session);
+    for (let j = filteredWrappers.length - 1; j > -1; j--) {
+      const { wrapper, annotations } = filteredWrappers[j];
+      if (Array.isArray(wrapper)) {
+        for (let k = 0, l = wrapper.length; k < l; k++) {
+          wrappers.push({ record, wrapper: wrapper[k], annotations });
         }
+      } else {
+        wrappers.push({ record, wrapper, annotations });
       }
     }
-    return wrappers.sort(compareOrder);
   }
+  return wrappers.sort(compareOrder);
+}
 
-  private filterRecordWrappers(
-    record: ProviderRecord,
-    session: Session
-  ): Array<WrapperRecord> {
-    if (record.wrappers.length === 0) return EMPTY_ARRAY;
-    session.injector = record.host;
-    const wrappers = record.wrappers, satisfyingWraps: WrapperRecord[] = [];
-    for (let i = 0, l = wrappers.length; i < l; i++) {
-      const wrapper = wrappers[i];
-      if (wrapper.constraint(session) === true) {
-        satisfyingWraps.push(wrapper);
-      }
+function filterRecordWrappers(
+  record: ProviderRecord,
+  session: Session
+): Array<WrapperRecord> {
+  if (record.wrappers.length === 0) return EMPTY_ARRAY;
+  session.injector = record.host;
+  const wrappers = record.wrappers, satisfyingWraps: WrapperRecord[] = [];
+  for (let i = 0, l = wrappers.length; i < l; i++) {
+    const wrapper = wrappers[i];
+    if (wrapper.constraint(session) === true) {
+      satisfyingWraps.push(wrapper);
     }
-    return satisfyingWraps;
   }
+  return satisfyingWraps;
 }
 
 function lastInjectionWrapper(session: Session) {
@@ -677,93 +565,81 @@ function lastDefinitionWrapper(session: Session) {
   return session.injector.resolveDefinition(session.definition, session);
 }
 
-export class ProtoInjector extends Injector {
-  static create(
-    injector: Type<any> | ModuleMetadata | Array<Provider> = [],
-    parent: Injector = NilInjector,
-    options?: InjectorOptions,
-  ): ProtoInjector {
-    return new ProtoInjector(injector, parent, options);
+function checkTreeshakable(injector: Injector, token: Token): ProviderRecord {
+  const def = getProviderDef(token, false);
+  const provideIn = def?.options?.provideIn;
+  if (provideIn === undefined) {
+    return;
   }
 
-  private stack: Injector[] = [];
+  let record: ProviderRecord;
+  if (isProviderInScope(injector.scopes, provideIn)) {
+    if (typeof token === "function") { // type provider case
+      record = typeProviderToRecord(token as Type, injector);
+    } else { // injection token case
+      record = customProviderToRecord(token, def as any, injector);
+    }
+  } else { // imports case
+    const annotations = def?.options?.annotations || EMPTY_OBJECT;
+    if (annotations[ANNOTATIONS.EXPORT] !== true) {
+      return;
+    }
 
-  build(): ProtoInjector {
-    if (this.status & InjectorStatus.BUILDED) return; 
-    this.status |= InjectorStatus.BUILDED;
+    injector.imports.forEach(imp => imp.forEach(inj => {
+      if (isProviderInScope(inj.scopes, provideIn) === false) return;
 
-    if (Array.isArray(this.metatype)) return;
-    this.stack = Compiler.build(this, true);
-    return this;
+      if (typeof token === "function") { // type provider case
+        record = typeProviderToRecord(token as Type, inj);
+      } else { // injection token case
+        record = customProviderToRecord(token, def as any, inj);
+      }
+      (injector as any).setImportedRecords(token, record);
+    }));
+  }
+  return record;
+}
+
+// TODO: add case with imported modules
+function isProviderInScope(scopes: InjectorScopeType[], provideIn?: InjectorScopeType | InjectorScopeType[]): boolean {
+  if (Array.isArray(provideIn)) {
+    return provideIn.some(scope => scopes.includes(scope));
+  }
+  return scopes.includes(provideIn);
+}
+
+function loadOptions(injector: Injector): InjectorOptions {
+  if (injector.records.has(INJECTOR_OPTIONS) === true) {
+    const providerOptions = injector.get(INJECTOR_OPTIONS) || EMPTY_OBJECT as InjectorOptions;
+    const previousDisablingExports = injector.options.disableExporting;
+    injector.options = Object.assign(injector.options, providerOptions);
+    injector.options.disableExporting = previousDisablingExports;
   }
 
-  async buildAsync(): Promise<ProtoInjector> {
-    if (this.status & InjectorStatus.BUILDED) return; 
-    this.status |= InjectorStatus.BUILDED;
+  const { scope, id } = injector.options;
+  injector.id = id || injector.id;
+  scope && (injector.scopes = injector.scopes.concat(scope));
+  return injector.options;
+}
 
-    if (Array.isArray(this.metatype)) return;
-    this.stack = await Compiler.buildAsync(this, true);
-    return this;
-  }
+export function initInjector(injector: Injector, options?: { asyncMode: boolean }) {
+  if (injector.status & InjectorStatus.INITIALIZED) return; 
+  injector.status |= InjectorStatus.INITIALIZED;
 
-  fork(parent?: Injector): Injector {
-    // Map<old Injector, new Injector>
-    const injectorMap = new Map<Injector, Injector>();
-    const newInjector = this.cloneInjector(this, injectorMap);
-    if (parent) (newInjector as any).parent = parent;
+  // resolve INJECTOR_OPTIONS provider again
+  loadOptions(injector);
 
-    const newStack = this.stack.map(oldInjector => injectorMap.get(oldInjector));
-    Compiler.initModules(newStack);
-    return newInjector;
-  }
-
-  async forkAsync(parent?: Injector): Promise<Injector> {
-    // Map<old Injector, new Injector>
-    const injectorMap = new Map<Injector, Injector>();
-    const newInjector = this.cloneInjector(this, injectorMap);
-    if (parent) (newInjector as any).parent = parent;
-
-    const newStack = this.stack.map(oldInjector => injectorMap.get(oldInjector));
-    await Compiler.initModulesAsync(newStack);
-    return newInjector;
-  }
-
-  private cloneInjector(oldInjector: Injector, injectorMap: Map<Injector, Injector>): Injector {
-    const newInjector = Object.assign(Object.create(Injector.prototype) as Injector, oldInjector);
-    injectorMap.set(oldInjector, newInjector);
-
-    // create copy of the existing injectors in the subgraph
-    const newImports = new Map<Type, Injector | Map<ModuleID, Injector>>();
-    oldInjector.imports.forEach((injector, type) => {
-      const newMap = new Map<ModuleID, Injector>();
-      newImports.set(type, newMap);
-      injector.forEach((injectorWithID, id) => {
-        newMap.set(id, this.cloneInjector(injectorWithID, injectorMap));
-      });
-    });
-
-    // copy components
-    newInjector.components = new Map();
-    oldInjector.components.forEach((component, token) => newInjector.components.set(token, this.cloneProviderRecord(component, newInjector)));
-    
-    // copy records
-    newInjector.records = new Map();
-    oldInjector.records.forEach((provider, token) => newInjector.records.set(token, this.cloneProviderRecord(provider, newInjector)));
-
-    // copy new imported records
-    newInjector.importedRecords = new Map();
-    oldInjector.importedRecords.forEach((collections, token) => newInjector.importedRecords.set(token, collections.map(provider => injectorMap.get(provider.host).records.get(token))));
-
-    return newInjector;
-  }
-
-  private cloneProviderRecord(provider: ProviderRecord, newInjector: Injector): ProviderRecord {
-    const newProvider = new ProviderRecord(provider.token, newInjector, provider.isComponent);
-    newProvider.defs = provider.defs.map(def => ({ ...def, record: newProvider, values: new Map() }));
-    newProvider.constraintDefs = provider.constraintDefs.map(def => ({ ...def, record: newProvider, values: new Map() }));
-    newProvider.wrappers = provider.wrappers.map(wrapper => ({ ...wrapper }));
-    return newProvider;
-  }
+  const asyncMode = options?.asyncMode;
+  return thenable(
+    // run MODULE_INITIALIZERS
+    () => {
+      if (asyncMode) return injector.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
+      return injector.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
+    },
+    () => {
+      if (asyncMode) return injector.getComponentAsync(MODULE_REF)
+      return injector.getComponent(MODULE_REF);
+    },
+  );
 }
 
 export const NilInjector = new class {

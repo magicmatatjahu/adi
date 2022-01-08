@@ -4,7 +4,8 @@ import { ExecutionContext } from './execution-context';
 import { Type, ExtensionItem, OptimizedExtensionItem, PipeItem, InjectionMethod, ExecutionContextArgs, ArgumentMetadata } from "../interfaces";
 import { thenable } from '../utils';
 import { NOOP_FN } from '../constants';
-import { InjectorResolver } from '..';
+
+import { createFunction } from './resolver';
 
 export function injectExtensions<T>(provider: Type<T>, instance: T, methodName: string, method: InjectionMethod, injector: Injector, parentSession: Session) {
   const eHandlers = method.eHandlers;
@@ -220,7 +221,7 @@ function prepareExtensions(extensions: ExtensionItem[], methodName: string, inje
       }
     } else if (ext.type === 'func') {
       const [fn, options] = ext.arg;
-      const injectedFn = InjectorResolver.createFunction(fn, options);
+      const injectedFn = createFunction(fn, options);
       func = (...args: any[]) => injectedFn(injector, parentSession, ...args);
     } else {
       func = (...args: any[]) => arg[methodName](...args);

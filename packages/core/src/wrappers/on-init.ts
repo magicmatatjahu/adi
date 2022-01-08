@@ -1,5 +1,5 @@
 import { SessionStatus } from "../enums";
-import { InjectorResolver } from "../injector";
+import { createFunction } from "../injector";
 import { StandaloneOnInit } from "../interfaces";
 import { createWrapper } from "../utils";
 
@@ -9,7 +9,7 @@ export const OnInitHook = createWrapper((hook: StandaloneOnInit) => {
       return next(session);
     }
 
-    const onInit = InjectorResolver.createFunction(hook.onInit, hook);
+    const onInit = createFunction(hook.onInit, hook);
     const hooks = (session.meta.initHooks || (session.meta.initHooks  = []));
     hooks.push(onInit);
 

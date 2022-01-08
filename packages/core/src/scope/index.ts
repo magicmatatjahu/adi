@@ -1,6 +1,5 @@
 import { Context, Session } from "../injector";
 import { DestroyEvent, InstanceRecord } from "../interfaces";
-import { ScopeFlags } from "../enums";
 
 import { DefaultScopeOptions } from "./default";
 import { SingletonScopeOptions } from "./singleton";
@@ -10,8 +9,6 @@ import { InstanceScopeOptions } from "./instance";
 import { TransientScopeOptions } from "./transient";
 
 export abstract class Scope<O = any> {
-  public readonly flags: ScopeFlags = ScopeFlags.NONE;
-
   public static DEFAULT: Scope<DefaultScopeOptions>;
   public static SINGLETON: Scope<SingletonScopeOptions>;
   public static TRANSIENT: Scope<TransientScopeOptions>;
@@ -40,6 +37,6 @@ export abstract class Scope<O = any> {
   ): boolean;
 
   public canBeOverrided(): boolean {
-    return (this.flags & ScopeFlags.CANNOT_OVERRIDE) === 0;
+    return true;
   }
 }

@@ -5,7 +5,6 @@ import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, Cons
 import { Token } from "../types";
 import { Scope } from "../scope";
 import { Wrapper, compareOrder } from "../utils";
-import { DestroyManager } from "..";
 
 export class ProviderRecord<T = any> {
   /**
