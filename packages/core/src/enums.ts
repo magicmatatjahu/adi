@@ -19,7 +19,6 @@ export enum InjectionKind {
   PARAMETER = 2,
   PROPERTY = 4,
   METHOD = 8,
-  // Rethink it
   FACTORY = 16,
   FUNCTION = 32,
 }

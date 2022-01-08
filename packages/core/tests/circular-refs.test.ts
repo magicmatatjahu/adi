@@ -302,8 +302,10 @@ describe('Circular refs', function() {
     let onInitOrder = [];
 
     @Injectable({
-      useWrapper: OnInitHook(_ => {
-        onInitOrder.push('ServiceA useWrapper');
+      useWrapper: OnInitHook({
+        onInit() {
+          onInitOrder.push('ServiceA useWrapper');
+        }
       }),
     })
     class ServiceA {
@@ -320,8 +322,10 @@ describe('Circular refs', function() {
     }
 
     @Injectable({
-      useWrapper: OnInitHook(_ => {
-        onInitOrder.push('ServiceB useWrapper');
+      useWrapper: OnInitHook({
+        onInit() {
+          onInitOrder.push('ServiceB useWrapper');
+        }
       }),
     })
     class ServiceB {

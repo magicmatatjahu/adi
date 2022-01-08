@@ -5,9 +5,10 @@ import { Reflection } from "../utils";
 import { Cache } from "../wrappers/cache";
 import { CoreHook } from "../wrappers/internal";
 import { Wrapper } from "../utils/wrappers";
-import { InjectorMetadata } from "../injector";
 import { PRIVATE_METADATA, METADATA, EMPTY_ARRAY } from "../constants";
 import { InjectionKind } from "../enums";
+
+import { combineDependencies } from "../injector/metadata";
 
 export function Injectable<S>(options?: InjectableOptions<S>) {
   return function(target: Object) {
@@ -37,7 +38,7 @@ export function applyProviderDef<T, S>(target: Object, options?: InjectableOptio
   // merge inline metadata
   const inlineMetadata = target[METADATA.PROVIDER] as InjectableMetadata<S>;
   if (inlineMetadata !== undefined) {
-    def.injections = InjectorMetadata.combineDependencies(inlineMetadata.injections, def.injections, target);
+    def.injections = combineDependencies(inlineMetadata.injections, def.injections, target);
     def.options = Object.assign(def.options, inlineMetadata.options);
   }
 

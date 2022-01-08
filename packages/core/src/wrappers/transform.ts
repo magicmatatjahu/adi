@@ -9,7 +9,7 @@ export interface TransformOptions extends FunctionInjections {
 }
 
 export const Transform = createWrapper((options: TransformOptions) => {
-  const transform = InjectorResolver.createFunction(options.transform, options, true);
+  const transform = InjectorResolver.createFunction(options.transform, options);
 
   return (session, next) => {
     if (session.status & SessionStatus.DRY_RUN) {
@@ -25,13 +25,13 @@ export const Transform = createWrapper((options: TransformOptions) => {
         // mark session with side effect
         session.setSideEffect(false);
 
-        // add delegation
-        forkedSession.meta[DELEGATION.KEY] = {
-          [options.delegationKey || DELEGATION.DEFAULT]: value,
-        }
+        // // add delegation
+        // forkedSession.meta[DELEGATION.KEY] = {
+        //   [options.delegationKey || DELEGATION.DEFAULT]: value,
+        // }
 
         return thenable(
-          () => transform(forkedSession.injector, forkedSession),
+          () => transform(forkedSession.injector, forkedSession, value),
           transformedValue => transformedValue,
         );
       }

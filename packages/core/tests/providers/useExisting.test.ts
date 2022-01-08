@@ -58,7 +58,6 @@ describe('useExisting', function() {
             value.prop = {};
             return value;
           },
-          inject: [Delegate()]
         })
       },
     ]);
@@ -90,7 +89,6 @@ describe('useExisting', function() {
             value.prop++;
             return value;
           },
-          inject: [Delegate()]
         })
       },
       {
@@ -101,7 +99,6 @@ describe('useExisting', function() {
             value.prop++;
             return value;
           },
-          inject: [Delegate()]
         })
       },
     ]);

@@ -157,7 +157,9 @@ describe('Providers with ModuleMetadata', function() {
     })
     class Service implements OnDestroy {
       constructor(
-        @Inject(OnDestroyHook(hook('TestService injection onDestroy'))) readonly service: TestService,
+        @Inject(OnDestroyHook({
+          onDestroy: hook('TestService injection onDestroy'),
+        })) readonly service: TestService,
       ) {}
 
       onDestroy() {

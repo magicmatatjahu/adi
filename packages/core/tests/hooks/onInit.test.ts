@@ -58,9 +58,11 @@ describe('onInit', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnInitHook((value: string) => {
-          if (value === 'value from factory') {
-            called = true
+        useWrapper: OnInitHook({
+          onInit(value: string) {
+            if (value === 'value from factory') {
+              called = true
+            }
           }
         })
       }
@@ -80,9 +82,11 @@ describe('onInit', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnInitHook((value: string) => {
-          if (value === 'value from factory') {
-            onInitCalls++
+        useWrapper: OnInitHook({
+          onInit(value: string) {
+            if (value === 'value from factory') {
+              onInitCalls++
+            }
           }
         })
       }
@@ -121,9 +125,15 @@ describe('onInit', function() {
           return 'value from factory';
         },
         useWrapper: [
-          OnInitHook(hook3), 
-          OnInitHook(hook2), 
-          OnInitHook(hook1),
+          OnInitHook({
+            onInit: hook3,
+          }), 
+          OnInitHook({
+            onInit: hook2,
+          }), 
+          OnInitHook({
+            onInit: hook1,
+          }),
         ],
       }
     ]);
@@ -154,7 +164,9 @@ describe('onInit', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(OnInitHook(hook('injection onInit'))) readonly testService1: TestService,
+        @Inject(OnInitHook({
+          onInit: hook('injection onInit'),
+        })) readonly testService1: TestService,
       ) {}
     }
 
@@ -178,7 +190,9 @@ describe('onInit', function() {
     }
 
     @Injectable({
-      useWrapper: OnInitHook(hook('definition onInit')),
+      useWrapper: OnInitHook({
+        onInit: hook('definition onInit'),
+      }),
     })
     class TestService implements OnInit {
       onInit() {
@@ -189,7 +203,9 @@ describe('onInit', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject(OnInitHook(hook('injection onInit'))) readonly testService1: TestService,
+        @Inject(OnInitHook({
+          onInit: hook('injection onInit'),
+        })) readonly testService1: TestService,
       ) {}
     }
 
@@ -198,7 +214,9 @@ describe('onInit', function() {
       TestService,
       {
         provide: TestService,
-        useWrapper: OnInitHook(hook('provider onInit')),
+        useWrapper: OnInitHook({
+          onInit: hook('provider onInit'),
+        }),
       }
     ]);
 
@@ -218,7 +236,9 @@ describe('onInit', function() {
 
     @Injectable({
       scope: Scope.TRANSIENT,
-      useWrapper: OnInitHook(hook),
+      useWrapper: OnInitHook({
+        onInit: hook,
+      }),
     })
     class TestService implements OnInit {
       onInit() {
@@ -249,13 +269,12 @@ describe('onInit', function() {
     let checkInit = false;
 
     const hook: StandaloneOnInit = {
-      onInit(foobar: string, value: Service) {
+      onInit(value: Service, foobar: string) {
         if (foobar === 'foobar' && value instanceof Service) {
           checkInit = true;
         } 
       },
-      inject: ['foobar', Delegate()],
-      withDelegation: true,
+      inject: ['foobar'],
     }
 
     @Injectable({
@@ -307,9 +326,15 @@ describe('onInit', function() {
           return 'value from factory';
         },
         useWrapper: [
-          OnInitHook(hook3), 
-          OnInitHook(hook2), 
-          OnInitHook(hook1),
+          OnInitHook({
+            onInit: hook3,
+          }), 
+          OnInitHook({
+            onInit: hook2,
+          }), 
+          OnInitHook({
+            onInit: hook1,
+          }),
         ],
       }
     ]);

@@ -1,5 +1,5 @@
 import { InjectorMetadata, InjectorResolver } from "../injector";
-import { FactoryDef, Type, FunctionInjections } from "../interfaces";
+import { FunctionDef, Type, FunctionInjections } from "../interfaces";
 import { createWrapper, thenable } from "../utils";
 import { DELEGATION } from "../constants";
 import { SessionStatus } from "../enums";
@@ -11,7 +11,7 @@ export type DecorateOptions =
 
 interface DecorateClass {
   useClass: Type;
-  delegationKey: string | symbol | number;
+  delegationKey: string | symbol;
 }
 
 interface DecorateFunction extends FunctionInjections {
@@ -36,17 +36,18 @@ function generateID() {
 export const Decorate = createWrapper((decoratorOrOptions: DecorateOptions) => {
   // decoratorID is added to the every instances with `true` value to avoid redecorate the given instance
   let decoratorID = generateID();
-  let factory: FactoryDef;
+  let factory: FunctionDef;
   let delegationKey: any;
 
   if (isDecorateFunction(decoratorOrOptions)) { // function based decorator
-    factory = InjectorResolver.createFunction(decoratorOrOptions.decorate, decoratorOrOptions, true);
+    factory = InjectorResolver.createFunction(decoratorOrOptions.decorate, decoratorOrOptions);
     delegationKey = decoratorOrOptions.delegationKey;
   } else if (isDecorateClass(decoratorOrOptions)) { // type based decorator with `useClass` property
     factory = InjectorMetadata.getProviderDef(decoratorOrOptions.useClass).factory;
-    delegationKey = decoratorOrOptions.delegationKey;
+    delegationKey = decoratorOrOptions.delegationKey || 'decorated';
   } else { // type based decorator
     factory = InjectorMetadata.getProviderDef(decoratorOrOptions).factory;
+    delegationKey = 'decorated'
   }
 
   return (session, next) => {
@@ -66,19 +67,27 @@ export const Decorate = createWrapper((decoratorOrOptions: DecorateOptions) => {
         }
 
         // add delegation
-        forkedSession.meta[DELEGATION.KEY] = {
-          [delegationKey || DELEGATION.DEFAULT]: decoratee,
+        if (delegationKey) {
+          forkedSession.meta[DELEGATION.KEY] = {
+            [delegationKey]: decoratee,
+          }
         }
+
+        // // add delegation
+        // forkedSession.meta[DELEGATION.KEY] = {
+        //   [delegationKey || DELEGATION.DEFAULT]: decoratee,
+        // }
 
         // resolve decorator and save decorated value to the instance value
         return thenable(
-          () => factory(forkedSession.injector, forkedSession),
+          () => factory(forkedSession.injector, forkedSession, decoratee),
           value => {
+            // possible problem with async resolution - check again
             if (session.instance.meta[decoratorID] === true) {
               return value;
             }
-            session.instance.value = value;
             session.instance.meta[decoratorID] = true;
+            session.instance.value = value;
             return value;
           }
         )

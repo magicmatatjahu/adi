@@ -13,6 +13,8 @@ import { resolveRef, thenable } from "../utils";
 import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { InjectorStatus } from "../enums";
 
+import { getModuleDef } from "./metadata";
+
 export class ModuleCompiler {
   private asyncInitOptions = { asyncMode: true };
 
@@ -199,14 +201,14 @@ export class ModuleCompiler {
       return;
     }
     
-    let moduleDef = InjectorMetadata.getModuleDef(metatype, false), 
+    let moduleDef = getModuleDef(metatype, false), 
       dynamicDef: DynamicModule<T> = undefined;
 
     if (moduleDef === undefined) { // maybe DynamicModule case
       dynamicDef = metatype as DynamicModule<T>;
       if (dynamicDef.module !== undefined) { // DynamicModule case
         metatype = dynamicDef.module;
-        moduleDef = InjectorMetadata.getModuleDef(metatype, false);
+        moduleDef = getModuleDef(metatype, false);
       } else { // ModuleMetadata case
         dynamicDef = undefined;
         moduleDef = metatype as ModuleMetadata;

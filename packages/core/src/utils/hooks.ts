@@ -1,7 +1,7 @@
 import { Session } from "../injector";
 import { InstanceRecord } from "../interfaces";
 import { InjectionKind, InstanceStatus, SessionStatus } from "../enums";
-import { SESSION_INTERNAL, DELEGATION } from "../constants";
+import { SESSION_INTERNAL } from "../constants";
 import { hasOnInitHook } from ".";
 import { hasOnDestroyHook } from "./guards";
 
@@ -19,11 +19,7 @@ function runInitHook(instance: InstanceRecord, session: Session) {
   for (let i = hooks.length - 1; i > -1; i--) {
     const hook = hooks[i];
     const newSession = session.fork();
-    // add delegation
-    newSession.meta[DELEGATION.KEY] = {
-      [hook.delegationKey || DELEGATION.DEFAULT]: value,
-    };
-    hook.onInit(injector, newSession);
+    hook(injector, newSession, value);
   }
   delete session.meta.initHooks;
 }
@@ -38,11 +34,7 @@ async function runInitHookAsync(instance: InstanceRecord, session: Session) {
   for (let i = hooks.length - 1; i > -1; i--) {
     const hook = hooks[i];
     const newSession = session.fork();
-    // add delegation
-    newSession.meta[DELEGATION.KEY] = {
-      [hook.delegationKey || DELEGATION.DEFAULT]: value,
-    };
-    await hook.onInit(injector, newSession);
+    await hook(injector, newSession, value);
   }
   delete session.meta.initHooks;
 }
@@ -90,11 +82,7 @@ export async function handleOnDestroy(instance: InstanceRecord) {
   for (let i = 0, l = hooks.length; i < l; i++) {
     const hook = hooks[i];
     const session = new Session(record, def, instance, { token: record.token }, { target: hook.onDestroy, kind: InjectionKind.STANDALONE }, undefined);
-    // add delegation
-    session.meta[DELEGATION.KEY] = {
-      [hook.delegationKey || DELEGATION.DEFAULT]: value,
-    };
-    await hook.onDestroy(injector, session);
+    await hook(injector, session, value);
   }
   delete instance.meta.destroyHooks;
 }

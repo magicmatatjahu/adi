@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Delegate, Transform, TransformOptions } from "../../src";
+import { Injector, Injectable, Inject, Transform, TransformOptions } from "../../src";
 
 describe('Transform wrapper', function () {
   test('should transform returned value (injection based useWrapper)', function () {
@@ -29,7 +29,7 @@ describe('Transform wrapper', function () {
     expect(service.service).toEqual('foobar');
   });
 
-  test('should transform returned value (injection based useWrapper) - case with Delegate wrapper as second argument in inject array (custom delegation)', function () {
+  test('should transform returned value (injection based useWrapper)', function () {
     @Injectable()
     class TestService {
       method() {
@@ -38,9 +38,8 @@ describe('Transform wrapper', function () {
     }
 
     const transformer: TransformOptions = {
-      transform(bar: string, value: TestService) { return bar + value.method() },
-      inject: ['bar', Delegate()],
-      withDelegation: true,
+      transform(value: TestService, bar: string) { return bar + value.method() },
+      inject: ['bar'],
     };
 
     @Injectable()
@@ -79,9 +78,8 @@ describe('Transform wrapper', function () {
     }
 
     const transformer1: TransformOptions = {
-      transform(service: AwesomeService, decoratee: TestService) { return decoratee.method() + 'bar' + service.addAwesome() },
-      inject: [AwesomeService, Delegate()],
-      withDelegation: true,
+      transform(decoratee: TestService, service: AwesomeService) { return decoratee.method() + 'bar' + service.addAwesome() },
+      inject: [AwesomeService],
     }
 
     const transformer2 = {
@@ -131,7 +129,6 @@ describe('Transform wrapper', function () {
 
     const transformer = {
       transform(value: TestService) { return value.method() + 'bar' },
-      inject: [Delegate()]
     }
 
     const injector = new Injector([

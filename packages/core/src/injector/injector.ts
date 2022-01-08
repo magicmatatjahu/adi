@@ -3,10 +3,10 @@ import {
   DefinitionRecord,
   Provider, Type,
   InjectorOptions, InjectorScopeType, PlainProvider,
-  ModuleMetadata, ModuleID, ExportItem, ExportedModule, InjectionItem, WrapperRecord, ScopeShape
+  ModuleMetadata, ModuleID, ExportItem, ExportedModule, WrapperRecord, ScopeShape
 } from "../interfaces";
 import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT, MODULE_REF, EMPTY_ARRAY } from "../constants";
-import { InjectionKind, InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
+import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable, compareOrder } from "../utils";
 import { 
@@ -16,7 +16,7 @@ import {
 
 import { Compiler } from "./module-compiler";
 import { InjectorMetadata } from "./metadata";
-import { InjectorResolver } from "./resolver";
+import { handleParallelInjection } from "./resolver";
 import { ProviderRecord } from "./provider";
 import { Session } from "./session";
 import { All } from "../wrappers";
@@ -335,7 +335,7 @@ export class Injector {
 
     // parallel or circular injection
     if (instance.status > InstanceStatus.UNKNOWN) {
-      return InjectorResolver.handleParallelInjection(instance, session) as T;
+      return handleParallelInjection(instance, session) as T;
     }
 
     instance.status |= InstanceStatus.PENDING;

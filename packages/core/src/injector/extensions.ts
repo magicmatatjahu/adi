@@ -220,7 +220,7 @@ function prepareExtensions(extensions: ExtensionItem[], methodName: string, inje
       }
     } else if (ext.type === 'func') {
       const [fn, options] = ext.arg;
-      const injectedFn = InjectorResolver.createFunctionNew(fn, options);
+      const injectedFn = InjectorResolver.createFunction(fn, options);
       func = (...args: any[]) => injectedFn(injector, parentSession, ...args);
     } else {
       func = (...args: any[]) => arg[methodName](...args);

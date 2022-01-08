@@ -1,5 +1,4 @@
 import { InjectionKind } from "../enums";
-import { InjectorMetadata, ExecutionContext } from "../injector";
 import { 
   Middleware, StandaloneMiddleware,
   Interceptor, StandaloneInterceptor,
@@ -10,6 +9,9 @@ import {
 } from "../interfaces";
 import { Reflection } from "../utils";
 import { getMethod, getProviderDef } from "./injectable";
+
+import { ExecutionContext } from "../injector/execution-context";
+import { convertDependency as convertInjectionDependency } from "../injector/metadata";
 
 export function UseMiddlewares(...interceptors: (InjectionItem | Middleware | StandaloneMiddleware)[]) {
   return function(target: Object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) {
@@ -166,7 +168,7 @@ function convertDependency<T>(
     };
   }
   // change injection kind
-  const arg = InjectorMetadata.convertDependency(
+  const arg = convertInjectionDependency(
     item as InjectionItem, 
     InjectionKind.METHOD, 
     target, 

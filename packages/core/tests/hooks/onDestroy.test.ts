@@ -141,9 +141,11 @@ describe('onDestroy', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnDestroyHook((value: string) => {
-          if (value === 'value from factory') {
-            called = true
+        useWrapper: OnDestroyHook({
+          onDestroy(value: string) {
+            if (value === 'value from factory') {
+              called = true
+            }
           }
         }),
         scope: Scope.TRANSIENT,
@@ -167,9 +169,11 @@ describe('onDestroy', function() {
         useFactory: () => {
           return 'value from factory';
         },
-        useWrapper: OnDestroyHook((value: string) => {
-          if (value === 'value from factory') {
-            onInitCalls++
+        useWrapper: OnDestroyHook({
+          onDestroy(value: string) {
+            if (value === 'value from factory') {
+              onInitCalls++
+            }
           }
         }),
         scope: Scope.TRANSIENT,
@@ -213,9 +217,15 @@ describe('onDestroy', function() {
           return 'value from factory';
         },
         useWrapper: [
-          OnDestroyHook(hook3), 
-          OnDestroyHook(hook2), 
-          OnDestroyHook(hook1),
+          OnDestroyHook({
+            onDestroy: hook3,
+          }), 
+          OnDestroyHook({
+            onDestroy: hook2,
+          }), 
+          OnDestroyHook({
+            onDestroy: hook1,
+          }),
         ],
         scope: Scope.TRANSIENT,
       }
@@ -255,7 +265,9 @@ describe('onDestroy', function() {
     })
     class Service {
       constructor(
-        @Inject(OnDestroyHook(hook('TestService injection onDestroy'))) readonly testService1: TestService,
+        @Inject(OnDestroyHook({
+          onDestroy: hook('TestService injection onDestroy'),
+        })) readonly testService1: TestService,
       ) {}
 
       onDestroy() {
@@ -290,7 +302,9 @@ describe('onDestroy', function() {
 
     @Injectable({
       scope: Scope.TRANSIENT,
-      useWrapper: OnDestroyHook(hook('definition onDestroy')),
+      useWrapper: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
     })
     class TestService implements OnDestroy {
       onDestroy() {
@@ -303,7 +317,9 @@ describe('onDestroy', function() {
     })
     class Service {
       constructor(
-        @Inject(OnDestroyHook(hook('injection onDestroy'))) readonly testService1: TestService,
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
       ) {}
     }
 
@@ -312,7 +328,9 @@ describe('onDestroy', function() {
       TestService,
       {
         provide: TestService,
-        useWrapper: OnDestroyHook(hook('provider onDestroy')),
+        useWrapper: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
       }
     ]);
 

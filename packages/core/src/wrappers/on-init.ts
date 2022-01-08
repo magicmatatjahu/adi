@@ -1,6 +1,6 @@
 import { SessionStatus } from "../enums";
 import { InjectorResolver } from "../injector";
-import { FactoryDef, StandaloneOnInit } from "../interfaces";
+import { StandaloneOnInit } from "../interfaces";
 import { createWrapper } from "../utils";
 
 export const OnInitHook = createWrapper((hook: StandaloneOnInit) => {
@@ -9,19 +9,9 @@ export const OnInitHook = createWrapper((hook: StandaloneOnInit) => {
       return next(session);
     }
 
-    let onInit: FactoryDef;
-    let delegationKey: any;
-    if (typeof hook === 'function') {
-      onInit = InjectorResolver.createFunction(hook, undefined, true);
-    } else {
-      onInit = InjectorResolver.createFunction(hook.onInit, hook, true);
-      delegationKey = hook.delegationKey;
-    }
+    const onInit = InjectorResolver.createFunction(hook.onInit, hook);
     const hooks = (session.meta.initHooks || (session.meta.initHooks  = []));
-    hooks.push({
-      onInit,
-      delegationKey,
-    });
+    hooks.push(onInit);
 
     return next(session);
   }
