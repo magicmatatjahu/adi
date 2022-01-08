@@ -71,14 +71,17 @@ function handlePipeItem(
   injector: Injector,
   parentSession: Session,
 ) {
-  const cached = prepareExtensions(pipe.pipes, 'transform', injector, parentSession);
+  const optimized = prepareExtensions(pipe.pipes, 'transform', injector, parentSession);
   return (args: ExecutionContextArgs) => {
     return thenable(
       () => pipe.extractor(args.ctx),
-      value => thenable(
-        () => runPipes(cached, 0, value, pipe.metadata, args.ctx),
-        result => args.args[pipe.metadata.index] = result,
-      ),
+      value => {
+        if (optimized.length === 0) return args.args[pipe.metadata.index] = value;
+        return thenable(
+          () => runPipes(optimized, 0, value, pipe.metadata, args.ctx),
+          result => args.args[pipe.metadata.index] = result,
+        );
+      },
     );
   }
 }
@@ -103,9 +106,9 @@ function handleInterceptors(
   injector: Injector, 
   parentSession: Session, 
 ) {
-  const cached = prepareExtensions(interceptors, 'intercept', injector, parentSession);
+  const optimized = prepareExtensions(interceptors, 'intercept', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    return runInterceptors(cached, args.ctx, () => previousMethod(args));
+    return runInterceptors(optimized, args.ctx, () => previousMethod(args));
   }
 }
 
@@ -124,9 +127,9 @@ function handleGuards(
   injector: Injector, 
   parentSession: Session, 
 ) {
-  const cached = prepareExtensions(guards, 'canPerform', injector, parentSession);
+  const optimized = prepareExtensions(guards, 'canPerform', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    return runGuards(cached, 0, args.ctx, () => previousMethod(args));
+    return runGuards(optimized, 0, args.ctx, () => previousMethod(args));
   }
 }
 
@@ -147,10 +150,10 @@ function handleMiddlewares(
   injector: Injector, 
   parentSession: Session, 
 ) {
-  const cached = prepareExtensions(middlewares, 'use', injector, parentSession);
+  const optimized = prepareExtensions(middlewares, 'use', injector, parentSession);
   return (args: ExecutionContextArgs) => {
     return thenable(
-      () => runMiddlewares(cached, args.ctx),
+      () => runMiddlewares(optimized, args.ctx),
       () => previousMethod(args),
     );
   }
@@ -171,9 +174,9 @@ function handleErrorHandlers(
   injector: Injector, 
   parentSession: Session, 
 ) {
-  const cached = prepareExtensions(eHandlers, 'catch', injector, parentSession);
+  const optimized = prepareExtensions(eHandlers, 'catch', injector, parentSession);
   return (args: ExecutionContextArgs) => {
-    return runErrorHandlers([...cached], args.ctx, () => previousMethod(args));
+    return runErrorHandlers([...optimized], args.ctx, () => previousMethod(args));
   }
 }
 

@@ -1,5 +1,6 @@
 export * from './context';
 export * from './destroy-manager';
+export * from './execution-context';
 export * from './injection-token';
 export * from './injector';
 export * from "./metadata";

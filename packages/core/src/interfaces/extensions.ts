@@ -7,7 +7,7 @@ export interface Middleware {
 };
 
 export interface StandaloneMiddleware extends FunctionInjections {
-  use(context: ExecutionContext, next: () => void): void;
+  use(context: ExecutionContext, next: () => void,  ...injections: any[]): void;
 };
 
 export interface Interceptor<R = any> {
@@ -30,12 +30,12 @@ export interface StandaloneGuard extends FunctionInjections {
   canPerform(context: ExecutionContext, ...injections: any[]): boolean | Promise<boolean> | any;
 };
 
-export interface ErrorHandler<T = any> {
-  catch(error: T, context: ExecutionContext): any;
+export interface ErrorHandler<T = any, R = any> {
+  catch(error: T, context: ExecutionContext): R | Promise<R>;
 };
 
-export interface StandaloneErrorHandler<T = any> extends FunctionInjections {
-  catch(error: T, context: ExecutionContext, ...injections: any[]): any;
+export interface StandaloneErrorHandler<T = any, R = any> extends FunctionInjections {
+  catch(error: T, context: ExecutionContext, ...injections: any[]): R | Promise<R>;
 };
 
 export interface PipeTransform<T = any, R = any> {
@@ -46,8 +46,12 @@ export interface StandalonePipeTransform<T = any, R = any> extends FunctionInjec
   transform(value: T, argMetadata: ArgumentMetadata, context: ExecutionContext, ...injections: any[]): R | Promise<R>;
 };
 
+export interface ParamDecoratorOptions {
+  name: string;
+}
+
 export interface PipeDecorator<Data = unknown> {
-  (data: Data): ParameterDecorator;
+  (data?: Data): ParameterDecorator;
   decorators?: ParameterDecorator[];
 }
 export type PipeFactory<Data = unknown, Result = unknown> = (metadata: ArgumentMetadata<Data>, context: ExecutionContext) => Result;
