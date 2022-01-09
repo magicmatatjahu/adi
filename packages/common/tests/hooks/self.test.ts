@@ -1,4 +1,6 @@
-import { Injector, Injectable, Inject, Optional, Self } from "../../src";
+import { Injector, Inject, Injectable, Optional } from "@adi/core";
+
+import { Self } from "../../src/hooks";
 
 describe('Self wrapper', function () {
   test('should inject service from self injector', function () {

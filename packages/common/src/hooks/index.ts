@@ -9,7 +9,9 @@ export * from './memo';
 export * from './path';
 export * from './portal';
 export * from './scoped';
-export * from './side-effects'
+export * from './self';
+export * from './side-effects';
+export * from './skip-self';
 export * from './skip';
 export * from './transform';
 export * from './value';

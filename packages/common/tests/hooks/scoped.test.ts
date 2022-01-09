@@ -59,4 +59,32 @@ describe('Scoped wrapper', function () {
     expect(service.localService2 === service.newService).toEqual(false);
     expect(service.localService1 === service.localService2).toEqual(true);
   });
+
+  test('should not override another scope which cannot be', function () {
+    @Injectable({
+      scope: Scope.SINGLETON,
+    })
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly service: TestService,
+        @Inject(Scoped(Scope.SINGLETON)) readonly oldService: TestService,
+        @Inject(Scoped(Scope.TRANSIENT)) readonly probablyNewService: TestService,
+      ) {}
+    }
+
+    const injector = new Injector([
+      Service,
+      TestService,
+    ]);
+
+    const service = injector.get(Service);
+    expect(service.service).toBeInstanceOf(TestService);
+    expect(service.oldService).toBeInstanceOf(TestService);
+    expect(service.probablyNewService).toBeInstanceOf(TestService);
+    expect(service.service === service.oldService).toEqual(true);
+    expect(service.service === service.probablyNewService).toEqual(true);
+  });
 });

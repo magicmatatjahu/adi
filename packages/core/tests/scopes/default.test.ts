@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, OnDestroy, DestroyableType, Destroyable } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scope, OnDestroy, DestroyableType, Destroyable } from "../../src";
 
 describe('Default scope', function () {
   test('should behaves as Singleton by default', function () {
@@ -51,32 +51,6 @@ describe('Default scope', function () {
     expect(service.service === service.ctxService1).toEqual(false);
     expect(service.service === service.ctxService2).toEqual(false);
     expect(service.ctxService1 === service.ctxService2).toEqual(true);
-  }); 
-
-  test('should be able to be replaced by another scope', function () {
-    @Injectable()
-    class TestService {}
-
-    @Injectable()
-    class Service {
-      constructor(
-        readonly service: TestService,
-        @Inject(Scoped(Scope.SINGLETON)) readonly oldService: TestService,
-        @Inject(Scoped(Scope.TRANSIENT)) readonly newService: TestService,
-      ) {}
-    }
-
-    const injector = new Injector([
-      Service,
-      TestService,
-    ]);
-
-    const service = injector.get(Service);
-    expect(service.service).toBeInstanceOf(TestService);
-    expect(service.oldService).toBeInstanceOf(TestService);
-    expect(service.newService).toBeInstanceOf(TestService);
-    expect(service.service === service.oldService).toEqual(true);
-    expect(service.service === service.newService).toEqual(false);
   });
 
   describe('onDestroy hook', function () {

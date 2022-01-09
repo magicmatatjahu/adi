@@ -1,9 +1,11 @@
-import { SessionStatus } from "../enums";
-import { NilInjector, Session } from "../injector";
-import { NextWrapper } from "../interfaces";
-import { createWrapper } from "../utils";
+import { createWrapper, Session, NextWrapper, SessionStatus } from '@adi/core';
+import { NilInjector } from '@adi/core/lib/injector';
 
 function wrapper(session: Session, next: NextWrapper) {
+  if (session.status & SessionStatus.DRY_RUN) {
+    return next(session);
+  }
+
   const forkedSession = session.fork();
   // annotate forked session as dry run
   forkedSession.status |= SessionStatus.DRY_RUN;

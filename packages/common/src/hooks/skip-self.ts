@@ -1,8 +1,11 @@
-import { NilInjector, Session } from "../injector";
-import { ForwardRef, NextWrapper, Type, WrapperDef } from "../interfaces";
-import { createWrapper, resolveRef } from "../utils";
+import { createWrapper, Session, NextWrapper, SessionStatus, Type, ForwardRef, WrapperDef, resolveRef } from '@adi/core';
+import { NilInjector } from '@adi/core/lib/injector';
 
 function plainWrapper(session: Session, next: NextWrapper) {
+  if (session.status & SessionStatus.DRY_RUN) {
+    return next(session);
+  }
+
   const injector = session.injector;
   const token = session.getToken();
 
@@ -27,8 +30,13 @@ function plainWrapper(session: Session, next: NextWrapper) {
   return NilInjector.get(token);
 }
 
+// TODO: fix that
 function parentWrapper(injector?: Type | ForwardRef<Type>): WrapperDef {
   return (session, next) => {
+    if (session.status & SessionStatus.DRY_RUN) {
+      return next(session);
+    }
+
     const selfInjector = session.injector;
     injector = resolveRef(injector);
     const token = session.getToken();

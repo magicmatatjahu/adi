@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, All, Named, Path, when, ANNOTATIONS } from "../../src";
+import { Injector, Injectable, Inject, Module, All, Named, createWrapper, when, ANNOTATIONS } from "../../src";
 
 describe('All wrapper', function () {
   test('should inject multi providers - token based useWrapper', function () {
@@ -363,6 +363,35 @@ describe('All wrapper', function () {
   });
 
   test('should inject multi providers from given token - custom definiton based wrappers', function () {
+    const INFINITY = 1 / 0;
+    function toKey(value: any) {
+      const typeOf = typeof value;
+      if (typeOf === 'string' || typeOf === 'symbol') {
+        return value;
+      }
+      const result = `${value}`;
+      return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
+    }
+    
+    function getValue(value: object, path: string[]) {
+      let index = 0
+      const length = path.length
+    
+      while (value != null && index < length) {
+        value = value[toKey(path[index++])];
+      }
+      return (index && index == length) ? value : undefined;
+    }
+    
+    const Path = createWrapper((path: string) => {
+      const props = path.split('.').filter(Boolean);
+      
+      return (session, next) => {    
+        const value = next(session);
+        return getValue(value, props);
+      }
+    }, { name: 'Path' });
+
     @Injectable()
     class Service {
       constructor(

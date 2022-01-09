@@ -1,6 +1,38 @@
-import { Injector, Injectable, Inject, Scope, createWrapper, ANNOTATIONS, Token, Optional, Path, Memo, Module, Named, when, InjectionToken } from "../../src";
+import { Injector, Injectable, Inject, Scope, createWrapper, ANNOTATIONS, Token, Optional, Module, Named, when, InjectionToken } from "../../src";
+import { thenable } from '../../src/utils';
 
 describe('Wrappers', function() {
+  const INFINITY = 1 / 0;
+  function toKey(value: any) {
+    const typeOf = typeof value;
+    if (typeOf === 'string' || typeOf === 'symbol') {
+      return value;
+    }
+    const result = `${value}`;
+    return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
+  }
+  
+  function getValue(value: object, path: string[]) {
+    let index = 0
+    const length = path.length
+  
+    while (value != null && index < length) {
+      value = value[toKey(path[index++])];
+    }
+    return (index && index == length) ? value : undefined;
+  }
+  
+  const Path = createWrapper((path: string) => {
+    const props = path.split('.').filter(Boolean);
+    
+    return (session, next) => {
+      return thenable(
+        () => next(session),
+        value => getValue(value, props),
+      );
+    }
+  }, { name: 'Path' });
+
   describe('should can use useWrapper in injectable as option', function() {
     let called: boolean = false;
     const TestWrapper = createWrapper(() => {
@@ -178,14 +210,6 @@ describe('Wrappers', function() {
 
     const injector = new Injector([
       Service,
-      {
-        provide: "token",
-        useValue: {
-          foo: {
-            bar: 'foobar'
-          }
-        },
-      }
     ]);
 
     const service = injector.get(Service);
@@ -244,8 +268,8 @@ describe('Wrappers', function() {
     class Service {
       constructor(
         @Inject('token', [
-          Memo(),
-          Path('a.b')
+          Path('c'),
+          Path('a.b'),
         ])
         readonly value: object,  
       ) {}
@@ -269,8 +293,8 @@ describe('Wrappers', function() {
 
     const service1 = injector.get(Service);
     const service2 = injector.get(Service);
-    expect(service1.value).toEqual({ c: 'foobar' });
-    expect(service2.value).toEqual({ c: 'foobar' });
+    expect(service1.value).toEqual('foobar');
+    expect(service2.value).toEqual('foobar');
     expect(service1.value === service2.value).toEqual(true);
   });
 
@@ -281,7 +305,7 @@ describe('Wrappers', function() {
     class Service {
       constructor(
         @Inject('token', [
-          Memo(),
+          Path('c'),
           Path('a.b'),
         ])
         readonly value: object,  
@@ -313,8 +337,8 @@ describe('Wrappers', function() {
 
     const service1 = await injector.getAsync(Service);
     const service2 = await injector.getAsync(Service);
-    expect(service1.value).toEqual({ c: 'foobar' });
-    expect(service2.value).toEqual({ c: 'foobar' });
+    expect(service1.value).toEqual('foobar');
+    expect(service2.value).toEqual('foobar');
     expect(service1.value === service2.value).toEqual(true);
   });
 

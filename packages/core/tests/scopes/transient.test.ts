@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, DestroyableType, Destroyable, Ref } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scope, STATIC_CONTEXT, OnDestroy, DestroyableType, Destroyable, Ref } from "../../src";
 
 describe('Transient scope', function () {
   test('should inject new instance per single injection', function () {
@@ -127,37 +127,6 @@ describe('Transient scope', function () {
     expect(service.newService === service.ctxService).toEqual(false);
     expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
     expect(service.ctxService.context === ctx).toEqual(false);
-  });
-
-  test('should be able to be replaced by another scope', function () {
-    @Injectable({
-      scope: Scope.TRANSIENT,
-    })
-    class TestService {
-      constructor(
-        public readonly context: Context,
-      ) {}
-    }
-
-    @Injectable()
-    class Service {
-      constructor(
-        readonly service: TestService,
-        @Inject(Scoped(Scope.SINGLETON)) readonly singletonService: TestService,
-      ) {}
-    }
-
-    const injector = new Injector([
-      Service,
-      TestService,
-    ]);
-
-    const service = injector.get(Service);
-    expect(service.service).toBeInstanceOf(TestService);
-    expect(service.singletonService).toBeInstanceOf(TestService);
-    expect(service.service === service.singletonService).toEqual(false);
-    expect(service.service.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.singletonService.context === STATIC_CONTEXT).toEqual(true);
   });
 
   test('should works with circular references', function () {

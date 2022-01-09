@@ -1,4 +1,4 @@
-import { Injector, Injectable, Scope, Decorate, Delegate } from "../../src";
+import { Injector, Injectable, Scope, createWrapper } from "../../src";
 
 describe('useExisting', function() {
   test('should return value from alias', function() {
@@ -41,6 +41,14 @@ describe('useExisting', function() {
   });
 
   test('should works with wrappers', function() {
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
+        value.prop = {};
+        return value;
+      }
+    });
+
     @Injectable({
       scope: Scope.TRANSIENT,
     })
@@ -53,12 +61,7 @@ describe('useExisting', function() {
       {
         provide: 'useExisting',
         useExisting: Service,
-        useWrapper: Decorate({
-          decorate(value: Service) {
-            value.prop = {};
-            return value;
-          },
-        })
+        useWrapper: TestWrapper(),
       },
     ]);
 
@@ -75,6 +78,14 @@ describe('useExisting', function() {
   });
 
   test('should persist session', function() {
+    const TestWrapper = createWrapper(() => {
+      return (session, next) => {
+        const value = next(session);
+        value.prop++;
+        return value;
+      }
+    });
+
     @Injectable()
     class Service {
       prop: number = 0;
@@ -84,22 +95,12 @@ describe('useExisting', function() {
       Service,
       {
         provide: Service,
-        useWrapper: Decorate({
-          decorate(value: Service) {
-            value.prop++;
-            return value;
-          },
-        })
+        useWrapper: TestWrapper(),
       },
       {
         provide: 'useExisting',
         useExisting: Service,
-        useWrapper: Decorate({
-          decorate(value: Service) {
-            value.prop++;
-            return value;
-          },
-        })
+        useWrapper: TestWrapper(),
       },
     ]);
 

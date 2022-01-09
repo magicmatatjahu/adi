@@ -1,4 +1,6 @@
-import { Injector, Injectable, Inject, Optional, SkipSelf, Module, Token, ref } from "../../src";
+import { Injector, Injectable, Inject, Optional, Module, Token, ref } from "@adi/core"
+
+import { SkipSelf } from "../../src/hooks";
 
 // TODO: Fix
 describe('SkipSelf wrapper', function () {

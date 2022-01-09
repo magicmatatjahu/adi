@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, OnDestroy, DestroyableType, Destroyable, Module } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scope, OnDestroy, DestroyableType, Destroyable, Module } from "../../src";
 
 describe('Singleton scope', function () {
   test('should always inject this same value', function () {
@@ -56,34 +56,6 @@ describe('Singleton scope', function () {
     }
     expect(error === undefined).toEqual(false);
     expect(instance === undefined).toEqual(true);
-  }); 
-
-  test('should not be able to be replaced by another scope', function () {
-    @Injectable({
-      scope: Scope.SINGLETON,
-    })
-    class TestService {}
-
-    @Injectable()
-    class Service {
-      constructor(
-        readonly service: TestService,
-        @Inject(Scoped(Scope.SINGLETON)) readonly oldService: TestService,
-        @Inject(Scoped(Scope.TRANSIENT)) readonly probablyNewService: TestService,
-      ) {}
-    }
-
-    const injector = new Injector([
-      Service,
-      TestService,
-    ]);
-
-    const service = injector.get(Service);
-    expect(service.service).toBeInstanceOf(TestService);
-    expect(service.oldService).toBeInstanceOf(TestService);
-    expect(service.probablyNewService).toBeInstanceOf(TestService);
-    expect(service.service === service.oldService).toEqual(true);
-    expect(service.service === service.probablyNewService).toEqual(true);
   });
 
   test('should create another instance per injector', function () {
