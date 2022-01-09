@@ -1,8 +1,4 @@
-import { Context, Session } from "../injector";
-import { DestroyEvent, InjectionMetadata, InstanceRecord } from "../interfaces";
-import { InjectionKind } from "../enums";
-
-import { Scope } from "./index";
+import { Context, Session, Scope, InjectionKind, DestroyEvent, InjectionMetadata, InstanceRecord } from "@adi/core";
 
 export interface InstanceScopeOptions {
   reuseContext?: boolean;
@@ -60,12 +56,16 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
       const parentInstance = this.instances.get(ctx);
       this.contexts.delete(parentInstance);
       this.instances.delete(ctx);
+      this.instancesMetadata.delete(ctx);
       return true;
     }
 
     // on function injection
     const metadata = this.instancesMetadata.get(ctx);
     if (metadata && metadata.kind & InjectionKind.FUNCTION && options.destroy) {
+      const parentInstance = this.instances.get(ctx);
+      this.contexts.delete(parentInstance);
+      this.instances.delete(ctx);
       this.instancesMetadata.delete(ctx);
       return true;
     }

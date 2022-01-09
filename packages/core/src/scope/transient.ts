@@ -60,7 +60,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
       return false;
     }
 
-    // with no parents - mainly `manually` event
+    // with no parents
     if (instance.parents === undefined || instance.parents.size === 0) {
       this.instancesMetadata.delete(ctx);
       return true;

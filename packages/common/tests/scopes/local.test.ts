@@ -1,11 +1,13 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ANNOTATIONS, ref, OnDestroy, DestroyableType, Destroyable } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ANNOTATIONS, ref, OnDestroy, DestroyableType, Destroyable } from "@adi/core";
+
+import { CommonScopes } from '../../src/scopes';
 
 // TODO: Fix tests if scope has ability to pass custom options
 describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope option) - nearest case', function () {
     @Injectable({
       scope: {
-        kind: Scope.LOCAL,
+        kind: CommonScopes.LOCAL,
         options: {
           toScope: 'test',
         }
@@ -111,7 +113,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope option) - farthest case', function () {
     @Injectable({
       scope: {
-        kind: Scope.LOCAL,
+        kind: CommonScopes.LOCAL,
         options: {
           toScope: 'test',
           depth: 'farthest',
@@ -218,7 +220,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope option) - custom depth case', function () {
     @Injectable({
       scope: {
-        kind: Scope.LOCAL,
+        kind: CommonScopes.LOCAL,
         options: {
           toScope: 'test',
           depth: 2,
@@ -326,7 +328,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toToken option)', function () {
     @Injectable({
       scope: {
-        kind: Scope.LOCAL,
+        kind: CommonScopes.LOCAL,
         options: {
           toToken: ref(() => ServiceBetween),
         }
@@ -379,7 +381,7 @@ describe('Instance scope', function () {
   test('should inject shared service in the given scope (using toScope and toAnnotation options)', function () {
     @Injectable({
       scope: {
-        kind: Scope.LOCAL,
+        kind: CommonScopes.LOCAL,
         options: {
           toScope: 'test',
           customAnnotation: '@test/annotation'
@@ -435,7 +437,7 @@ describe('Instance scope', function () {
 
   test('should inject shared service in the given scope when LOCAL scope has not passed any options but scope token exists in subgraph', function () {
     @Injectable({
-      scope: Scope.LOCAL,
+      scope: CommonScopes.LOCAL,
     })
     class SharedService {}
 
@@ -486,7 +488,7 @@ describe('Instance scope', function () {
 
   test('should behaves as Singleton scope if any ancestor has not defined the toScope and toToken options', function () {
     @Injectable({
-      scope: Scope.LOCAL,
+      scope: CommonScopes.LOCAL,
     })
     class TestService {
       constructor(
@@ -526,7 +528,7 @@ describe('Instance scope', function () {
     const ctx = new Context();
 
     @Injectable({
-      scope: Scope.LOCAL,
+      scope: CommonScopes.LOCAL,
     })
     class TestService {
       constructor(
@@ -560,7 +562,7 @@ describe('Instance scope', function () {
 
     @Injectable({
       scope: {
-        kind: Scope.LOCAL,
+        kind: CommonScopes.LOCAL,
         options: {
           reuseContext: false,
         }
@@ -595,7 +597,7 @@ describe('Instance scope', function () {
 
   test('should be able to be replaced by another scope', function () {
     @Injectable({
-      scope: Scope.LOCAL,
+      scope: CommonScopes.LOCAL,
     })
     class TestService {
       constructor(
@@ -630,7 +632,7 @@ describe('Instance scope', function () {
   
       @Injectable({
         scope: {
-          kind: Scope.LOCAL,
+          kind: CommonScopes.LOCAL,
           options: {
             toScope: 'test',
           }
@@ -688,7 +690,7 @@ describe('Instance scope', function () {
   
       @Injectable({
         scope: {
-          kind: Scope.LOCAL,
+          kind: CommonScopes.LOCAL,
           options: {
             toScope: 'test',
           }
@@ -738,7 +740,7 @@ describe('Instance scope', function () {
       let destroyTimes: number = 0;
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class Service {
         onDestroy() {
@@ -772,7 +774,7 @@ describe('Instance scope', function () {
   
       @Injectable({
         scope: {
-          kind: Scope.LOCAL,
+          kind: CommonScopes.LOCAL,
           options: {
             toScope: 'test',
           }
@@ -828,7 +830,7 @@ describe('Instance scope', function () {
   
       @Injectable({
         scope: {
-          kind: Scope.LOCAL,
+          kind: CommonScopes.LOCAL,
           options: {
             toScope: 'test',
           }
@@ -878,7 +880,7 @@ describe('Instance scope', function () {
   
       @Injectable({
         scope: {
-          kind: Scope.LOCAL,
+          kind: CommonScopes.LOCAL,
           options: {
             toScope: 'test',
           }
@@ -949,7 +951,7 @@ describe('Instance scope', function () {
   
       @Injectable({
         scope: {
-          kind: Scope.LOCAL,
+          kind: CommonScopes.LOCAL,
           options: {
             toScope: 'test',
           }

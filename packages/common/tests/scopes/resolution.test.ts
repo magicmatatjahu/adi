@@ -1,10 +1,12 @@
-import { Injector, Injectable, Scope, Inject, Context, Session } from "../../src";
-import { destroyAll } from "../../src/injector/destroy-manager";
+import { Injector, Injectable, Scope, Inject, Context, Session } from "@adi/core";
+import { destroyAll } from "@adi/core/lib/injector/destroy-manager";
+
+import { CommonScopes } from '../../src/scopes';
 
 describe('Request scope', function () {
   test('should create new instance by each resolution', function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -51,7 +53,7 @@ describe('Request scope', function () {
 
   test('should create new instance by each resolution - deep case', function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -117,7 +119,7 @@ describe('Request scope', function () {
 
   test('should share this same instance', function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -189,7 +191,7 @@ describe('Request scope', function () {
     }
 
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {
       constructor(
@@ -238,7 +240,7 @@ describe('Request scope', function () {
 
   test('should handle this argument', function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -268,7 +270,7 @@ describe('Request scope', function () {
 
   test('should handle this argument in closures', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -308,7 +310,7 @@ describe('Request scope', function () {
 
   test('should handle this argument in deep closures', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -345,7 +347,7 @@ describe('Request scope', function () {
 
   test('should work with every provider which has in deps tree request scope', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -384,12 +386,12 @@ describe('Request scope', function () {
 
   test('should work with multiple requested providers', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class RequestService1 {}
 
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class RequestService2 {}
 
@@ -452,12 +454,12 @@ describe('Request scope', function () {
 
   test('should work with nested requested providers', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class DeepRequestService {}
 
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {
       constructor(
@@ -491,7 +493,7 @@ describe('Request scope', function () {
 
   test('should pass requestData from session to the created context', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {
       constructor(
@@ -538,7 +540,7 @@ describe('Request scope', function () {
   // TODO: Support method injection
   test.skip('should work with method injection', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {
       public prop = {};
@@ -578,7 +580,7 @@ describe('Request scope', function () {
   // TODO: Support method injection
   test.skip('should work with method injection', async function () {
     @Injectable({
-      scope: Scope.RESOLUTION,
+      scope: CommonScopes.RESOLUTION,
     })
     class ResolutionService {}
 
@@ -604,7 +606,7 @@ describe('Request scope', function () {
       let destroyOrder: string[] = [];
 
       @Injectable({
-        scope: Scope.RESOLUTION,
+        scope: CommonScopes.RESOLUTION,
       })
       class ResolutionService {
         onDestroy() {

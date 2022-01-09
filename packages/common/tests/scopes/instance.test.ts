@@ -1,9 +1,11 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, Destroyable, DestroyableType } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, Destroyable, DestroyableType } from "@adi/core";
+
+import { CommonScopes } from "../../src/scopes"
 
 describe('Instance scope', function () {
   test('should inject new instance per instance', function () {
     @Injectable({
-      scope: Scope.INSTANCE,
+      scope: CommonScopes.INSTANCE,
     })
     class TestService {}
 
@@ -28,7 +30,7 @@ describe('Instance scope', function () {
 
   test('should have another Context than STATIC_CONTEXT', function () {
     @Injectable({
-      scope: Scope.INSTANCE,
+      scope: CommonScopes.INSTANCE,
     })
     class TestService {
       constructor(
@@ -62,7 +64,7 @@ describe('Instance scope', function () {
     const ctx = new Context();
 
     @Injectable({
-      scope: Scope.INSTANCE,
+      scope: CommonScopes.INSTANCE,
     })
     class TestService {
       constructor(
@@ -100,7 +102,7 @@ describe('Instance scope', function () {
 
     @Injectable({
       scope: {
-        kind: Scope.INSTANCE,
+        kind: CommonScopes.INSTANCE,
         options: {
           reuseContext: false,
         }
@@ -141,7 +143,7 @@ describe('Instance scope', function () {
 
   test('should inject this same instance in method injection', function () {
     @Injectable({
-      scope: Scope.INSTANCE,
+      scope: CommonScopes.INSTANCE,
     })
     class TestService {}
 
@@ -170,7 +172,7 @@ describe('Instance scope', function () {
 
   test('should be able to be replaced by another scope', function () {
     @Injectable({
-      scope: Scope.INSTANCE,
+      scope: CommonScopes.INSTANCE,
     })
     class TestService {
       constructor(
@@ -204,7 +206,7 @@ describe('Instance scope', function () {
       let destroyOrder: string[] = [];
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class InstanceService implements OnDestroy {
         onDestroy() {
@@ -252,7 +254,7 @@ describe('Instance scope', function () {
       let destroyOrder: string[] = [];
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class InstanceService implements OnDestroy {
         onDestroy() {
@@ -302,7 +304,7 @@ describe('Instance scope', function () {
       let destroyTimes: number = 0;
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class InstanceService implements OnDestroy {
         onDestroy() {
@@ -344,7 +346,7 @@ describe('Instance scope', function () {
       let destroyTimes: number = 0;
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class Service {
         onDestroy() {
@@ -377,7 +379,7 @@ describe('Instance scope', function () {
       let destroyOrder: string[] = [];
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class InstanceService implements OnDestroy {
         onDestroy() {
@@ -425,7 +427,7 @@ describe('Instance scope', function () {
       let destroyTimes: number = 0;
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class InstanceService implements OnDestroy {
         onDestroy() {
@@ -466,7 +468,7 @@ describe('Instance scope', function () {
       const instanceCtx = new Context(undefined, 'Instance ctx');
   
       @Injectable({
-        scope: Scope.INSTANCE,
+        scope: CommonScopes.INSTANCE,
       })
       class InstanceService implements OnDestroy {
         onDestroy() {

@@ -1,15 +1,13 @@
-import { EMPTY_ARRAY, STATIC_CONTEXT } from "../constants";
-import { Context, Injector, Session } from "../injector";
-import { DestroyEvent, ForwardRef, InstanceRecord } from "../interfaces";
-import { Token } from "../types";
-import { resolveRef } from "../utils";
-import { ANNOTATIONS } from "../constants"
-
-import { Scope } from "./index";
-import { InstanceStatus } from "../enums";
+import {
+  Scope,
+  Context, Session, STATIC_CONTEXT,
+  ProviderToken, DestroyEvent, ForwardRef, InstanceRecord,
+  InstanceStatus,
+  resolveRef,
+} from '@adi/core';
 
 export interface LocalScopeOptions {
-  toToken?: Token | ForwardRef;
+  toToken?: ProviderToken | ForwardRef;
   toScope?: string | symbol;
   customAnnotation?: string | symbol;
   /**
@@ -19,6 +17,8 @@ export interface LocalScopeOptions {
   depth?: 'nearest' | 'farthest' | number;
   reuseContext?: boolean;
 }
+
+export const LocalAnnotation = '@adi/local-scope';
 
 const defaultOptions: LocalScopeOptions = {
   toToken: undefined,
@@ -52,9 +52,9 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     let instance: InstanceRecord;
     const depth = options.depth || 'nearest';
-    const toToken = resolveRef(options.toToken) as Token;
+    const toToken = resolveRef(options.toToken) as ProviderToken;
     const toScope = options.toScope;
-    const toAnnotation = options.customAnnotation || ANNOTATIONS.LOCAL_SCOPE;
+    const toAnnotation = options.customAnnotation || LocalAnnotation;
     if (depth === 'nearest') {
       instance = this.retrieveInstanceByDepth(parent, 1, toToken, toScope, toAnnotation);
     } else if (depth === 'farthest') {
@@ -107,7 +107,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return false;
   };
 
-  private retrieveInstanceByDepth(session: Session, goal: number, toToken: Token, toScope: string | symbol, toAnnotation: string | symbol, depth: number = 0, instance?: InstanceRecord | undefined): InstanceRecord | undefined {
+  private retrieveInstanceByDepth(session: Session, goal: number, toToken: ProviderToken, toScope: string | symbol, toAnnotation: string | symbol, depth: number = 0, instance?: InstanceRecord | undefined): InstanceRecord | undefined {
     // if depth goal is achieved or parent session doesn't exist
     if (depth === goal || session === undefined) {
       return instance;
@@ -121,10 +121,10 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return this.retrieveInstanceByDepth(session.parent, goal, toToken, toScope, toAnnotation, depth, instance);
   }
 
-  private retrieveInstance(session: Session, toAnnotation: string | symbol, toToken?: Token, toScope?: string | symbol): InstanceRecord | undefined {
+  private retrieveInstance(session: Session, toAnnotation: string | symbol, toToken?: ProviderToken, toScope?: string | symbol): InstanceRecord | undefined {
     const isRecordToken = session.record.token === toToken;
     const annotation = session.definition.annotations[toAnnotation as any];
-    const isAnnotation = (annotation || EMPTY_ARRAY).includes(toScope);
+    const isAnnotation = (annotation || []).includes(toScope);
 
     // if annotations exists but scope hasn't any options
     if (toScope === undefined && toToken === undefined && annotation !== undefined) {

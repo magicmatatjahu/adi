@@ -1,9 +1,13 @@
 # ADIJS
 
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
-- Create `Request` scope - partially done, left to support: method injection, also check how it works with nested wrappers like Factory
+- Create `Resolution` scope - partially done, left to support: method injection, also check how it works with nested wrappers like Factory
 - Rename `wrappers` to `hooks` and provider `useWrapper` to `useHook`
-- Add Pipe, Interceptor and ErrorHandler functionality/decorators
+- Add Pipe, Interceptor, Guard, Middleware and ErrorHandler functionality/decorators - partially implemented (without checking proxies and destruction) but it should be tested and optimized in the future
+- Change fn place from `target` to `handler` in the standalone injections
+- Destroy injector in standalone function injections - at the moment new injector is created each time, but not destroyed - memory leak 
+- perform scope shape only for factory and class provider in `injector/metadata.ts`
+- treeskahable providers should take propriority over imported one
 
 ## IMPLEMENTED
 
