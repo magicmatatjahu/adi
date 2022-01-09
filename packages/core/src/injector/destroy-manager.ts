@@ -18,6 +18,7 @@ export async function destroy(instance: InstanceRecord, event: DestroyEvent = 'd
   instance.status |= InstanceStatus.DESTROYED;
   removeInstanceRefs(instance);
   
+  instance.value = await instance.value;
   await handleOnDestroy(instance);
   instance.children && await destroyAll(Array.from(instance.children), event);
   instance.meta.hostInjector && await instance.meta.hostInjector.destroy();

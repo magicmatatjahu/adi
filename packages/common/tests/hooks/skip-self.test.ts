@@ -96,7 +96,7 @@ describe('SkipSelf wrapper', function () {
     class ParentModule {}
 
     const injector = Injector.create(ParentModule).build();
-    const grandChildInjector = injector.selectChild(ChildModule).selectChild(GrantChildModule)
+    const grandChildInjector = injector.getChild(ChildModule).getChild(GrantChildModule)
     const value = grandChildInjector.get<string>("useFactory");
     expect(value).toEqual('parent');
   });

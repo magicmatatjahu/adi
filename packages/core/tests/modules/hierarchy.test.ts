@@ -975,7 +975,7 @@ describe('Module hierarchy', function() {
     await Injector.create(ModuleA).buildAsync();
   });
 
-  test('should work with .selectChild()', function() {
+  test('should work with .getChild()', function() {
     @Injectable()
     class ServiceB {}
 
@@ -990,12 +990,12 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const moduleB = injector.selectChild(ModuleB);
+    const moduleB = injector.getChild(ModuleB);
     const service = moduleB.get(ServiceB);
     expect(service).toBeInstanceOf(ServiceB);
   });
 
-  test('should work with .selectChild() - with custom id', function() {
+  test('should work with .getChild() - with custom id', function() {
     @Injectable()
     class ServiceB {}
 
@@ -1016,16 +1016,16 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const moduleB = injector.selectChild(ModuleB);
+    const moduleB = injector.getChild(ModuleB);
     const serviceB = moduleB.get(ServiceB);
-    const moduleBWithId = injector.selectChild(ModuleB, 'module B');
+    const moduleBWithId = injector.getChild(ModuleB, 'module B');
     const serviceBWithId = moduleBWithId.get(ServiceB);
     expect(serviceB).toBeInstanceOf(ServiceB);
     expect(serviceBWithId).toBeInstanceOf(ServiceB);
     expect(serviceB === serviceBWithId).toEqual(false);
   });
 
-  test('should work with .selectChild() - deep imports', function() {
+  test('should work with .getChild() - deep imports', function() {
     /*
      *  D
      *  |
@@ -1054,7 +1054,7 @@ describe('Module hierarchy', function() {
     class ModuleA {}
 
     const injector = Injector.create(ModuleA).build();
-    const moduleD = injector.selectChild(ModuleB).selectChild(ModuleC).selectChild(ModuleD);
+    const moduleD = injector.getChild(ModuleB).getChild(ModuleC).getChild(ModuleD);
     const service = moduleD.get(Service);
     expect(service).toBeInstanceOf(Service);
   });

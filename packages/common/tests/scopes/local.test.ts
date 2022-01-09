@@ -1,5 +1,6 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, ANNOTATIONS, ref, OnDestroy, DestroyableType, Destroyable } from "@adi/core";
+import { Injector, Injectable, Inject, Ctx, Context, Scope, STATIC_CONTEXT, ANNOTATIONS, ref, OnDestroy, DestroyableType, Destroyable } from "@adi/core";
 
+import { Scoped } from "../../src/hooks"
 import { CommonScopes } from '../../src/scopes';
 
 // TODO: Fix tests if scope has ability to pass custom options

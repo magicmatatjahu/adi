@@ -81,7 +81,7 @@ export async function handleOnDestroy(instance: InstanceRecord) {
   // run first last to last - in the order of when they were added
   for (let i = 0, l = hooks.length; i < l; i++) {
     const hook = hooks[i];
-    const session = new Session(record, def, instance, { token: record.token }, { target: hook.onDestroy, kind: InjectionKind.STANDALONE }, undefined);
+    const session = new Session(record, def, instance, { token: record.token }, { target: undefined, handler: hook.onDestroy, kind: InjectionKind.STANDALONE }, undefined);
     await hook(injector, session, value);
   }
   delete instance.meta.destroyHooks;

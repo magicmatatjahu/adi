@@ -203,7 +203,7 @@ describe('Constraint', function() {
       const foobar = injector.get<string>('foobar');
       expect(foobar).toEqual('protected foobar');
 
-      const childInjector = injector.selectChild(ChildModule2);
+      const childInjector = injector.getChild(ChildModule2);
       let value, err;
       try {
         value = childInjector.get<string>('foobar');
@@ -284,7 +284,7 @@ describe('Constraint', function() {
       class ParenModule {}
 
       const injector = Injector.create(ParenModule).build();
-      const childInjector = injector.selectChild(ChildModule);
+      const childInjector = injector.getChild(ChildModule);
       let value, err;
       try {
         value = childInjector.get<string>('foobar');

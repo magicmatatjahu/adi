@@ -1,4 +1,5 @@
 import { ProviderToken, createWrapper, Wrapper } from '@adi/core';
+import { NilInjectorError } from '@adi/core/lib/errors';
 import { thenable } from '@adi/core/lib/utils';
 
 interface FallbackProvider {
@@ -20,7 +21,7 @@ export const Fallback = createWrapper((options: ProviderToken | FallbackProvider
       () => next(session),
       val => val,
       err => {
-        if ((err as any).isNilInjectorError) {
+        if (err instanceof NilInjectorError) {
           const newSession = forkedSession.fork();
           newSession.setToken(token);
           newSession.record = undefined;

@@ -92,7 +92,7 @@ export class Injector {
     return Injector.create(injector, this, options);
   }
 
-  selectChild(mod: Type, id: ModuleID = 'static'): Injector | undefined {
+  getChild(mod: Type, id: ModuleID = 'static'): Injector | undefined {
     let founded = this.imports.get(mod);
     if (founded === undefined) {
       return;
@@ -274,8 +274,9 @@ export class Injector {
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
     let scope = def.scope;
-    if (scope.kind.canBeOverrided()) {
-      scope = session.getScope() || scope;
+    const sessionScope = session.getScope();
+    if (sessionScope && scope.kind.canBeOverrided()) {
+      scope = sessionScope;
     }
 
     session.instance = def.record.getInstance(def, scope, session);

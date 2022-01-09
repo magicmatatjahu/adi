@@ -18,7 +18,6 @@ function override(injector: Injector, deep: boolean) {
   }
 }
 
-// let ProtoInjector: any;
 export const Portal = createWrapper((providersOrOptions: Provider[] | PortalOptions) => {
   let providers: Provider[], deep: boolean = false, deepInjector: Injector = undefined;
   if (Array.isArray(providersOrOptions)) {

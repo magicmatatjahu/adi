@@ -1,5 +1,6 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scoped, Scope, STATIC_CONTEXT, OnDestroy, Destroyable, DestroyableType } from "@adi/core";
+import { Injector, Injectable, Inject, Ctx, Context, Scope, STATIC_CONTEXT, OnDestroy, Destroyable, DestroyableType } from "@adi/core";
 
+import { Scoped } from "../../src/hooks"
 import { CommonScopes } from "../../src/scopes"
 
 describe('Instance scope', function () {

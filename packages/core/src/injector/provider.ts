@@ -1,9 +1,8 @@
-import { Injector, Context, Session } from ".";
+import { Injector, Context, Session, getDefaultScopeShape } from ".";
 import { STATIC_CONTEXT, ALWAYS_CONSTRAINT, ANNOTATIONS, MODULE_INITIALIZERS, EMPTY_ARRAY } from "../constants";
 import { InjectorStatus, InstanceStatus } from "../enums";
 import { Type, DefinitionRecord, InstanceRecord, WrapperRecord, FactoryDef, ConstraintDef, ScopeShape, Annotations } from "../interfaces";
 import { Token } from "../types";
-import { Scope } from "../scope";
 import { Wrapper, compareOrder } from "../utils";
 
 export class ProviderRecord<T = any> {
@@ -46,9 +45,8 @@ export class ProviderRecord<T = any> {
     }
 
     // add links
-    const parent = session.parent;
-    if (parent !== undefined) {
-      const parentInstance = parent.instance;
+    if (session.parent) {
+      const parentInstance = session.parent.instance;
       // TODO: retrieve first instance
       if (parentInstance !== undefined) {
         (parentInstance.children || (parentInstance.children = new Set())).add(instance);
@@ -72,10 +70,7 @@ export class ProviderRecord<T = any> {
       values: new Map<Context, InstanceRecord<T>>(),
       record: this as any,
       factory,
-      scope: scope || {
-        kind: Scope.DEFAULT,
-        options: undefined,
-      },
+      scope: scope || getDefaultScopeShape(),
       constraint,
       wrapper,
       annotations,
@@ -94,10 +89,10 @@ export class ProviderRecord<T = any> {
     }
 
     // add definition to the defs/constraintDefs array
-    if (constraint === undefined) {
-      this.defs.push(def);
-    } else {
+    if (constraint) {
       this.constraintDefs.push(def);  
+    } else {
+      this.defs.push(def);
     }
 
     // check if definition must be resolved with MODULE_INITIALIZERS

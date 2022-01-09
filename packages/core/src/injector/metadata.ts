@@ -71,7 +71,7 @@ export function customProviderToRecord<T>(
   const constraint = provider.when;
   let factory: FactoryDef = undefined,
     wrapper: Wrapper | Array<Wrapper> = undefined,
-    scope: ScopeShape = getScopeShape((provider as any).scope),
+    scope: ScopeShape,
     annotations: Annotations = provider.annotations || EMPTY_OBJECT,
     proto = undefined;
 
@@ -81,16 +81,20 @@ export function customProviderToRecord<T>(
 
   if (isFactoryProvider(provider)) {
     factory = createFactory(provider.useFactory, provider.inject || EMPTY_ARRAY, provider.imports, provider.providers);
+    scope = getScopeShape(provider.scope);
   } else if (isValueProvider(provider)) {
     factory = () => provider.useValue;
+    scope = getDefaultScopeShape();
   } else if (isExistingProvider(provider)) {
     wrapper = pushWrapper(wrapper, UseExisting(provider.useExisting))
     factory = () => {};
+    scope = getDefaultScopeShape();
   } else if (isClassProvider(provider)) {
     const { useClass, inject, imports, providers } = provider;
 
     const providerDef = getProviderDef(useClass, true);
     proto = useClass;
+    scope = getScopeShape(provider.scope);
 
     const injections = combineDependencies(inject, providerDef.injections, useClass);
     factory = createProviderFactory(useClass, injections, imports, providers);
@@ -167,7 +171,15 @@ function getScopeShape(scope: ScopeType): ScopeShape {
       options: undefined,
     }
   }
-  return scope as ScopeShape;
+  return scope as ScopeShape || getDefaultScopeShape();
+}
+
+let defaultScopeShape: ScopeShape;
+export function getDefaultScopeShape(): ScopeShape {
+  return defaultScopeShape || (defaultScopeShape = {
+    kind: Scope.DEFAULT,
+    options: undefined,
+  });
 }
 
 export function convertDependencies(deps: Array<InjectionItem>, kind: InjectionKind, target: Object, methodName?: string | symbol): InjectionArgument[] {

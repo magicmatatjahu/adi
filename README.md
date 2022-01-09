@@ -1,13 +1,9 @@
 # ADIJS
 
 - Add initialization of all injectors (even new Injector([])) to the `.build` method.
-- Create `Resolution` scope - partially done, left to support: method injection, also check how it works with nested wrappers like Factory
 - Rename `wrappers` to `hooks` and provider `useWrapper` to `useHook`
-- Add Pipe, Interceptor, Guard, Middleware and ErrorHandler functionality/decorators - partially implemented (without checking proxies and destruction) but it should be tested and optimized in the future
-- Change fn place from `target` to `handler` in the standalone injections
 - Destroy injector in standalone function injections - at the moment new injector is created each time, but not destroyed - memory leak 
-- perform scope shape only for factory and class provider in `injector/metadata.ts`
-- treeskahable providers should take propriority over imported one
+- think on passing pipes to the `paramDecorator` as second, third... arguments
 
 ## IMPLEMENTED
 
@@ -29,6 +25,8 @@
 - Handle wrappers on circular injections - especially `Decorate` and `OnInitHook` - it can be handled by Lazy wrapper - check the test for Lazy wrapper
 - Check how to call onDestroy on circular injections (in which order)
 - Create placeholder parent session in `injector.get` function
+- Change fn place from `target` to `handler` in the standalone injections
+- perform scope shape only for factory and class provider in `injector/metadata.ts`
 
 ## IMPLEMENTED PARTIALLY BUT IT WORKS
 
@@ -38,6 +36,11 @@
 - Reuse wrappers in the wrappers chain in the Fallback, All and Decorate wrappers - it can be also useful in the other custom wrappers - done by `DRY_RUN` session's status
 - Implement Portals injectors as custom Wrapper like in DryIOC - https://github.com/dadhi/DryIoc/blob/master/docs/DryIoc.Docs/KindsOfChildContainer.md#facade
 - Maybe annotations like Named, Labelled etc should be treated as hardcoded annotation in the injection argument? Next to type, parameterKey and index in the meta ADI should store also the static annotations? // in decorator user have possibility to pass object with annotations
+
+- Create `Resolution` scope - partially done, left to support: method injection, also check how it works with nested wrappers like Factory
+- treeskahable providers should take propriority over imported one // implemented in the core but not in `Self` and `SkipSelf` wrapper 
+- Add Pipe, Interceptor, Guard, Middleware and ErrorHandler functionality/decorators - partially implemented (without checking proxies and destruction) - it should be optimized in the future
+- Add rebind/remove/clear functionality - partially done - rethink if it should be async or sync
 
 ## RETHING - WORKS BUT IT SHOULD BE BETTER
 
@@ -59,7 +62,6 @@
 - Maybe passing factory to scope and create instance in scope (like in Java) is better option than context? - rething if Context is needed. // Context is needed to share data
 - Handle onInit in async mode - maybe not wait for every hook but make Promise.all?
 - Rethink destruction - maybe don't wait for destruction
-- Add rebind/remove/clear functionality - partially done - rethink if it should be async or sync
 
 ## NICE TO HAVE BUT NOT NEEDED
 

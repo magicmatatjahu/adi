@@ -72,6 +72,7 @@ export const UseExisting = createWrapper((token: Token) => {
   return (session) => {
     session.record = undefined;
     session.definition = undefined;
+    session.instance = undefined;
     session.setToken(token);
     return session.injector.get(token, undefined, session);
   }

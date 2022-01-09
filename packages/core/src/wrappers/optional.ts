@@ -7,7 +7,7 @@ export const Optional = createWrapper((defaultValue?: any) => {
       () => next(session),
       val => val,
       err => {
-        if ((err as NilInjectorError).isNilInjectorError) return defaultValue;
+        if (err instanceof NilInjectorError) return defaultValue;
         throw err;
       }
     );

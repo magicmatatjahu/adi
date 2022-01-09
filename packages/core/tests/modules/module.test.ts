@@ -325,7 +325,7 @@ describe('Module', function() {
     // init providers
     injector.get(Service);
 
-    const childInjector = injector.selectChild(ChildModule);
+    const childInjector = injector.getChild(ChildModule);
     // init components
     childInjector.getComponent(ChildController);
     // init providers

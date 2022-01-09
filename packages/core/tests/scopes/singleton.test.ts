@@ -271,7 +271,7 @@ describe('Singleton scope', function () {
       let service: DestroyableType<Transient> = injector.get(Transient, Destroyable()) as unknown as DestroyableType<Transient>;
       expect(service.value).toBeInstanceOf(Transient);
 
-      const childInjector = injector.selectChild(ChildModule);
+      const childInjector = injector.getChild(ChildModule);
 
       await childInjector.destroy();
       expect(destroyOrder).toEqual(['ChildModule']);
@@ -337,7 +337,7 @@ describe('Singleton scope', function () {
       }
 
       const injector = Injector.create(MainModule).build();
-      const childInjector = injector.selectChild(ChildModule);
+      const childInjector = injector.getChild(ChildModule);
 
       await childInjector.destroy();
       expect(destroyOrder).toEqual(['ChildModule', 'Singleton']);
