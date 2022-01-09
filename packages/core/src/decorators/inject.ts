@@ -13,7 +13,7 @@ export function Inject<T = any>(wrapper?: Wrapper | Array<Wrapper>, annotations?
 export function Inject<T = any>(token?: Token<T>, wrapper?: Wrapper | Array<Wrapper>, annotations?: Annotations);
 export function Inject<T = any>(token?: Token<T> | Wrapper | Array<Wrapper> | Annotations, wrapper?: Wrapper | Array<Wrapper> | Annotations, annotations?: Annotations) {
   if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
-    if (isWrapper(token)) {
+    if (isWrapper(token)) { // single wrapper of array of wrappers
       annotations = wrapper as Annotations;
       wrapper = token;
     } else {

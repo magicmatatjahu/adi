@@ -5,7 +5,7 @@ import {
   InjectorOptions, InjectorScopeType, PlainProvider,
   ModuleMetadata, ModuleID, ExportItem, ExportedModule, WrapperRecord, ScopeShape
 } from "../interfaces";
-import { MODULE_INITIALIZERS, COMMON_HOOKS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT, MODULE_REF, EMPTY_ARRAY } from "../constants";
+import { MODULE_INITIALIZERS, ANNOTATIONS, INJECTOR_OPTIONS, EMPTY_OBJECT, MODULE_REF, EMPTY_ARRAY } from "../constants";
 import { InjectorStatus, InstanceStatus, SessionStatus } from "../enums";
 import { Token } from "../types";
 import { resolveRef, handleOnInit, thenable, compareOrder } from "../utils";
@@ -191,7 +191,7 @@ export class Injector {
     let record = 
       session.status & SessionStatus.COMPONENT_RESOLUTION 
         ? this.components.get(session.getToken()) 
-        : this.filterRecords(session);
+        : filterRecords(this, session.getToken());
 
     if (record === undefined) {
       // Reuse session in the parent
@@ -413,7 +413,7 @@ export class Injector {
   /**
    * EXPORTS
    */
-  exportsProviders(exps: Array<ExportItem> = [], to: Injector): void {
+  export(exps: Array<ExportItem> = [], to: Injector): void {
     if (
       this.options.disableExporting ||
       this.status & InjectorStatus.DESTROYED || 
@@ -421,72 +421,7 @@ export class Injector {
     ) return;
 
     for (let i = 0, l = exps.length; i < l; i++) {
-      this.processExport(exps[i], to);
-    }
-  }
-
-  private processExport(exp: ExportItem, to: Injector): void {
-    exp = resolveRef(exp);
-
-    if (typeof exp === "function") {
-       // export can be module definition
-      const moduleDef = getModuleDef(exp);
-      if (moduleDef !== undefined) {
-        this.processModuleExport(exp as Type, 'static', to);
-        return;
-      }
-
-      // type provider
-      const record = this.records.get(exp);
-      if (record !== undefined) {
-        to.setImportedRecords(exp, record);
-      } else { // create new provider in the parent injector
-        to.addProviders(exp as any);
-      }
-    }
-
-    // operate on DynamicModule
-    if ((exp as ExportedModule).module) {
-      const { module, id, providers } = (exp as ExportedModule);
-      this.processModuleExport(module, id || 'static', to, providers);
-      return;
-    }
-
-    // create new provider in the parent injector
-    if ((exp as PlainProvider).provide) {
-      to.addProviders(exp as PlainProvider);
-      return;
-    }
-
-    // string, symbol or InjectionToken case
-    const record = this.records.get(exp as Token);
-    record && to.setImportedRecords(exp as Token, record);
-  }
-
-  private processModuleExport(mod: Type, id: ModuleID = 'static', to: Injector, providers?: Array<Provider | Token>) {
-    if (this.imports.has(mod) === false) {
-      throw Error(`cannot export from ${mod} module`);
-    }
-
-    const fromModule = this.imports.get(mod).get(id);
-    if (fromModule === undefined) {
-      throw Error(`cannot export from ${mod} module`);
-    }
-
-    if (providers === undefined) {
-      this.importedRecords.forEach((collection, token) => {
-        collection.forEach(record => {
-          record.host === fromModule && to.setImportedRecords(token, record);
-        });
-      });
-    } else {
-      this.importedRecords.forEach((collection, token) => {
-        collection.forEach(record => {
-          record.host === fromModule && 
-          providers.some(prov => prov === token || (prov as PlainProvider).provide === token) &&
-          to.setImportedRecords(token, record);
-        });
-      });
+      processExport(exps[i], this, to);
     }
   }
 
@@ -495,27 +430,17 @@ export class Injector {
     // get last item in the collection
     return collection && collection[collection.length - 1];
   }
+}
 
-  private setImportedRecords(token: Token, record: ProviderRecord) {
-    let collection = this.importedRecords.get(token);
-    if (collection === undefined) {
-      collection = [];
-      this.importedRecords.set(token, collection);
-    }
-    collection.push(record);
+function filterRecords(injector: Injector, token: Token): ProviderRecord | Array<ProviderRecord> | undefined {
+  const record = injector.records.get(token) || checkTreeshakable(injector, token);
+  let importedRecords = injector.importedRecords.get(token);
+  if (importedRecords) {
+    importedRecords = [...importedRecords];
+    record && importedRecords.push(record);
+    return importedRecords;
   }
-
-  private filterRecords(session: Session): ProviderRecord | Array<ProviderRecord> | undefined {
-    const token = session.getToken();
-    const record = this.records.get(token) || checkTreeshakable(this, token);
-    let importedRecords = this.importedRecords.get(token);
-    if (importedRecords) {
-      importedRecords = [...importedRecords];
-      record && importedRecords.push(record);
-      return importedRecords;
-    }
-    return record;
-  }
+  return record;
 }
 
 function getRecordsWrappers(records: Array<ProviderRecord>, session: Session): Array<{ record: ProviderRecord, wrapper: Wrapper }> {
@@ -593,18 +518,91 @@ function checkTreeshakable(injector: Injector, token: Token): ProviderRecord {
       } else { // injection token case
         record = customProviderToRecord(token, def as any, inj);
       }
-      (injector as any).setImportedRecords(token, record);
+      setImportedRecords(injector, token, record);
     }));
   }
   return record;
 }
 
-// TODO: add case with imported modules
 function isProviderInScope(scopes: InjectorScopeType[], provideIn?: InjectorScopeType | InjectorScopeType[]): boolean {
   if (Array.isArray(provideIn)) {
     return provideIn.some(scope => scopes.includes(scope));
   }
   return scopes.includes(provideIn);
+}
+
+function setImportedRecords(injector: Injector, token: Token, record: ProviderRecord) {
+  let collection = injector.importedRecords.get(token);
+  if (collection === undefined) {
+    collection = [];
+    injector.importedRecords.set(token, collection);
+  }
+  collection.push(record);
+}
+
+function processExport(exp: ExportItem, from: Injector, to: Injector): void {
+  exp = resolveRef(exp);
+
+  if (typeof exp === "function") {
+     // export can be module definition
+    const moduleDef = getModuleDef(exp);
+    if (moduleDef !== undefined) {
+      processModuleExport(exp as Type, 'static', from, to);
+      return;
+    }
+
+    // type provider
+    const record = from.records.get(exp);
+    if (record !== undefined) {
+      setImportedRecords(to, exp, record);
+    } else { // create new provider in the parent injector
+      to.addProviders(exp as any);
+    }
+  }
+
+  // operate on DynamicModule
+  if ((exp as ExportedModule).module) {
+    const { module, id, providers } = (exp as ExportedModule);
+    processModuleExport(module, id || 'static', from, to, providers);
+    return;
+  }
+
+  // create new provider in the parent injector
+  if ((exp as PlainProvider).provide) {
+    to.addProviders(exp as PlainProvider);
+    return;
+  }
+
+  // string, symbol or InjectionToken case
+  const record = from.records.get(exp as Token);
+  record && setImportedRecords(to, exp as Token, record);
+}
+
+function processModuleExport(mod: Type, id: ModuleID = 'static', from: Injector, to: Injector, providers?: Array<Provider | Token>) {
+  if (from.imports.has(mod) === false) {
+    throw Error(`cannot export from ${mod} module`);
+  }
+
+  const fromModule = from.imports.get(mod).get(id);
+  if (fromModule === undefined) {
+    throw Error(`cannot export from ${mod} module`);
+  }
+
+  if (providers === undefined) {
+    from.importedRecords.forEach((collection, token) => {
+      collection.forEach(record => {
+        record.host === fromModule && setImportedRecords(to, token, record);
+      });
+    });
+  } else {
+    from.importedRecords.forEach((collection, token) => {
+      collection.forEach(record => {
+        record.host === fromModule && 
+        providers.some(prov => prov === token || (prov as PlainProvider).provide === token) &&
+        setImportedRecords(to, token, record);
+      });
+    });
+  }
 }
 
 function loadOptions(injector: Injector): InjectorOptions {
@@ -630,12 +628,12 @@ export function initInjector(injector: Injector, options?: { asyncMode: boolean 
 
   const asyncMode = options?.asyncMode;
   return thenable(
-    // run MODULE_INITIALIZERS
-    () => {
-      if (asyncMode) return injector.getAsync(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
-      return injector.get(MODULE_INITIALIZERS, COMMON_HOOKS.OptionalSelf);
+    () => { // run MODULE_INITIALIZERS
+      if (!injector.records.get(MODULE_INITIALIZERS)?.defs.length) return;
+      if (asyncMode) return injector.getAsync(MODULE_INITIALIZERS);
+      return injector.get(MODULE_INITIALIZERS);
     },
-    () => {
+    () => { // initialize module
       if (asyncMode) return injector.getComponentAsync(MODULE_REF)
       return injector.getComponent(MODULE_REF);
     },

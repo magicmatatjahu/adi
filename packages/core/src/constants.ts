@@ -1,6 +1,5 @@
 import { Context, InjectionToken } from "./injector";
 import { InjectorOptions } from "./interfaces";
-import { Optional, Self } from "./wrappers";
 
 export const STATIC_CONTEXT = new Context({}, "STATIC_CONTEXT");
 
@@ -49,9 +48,4 @@ export const NOOP_FN = () => {};
 export const SESSION_INTERNAL = {
   CIRCULAR: '$$circular',
   START_CIRCULAR: '$$startCircular',
-  ON_INIT_HOOKS: '$$onInitHooks',
-}
-
-export const COMMON_HOOKS = {
-  OptionalSelf: [Optional(), Self()],
 }

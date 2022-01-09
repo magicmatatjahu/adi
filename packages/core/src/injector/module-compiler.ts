@@ -10,54 +10,30 @@ import {
   ImportItem,
 } from "../interfaces"
 import { resolveRef, thenable } from "../utils";
-import { COMMON_HOOKS, EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
+import { EMPTY_ARRAY, EMPTY_OBJECT } from "../constants";
 import { InjectorStatus } from "../enums";
 
 import { getModuleDef } from "./metadata";
 
 export function build(
   injector: Injector,
-): void;
-export function build(
-  injector: Injector,
-  isProto: true,
-): Injector[];
-export function build(
-  injector: Injector,
-  isProto?: true,
-): void | Injector[] {
+): void {
   const compiledModule = compileMetadata(injector.metatype) as CompiledModule;
   compiledModule.injector = injector;
   compiledModule.exportTo = injector.parent;
   const stack: Array<Injector> = [injector];
   process(compiledModule, stack);
-
-  if (isProto === true) {
-    return stack;
-  }
   initModules(stack);
 }
 
 export async function buildAsync(
   injector: Injector,
-): Promise<void>;
-export async function buildAsync(
-  injector: Injector,
-  isProto: true,
-): Promise<Injector[]>;
-export async function buildAsync(
-  injector: Injector,
-  isProto?: true,
-): Promise<void | Injector[]> {
+): Promise<void> {
   const compiledModule = await compileMetadata(injector.metatype);
   compiledModule.injector = injector;
   compiledModule.exportTo = injector.parent;
   const stack: Array<Injector> = [injector];
   await processAsync(compiledModule, stack);
-
-  if (isProto === true) {
-    return stack;
-  }
   await initModulesAsync(stack);
 }
 
@@ -134,7 +110,7 @@ function processImport<T = any>(
 ) {
   return thenable(
     () => compileMetadata(_import),
-    processedModule => processImportItem(processedModule, compiledModules, parentInjector, stack),
+    compiled => processImportItem(compiled, compiledModules, parentInjector, stack),
   );
 }
 
@@ -179,12 +155,12 @@ function processMetadata({ injector, isProxy, moduleDef, dynamicDef, exportTo }:
   if (isProxy === false) {
     injector.addProviders(moduleDef.providers);
     injector.addComponents(moduleDef.components);
-    injector.exportsProviders(moduleDef.exports, exportTo);
+    injector.export(moduleDef.exports, exportTo);
   }
   if (dynamicDef !== undefined) {
     injector.addProviders(dynamicDef.providers);
     injector.addComponents(dynamicDef.components);
-    injector.exportsProviders(dynamicDef.exports, exportTo);
+    injector.export(dynamicDef.exports, exportTo);
   }
 }
 
