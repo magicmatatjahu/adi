@@ -20,6 +20,7 @@ export const ANNOTATIONS = {
   OVERRIDE: '@adi/override',
   EXPORT: '@adi/export',
   LOCAL_SCOPE: '@adi/local-scope',
+  COMPONENT: '@adi/component',
 };
 
 export enum PRIVATE_METADATA {

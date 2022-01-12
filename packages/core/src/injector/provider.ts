@@ -6,9 +6,6 @@ import { Token } from "../types";
 import { Wrapper, compareOrder } from "../utils";
 
 export class ProviderRecord<T = any> {
-  /**
-   * MAKE IT READONLY
-   */
   defs: Array<DefinitionRecord> = [];
   constraintDefs: Array<DefinitionRecord> = [];
   wrappers: Array<WrapperRecord> = [];
@@ -48,7 +45,7 @@ export class ProviderRecord<T = any> {
     if (session.parent) {
       const parentInstance = session.parent.instance;
       // TODO: retrieve first instance
-      if (parentInstance !== undefined) {
+      if (parentInstance) {
         (parentInstance.children || (parentInstance.children = new Set())).add(instance);
         (instance.parents || (instance.parents = new Set())).add(parentInstance);
       }

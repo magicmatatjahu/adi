@@ -31,8 +31,7 @@ export async function destroyAll(instances: InstanceRecord[] = [], event: Destro
 }
 
 export async function destroyRecords(records: ProviderRecord[], event: DestroyEvent = 'default') {
-  // for destroying the module as last
-  for (let i = records.length - 1; i > -1; i--) {
+  for (let i = 0, l = records.length; i < l; i++) {
     await destroyRecord(records[i], event);
   }
 }

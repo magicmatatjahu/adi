@@ -3,15 +3,11 @@ import { Session, ProviderRecord } from "../injector";
 import { DefinitionRecord } from "../interfaces";
 import { compareOrder, createWrapper, thenable } from "../utils";
 
-export enum MultiFlags {
-  OnlySelf = 1,
-}
-
 interface MultiOptions {
   // by annotation key
   metaKey?: string | symbol;
   // inherite the definitions from parent injector
-  inheritance?: MultiFlags;
+  inheritance?: 'onlySelf';
 }
 
 // add also records to resolve the wrappers for appropriate records
@@ -36,7 +32,7 @@ function getDefinitions(
   options: MultiOptions,
 ): DefinitionRecord[] {
   let defs = getDefinitionsFromRecord(record, session);
-  if (options.inheritance & MultiFlags.OnlySelf) {
+  if (options.inheritance === 'onlySelf') {
     return defs;
   }
 

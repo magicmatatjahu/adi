@@ -14,8 +14,9 @@ import { ProviderRecord } from "./provider";
 import { createProviderFactory, createFactory, createInjectorFactory } from "./resolver";
 
 import { pushWrapper, Wrapper } from "../utils/wrappers";
-import { UseExisting } from "../wrappers/internal";
+import { UseExisting, UseComponent } from "../wrappers/internal";
 import { InjectionKind } from "../enums";
+import { ANNOTATIONS } from "..";
 
 export function toRecord<T>(
   provider: Provider<T>,
@@ -57,7 +58,7 @@ export function typeProviderToRecord<T>(
     factory = createInjectorFactory(factory, imports, providers);
   }
 
-  record.addDefinition(factory, getScopeShape(options.scope), undefined, wrapper, options.annotations || EMPTY_OBJECT, provider.prototype);
+  record.addDefinition(factory, getScopeShape(options.scope), undefined, addComponentHook(wrapper, isComponent), addComponentAnnotation(options.annotations || {}, isComponent), provider.prototype);
   return record;
 }
 
@@ -117,7 +118,7 @@ export function customProviderToRecord<T>(
     return record;
   }
 
-  record.addDefinition(factory, scope, constraint, wrapper, annotations, proto);
+  record.addDefinition(factory, scope, constraint, addComponentHook(wrapper, isComponent), addComponentAnnotation(annotations, isComponent), proto);
   return record;
 }
 
@@ -137,6 +138,17 @@ function getRecord<T>(
     records.set(token, record);
   }
   return record;
+}
+
+function addComponentHook(wrapper: Wrapper | Wrapper[] | undefined, isComponent: boolean) {
+  return isComponent ? pushWrapper(wrapper, UseComponent) : wrapper;
+}
+
+function addComponentAnnotation(annotations: Annotations, isComponent: boolean) {
+  if (isComponent) {
+    annotations[ANNOTATIONS.COMPONENT] = true;
+  }
+  return annotations;
 }
 
 export function getProviderDef(token: unknown, strict: boolean = true): ProviderDef {

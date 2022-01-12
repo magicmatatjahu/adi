@@ -1,4 +1,4 @@
-import { Injector, Injectable, OnInit, OnInitHook, Inject, Scope, Delegate, StandaloneOnInit } from "../../src";
+import { Injector, Injectable, OnInit, OnInitHook, Inject, Scope, StandaloneOnInit } from "../../src";
 
 describe('onInit', function() {
   test('should works (useClass case)', function() {

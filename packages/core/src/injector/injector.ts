@@ -59,23 +59,30 @@ export class Injector {
   ) {
     this.scopes = ['any', this.metatype as any];
     
+    // if (options !== undefined) {
+    //   this.addProviders(options.setupProviders);
+    //   loadOptions(this);
+    // }
+
+    const providers: Provider[] = [];
+    if (typeof metatype === 'function') {
+      providers.push({ provide: MODULE_REF, useExisting: metatype }, metatype);
+    } else if (Array.isArray(metatype)) {
+      providers.push({ provide: MODULE_REF, useValue: metatype }, ...metatype);
+    } else {
+      providers.push({ provide: MODULE_REF, useValue: metatype });
+    }
     if (options !== undefined) {
       this.addProviders(options.setupProviders);
-      loadOptions(this);
+      // loadOptions(this);
     }
 
-    Array.isArray(metatype) && this.addProviders(metatype);
-    if (typeof metatype === "function") {
-      this.addComponents(metatype);
-      this.addComponents({ provide: MODULE_REF, useExisting: metatype });
-    } else {
-      this.addComponents({ provide: MODULE_REF, useValue: metatype });
-    }
-
-    this.addProviders([
+    providers.push(
       { provide: Injector, useValue: this },
-      { provide: MODULE_INITIALIZERS, useWrapper: All({ inheritance: 1 }) }
-    ]);
+      { provide: MODULE_INITIALIZERS, useWrapper: All({ inheritance: 'onlySelf' }) }
+    );
+    this.addProviders(providers);
+    loadOptions(this);
   }
 
   /**
@@ -129,6 +136,20 @@ export class Injector {
       this.components.clear();
     }
 
+    // destroy and clear own records
+    try {
+      await this.clear();
+    } finally {
+      // only clear imported values
+      this.importedRecords.clear();
+    }
+
+    // remove injector from parent imports
+    if (this.parent !== NilInjector) {
+      const importInParent = this.parent.imports.get(this.metatype as any);
+      importInParent && importInParent.delete(this.id);
+    }
+
     // then destroy and clean all imported modules
     try {
       const imports = Array.from(this.imports.values());
@@ -140,18 +161,6 @@ export class Injector {
       }
     } finally {
       this.imports.clear();
-    }
-
-    // destroy and clear own records
-    await this.clear();
-
-    // only clear imported values
-    this.importedRecords.clear();
-
-    // remove injector from parent imports
-    if (this.parent !== NilInjector) {
-      const importInParent = this.parent.imports.get(this.metatype as any);
-      importInParent && importInParent.delete(this.id);
     }
   }
 
@@ -181,7 +190,7 @@ export class Injector {
 
   resolveToken<T>(wrapper: Wrapper | Array<Wrapper>, session: Session): T | undefined {
     session.injector = this;
-    if (wrapper !== undefined) {
+    if (wrapper) {
       return runWrappers(wrapper, session, lastInjectionWrapper);
     }
     return this.resolveRecord(session);
@@ -274,9 +283,8 @@ export class Injector {
 
   resolveDefinition<T>(def: DefinitionRecord<T>, session: Session): T | undefined {
     let scope = def.scope;
-    const sessionScope = session.getScope();
-    if (sessionScope && scope.kind.canBeOverrided()) {
-      scope = sessionScope;
+    if (scope.kind.canBeOverrided()) {
+      scope = session.getScope() || scope;
     }
 
     session.instance = def.record.getInstance(def, scope, session);
@@ -635,8 +643,8 @@ export function initInjector(injector: Injector, options?: { asyncMode: boolean 
       return injector.get(MODULE_INITIALIZERS);
     },
     () => { // initialize module
-      if (asyncMode) return injector.getComponentAsync(MODULE_REF)
-      return injector.getComponent(MODULE_REF);
+      if (asyncMode) return injector.getAsync(MODULE_REF)
+      return injector.get(MODULE_REF);
     },
   );
 }

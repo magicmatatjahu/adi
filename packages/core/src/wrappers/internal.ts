@@ -5,7 +5,7 @@ import { Token } from "../types";
 import { thenable, DeepProxy } from "../utils";
 import { createWrapper } from "../utils/wrappers";
 
-function coreHook<T>(value: T, session: Session): any {
+export function coreHook<T>(value: T, session: Session): any {
   const instance = session.instance;
 
   // async resolution
@@ -77,6 +77,15 @@ export const UseExisting = createWrapper((token: Token) => {
     return session.injector.get(token, undefined, session);
   }
 }, { name: 'UseExisting' });
+
+export const UseComponent = createWrapper(() => {
+  return (session, next) => {
+    if (session.parent) {
+      throw new Error('Component cannot be injected to another one provider');
+    }
+    return next(session);
+  }
+}, { name: 'UseComponent' })();
 
 export const Internal = createWrapper((inject: 'session' | 'record' | 'definition' | 'instance', skipResolution: boolean = false) => {
   switch (inject) {
