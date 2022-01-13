@@ -128,10 +128,6 @@ function getRecord<T>(
   isComponent: boolean,
 ): ProviderRecord {
   let records: Map<Token, ProviderRecord> = host.records;
-  if (isComponent === true) {
-    records = host.components;
-  }
-
   let record = records.get(token);
   if (record === undefined) {
     record = new ProviderRecord(token, host, isComponent);

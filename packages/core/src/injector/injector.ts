@@ -39,8 +39,6 @@ export class Injector {
    */
   // imported modules
   imports = new Map<Type, Map<ModuleID, Injector>>();
-  // components
-  components = new Map<Token, ProviderRecord>();
   // own records
   records = new Map<Token, ProviderRecord>();
   // records from imported modules
@@ -58,11 +56,6 @@ export class Injector {
     public options: InjectorOptions = {},
   ) {
     this.scopes = ['any', this.metatype as any];
-    
-    // if (options !== undefined) {
-    //   this.addProviders(options.setupProviders);
-    //   loadOptions(this);
-    // }
 
     const providers: Provider[] = [];
     if (typeof metatype === 'function') {
@@ -74,7 +67,6 @@ export class Injector {
     }
     if (options !== undefined) {
       this.addProviders(options.setupProviders);
-      // loadOptions(this);
     }
 
     providers.push(
@@ -128,13 +120,6 @@ export class Injector {
   async destroy() {
     if (this.status & InjectorStatus.DESTROYED) return; 
     this.status |= InjectorStatus.DESTROYED;
-
-    // first destroy and clear own components
-    try {
-      await destroyRecords(Array.from(this.components.values()), 'injector');
-    } finally {
-      this.components.clear();
-    }
 
     // destroy and clear own records
     try {
@@ -197,11 +182,7 @@ export class Injector {
   }
 
   resolveRecord<T>(session: Session): T | undefined {
-    let record = 
-      session.status & SessionStatus.COMPONENT_RESOLUTION 
-        ? this.components.get(session.getToken()) 
-        : filterRecords(this, session.getToken());
-
+    let record = filterRecords(this, session.getToken());
     if (record === undefined) {
       // Reuse session in the parent
       return this.parent.resolveRecord(session);
@@ -274,10 +255,9 @@ export class Injector {
       return;
     }
 
-    if (def.wrapper !== undefined) {
+    if (def.wrapper) {
       return runWrappers(def.wrapper, session, lastDefinitionWrapper);
     }
-
     return this.resolveDefinition(def, session);
   }
 
@@ -337,16 +317,16 @@ export class Injector {
     return record;
   }
 
-  addProviders(providers: Provider | Provider[]): void {
+  addProviders(providers: Provider | Provider[], isComponent: boolean = false): void {
     if (this.status & InjectorStatus.DESTROYED) return;
 
     if (Array.isArray(providers)) {
       for (let i = 0, l = providers.length; i < l; i++) {
-        providers[i] && toRecord(providers[i], this);
+        providers[i] && toRecord(providers[i], this, isComponent);
       }
       return;
     }
-    providers && toRecord(providers, this);
+    providers && toRecord(providers, this, isComponent);
   }
 
   remove(token: Token, defName?: string | symbol) {
@@ -367,41 +347,6 @@ export class Injector {
     const records = Array.from(this.records.values());
     this.records.clear();
     return destroyRecords(records);
-  }
-
-  /**
-   * COMPONENTS
-   */
-  getComponent<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>): T | undefined {
-    if (this.components.get(token) === undefined) {
-      throw Error(`Given component of ${String(token)} type doesn't exists`);
-    }
-
-    const session = Session.create(token);
-    session.status |= SessionStatus.COMPONENT_RESOLUTION; 
-    return this.resolveToken(wrapper, session);
-  }
-
-  getComponentAsync<T>(token: Token<T>, wrapper?: Wrapper | Array<Wrapper>): Promise<T | undefined> {
-    if (this.components.get(token) === undefined) {
-      throw Error(`Given component of ${String(token)} type doesn't exists`);
-    }
-
-    const session = Session.create(token);
-    session.status |= SessionStatus.COMPONENT_RESOLUTION | SessionStatus.ASYNC; 
-    return this.resolveToken(wrapper, session);
-  }
-
-  addComponents(components: Provider | Provider[] = []): void {
-    if (this.status & InjectorStatus.DESTROYED) return;
-
-    if (Array.isArray(components)) {
-      for (let i = 0, l = components.length; i < l; i++) {
-        components[i] && toRecord(components[i], this, true);
-      }
-      return;
-    }
-    components && toRecord(components, this, true);
   }
 
   /**

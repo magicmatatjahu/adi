@@ -1,12 +1,12 @@
 import { Injector, Injectable } from "../src";
 
-describe('Component', function() {
+describe.only('Component', function() {
   test('should works with simple constructor', function() {
     @Injectable()
     class Service {}
 
     @Injectable()
-    class Controller {
+    class Component {
       constructor(
         readonly service: Service,
       ) {}
@@ -14,48 +14,39 @@ describe('Component', function() {
 
     const injector = Injector.create({
       components: [
-        Controller,
+        Component,
       ],
       providers: [
         Service,
       ],
     }).build();
 
-    const component = injector.getComponent(Controller) as Controller;
-    expect(component).toBeInstanceOf(Controller);
+    const component = injector.get(Component);
+    expect(component).toBeInstanceOf(Component);
     expect(component.service).toBeInstanceOf(Service);
   });
 
   test('should not be reached from parent injector', function() {
     @Injectable()
-    class Service {}
-
-    @Injectable()
-    class Controller {
-      constructor(
-        readonly service: Service,
-      ) {}
-    }
+    class Component {}
 
     const parentInjector = Injector.create({
       components: [
-        Controller,
+        Component,
       ],
     }).build();
-    const childInjector = Injector.create({
-      providers: [
-        Service,
-      ],
-    }, parentInjector).build();
+    const childInjector = Injector.create({}, parentInjector);
 
-    let err: Error, component: Controller;
+    let err: Error, fromParent: Component, fromChild: Component;
     try {
-      component = childInjector.getComponent(Controller) as Controller;
+      fromParent = parentInjector.get(Component);
+      fromChild = childInjector.get(Component);
     } catch(e) {
       err = e
     }
 
-    expect(component === undefined).toEqual(true);
+    expect(fromParent).toBeInstanceOf(Component)
+    expect(fromChild === undefined).toEqual(true);
     expect(err !== undefined).toEqual(true);
   });
 
@@ -64,7 +55,7 @@ describe('Component', function() {
     class Service {}
 
     @Injectable()
-    class Controller {
+    class Component {
       constructor(
         readonly service: Service,
       ) {}
@@ -72,19 +63,19 @@ describe('Component', function() {
 
     const injector = Injector.create({
       components: [
-        Controller,
+        Component,
       ],
       providers: [
         Service,
       ],
     }).build();
 
-    const component1 = injector.getComponent(Controller) as Controller;
-    const component2 = injector.getComponent(Controller) as Controller;
+    const component1 = injector.get(Component);
+    const component2 = injector.get(Component);
 
-    expect(component1).toBeInstanceOf(Controller);
+    expect(component1).toBeInstanceOf(Component);
     expect(component2.service).toBeInstanceOf(Service);
-    expect(component2).toBeInstanceOf(Controller);
+    expect(component2).toBeInstanceOf(Component);
     expect(component2.service).toBeInstanceOf(Service);
 
     expect(component1 === component2).toEqual(true);
@@ -96,38 +87,40 @@ describe('Component', function() {
     class Service {}
 
     @Injectable()
-    class Controller1 {
+    class Component1 {
       constructor(
         readonly service: Service,
       ) {}
     }
 
     @Injectable()
-    class Controller2 {
+    class Component2 {
       constructor(
         readonly service: Service,
-        readonly component: Controller1,
+        readonly component: Component1,
       ) {}
     }
 
     const injector = Injector.create({
       components: [
-        Controller1,
-        Controller2,
+        Component1,
+        Component2,
       ],
       providers: [
         Service,
       ],
     }).build();
 
-    let err: Error, component: Controller2;
+    let err: Error, component1: Component1, component2: Component2;
     try {
-      component = injector.getComponent(Controller2) as Controller2;
+      component1 = injector.get(Component1);
+      component2 = injector.get(Component2);
     } catch(e) {
       err = e
     }
 
-    expect(component === undefined).toEqual(true);
+    expect(component1).toBeInstanceOf(Component1)
+    expect(component2 === undefined).toEqual(true);
     expect(err !== undefined).toEqual(true);
   });
 });

@@ -67,7 +67,7 @@ describe('Module', function() {
     }
 
     const injector = Injector.create(MainModule).build();
-    const component = injector.getComponent(Controller);
+    const component = injector.get(Controller);
     expect(component).toBeInstanceOf(Controller);
     expect(component.service).toBeInstanceOf(Service);
   });
@@ -95,7 +95,7 @@ describe('Module', function() {
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
 
-    const component = injector.getComponent(Controller);
+    const component = injector.get(Controller);
     expect(component).toBeInstanceOf(Controller);
     expect(component.service).toBeInstanceOf(Service);
   });
@@ -232,13 +232,13 @@ describe('Module', function() {
 
     const injector = Injector.create(MainModule).build();
     // init components
-    injector.getComponent(Controller);
+    injector.get(Controller);
     // init providers
     injector.get(Service2);
 
     // destriy module/injector
     await injector.destroy();
-    expect(onDestroyOrder).toEqual(['Controller', 'MainModule', 'Service1', 'Service2']);
+    expect(onDestroyOrder).toEqual(['MainModule', 'Controller', 'Service1', 'Service2']);
   });
 
   test('should destroy itself and imported modules in proper order', async function() {
@@ -321,21 +321,21 @@ describe('Module', function() {
 
     const injector = Injector.create(MainModule).build();
     // init components
-    injector.getComponent(Controller);
+    injector.get(Controller);
     // init providers
     injector.get(Service);
 
     const childInjector = injector.getChild(ChildModule);
     // init components
-    childInjector.getComponent(ChildController);
+    childInjector.get(ChildController);
     // init providers
     childInjector.get(ChildService);
 
     // destriy module/injector
     await injector.destroy();
     expect(onDestroyOrder).toEqual([
-      'Controller', 'MainModule', 'Service',
-      'ChildController', 'ChildModule', 'ChildService',
+      'MainModule', 'Controller', 'Service',
+      'ChildModule', 'ChildController', 'ChildService',
     ]);
   });
 

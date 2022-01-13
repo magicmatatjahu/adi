@@ -80,7 +80,7 @@ export const UseExisting = createWrapper((token: Token) => {
 
 export const UseComponent = createWrapper(() => {
   return (session, next) => {
-    if (session.parent) {
+    if (session.parent || session.getHost() !== session.injector) {
       throw new Error('Component cannot be injected to another one provider');
     }
     return next(session);

@@ -153,13 +153,13 @@ function processImportItem(
 
 function processMetadata({ injector, isProxy, moduleDef, dynamicDef, exportTo }: CompiledModule) {
   if (isProxy === false) {
-    injector.addProviders(moduleDef.providers);
-    injector.addComponents(moduleDef.components);
+    injector.addProviders(moduleDef.components, true);
+    injector.addProviders(moduleDef.providers, false);
     injector.export(moduleDef.exports, exportTo);
   }
   if (dynamicDef !== undefined) {
-    injector.addProviders(dynamicDef.providers);
-    injector.addComponents(dynamicDef.components);
+    injector.addProviders(dynamicDef.components, true);
+    injector.addProviders(dynamicDef.providers, false);
     injector.export(dynamicDef.exports, exportTo);
   }
 }
@@ -217,7 +217,7 @@ function findModule(injector: Injector, type: Type, id: ModuleID): Injector | un
   if (type === injector.metatype) {
     // TODO: Check this statement - maybe error isn't needed
     // throw Error('Cannot import this same module to injector');
-    console.log('Cannot import this same module to injector');
+    console.log('Cannot import this same module to itself');
     return undefined;
   }
   
