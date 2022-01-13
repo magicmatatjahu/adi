@@ -3,57 +3,50 @@ import { Injector, InjectorOptions, ModuleMetadata, Provider, Type } from "@adi/
 
 import { useInjector } from "../hooks";
 import { InjectorContext } from "../constants";
-import { ComponentProvider } from "../interfaces";
-import { createComponentProvider } from "../utils";
 
-interface ModuleInline {
+export interface ModuleProps {
   module: Type<any> | Omit<ModuleMetadata, 'components' | 'exports'> | Array<Provider>;
-  components?: Array<ComponentProvider>;
   options?: InjectorOptions;
+  cacheID?: string | symbol;
 }
-
-interface ComponentsInline {
-  components: Array<ComponentProvider>;
-  module?: Type<any> | Omit<ModuleMetadata, 'components' | 'exports'> | Array<Provider>;
-  options?: InjectorOptions;
-}
-
-export type ModuleProps = 
- | ModuleInline
- | ComponentsInline;
 
 export const Module: React.FunctionComponent<ModuleProps> = (props) => {
   const parentInjector = useInjector();
   const injectorRef = useRef<Injector>(null);
 
   useEffect(() => {
-    return () => {
-      setTimeout(() => {
-        // add to the end of event loop
-        injectorRef.current.destroy();
-      }, 0);
-    };
+    if (props.cacheID === undefined) {
+      return () => {
+        setTimeout(() => {
+          // use setTimeout to add destruction to the end of event loop
+          injectorRef.current.destroy();
+        }, 0);
+      }; 
+    }
   }, []);
 
   const injector = 
     injectorRef.current ||
-    (injectorRef.current = createInjector(props as ModuleInline, parentInjector));
+    (injectorRef.current = getInjector(props, parentInjector || undefined));
 
   return createElement(InjectorContext.Provider, { value: injector }, props.children);
 }
 
-function createInjector(props: ModuleInline | ComponentsInline, parentInjector: Injector): Injector {
-  let _module = props.module || [];
+const cache: Map<string | symbol, Injector> = new Map();
+function getInjector(props: ModuleProps, parentInjector: Injector | undefined): Injector {
+  const cacheID = props.cacheID;
+  if (cacheID !== undefined && cache.has(cacheID)) {
+    return cache.get(cacheID);
+  }
+
+  let adiModule = props.module || [];
   let options = props.options || {};
   options.disableExporting = false;
 
-  if (props.components) {
-    options.setupProviders = (options.setupProviders || []).concat(
-      props.components.map(createComponentProvider)
-    );
+  const injector = Injector.create(adiModule, parentInjector, options);
+  console.log(injector)
+  if (cacheID !== undefined) {
+    cache.set(cacheID, injector);
   }
-
-  const injector = Injector.create(_module, parentInjector || undefined, options);
-  if (Array.isArray(_module)) return injector;
   return injector.build();
 }

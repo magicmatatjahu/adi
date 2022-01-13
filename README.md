@@ -1,9 +1,8 @@
 # ADIJS
 
-- Add initialization of all injectors (even new Injector([])) to the `.build` method.
 - Rename `wrappers` to `hooks` and provider `useWrapper` to `useHook`
 - Destroy injector in standalone function injections - at the moment new injector is created each time, but not destroyed - memory leak 
-- think on passing pipes to the `paramDecorator` as second, third... arguments
+- React: Add to the metadata of InjectionItem as target the class of React component
 
 ## IMPLEMENTED
 
@@ -92,6 +91,8 @@
   ```ts
   ADI.use({plugin}, {options})
   ```
+
+- Think on passing pipes to the `paramDecorator` as second, third... arguments
 
 React:
 - Fix problem with ProtoInjector - when ProtInjector is created, before it should point to the parent from context - it must point to the parent before creating, so it jmust be inside React context when ProtoInjector is creating

@@ -62,6 +62,7 @@ export class Injector {
       providers.push({ provide: MODULE_REF, useExisting: metatype }, metatype);
     } else if (Array.isArray(metatype)) {
       providers.push({ provide: MODULE_REF, useValue: metatype }, ...metatype);
+      this.status |= InjectorStatus.BUILDED;
     } else {
       providers.push({ provide: MODULE_REF, useValue: metatype });
     }
@@ -100,19 +101,19 @@ export class Injector {
   }
 
   build(): Injector {
-    if (this.status & InjectorStatus.BUILDED) return; 
+    if (this.status & InjectorStatus.BUILDED) return this; 
     this.status |= InjectorStatus.BUILDED;
 
-    if (Array.isArray(this.metatype)) return;
+    if (Array.isArray(this.metatype)) return this;
     build(this);
     return this;
   }
 
   async buildAsync(): Promise<Injector> {
-    if (this.status & InjectorStatus.BUILDED) return; 
+    if (this.status & InjectorStatus.BUILDED) return this; 
     this.status |= InjectorStatus.BUILDED;
 
-    if (Array.isArray(this.metatype)) return;
+    if (Array.isArray(this.metatype)) return this;
     await buildAsync(this);
     return this;
   }

@@ -1,6 +1,7 @@
 import { useRef, useEffect, createElement } from "react";
 
-import { DestroyManager, InjectableInjector, InjectionItem, Injector, InstanceRecord, Provider } from "@adi/core";
+import { ModuleMetadata, Provider, InjectionItem, InstanceRecord } from "@adi/core";
+import { destroyAll } from "@adi/core/lib/injector";
 
 import { Module } from "../components";
 
@@ -10,7 +11,7 @@ import { injectMap } from "../utils";
 export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
   Component: React.JSXElementConstructor<TProps>,
   injections: Record<keyof Pick<TProps, TInjectedKeys>, InjectionItem>,
-  injectableInjector?: InjectableInjector | Provider[],
+  module?: Omit<ModuleMetadata, 'components' | 'exports'> | Array<Provider>,
 ) {
   const ComponentWithInjection = (props: Omit<TProps, TInjectedKeys>) => {
     const injector = useInjector();
@@ -18,11 +19,10 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
     const valuesRef = useRef<Record<string | symbol, any>>(null);
   
     useEffect(() => {
-      
       return () => {
         setTimeout(() => {
-          // add to the end of event loop
-          DestroyManager.destroyAll('default', instancesRef.current);
+          // use setTimeout to add destruction to the end of event loop
+          destroyAll(instancesRef.current, 'default');
           instancesRef.current = null;
           valuesRef.current = null;
         }, 0);
@@ -44,10 +44,10 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
   };
 
   // create component with Module wrapper
-  if (injectableInjector && typeof injectableInjector === 'object') {
+  if (module && typeof module === 'object') {
     const ComponentWithModule = (props: Omit<TProps, TInjectedKeys>) => {
       return (
-        <Module module={injectableInjector}>
+        <Module module={module}>
           <ComponentWithInjection {...props} />
         </Module>
       );

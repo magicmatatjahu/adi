@@ -1,25 +1,13 @@
-import { InjectionItem, Injector, InstanceRecord, Internal, ValueProvider, when } from "@adi/core";
+import { InjectionItem, Injector, InstanceRecord, Internal } from "@adi/core";
 import { Token } from "@adi/core/lib/types";
 import { isWrapper, Wrapper } from "@adi/core/lib/utils";
 
-import { ComponentProvider } from "./interfaces";
-import { COMPONENT_TOKEN } from "./constants";
-
-export function createComponentProvider(componentProvider: ComponentProvider): ValueProvider {
-  return {
-    provide: COMPONENT_TOKEN,
-    useValue: componentProvider.component,
-    useWrapper: componentProvider.useWrapper,
-    when: when.named(componentProvider.name),
-  };
-}
-
 const instanceWrapper = Internal('instance');
-export function wrap(wrappers: Wrapper | Wrapper[]): Wrapper | Wrapper[] {
-  if (Array.isArray(wrappers)) {
-    return [instanceWrapper, ...wrappers];
+export function wrap(wrapper: Wrapper | Wrapper[]): Wrapper | Wrapper[] {
+  if (Array.isArray(wrapper)) {
+    return [instanceWrapper, ...wrapper];
   }
-  return wrappers ? [instanceWrapper, wrappers] : instanceWrapper;
+  return wrapper ? [instanceWrapper, wrapper] : instanceWrapper;
 }
 
 export function injectArray(injector: Injector, injections: Array<InjectionItem>): { values: any[], instances: InstanceRecord[] } {

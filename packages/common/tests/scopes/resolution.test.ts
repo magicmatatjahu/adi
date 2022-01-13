@@ -641,9 +641,9 @@ describe('Request scope', function () {
       expect(service.resolutionService1 === service.resolutionService2).toEqual(false); // because they are proxies
       
       expect(destroyOrder).toEqual([]);
-      destroyAll(session.shared.proxies, 'manually');
+      await destroyAll(session.shared.proxies, 'manually');
       expect(destroyOrder).toEqual(['resolutionService']);
-      destroyAll(session.shared.proxies, 'manually');
+      await destroyAll(session.shared.proxies, 'manually');
       expect(destroyOrder).toEqual(['resolutionService']);
     });
   })

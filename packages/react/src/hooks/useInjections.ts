@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 
-import { DestroyManager, InjectionItem, InstanceRecord } from "@adi/core";
+import { InjectionItem, InstanceRecord } from "@adi/core";
+import { destroyAll } from "@adi/core/lib/injector";
 
 import { injectArray } from "../utils";
 import { useInjector } from "./useInjector";
+import { NotFoundInjectorException } from "../exceptions";
 
 export function useInjections<A>(item: InjectionItem<A>): [A];
 export function useInjections<A, B>(itemA: InjectionItem<A>, itemB: InjectionItem<B>): [A, B];
@@ -21,8 +23,8 @@ export function useInjections(...injections: Array<InjectionItem>): any[] {
   useEffect(() => {
     return () => {
       setTimeout(() => {
-        // add to the end of event loop
-        DestroyManager.destroyAll('default', instancesRef.current);
+        // use setTimeout to add destruction to the end of event loop
+        destroyAll(instancesRef.current, 'default');
         instancesRef.current = null;
         valuesRef.current = null;
       }, 0);
@@ -30,7 +32,7 @@ export function useInjections(...injections: Array<InjectionItem>): any[] {
   }, []);
 
   if (injector === null) {
-    throw new Error();
+    throw new NotFoundInjectorException();
   }
 
   if (instancesRef.current) return valuesRef.current;

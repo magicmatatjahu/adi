@@ -1,8 +1,9 @@
-import { Injectable, InjectionToken, Provider, Transform, Delegate, when } from "@adi/core";
 import { render, screen } from '@testing-library/react';
 
-import { COMPONENT_TOKEN, Module, useComponent, useInject } from "../../src";
-import { ComponentProvider } from "../../src/interfaces";
+import { Injectable, InjectionToken, Provider } from "@adi/core";
+import { Transform } from "@adi/common";
+
+import { Module, useComponent, useInject } from "../../src";
 
 describe('useComponent hook', function() {
   test('should works', async function() {
@@ -16,14 +17,13 @@ describe('useComponent hook', function() {
 
     const providers: Provider[] = [
       {
-        provide: COMPONENT_TOKEN,
+        provide: ProviderComponent,
         useValue: ProviderComponent,
-        when: when.named('ProviderComponent'),
       }
-    ]
+    ];
 
     const TestComponent: React.FunctionComponent = () => {
-      const Component = useComponent('ProviderComponent');
+      const Component = useComponent(ProviderComponent);
 
       return (
         <div>
@@ -69,14 +69,13 @@ describe('useComponent hook', function() {
       Service,
       DeepService,
       {
-        provide: COMPONENT_TOKEN,
+        provide: ProviderComponent,
         useValue: ProviderComponent,
-        when: when.named('ProviderComponent'),
       }
     ]
 
     const TestComponent: React.FunctionComponent = () => {
-      const Component = useComponent('ProviderComponent');
+      const Component = useComponent(ProviderComponent);
 
       return (
         <div>
@@ -114,20 +113,18 @@ describe('useComponent hook', function() {
 
     const providers: Provider[] = [
       {
-        provide: COMPONENT_TOKEN,
+        provide: ProviderComponent1,
         useValue: ProviderComponent1,
-        when: when.named('ProviderComponent1'),
       },
       {
-        provide: COMPONENT_TOKEN,
+        provide: ProviderComponent2,
         useValue: ProviderComponent2,
-        when: when.named('ProviderComponent2'),
       }
     ]
 
     const TestComponent: React.FunctionComponent = () => {
-      const ProviderComponent_1 = useComponent('ProviderComponent1');
-      const ProviderComponent_2 = useComponent('ProviderComponent2');
+      const ProviderComponent_1 = useComponent(ProviderComponent1);
+      const ProviderComponent_2 = useComponent(ProviderComponent2);
 
       return (
         <div>
@@ -139,57 +136,6 @@ describe('useComponent hook', function() {
 
     render(
       <Module module={providers}>
-        <TestComponent />
-      </Module>
-    )
-
-    // any for error: Argument of type 'string' is not assignable to parameter of type 'SelectorMatcherOptions'
-    expect(screen.getByText('useComponent with ProviderComponent1 works!' as any)).toBeDefined();
-    expect(screen.getByText('useComponent with ProviderComponent2 works!' as any)).toBeDefined();
-  });
-
-  test('should works with components defined as standalone props', async function() {
-    const ProviderComponent1: React.FunctionComponent = () => {
-      return (
-        <div>
-          useComponent with ProviderComponent1 works!
-        </div>
-      );
-    }
-
-    const ProviderComponent2: React.FunctionComponent = () => {
-      return (
-        <div>
-          useComponent with ProviderComponent2 works!
-        </div>
-      );
-    }
-
-    const components: ComponentProvider[] = [
-      {
-        name: 'ProviderComponent1',
-        component: ProviderComponent1,
-      },
-      {
-        name: 'ProviderComponent2',
-        component: ProviderComponent2,
-      }
-    ];
-
-    const TestComponent: React.FunctionComponent = () => {
-      const ProviderComponent_1 = useComponent('ProviderComponent1');
-      const ProviderComponent_2 = useComponent('ProviderComponent2');
-
-      return (
-        <div>
-          <ProviderComponent_1 />
-          <ProviderComponent_2 />
-        </div>
-      );
-    }
-
-    render(
-      <Module components={components}>
         <TestComponent />
       </Module>
     )
@@ -216,10 +162,10 @@ describe('useComponent hook', function() {
       );
     }
 
-    const components: ComponentProvider[] = [
+    const providers: Provider[] = [
       {
-        name: CommonComponent,
-        component: ProviderComponent,
+        provide: CommonComponent,
+        useValue: ProviderComponent,
       },
     ];
 
@@ -234,7 +180,7 @@ describe('useComponent hook', function() {
     }
 
     render(
-      <Module components={components}>
+      <Module module={providers}>
         <TestComponent />
       </Module>
     )
@@ -262,10 +208,10 @@ describe('useComponent hook', function() {
       );
     }
 
-    const components: ComponentProvider[] = [
+    const providers: Provider[] = [
       {
-        name: CommonComponent,
-        component: ProviderComponent,
+        provide: CommonComponent,
+        useValue: ProviderComponent,
         useWrapper: Transform({
           transform(PreviousComponent: React.FunctionComponent<Props>): React.FunctionComponent<Props> {
             const WrappedComponent: React.FunctionComponent<Props> = (props) => {
@@ -280,7 +226,6 @@ describe('useComponent hook', function() {
             }
             return WrappedComponent;
           },
-          inject: [Delegate()]
         })
       },
     ];
@@ -298,7 +243,7 @@ describe('useComponent hook', function() {
     }
 
     render(
-      <Module components={components}>
+      <Module module={providers}>
         <TestComponent />
       </Module>
     )

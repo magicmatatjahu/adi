@@ -1,5 +1,7 @@
-import { Delegate, Injectable, Provider, Transform } from "@adi/core";
 import { render, screen } from '@testing-library/react';
+
+import { Injectable, Provider } from "@adi/core";
+import { Transform } from "@adi/common";
 
 import { Module, useInjections } from "../../src";
 
@@ -92,7 +94,7 @@ describe('useInjections hook', function() {
 
     const transformWrapper = {
       transform(value: string, forTransform: string) { return value + forTransform },
-      inject: [Delegate(), 'forTransform'],
+      inject: ['forTransform'],
     }
     const TestComponent: React.FunctionComponent = () => {
       const [service, useFactory, useValue] = useInjections(Service, { token: 'useFactory', wrapper: Transform(transformWrapper) }, 'useValue');

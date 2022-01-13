@@ -525,7 +525,7 @@ describe('Instance scope', function () {
       await injector.destroy();
   
       // last instance is from TransientInstance created by 'instanceCtx' context
-      expect(destroyOrder).toEqual(['transient', 'instance', 'singleton', 'instance']);
+      expect(destroyOrder).toEqual(['transient', 'instance', 'instance', 'singleton']);
     });
   });
 });

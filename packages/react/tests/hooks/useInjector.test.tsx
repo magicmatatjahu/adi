@@ -1,6 +1,7 @@
-import { Injectable } from "@adi/core";
 import { render, screen } from '@testing-library/react';
 import { useContext } from "react";
+
+import { Injectable } from "@adi/core";
 
 import { InjectorContext, Module, useInjector } from "../../src";
 

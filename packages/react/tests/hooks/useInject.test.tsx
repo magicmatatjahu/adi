@@ -1,5 +1,6 @@
-import { Injectable, Optional } from "@adi/core";
 import { render, screen } from '@testing-library/react';
+
+import { Injectable, Optional } from "@adi/core";
 
 import { Module, useInject } from "../../src";
 

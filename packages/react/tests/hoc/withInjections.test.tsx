@@ -1,6 +1,7 @@
-import { Injectable, Module as ADIModule } from "@adi/core";
 import { render, screen } from '@testing-library/react';
 import { Component } from "react";
+
+import { Injectable, Module as ADIModule } from "@adi/core";
 
 import { Module, withInjections } from "../../src";
 

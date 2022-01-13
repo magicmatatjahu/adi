@@ -944,7 +944,7 @@ describe('Instance scope', function () {
       await injector.destroy();
   
       // last instance is from TransientInstance created by 'instanceCtx' context
-      expect(destroyOrder).toEqual(['transient', 'local', 'singleton', 'local']);
+      expect(destroyOrder).toEqual(['transient', 'local', 'local', 'singleton']);
     });
 
     test('should destroy free instances when created through a method injection and when parent has dynamic scope, e.g. Transient' , async function() {
