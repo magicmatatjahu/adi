@@ -1026,14 +1026,6 @@ describe('Module hierarchy', function() {
   });
 
   test('should work with .getChild() - deep imports', function() {
-    /*
-     *  D
-     *  |
-     *  B C
-     *   \|
-     *    A
-     */
-
     @Injectable()
     class Service {}
 
@@ -1057,5 +1049,353 @@ describe('Module hierarchy', function() {
     const moduleD = injector.getChild(ModuleB).getChild(ModuleC).getChild(ModuleD);
     const service = moduleD.get(Service);
     expect(service).toBeInstanceOf(Service);
+  });
+
+  describe('with useFactory', function() {
+    test('should be able to use useFactory to create "dynamic" metadata', function() {
+      @Injectable()
+      class Service {}
+  
+      @Module()
+      class ModuleC {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleC,
+            useFactory() {
+              return {
+                providers: [Service],
+                exports: [Service],
+              }
+            }
+          }
+        }
+      }
+  
+      @Module()
+      class ModuleB {}
+  
+      @Module({ 
+        imports: [ModuleB, ModuleC.withUseFactory()] 
+      })
+      class ModuleA {}
+
+      const injector = Injector.create(ModuleA).build();
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+    });
+
+    test('should be able to inject providers in useFactory', function() {
+      @Injectable()
+      class FactoryService {}
+
+      @Injectable()
+      class InlineService {}
+  
+      @Module({
+        providers: [InlineService],
+      })
+      class ModuleC {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleC,
+            useFactory(service: InlineService) {
+              if (service instanceof InlineService) {
+                return {
+                  providers: [FactoryService],
+                  exports: [FactoryService],
+                }
+              }
+            },
+            inject: [InlineService],
+          }
+        }
+      }
+  
+      @Module()
+      class ModuleB {}
+  
+      @Module({ 
+        imports: [ModuleB, ModuleC.withUseFactory()] 
+      })
+      class ModuleA {}
+
+      const injector = Injector.create(ModuleA).build();
+      const service = injector.get(FactoryService);
+      expect(service).toBeInstanceOf(FactoryService);
+    });
+
+    test('should work with imports in useFactory', function() {
+      @Injectable()
+      class ServiceD {}
+
+      @Injectable()
+      class InlineService {}
+
+      @Module({
+        providers: [ServiceD],
+        exports: [ServiceD],
+      })
+      class ModuleD {}
+  
+      @Module({
+        providers: [InlineService],
+      })
+      class ModuleC {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleC,
+            useFactory(service: InlineService) {
+              if (service instanceof InlineService) {
+                return {
+                  imports: [ModuleD],
+                  exports: [ServiceD],
+                }
+              }
+            },
+            inject: [InlineService],
+          }
+        }
+      }
+  
+      @Module()
+      class ModuleB {}
+  
+      @Module({ 
+        imports: [ModuleB, ModuleC.withUseFactory()] 
+      })
+      class ModuleA {}
+
+      const injector = Injector.create(ModuleA).build();
+      const service = injector.get(ServiceD);
+      expect(service).toBeInstanceOf(ServiceD);
+    });
+
+    test('should work with deep imports', function() {
+      @Injectable()
+      class ServiceD {}
+
+      @Injectable()
+      class ServiceE {}
+
+      @Injectable()
+      class InlineService {}
+
+      let serviceE: ServiceE;
+
+      @Module({
+        exports: [ServiceE],
+      })
+      class ModuleE {}
+
+      @Module({
+        imports: [ModuleE],
+        providers: [ServiceD],
+        exports: [ServiceD],
+      })
+      class ModuleD {
+        constructor(
+          readonly service: ServiceE,
+        ) {
+          serviceE = service;
+        }
+      }
+  
+      @Module({
+        providers: [InlineService],
+      })
+      class ModuleC {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleC,
+            useFactory(service: InlineService) {
+              if (service instanceof InlineService) {
+                return {
+                  imports: [ModuleD],
+                  exports: [ServiceD],
+                }
+              }
+            },
+            inject: [InlineService],
+          }
+        }
+      }
+  
+      @Module()
+      class ModuleB {}
+  
+      @Module({ 
+        imports: [ModuleB, ModuleC.withUseFactory()] 
+      })
+      class ModuleA {}
+
+      const injector = Injector.create(ModuleA).build();
+      const service = injector.get(ServiceD);
+      expect(service).toBeInstanceOf(ServiceD);
+      expect(serviceE).toBeInstanceOf(ServiceE);
+    });
+
+    test('should work with deep useFactory', function() {
+      @Injectable()
+      class ServiceD {}
+
+      @Injectable()
+      class ServiceE {}
+
+      @Injectable()
+      class InlineService {}
+
+      let serviceE: ServiceE;
+
+      @Module({
+        exports: [ServiceE],
+      })
+      class ModuleE {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleE,
+            useFactory() {
+              return {
+                exports: [ServiceE],
+              }
+            }
+          }
+        }
+      }
+
+      @Module({
+        imports: [ModuleE.withUseFactory()],
+        providers: [ServiceD],
+        exports: [ServiceD],
+      })
+      class ModuleD {
+        constructor(
+          readonly service: ServiceE,
+        ) {
+          serviceE = service;
+        }
+      }
+  
+      @Module({
+        providers: [InlineService],
+      })
+      class ModuleC {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleC,
+            useFactory(service: InlineService) {
+              if (service instanceof InlineService) {
+                return {
+                  imports: [ModuleD],
+                  exports: [ServiceD],
+                }
+              }
+            },
+            inject: [InlineService],
+          }
+        }
+      }
+  
+      @Module()
+      class ModuleB {}
+  
+      @Module({ 
+        imports: [ModuleB, ModuleC.withUseFactory()] 
+      })
+      class ModuleA {}
+
+      const injector = Injector.create(ModuleA).build();
+      const service = injector.get(ServiceD);
+      expect(service).toBeInstanceOf(ServiceD);
+      expect(serviceE).toBeInstanceOf(ServiceE);
+    });
+
+    test('should work with the correct initialization order', function() {
+      const order: string[] = [];
+
+      @Injectable()
+      class ServiceD {}
+
+      @Injectable()
+      class ServiceE {}
+
+      @Injectable()
+      class InlineService {}
+
+      @Module({
+        exports: [ServiceE],
+      })
+      class ModuleE {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleE,
+            useFactory() {
+              return {
+                exports: [ServiceE],
+              }
+            }
+          }
+        }
+
+        constructor() {
+          order.push('E');
+        }
+      }
+
+      @Module({
+        imports: [ModuleE.withUseFactory()],
+        providers: [ServiceD],
+        exports: [ServiceD],
+      })
+      class ModuleD {
+        constructor() {
+          order.push('D');
+        }
+      }
+  
+      @Module({
+        providers: [InlineService],
+      })
+      class ModuleC {
+        static withUseFactory(): DynamicModule {
+          return {
+            module: ModuleC,
+            useFactory(service: InlineService) {
+              if (service instanceof InlineService) {
+                return {
+                  imports: [ModuleD],
+                  exports: [ServiceD],
+                }
+              }
+            },
+            inject: [InlineService],
+          }
+        }
+
+        constructor() {
+          order.push('C');
+        }
+      }
+  
+      @Module()
+      class ModuleB {
+        constructor() {
+          order.push('B');
+        }
+      }
+  
+      @Module({ 
+        imports: [ModuleB, ModuleC.withUseFactory()] 
+      })
+      class ModuleA {
+        constructor() {
+          order.push('A');
+        }
+      }
+
+      const injector = Injector.create(ModuleA).build();
+      const service = injector.get(ServiceD);
+      expect(service).toBeInstanceOf(ServiceD);
+      expect(order).toEqual(['E', 'D', 'C', 'B', 'A']);
+    });
   });
 });

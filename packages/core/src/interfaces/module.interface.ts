@@ -1,4 +1,4 @@
-import { Provider, ForwardRef, Type } from ".";
+import { InjectionItem, Provider, ForwardRef, Type, FactoryDef } from ".";
 import { Injector } from "../injector";
 import { Token } from "../types";
 import { ModuleDef } from "./definition.interface";
@@ -13,6 +13,8 @@ export interface ModuleMetadata {
 export interface DynamicModule<T = any> extends ModuleMetadata {
   module: Type<T>;
   id?: ModuleID;
+  useFactory?: (...args: any[]) => ModuleMetadata | Promise<ModuleMetadata> | void | Promise<void>;
+  inject?: Array<InjectionItem>;
 }
 
 export type ModuleID = string | symbol;
@@ -42,7 +44,9 @@ export interface CompiledModule {
   type: Type;
   moduleDef: ModuleDef;
   dynamicDef: DynamicModule;
+  useFactory: FactoryDef<ModuleMetadata>;
   injector: Injector;
   exportTo: Injector;
   isProxy: boolean;
+  stack: CompiledModule[];
 }

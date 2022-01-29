@@ -330,6 +330,24 @@ export class Injector {
     providers && toRecord(providers, this, isComponent);
   }
 
+  update(token: Token, fn: (record: ProviderRecord) => void): void;
+  update(token: Token, defName: string | symbol, fn: (def: DefinitionRecord) => void): void;
+  update(token: Token, defOrRecordFn: ((record: ProviderRecord) => void) | string | symbol, defFn?: (def: DefinitionRecord) => void): void {
+    if (this.status & InjectorStatus.DESTROYED) return;
+
+    const record = this.records.get(token);
+    if (!record) return;
+
+    if (typeof defOrRecordFn === 'function') {
+      defOrRecordFn(record);
+      return;
+    }
+
+    const definitions = [...record.defs, ...record.constraintDefs];
+    const def = definitions.find(def => def.name === defOrRecordFn);
+    def && defFn(def);
+  }
+
   remove(token: Token, defName?: string | symbol) {
     const record = this.records.get(token);
     if (!record) {
@@ -364,6 +382,17 @@ export class Injector {
   //   const session = Session.create(undefined, { target: fun, kind: InjectionKind.STANDALONE });
   //   return InjectorResolver.injectDepsAsync(deps, this, session).then(args => fun(...args));
   // }
+
+  /**
+   * IMPORTS
+   */
+  import(
+    metatype: Type<any> | ModuleMetadata | Array<Provider> = [],
+    options?: InjectorOptions,
+  ): Injector {
+    const injector = new Injector(metatype, this, options);
+    return injector.build();
+  }
 
   /**
    * EXPORTS
