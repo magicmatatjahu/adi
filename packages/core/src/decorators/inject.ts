@@ -3,26 +3,26 @@ import { InjectionKind } from "../enums";
 import { InjectionToken } from "../injector/injection-token";
 import { Reflection } from "../utils";
 
-import { ProviderToken, InjectionHook, Annotations, InjectionMetadata, InjectionArgument } from "../interfaces";
+import { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata, InjectionArgument } from "../interfaces";
 import { createInjectionArgument } from "../injector/metadata";
 
 export function Inject<T = any>(token?: ProviderToken<T>);
 export function Inject<T = any>(hooks?: Array<InjectionHook>);
-export function Inject<T = any>(annotations?: Annotations);
-export function Inject<T = any>(token?: ProviderToken<T>, annotations?: Annotations);
-export function Inject<T = any>(hooks?: Array<InjectionHook>, annotations?: Annotations);
-export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: Annotations);
-export function Inject<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | Annotations, hooks?: Array<InjectionHook> | Annotations, annotations?: Annotations) {
+export function Inject<T = any>(annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
   if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
     if (Array.isArray(token)) { // hooks
-      annotations = hooks as Annotations;
+      annotations = hooks as InjectionAnnotations;
       hooks = token;
     } else {
-      annotations = token as Annotations;
+      annotations = token as InjectionAnnotations;
     }
     token = undefined;
   } else if (typeof hooks === 'object' && !Array.isArray(hooks)) { // case with two arguments argument
-    annotations = hooks as Annotations;
+    annotations = hooks as InjectionAnnotations;
     hooks = [];
   }
   annotations = annotations || {};

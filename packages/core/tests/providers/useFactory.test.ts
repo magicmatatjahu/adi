@@ -2,19 +2,19 @@ import { Injector, Token } from "../../src";
 
 describe('useFactory', function() {
   test('should work with simple provider', function() {
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'useFactory',
         useFactory() { return "foobar" },
       },
-    ]);
+    ]).init() as Injector;
 
     const resolvedToken = injector.get<string>('useFactory');
     expect(resolvedToken).toEqual('foobar');
   });
 
   test('should work with injection array (single param)', function() {
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'useValue',
         useValue: 'foobar',
@@ -24,14 +24,14 @@ describe('useFactory', function() {
         useFactory(foobar) { return foobar },
         inject: ['useValue']
       },
-    ]);
+    ]).init() as Injector;
 
     const resolvedToken = injector.get<string>('useFactory');
     expect(resolvedToken).toEqual('foobar');
   });
 
   test('should work with injection array (multiple params)', function() {
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'useValue1',
         useValue: 'foobar',
@@ -45,14 +45,14 @@ describe('useFactory', function() {
         useFactory(foobar, barfoo) { return [foobar, barfoo] },
         inject: ['useValue1', 'useValue2']
       },
-    ]);
+    ]).init() as Injector;
 
     const resolvedToken = injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
   });
 
   test('should work in async resolution', async function() {
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'useValue1',
         useValue: 'foobar',
@@ -66,14 +66,14 @@ describe('useFactory', function() {
         async useFactory(foobar, barfoo) { return [foobar, barfoo] },
         inject: ['useValue1', 'useValue2']
       },
-    ]);
+    ]).init() as Injector;
 
     const resolvedToken = await injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
   });
 
   test('should work with hooks and plain injection item', function() {
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'useValue1',
         useValue: 'foobar',
@@ -87,7 +87,7 @@ describe('useFactory', function() {
         useFactory(foobar, barfoo) { return [foobar, barfoo] },
         inject: [[Token('useValue1')], { token: 'useValue2' }]
       },
-    ]);
+    ]).init() as Injector;
 
     const resolvedToken = injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);

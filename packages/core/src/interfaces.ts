@@ -5,6 +5,7 @@ import type { InjectionToken } from './injector/injection-token';
 import type { Injector } from './injector/injector';
 import type { Session } from './injector/session';
 import type { ScopeType } from './scopes';
+import type { ForwardReference } from './utils';
 
 // COMMON
 export interface ClassType<T = any> extends Function {
@@ -13,10 +14,6 @@ export interface ClassType<T = any> extends Function {
 
 export interface AbstractClassType<T = any> extends Function {
   prototype: T;
-}
-
-export interface Annotations {
-  [key: string | symbol]: any;
 }
 
 // TOKEN
@@ -33,17 +30,18 @@ export interface ModuleMetadata {
   exports?: Array<ModuleExportItem>;
 }
 
+export type ModuleID = string | symbol;
+
 export interface DynamicModule<T = any> extends ModuleMetadata {
   module: ClassType<T>;
-  // id?: ModuleID;
+  id?: ModuleID;
 }
 
 export type ModuleImportItem = 
-  | ProviderToken
+  | ClassType
   | DynamicModule
   | Promise<ClassType | DynamicModule>
-  | Promise<ProviderToken>
-  // | ForwardRef;
+  | ForwardReference;
 
 export type ModuleExportItem = 
   | ProviderToken
@@ -51,9 +49,14 @@ export type ModuleExportItem =
   // | ExportedModule
   | DynamicModule
   | Promise<DynamicModule>
-  // | ForwardRef;
+  | ForwardReference;
 
-export interface InjectorOptions {}
+export type InjectorScope<T = any> = string | symbol | ClassType<T>;
+
+export interface InjectorOptions {
+  id?: ModuleID;
+  scopes?: Array<InjectorScope>;
+}
 
 // PROVIDER
 export type Provider<T = any> = 
@@ -80,7 +83,7 @@ export interface ClassProvider<T = any> {
   scope?: ScopeType;
   hooks?: Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: Annotations;
+  annotations?: ProviderAnnotations;
 
   useFactory?: never;
   useValue?: never;
@@ -96,7 +99,7 @@ export interface FactoryProvider<T = any> {
   scope?: ScopeType;
   hooks?: Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: Annotations;
+  annotations?: ProviderAnnotations;
 
   useClass?: never;
   useValue?: never;
@@ -110,7 +113,7 @@ export interface ValueProvider<T = any> {
   useValue: T;
   hooks?: Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: Annotations;
+  annotations?: ProviderAnnotations;
 
   useClass?: never;
   useFactory?: never;
@@ -124,7 +127,7 @@ export interface ExistingProvider<T = any> {
   useExisting: ProviderToken<any>;
   hooks?: Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: Annotations;
+  annotations?: ProviderAnnotations;
 
   useClass?: never;
   useFactory?: never;
@@ -137,13 +140,25 @@ export interface HookProvider<T = any> {
   provide?: ProviderToken<T>;
   hooks: Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: Annotations;
+  annotations?: ProviderAnnotations;
 
   useClass?: never;
   useFactory?: never;
   useValue?: never;
   inject?: never;
   scope?: ScopeType;
+}
+
+export interface ProviderAnnotations {
+  'adi:name'?: string;
+  'adi:tags'?: Array<string>;
+  'adi:order'?: number;
+  'adi:config'?: any;
+  'adi:eager'?: boolean;
+  'adi:visible'?: 'public' | 'private';
+  'adi:override'?: 'all' | string;
+  'adi:export'?: boolean;
+  [key: string | symbol]: any;
 }
 
 export interface ProviderRecord<T = any> {
@@ -161,7 +176,7 @@ export interface ProviderDefinition<T = any> {
   scope: ScopeType;
   when: ConstraintDefinition | undefined;
   hooks: Array<InjectionHook>;
-  annotations: Annotations;
+  annotations: ProviderAnnotations;
   values: Map<Context, ProviderInstance<T>>;
   meta: Record<string | symbol, any>;
 }
@@ -185,7 +200,7 @@ export interface ProviderInstance<T = any> {
 export interface HookRecord {
   hook: InjectionHook;
   when: ConstraintDefinition | undefined;
-  annotations: Annotations;
+  annotations: ProviderAnnotations;
 }
 
 export interface DefinitionFactory {
@@ -206,12 +221,17 @@ export interface InjectionHookDefinition {
 export type NextHook<T = any> = (session: Session) => Promise<T | undefined> | T | undefined;
 
 // INJECTION
+export interface InjectionAnnotations {
+  'adi:named'?: string;
+  'adi:tagged'?: Array<string>;
+  [key: string | symbol]: any;
+}
+
 export interface InjectionOptions<T = any> {
   token: ProviderToken<T>;
   ctx: Context;
   scope: ScopeType;
-  annotations: Annotations;
-  meta: Record<string | symbol, any>;
+  annotations: InjectionAnnotations;
 }
 
 export interface InjectionMetadata {
@@ -220,7 +240,7 @@ export interface InjectionMetadata {
   key?: string | symbol;
   index?: number;
   handler?: Function;
-  annotations?: Annotations;
+  annotations?: InjectionAnnotations;
 }
 
 export interface InjectionArgument<T = any> {
@@ -249,7 +269,7 @@ export type InjectionItem<T = any> =
 export interface PlainInjectionItem<T = any> { 
   token: ProviderToken<T>;
   hooks?: Array<InjectionHook>; 
-  annotations?: Annotations;
+  annotations?: InjectionAnnotations;
 };
 
 export interface PlainInjections {
@@ -261,15 +281,16 @@ export interface PlainInjections {
 
 // DECORATORS
 export type InjectableOptions = {
-  // provideIn?: ProvideInType | ProvideInType[];
+  provideIn?: InjectorScope | Array<InjectorScope>;
   scope?: ScopeType;
   hooks?: Array<InjectionHook>; 
-  annotations?: Annotations;
+  annotations?: ProviderAnnotations;
 }
 
 // DEFINITIONS
 export interface InjectableDefinition<T = any> {
   token: ClassType<T> | AbstractClassType<T> | InjectionToken<T>;
+  status: 'partially' | 'full';
   options: InjectableOptions;
   injections: InjectionArguments;
   meta: Record<string | symbol, any>;

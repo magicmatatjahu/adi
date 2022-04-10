@@ -11,7 +11,7 @@ export function Injectable(options?: InjectableOptions): ClassDecorator {
   }
 }
 
-export function injectableMixin(target: Function, options: InjectableOptions, injections?: PlainInjections): void {
+export function injectableMixin(target: Function, options?: InjectableOptions, injections?: PlainInjections): void {
   applyInjectableDefinition(target, options);
 }
 
@@ -29,11 +29,12 @@ export function ensureInjectableDefinition<T>(injectable: T): InjectableDefiniti
   return injectable[ADI_INJECTABLE_DEF];
 }
 
-function applyInjectableDefinition<T>(target: Function, options?: InjectableOptions): InjectableDefinition<T> | undefined {
+function applyInjectableDefinition<T>(target: Function, options: InjectableOptions = {}, injections?: PlainInjections): InjectableDefinition<T> | undefined {
   if (typeof target !== 'function') return;
 
   const paramtypes = Reflection.getOwnMetadata("design:paramtypes", target) || [];
   const def = ensureInjectableDefinition(target);
+  def.status = 'full';
   def.options = Object.assign(def.options, options);
 
   // check inheritance
@@ -43,6 +44,7 @@ function applyInjectableDefinition<T>(target: Function, options?: InjectableOpti
 function defineInjectableDefinition<T>(token: T): InjectableDefinition<T> {
   return {
     token,
+    status: 'partially',
     options: {},
     injections: {
       parameters: [],
@@ -62,11 +64,12 @@ function inheritance(target: Function, def: InjectableDefinition, parameters: Ar
 
   const inheritedClass = Object.getPrototypeOf(target);
   let inheritedDef = getInjectableDefinition(inheritedClass);
-  if (inheritedDef === undefined
-    // checks whether the injectable definition has been fully initialized - by saving injectable's configuration
-    // inheritedDef.factory === undefine // TODO: FIX IT
+  if (
+    inheritedDef === undefined ||
+    inheritedDef.status === 'partially'
   ) {
-    inheritedDef = getInjectableDefinition(injectableMixin(inheritedClass, {}));
+    injectableMixin(inheritedClass);
+    inheritedDef = getInjectableDefinition(inheritedClass);
   }
 
   const injections = def.injections;
@@ -91,7 +94,8 @@ function inheritance(target: Function, def: InjectableDefinition, parameters: Ar
   const inheritedProps = inheritedInjections.properties;
   const props = Object.keys(inheritedProps);
   props.push(...Object.getOwnPropertySymbols(inheritedProps) as any[]);
-  for (let key in props) {
+  for (let i = 0, l = props.length; i < l; i++) {
+    const key = props[i];
     const inheritedProp = inheritedProps[key];
     defProps[key] = defProps[key] || createInjectionArgument(inheritedProp.token, inheritedProp.hooks, { ...inheritedProp.metadata, target });
   }

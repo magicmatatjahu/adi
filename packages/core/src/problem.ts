@@ -1,15 +1,8 @@
-// import { NilInjectorError } from "../errors";
-// import { createWrapper, thenable } from "../utils";
+import { ProviderToken } from "./interfaces";
 
-// export const Optional = createWrapper((defaultValue?: any) => {
-//   return (session, next) => {
-//     return thenable(
-//       () => next(session),
-//       val => val,
-//       err => {
-//         if (err instanceof NilInjectorError) return defaultValue;
-//         throw err;
-//       }
-//     );
-//   }
-// }, { name: 'Optional' });
+export class NilInjectorError extends Error {
+  constructor(token: ProviderToken) {
+    const name = (token as any).name;
+    super(`NilInjector: No provider for ${name || token}!`);
+  }
+}

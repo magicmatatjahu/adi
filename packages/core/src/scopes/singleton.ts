@@ -1,6 +1,7 @@
 import { Scope, createScope } from "./scope";
 import { STATIC_CONTEXT } from "../constants";
 import { Context } from "../injector";
+import { getHostInjector } from "../utils";
 // import { DestroyEvent, InstanceRecord } from "../interfaces";
 
 import type { Injector, Session } from "../injector";
@@ -18,7 +19,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
 
   override getContext(session: Session, options: SingletonScopeOptions): Context {
     if (options.perInjector === true) {
-      const hostInjector = session.parent?.ctx.record.host; // retrieve host injector (injector from parent record)
+      const hostInjector = getHostInjector(session);
       let ctx = this.contexts.get(hostInjector) as Context;
       if (ctx === undefined) {
         ctx = new Context(STATIC_CONTEXT.data);
@@ -39,6 +40,10 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
   //   // destroy only on `injector` event and when parents don't exist 
   //   return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
   // };
+
+  override canBeOverrided(): boolean {
+    return false;
+  }
 }
 
 export default createScope<SingletonScopeOptions>(new SingletonScope(), { perInjector: false });

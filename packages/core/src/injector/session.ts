@@ -1,5 +1,5 @@
 import { ADI_INJECTABLE_DEF } from '../constants';
-import { SessionFlag } from '../enums';
+import { InjectionKind, SessionFlag } from '../enums';
 
 import type { Injector } from './injector';
 import type { InjectionOptions, InjectionMetadata, ProviderRecord, ProviderDefinition, ProviderInstance, InjectableDefinition } from '../interfaces';
@@ -40,6 +40,7 @@ export class Session<T = any> {
 
   static [ADI_INJECTABLE_DEF]: InjectableDefinition = {
     token: Session,
+    status: 'full',
     options: {
       hooks: [(session) => {
         session.setFlag(SessionFlag.SIDE_EFFECTS);

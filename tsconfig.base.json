@@ -8,12 +8,11 @@
     "noLib": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "target": "es6",
+    "target": "ES2015",
     "sourceMap": false,
     "allowJs": true,
-    "outDir": "dist",
+    "outDir": "lib",
     "lib": ["es7"]
   },
-  "include": ["packages/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "exclude": ["node_modules"]
 }

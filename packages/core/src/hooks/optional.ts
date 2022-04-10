@@ -1,24 +1,18 @@
 import { createHook } from "./hook";
-import { thenable } from "../utils";
-
-// import type { InjectionHook } from "../interfaces";
+import { NilInjectorError } from "../problem";
+import { wait } from "../utils";
 
 export const Optional = createHook((defaultValue?: any) => {
   return (session, next) => {
-    return thenable(
+    return wait(
       () => next(session),
       val => val,
       err => {
-        // if (err instanceof NilInjectorError) return defaultValue;
+        if (err instanceof NilInjectorError) {
+          return defaultValue;
+        }
         throw err;
       }
     );
   }
 }, { name: 'adi:hook:optional' })
-
-
-// function lol<T>(type: T, lol: InjectionHook<T>): T {
-//   return;
-// }
-
-// lol<string>('lol', Optional())
