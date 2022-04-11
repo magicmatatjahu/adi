@@ -10,7 +10,7 @@ export enum InstanceStatus {
   PENDING = 2,
   RESOLVED = 4,
   DESTROYED = 8,
-  HOST_DESTROYED = 16,
+  DEFINITION_DESTROYED = 16,
   CIRCULAR = 32,
 }
 

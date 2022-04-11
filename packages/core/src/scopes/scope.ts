@@ -1,12 +1,11 @@
-import type { Context } from '../injector/context';
-import type { Session } from '../injector/session';
+import type { Context, Session, DestroyContext } from '../injector';
 
 export interface ScopeType<O = any> {
   (options: O): {
-    scope: Scope<O>;
+    kind: Scope<O>;
     options: O;
   };
-  scope: Scope<O>;
+  kind: Scope<O>;
   options: O;
 }
 
@@ -18,11 +17,11 @@ export abstract class Scope<O = any> {
     options: O,
   ): Context;
 
-  // public abstract canDestroy(
-  //   // event: DestroyEvent,
-  //   session: Session,
-  //   options: O,
-  // ): boolean;
+  public abstract canDestroy(
+    session: Session,
+    options: O,
+    ctx: DestroyContext,
+  ): boolean;
 
   public canBeOverrided(): boolean {
     return true;
@@ -32,14 +31,14 @@ export abstract class Scope<O = any> {
 export function createScope<O = any>(scope: Scope<O>, defaultOptions: O): ScopeType<O> {
   function scopeType(options: O) {
     return {
-      scope,
+      kind: scope,
       options: {
         ...defaultOptions,
         ...options,
       },
     }
   };
-  (scopeType as ScopeType<O>).scope = scope;
+  (scopeType as ScopeType<O>).kind = scope;
   (scopeType as ScopeType<O>).options = defaultOptions;
   return scopeType as ScopeType<O>;
 }

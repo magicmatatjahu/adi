@@ -1,4 +1,5 @@
 export * from './context';
+export * from './garbage-collector';
 export * from './injection-token';
 export * from './injector';
 export * from './metadata';

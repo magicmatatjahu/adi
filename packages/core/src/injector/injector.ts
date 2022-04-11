@@ -1,3 +1,4 @@
+import { destroyInjector } from './garbage-collector';
 import { toProviderRecord } from './metadata';
 import { initModule, importModule, exportModule } from './module';
 import { inject } from './resolver';
@@ -54,6 +55,11 @@ export class Injector {
   init(): Injector | Promise<Injector> {
     if (this.status & InjectorStatus.INITIALIZED) return; 
     return initModule(this);
+  }
+
+  destroy(): Promise<void> {
+    if (this.status & InjectorStatus.DESTROYED) return; 
+    return destroyInjector(this);
   }
 
   get<T>(token: ProviderToken<T>, hooks?: Array<InjectionHook>, session?: Session): T | Promise<T> {

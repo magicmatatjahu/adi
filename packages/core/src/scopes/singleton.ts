@@ -2,9 +2,8 @@ import { Scope, createScope } from "./scope";
 import { STATIC_CONTEXT } from "../constants";
 import { Context } from "../injector";
 import { getHostInjector } from "../utils";
-// import { DestroyEvent, InstanceRecord } from "../interfaces";
 
-import type { Injector, Session } from "../injector";
+import type { Injector, Session, DestroyContext } from "../injector";
 
 export interface SingletonScopeOptions {
   perInjector?: boolean;
@@ -36,10 +35,11 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
     return STATIC_CONTEXT;
   }
 
-  // public canDestroy(event: DestroyEvent, instance: InstanceRecord): boolean {
-  //   // destroy only on `injector` event and when parents don't exist 
-  //   return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
-  // };
+  override canDestroy(session: Session, _: SingletonScopeOptions, ctx: DestroyContext): boolean {
+    return false;
+    // destroy only on `injector` event and when parents don't exist 
+    // return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
+  };
 
   override canBeOverrided(): boolean {
     return false;

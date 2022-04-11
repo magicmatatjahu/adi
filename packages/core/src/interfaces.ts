@@ -178,9 +178,9 @@ export interface ProviderRecord<T = any> {
 }
 
 export interface ProviderDefinition<T = any> {
+  record: ProviderRecord<T>;
   kind: ProviderKind;
   provider: Provider,
-  record: ProviderRecord<T>;
   factory: DefinitionFactory,
   scope: ScopeType;
   when: ConstraintDefinition | undefined;
@@ -200,10 +200,10 @@ export interface ProviderInstance<T = any> {
   // // for pararell resolution
   // donePromise?: Promise<T>;
   // doneResolve?: (value: T) => void;
-  // // what is injected to instance
-  // children?: Set<InstanceRecord>;
-  // // where instance is injected
-  // parents?: Set<InstanceRecord>;
+  // what is injected to instance
+  children?: Set<ProviderInstance>;
+  // where instance is injected
+  parents?: Set<ProviderInstance>;
 }
 
 export interface HookRecord {
@@ -287,6 +287,15 @@ export interface PlainInjections {
   properties?: Record<string | symbol, InjectionItem>;
   methods?: Record<string, Array<InjectionItem>>;
   override?: (arg: InjectionArgument) => InjectionItem | undefined;
+}
+
+// LIFECYCLE
+export interface OnInit {
+  onInit(): void | Promise<void>;
+}
+
+export interface OnDestroy {
+  onDestroy(): void | Promise<void>;
 }
 
 // DECORATORS

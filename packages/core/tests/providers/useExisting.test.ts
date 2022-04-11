@@ -111,7 +111,7 @@ describe('useExisting', function() {
     expect(useExisting === injector.get<Service>(Service)).toEqual(true);
   });
 
-  test.only('should work with named injection', function() {
+  test('should work with named injection', function() {
     const injector = Injector.create([
       {
         provide: 'foobar',

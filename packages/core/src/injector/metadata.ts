@@ -65,7 +65,7 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
     const def = getInjectableDefinition(provider.useClass);
     if (def) {
       const options = def.options;
-      if (options.scope && options.scope.scope.canBeOverrided() === false) {
+      if (options.scope && options.scope.kind.canBeOverrided() === false) {
         scope = options.scope;
       }
       annotations = (Object.keys(annotations).length ? annotations : options.annotations) || {};
@@ -93,11 +93,11 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
 export function getProviderInstance<T>(session: Session): ProviderInstance<T> {
   const def = session.ctx.def;
   let scope = def.scope;
-  if (scope.scope.canBeOverrided()) {
+  if (scope.kind.canBeOverrided()) {
     scope = session.options.scope || scope;
   }
 
-  const ctx = scope.scope.getContext(session, scope.options) || STATIC_CONTEXT;
+  const ctx = scope.kind.getContext(session, scope.options) || STATIC_CONTEXT;
   let instance = def.values.get(ctx);
   if (instance === undefined) {
     instance = {
@@ -107,9 +107,22 @@ export function getProviderInstance<T>(session: Session): ProviderInstance<T> {
       status: InstanceStatus.UNKNOWN,
       scope,
       meta: {},
+      children: undefined,
+      parents: undefined,
     };
     def.values.set(ctx, instance);
   }
+
+  // add links
+  if (session.parent) {
+    const parentInstance = session.parent.ctx.instance;
+    // TODO: retrieve first instance
+    if (parentInstance) {
+      (parentInstance.children || (parentInstance.children = new Set())).add(instance);
+      (instance.parents || (instance.parents = new Set())).add(parentInstance);
+    }
+  }
+
   return instance;
 }
 

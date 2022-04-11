@@ -38,11 +38,11 @@ export function waitAll<T>(
 export function waitSequentially<T>(
   data: T[],
   action: (data: T) => any,
-  thenAction?: () => any | never,
+  thenAction: () => any | never = noopThen as any,
   catchAction?: (err: unknown) => any | never,
   idx: number = -1,
 ) {
-  if (data.length === 0) return;
+  if (data.length === 0) return thenAction();
   return _waitSequentially(data, action, thenAction, catchAction, idx);
 }
 

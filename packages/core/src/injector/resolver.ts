@@ -7,6 +7,7 @@ import { wait, waitAll } from '../utils';
 
 import type { Injector } from './injector';
 import type { ClassType, InjectionArgument, InjectionArguments, ProviderToken, ProviderRecord, InjectionHook, ProviderInstance, ProviderDefinition } from '../interfaces';
+import { handleOnInitLifecycle } from '../utils/lifecycle-hooks';
 
 export function inject<T>(injector: Injector, parentSession: Session | undefined, arg: InjectionArgument): T | undefined | Promise<T | undefined> {
   const session = createSession(arg.token, arg.metadata, injector, parentSession);
@@ -162,13 +163,10 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
         value = Object.assign(instance.value, value);
       }
       instance.value = value;
-      return wait(
-        // () => handleOnInit(instance, session),
-        () => {
-          instance.status |= InstanceStatus.RESOLVED;
-          return instance.value;
-        }
-      );
+      return handleOnInitLifecycle(instance, () => {
+        instance.status |= InstanceStatus.RESOLVED;
+        return instance.value;
+      });
     }
   ) as unknown as T | Promise<T>;
 }
@@ -217,6 +215,7 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
       break;
     }
   }
+  
   // TODO: Save circular instance to the cache and resolve in proper order resolution of chain
   instance.value = Object.create(proto);
   return instance.value;
