@@ -46,16 +46,24 @@ export type ModuleImportItem =
 export type ModuleExportItem = 
   | ProviderToken
   | Provider
-  // | ExportedModule
+  | ExportedModule
   | DynamicModule
   | Promise<DynamicModule>
   | ForwardReference;
+
+export type ExportedModule = {
+  from: ClassType;
+  id?: ModuleID;
+  providers?: Array<ProviderToken>;
+}
 
 export type InjectorScope<T = any> = string | symbol | ClassType<T>;
 
 export interface InjectorOptions {
   id?: ModuleID;
   scopes?: Array<InjectorScope>;
+  importing?: 'enabled' | 'disabled';
+  exporting?: 'enabled' | 'disabled';
 }
 
 // PROVIDER
@@ -150,13 +158,14 @@ export interface HookProvider<T = any> {
 }
 
 export interface ProviderAnnotations {
-  'adi:name'?: string;
+  'adi:name'?: string | symbol;
   'adi:tags'?: Array<string>;
   'adi:order'?: number;
   'adi:config'?: any;
   'adi:eager'?: boolean;
+  'adi:use-named'?: string | symbol;
   'adi:visible'?: 'public' | 'private';
-  'adi:override'?: 'all' | string;
+  'adi:override'?: 'all' | 'definition';
   'adi:export'?: boolean;
   [key: string | symbol]: any;
 }
@@ -222,8 +231,9 @@ export type NextHook<T = any> = (session: Session) => Promise<T | undefined> | T
 
 // INJECTION
 export interface InjectionAnnotations {
-  'adi:named'?: string;
-  'adi:tagged'?: Array<string>;
+  'adi:named'?: string | symbol;
+  'adi:tagged'?: Array<string | symbol>;
+  'adi:labelled'?: Record<string | symbol, string | symbol>;
   [key: string | symbol]: any;
 }
 

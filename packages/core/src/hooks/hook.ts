@@ -1,7 +1,7 @@
 import { ADI_HOOK_DEF } from "../constants";
 
 import type { Session } from "../injector/session";
-import type { InjectionHook, InjectionHookDefinition } from "../interfaces";
+import type { InjectionHook, InjectionHookDefinition, NextHook } from "../interfaces";
 
 export function createHook<T, F extends (...args: any) => InjectionHook<T>>(hook: F, options?: InjectionHookDefinition): (...args: Parameters<F>) => InjectionHook<T> {
   if (typeof options === 'object') {
@@ -10,16 +10,12 @@ export function createHook<T, F extends (...args: any) => InjectionHook<T>>(hook
   return hook;
 }
 
-export function runHooks(hooks: Array<InjectionHook>, session: Session) {
-  function nextHook(session: Session, index: number) {
-    return hooks[index](session, (s: Session) => nextHook(s, index+1));
-  }
-  return nextHook(session, 0);
+export function runHooks(hooks: Array<InjectionHook>, session: Session, lastHook: NextHook) {
+  if (hooks.length === 0) return lastHook(session);
+  hooks = [...hooks, lastHook];
+  return _runHooks(hooks, session, 0);
 }
 
-export function filterHooks(hooks: Array<InjectionHook>, session: Session) {
-  function nextHook(session: Session, index: number) {
-    return hooks[index](session, (s: Session) => nextHook(s, index+1));
-  }
-  return nextHook(session, 0);
+function _runHooks(hooks: Array<InjectionHook>, session: Session, index: number) {
+  return hooks[index](session, (s: Session) => _runHooks(hooks, s, index+1));
 }

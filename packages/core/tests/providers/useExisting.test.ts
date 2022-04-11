@@ -1,4 +1,4 @@
-import { Injector, Injectable, TransientScope, createHook } from "../../src";
+import { Injector, Injectable, TransientScope, Named, createHook } from "../../src";
 
 describe('useExisting', function() {
   test('should return value from alias', function() {
@@ -109,5 +109,32 @@ describe('useExisting', function() {
     expect(useExisting).toBeInstanceOf(Service);
     expect(useExisting.prop).toEqual(2);
     expect(useExisting === injector.get<Service>(Service)).toEqual(true);
+  });
+
+  test.only('should work with named injection', function() {
+    const injector = Injector.create([
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+        annotations: {
+          'adi:name': 'foobar',
+        }
+      },
+      {
+        provide: 'foobar',
+        useValue: 'barfoo',
+        annotations: {
+          'adi:name': 'barfoo',
+        }
+      },
+      {
+        provide: 'useExisting',
+        useExisting: 'foobar',
+        hooks: [Named('barfoo')],
+      },
+    ]).init() as Injector;
+
+    const useExisting = injector.get<string>('useExisting') as string;
+    expect(useExisting).toEqual('barfoo');
   });
 });

@@ -4,7 +4,7 @@ import { InjectorStatus } from "../enums";
 import { getModuleDefinition } from "../decorators";
 import { resolveRef, wait, waitAll, waitSequentially } from "../utils";
 
-import type { ClassType, ModuleID, DynamicModule, ModuleImportItem, ModuleMetadata, InjectorOptions, Provider } from "../interfaces";
+import type { ClassType, ModuleID, DynamicModule, ModuleImportItem, ModuleMetadata, ModuleExportItem, InjectorOptions, Provider, ProviderToken, ProviderRecord, CustomProvider, ExportedModule } from "../interfaces";
 
 interface CompiledModule {
   type: ClassType;
@@ -42,8 +42,8 @@ export function importModule(to: Injector, metadata: ModuleImportItem | ModuleMe
   ) as any
 }
 
-export function exportModule(injector: Injector, to: Injector): void {
-
+export function exportModule(exports: Array<ModuleExportItem> = [], from: Injector, to: Injector): void {
+  exports.forEach(exp => processExport(exp, from, to));
 }
 
 function processModule(compiled: CompiledModule, stack: Array<Injector>): void | Promise<void> {
@@ -112,10 +112,10 @@ function processCompiledImportItem(
 
 function processMetadata({ injector, moduleDef, dynamicDef, exportTo }: CompiledModule) {
   injector.provide(...moduleDef.providers || []);
-  injector.export(exportTo, moduleDef.exports);
+  injector.export(moduleDef.exports, exportTo);
   if (dynamicDef) {
     injector.provide(...dynamicDef.providers || []);
-    injector.export(exportTo, dynamicDef.exports);
+    injector.export(dynamicDef.exports, exportTo);
   }
 }
 
@@ -175,6 +175,60 @@ function findModule(injector: Injector, type: ClassType, id: ModuleID): Injector
     parentInjector = parentInjector.parent;
   }
   return undefined;
+}
+
+function processExport(exp: ModuleExportItem, from: Injector, to: Injector): void {
+  exp = resolveRef(exp);
+
+  // exported module or provider
+  if (typeof exp === 'object') {
+    if ((exp as ExportedModule).from) {
+      return processModuleExports(exp as ExportedModule, from, to);
+    }
+
+    if ((exp as CustomProvider).provide) {
+      to.provide(exp as CustomProvider);
+    }
+    return;
+  }
+
+  // classType provider
+  if (typeof exp === 'function') {
+    // maybe module
+    if (getModuleDefinition(exp)) return;
+
+    const record = from.providers.get(exp);
+    return (record && record[0]) ? importRecord(to, exp, record[0]) : to.provide(exp as any);
+  }
+
+  // string, symbol or InjectionToken case
+  const record = from.providers.get(exp);
+  record && record[0] && importRecord(to, exp, record[0]);
+}
+
+function processModuleExports(exportedModule: ExportedModule, from: Injector, to: Injector) {
+  const { from: module, id, providers } = exportedModule;
+  const fromInjector = from.imports.get(module)?.get(id);
+  if (fromInjector === undefined) {
+    throw Error(`Cannot export from ${module} module`);
+  }
+
+  return from.providers.forEach((collection, token) => {
+    collection.forEach(record => {
+      if (record.host === fromInjector && (providers ? providers.includes(token) : true)) {
+        importRecord(to, token, record);
+      }
+    });
+  });
+}
+
+function importRecord(injector: Injector, token: ProviderToken, record: ProviderRecord) {
+  let collection = injector.providers.get(token);
+  if (collection === undefined) {
+    collection = [undefined];
+    injector.providers.set(token, collection);
+  }
+  collection.push(record);
 }
 
 function initInjectors(stack: Array<Injector>): void {

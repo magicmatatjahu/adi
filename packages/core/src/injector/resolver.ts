@@ -1,15 +1,15 @@
-import { getProviderInstance, filterHooks, filterProviderDefinition } from './metadata';
+import { createSession, getProviderInstance, filterHooks, filterProviderDefinition } from './metadata';
 import { Session } from './session';
-import { InstanceStatus } from '../enums';
+import { InstanceStatus, SessionFlag } from '../enums';
 import { runHooks } from '../hooks';
 import { NilInjectorError } from '../problem';
 import { wait, waitAll } from '../utils';
 
 import type { Injector } from './injector';
-import type { ClassType, InjectionArgument, InjectionArguments, ProviderToken, ProviderRecord, InjectionHook, ProviderInstance } from '../interfaces';
+import type { ClassType, InjectionArgument, InjectionArguments, ProviderToken, ProviderRecord, InjectionHook, ProviderInstance, ProviderDefinition } from '../interfaces';
 
 export function inject<T>(injector: Injector, parentSession: Session | undefined, arg: InjectionArgument): T | undefined | Promise<T | undefined> {
-  const session = new Session({ token: arg.token, ctx: undefined, scope: undefined, annotations: {} }, { injector, record: undefined, def: undefined, instance: undefined }, arg.metadata, parentSession);
+  const session = createSession(arg.token, arg.metadata, injector, parentSession);
   return resolve(injector, session, arg.hooks);
 }
 
@@ -96,20 +96,24 @@ export function factoryValue<T>(_: Injector, __: Session, data: any): T | undefi
 }
 
 export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | undefined | Promise<T | undefined> {
-  hooks = [...hooks, ...filterHooks(injector.hooks, session), resolveRecord];
-  return runHooks(hooks, session);
+  hooks = [...hooks, ...filterHooks(injector.hooks, session)];
+  return runHooks(hooks, session, resolveRecord);
 }
 
 export function resolveRecord<T>(session: Session): T | undefined | Promise<T | undefined> {
   const ctx = session.ctx;
+  let record: ProviderRecord | Array<ProviderRecord> = ctx.record;
+  if (record) {
+    ctx.injector = record.host;
+    return runHooks(filterHooks(record.hooks, session), session, resolveDefinition);
+  }
 
-  let record: ProviderRecord | Array<ProviderRecord> = getRecord(ctx.injector, session.options.token);
+  record = getRecord(ctx.injector, session.options.token);
   if (record === undefined) { // check provider in the parent injector - reuse session
     return resolveFromParent(session);
   } else if (record.length === 1) { // only self provider
     record = ctx.record = record[0];
-    const hooks = [...filterHooks(record.hooks, session), resolveDefinition];
-    return runHooks(hooks, session);
+    return runHooks(filterHooks(record.hooks, session), session, resolveDefinition);
   }
 
   return;
@@ -117,17 +121,27 @@ export function resolveRecord<T>(session: Session): T | undefined | Promise<T | 
 
 export function resolveDefinition<T>(session: Session): T | Promise<T> {
   const ctx = session.ctx;
-  const def = ctx.def = filterProviderDefinition(ctx.record.defs, session);
-
+  let def: ProviderDefinition = ctx.def;
+  if (def) {
+    ctx.injector = (ctx.record = def.record).host;
+    return runHooks(def.hooks, session, resolveInstance);
+  }
+  
+  def = ctx.def = filterProviderDefinition(ctx.record.defs, session);
   if (def === undefined) {
     return resolveFromParent(session);
   }
 
   ctx.injector = (ctx.record = def.record).host;
-  return runHooks([...def.hooks, resolveInstance], session);
+  return runHooks(def.hooks, session, resolveInstance);
 }
 
 export function resolveInstance<T>(session: Session): T | Promise<T> {
+  // check dry run
+  if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    return;
+  }
+  
   const ctx = session.ctx;
   const instance = ctx.instance = getProviderInstance<T>(session);
   if (instance.status & InstanceStatus.RESOLVED) {
@@ -156,16 +170,21 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
         }
       );
     }
-  ) as unknown as T;
+  ) as unknown as T | Promise<T>;
 }
 
-
-export function resolveFromParent<T>(session: Session): T | Promise<T> {
-  const injector = session.ctx.injector = session.ctx.injector.parent;
+function resolveFromParent<T>(session: Session): T | Promise<T> {
+  const ctx = session.ctx;
+  ctx.def = ctx.record = undefined;
+  const injector = ctx.injector = ctx.injector.parent;
   if (injector === null) {
     throw new NilInjectorError(session.options.token);
   }
   return resolveRecord(session);
+}
+
+function getRecord(injector: Injector, token: ProviderToken): Array<ProviderRecord> | undefined {
+  return injector.providers.get(token);
 }
 
 function handleParallelInjection<T>(session: Session, instance: ProviderInstance<T>): T | Promise<T> {
@@ -180,22 +199,24 @@ function handleParallelInjection<T>(session: Session, instance: ProviderInstance
   return instance.meta.promiseDone || applyParallelHook(instance);
 }
 
-function getRecord(injector: Injector, token: ProviderToken): Array<ProviderRecord> | undefined {
-  return injector.providers.get(token);
-}
-
 function handleCircularInjection<T>(session: Session, instance: ProviderInstance<T>): T {
   // if circular injection detected return empty prototype instance
   if (instance.status & InstanceStatus.CIRCULAR) {
     return instance.value;
   }
-  instance.status |= InstanceStatus.CIRCULAR;
 
   const proto = getPrototype(instance);
   if (!proto) {
     throw new Error("Circular Dependency");
   }
 
+  instance.status |= InstanceStatus.CIRCULAR;
+  while (session) {
+    session.setFlag(SessionFlag.CIRCULAR);
+    if (instance === (session = session.parent)?.ctx.instance) {
+      break;
+    }
+  }
   // TODO: Save circular instance to the cache and resolve in proper order resolution of chain
   instance.value = Object.create(proto);
   return instance.value;

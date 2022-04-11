@@ -3,17 +3,29 @@ import { getHostInjector } from "./utils";
 import type { Context } from "./injector";
 import type { ConstraintDefinition } from "./interfaces";
 
-export function named(named: string): ConstraintDefinition {
-  return (session) => 
-    session.metadata.annotations['adi:named'] === named ||
-    session.options.annotations['adi:named'] === named;
+export function named(named: string | symbol, strict: boolean = true): ConstraintDefinition {
+  return (session) => {
+    const name = session.metadata.annotations['adi:named'] || session.options.annotations['adi:named'];
+    const condition = named === name;
+    if (strict === false) {
+      const typeOf = typeof name;
+      return condition && (typeOf === 'string' || typeOf === 'symbol');
+    }
+    return condition;
+  }
 }
 
-export function tagged(tags: Array<string> = []): ConstraintDefinition {
+export function tagged(tags: Array<string | symbol> = [], strict: boolean = true): ConstraintDefinition {
   const everyTags = (tag: string) => tags.includes(tag);
-  return (session) =>
-    (session.metadata.annotations["adi:tagged"] || []).every(everyTags) ||
-    (session.options.annotations["adi:tagged"] || []).every(everyTags)
+  return (session) => {
+    const metaTags = session.metadata.annotations["adi:tagged"] || [];
+    const optionsTags = session.options.annotations["adi:tagged"] || [];
+    const alltags = [...metaTags as any[], ...optionsTags as any[]]; // fix that
+    if (strict === false && alltags.length === 0) {
+      return true;
+    }
+    return alltags.every(everyTags);
+  }
 }
 
 export function context(ctx: Context): ConstraintDefinition {
@@ -39,25 +51,21 @@ export function visible(type: 'public' | 'private'): ConstraintDefinition {
   }
 }
 
-export function and(...fns: Array<ConstraintDefinition>): ConstraintDefinition {
-  return (session) => {
-    for (let i = 0, l = fns.length; i < l; i++) {
-      if (fns[i](session) === false) return false;
-    }
-    return true;
-  }
+export function and(...constraints: Array<ConstraintDefinition>): ConstraintDefinition {
+  return (session) => constraints.every(constraint => constraint(session));
 }
 
-export function or(...fns: Array<ConstraintDefinition>): ConstraintDefinition {
-  return (session) => {
-    for (let i = 0, l = fns.length; i < l; i++) {
-      if (fns[i](session) === true) return true;
-    }
-    return false;
-  }
+export function or(...constraints: Array<ConstraintDefinition>): ConstraintDefinition {
+  return (session) => constraints.some(constraint => constraint(session));
 }
 
-export const ALWAYS_CONSTRAINT: ConstraintDefinition = () => true;
+export function always() {
+  return true;
+}
+
+export function never() {
+  return true;
+}
 
 export const when = {
   named,
@@ -66,4 +74,6 @@ export const when = {
   visible,
   and,
   or,
+  always,
+  never,
 }

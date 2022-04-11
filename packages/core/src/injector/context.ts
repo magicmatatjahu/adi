@@ -11,6 +11,7 @@ export class Context<T extends Record<string | symbol, unknown> = Record<string 
 
   static [ADI_INJECTABLE_DEF]: InjectableDefinition = {
     token: Context,
+    status: 'full', // TODO: Change name for it
     options: {
       hooks: [(session) => {
         session.setFlag(SessionFlag.SIDE_EFFECTS);

@@ -1,8 +1,10 @@
 import { toProviderRecord } from './metadata';
-import { initModule, importModule } from './module';
+import { initModule, importModule, exportModule } from './module';
 import { inject } from './resolver';
-import { MODULE_REF } from '../constants';
+import { INITIALIZERS, MODULE_REF } from '../constants';
 import { InjectionKind, InjectorStatus } from '../enums';
+import { All } from '../hooks';
+import { SingletonScope } from '../scopes';
 
 import type { Session } from './session';
 import type { 
@@ -10,6 +12,7 @@ import type {
   ModuleMetadata, ModuleImportItem, ModuleExportItem, InjectorOptions,
   ProviderToken, Provider, ProviderRecord, HookRecord, InjectionHook
 } from "../interfaces";
+import { createInjectionArgument } from '.';
 
 export class Injector {
   static create(
@@ -24,6 +27,7 @@ export class Injector {
   public readonly imports = new Map<ClassType, Map<string | symbol, Injector>>();
   public readonly providers = new Map<ProviderToken, Array<ProviderRecord>>();
   public readonly hooks: Array<HookRecord> = [];
+  public readonly meta: Record<string | symbol, any> = {};
 
   constructor(
     public readonly metatype: ClassType | ModuleMetadata | Array<Provider> = [],
@@ -40,7 +44,10 @@ export class Injector {
     }
 
     options.scopes = ['any', metatype as ClassType, ...(options.scopes || [])];
-    providers.push({ provide: Injector, useValue: this });
+    providers.push(
+      { provide: Injector, useValue: this, scope: SingletonScope },
+      { provide: INITIALIZERS, hooks: [All()] }
+    );
     this.provide(...providers);
   }
 
@@ -52,7 +59,7 @@ export class Injector {
   get<T>(token: ProviderToken<T>, hooks?: Array<InjectionHook>, session?: Session): T | Promise<T> {
     if (this.status & InjectorStatus.DESTROYED) return; 
     if (this.status & InjectorStatus.INITIALIZED) {
-      return inject(this, session, { token, hooks, metadata: { target: Injector, kind: InjectionKind.STANDALONE, annotations: {} } });
+      return inject(this, session, createInjectionArgument(token, hooks, { target: Injector, kind: InjectionKind.STANDALONE, annotations: {} })); // TODO: Change order of arguments, injection argument, injector, session
     };
   }
 
@@ -68,7 +75,7 @@ export class Injector {
     providers.forEach(provider => provider && toProviderRecord(this, provider));
   }
 
-  export(to: Injector, exps: Array<ModuleExportItem> = []): void {
-
+  export(exports: Array<ModuleExportItem> = [], to: Injector): void {
+    return exportModule(exports, this, to)
   }
 }
