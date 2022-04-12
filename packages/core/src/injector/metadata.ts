@@ -1,17 +1,19 @@
+import { InjectionToken } from "./injection-token";
 import { resolveRecord, factoryClass, factoryFactory, factoryValue } from "./resolver";
 import { Session } from "./session";
 import { INITIALIZERS, STATIC_CONTEXT } from "../constants";
 import { when } from "../constraints";
 import { ProviderKind, InjectionKind, InstanceStatus } from "../enums";
-import { createHook, Named } from "../hooks";
+import { createHook } from "../hooks";
 import { getInjectableDefinition } from "../decorators/injectable";
 import { DefaultScope } from "../scopes";
+import { getHostInjector } from "../utils";
 
 import type { Injector } from "./injector";
 import type { 
   ProviderToken, Provider, ClassTypeProvider, CustomProvider, ClassProvider, FactoryProvider, ValueProvider, ExistingProvider,
   ProviderRecord, HookRecord,
-  DefinitionFactory, InjectionItem, PlainInjectionItem, PlainInjections, InjectionArgument, InjectionArguments, InjectionMetadata, InjectionHook, ConstraintDefinition, ProviderAnnotations, ProviderDefinition, ProviderInstance, InjectorScope,
+  DefinitionFactory, InjectionItem, PlainInjectionItem, PlainInjections, InjectionArgument, InjectionArguments, InjectionMetadata, InjectionHook, ConstraintDefinition, ProviderAnnotations, ProviderDefinition, ProviderInstance, InjectorScope, InjectionAnnotations,
 } from "../interfaces";
 
 export function toProviderRecord<T>(host: Injector, provider: Provider<T>): ProviderRecord | undefined {
@@ -173,6 +175,34 @@ export function createSession(token: ProviderToken, metadata: InjectionMetadata,
   return new Session({ token, ctx: undefined, scope: undefined, annotations: {} }, { injector, record: undefined, def: undefined, instance: undefined }, metadata, parentSession);
 }
 
+type SerializedInjectArguments<T> = {
+  token: ProviderToken<T>;
+  hooks: Array<InjectionHook>;
+  annotations: InjectionAnnotations;
+}
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>): SerializedInjectArguments<T>;
+export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>): SerializedInjectArguments<T>;
+export function serializeInjectArguments<T = any>(annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
+export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): SerializedInjectArguments<T> {
+  if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
+    if (Array.isArray(token)) { // hooks
+      annotations = hooks as InjectionAnnotations;
+      hooks = token;
+    } else {
+      annotations = token as InjectionAnnotations;
+    }
+    token = undefined;
+  } else if (typeof hooks === 'object' && !Array.isArray(hooks)) { // case with two arguments argument
+    annotations = hooks as InjectionAnnotations;
+    hooks = [];
+  }
+  annotations = annotations || {};
+  return { token: token as ProviderToken, hooks: hooks as Array<InjectionHook>, annotations };
+}
+
 export function convertDependency<T>(dep: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
   // hooks case
   if (Array.isArray(dep)) {
@@ -303,9 +333,13 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
   if (annotations['adi:visible']) {
     addConstraint(definition, when.visible(annotations['adi:visible']));
   }
+  if (annotations['adi:component'] === true) {
+    definition.hooks.unshift(useComponentHook);
+    addConstraint(definition, when.visible('private'));
+  }
 
   if (annotations['adi:eager'] === true) {
-    record.host.provide({ 
+    record.host.provide({
       provide: INITIALIZERS, 
       useFactory: (value) => value,
       inject: [{ token: record.token, annotations: { 'adi:named': name } }],
@@ -382,3 +416,12 @@ const useExistingHook = createHook((token: ProviderToken) => {
     return resolveRecord(session);
   }
 }, { name: 'adi:hook:use-existing' });
+
+const useComponentHook = createHook(() => {
+  return (session, next) => {
+    if (session.parent || getHostInjector(session) !== session.ctx.injector) {
+      throw new Error('Component cannot be injected to another one provider');
+    }
+    return next(session);
+  }
+}, { name: 'adi:hook:use-component' })();

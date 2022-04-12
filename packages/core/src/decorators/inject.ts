@@ -1,6 +1,6 @@
 import { ensureInjectableDefinition } from "./injectable";
 import { InjectionKind } from "../enums";
-import { InjectionToken } from "../injector/injection-token";
+import { serializeInjectArguments } from "../injector";
 import { Reflection } from "../utils";
 
 import { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata, InjectionArgument } from "../interfaces";
@@ -13,20 +13,8 @@ export function Inject<T = any>(token?: ProviderToken<T>, annotations?: Injectio
 export function Inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
-  if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
-    if (Array.isArray(token)) { // hooks
-      annotations = hooks as InjectionAnnotations;
-      hooks = token;
-    } else {
-      annotations = token as InjectionAnnotations;
-    }
-    token = undefined;
-  } else if (typeof hooks === 'object' && !Array.isArray(hooks)) { // case with two arguments argument
-    annotations = hooks as InjectionAnnotations;
-    hooks = [];
-  }
-  annotations = annotations || {};
-
+  ({ token, hooks, annotations } = serializeInjectArguments(token as any, hooks as any, annotations));
+  
   return function(target: Function, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
     let handler: Function | undefined;
     if (token === undefined) {

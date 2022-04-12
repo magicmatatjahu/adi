@@ -4,7 +4,7 @@ import type { InjectionTokenOptions } from "../interfaces";
 
 export class InjectionToken<T> {
   constructor(
-    options: InjectionTokenOptions<unknown>,
+    options: InjectionTokenOptions<unknown> = {},
     public readonly name?: string,
   ) {
     if (options !== undefined) {

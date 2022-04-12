@@ -196,7 +196,7 @@ describe('ClassType provider (injectable provider)', function() {
   });
 
   // TODO: wait for promiseDone in pararell injections
-  test.skip('should work with method injection - async resolution', async function() {
+  test('should work with method injection - async resolution', async function() {
     @Injectable({
       scope: TransientScope,
     })

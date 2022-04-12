@@ -167,6 +167,7 @@ export interface ProviderAnnotations {
   'adi:visible'?: 'public' | 'private';
   'adi:override'?: 'all' | 'definition';
   'adi:export'?: boolean;
+  'adi:component'?: boolean;
   [key: string | symbol]: any;
 }
 

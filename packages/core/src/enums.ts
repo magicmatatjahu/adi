@@ -8,10 +8,10 @@ export enum ProviderKind {
 export enum InstanceStatus {
   UNKNOWN = 1,
   PENDING = 2,
-  RESOLVED = 4,
-  DESTROYED = 8,
-  DEFINITION_DESTROYED = 16,
-  CIRCULAR = 32,
+  RESOLVED = 8,
+  DESTROYED = 16,
+  DEFINITION_DESTROYED = 32,
+  CIRCULAR = 64,
 }
 
 export enum InjectionKind {

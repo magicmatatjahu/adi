@@ -1,5 +1,5 @@
 import { destroyInjector } from './garbage-collector';
-import { toProviderRecord } from './metadata';
+import { toProviderRecord, serializeInjectArguments, createInjectionArgument } from './metadata';
 import { initModule, importModule, exportModule } from './module';
 import { inject } from './resolver';
 import { INITIALIZERS, MODULE_REF } from '../constants';
@@ -11,9 +11,8 @@ import type { Session } from './session';
 import type { 
   ClassType, 
   ModuleMetadata, ModuleImportItem, ModuleExportItem, InjectorOptions,
-  ProviderToken, Provider, ProviderRecord, HookRecord, InjectionHook
+  ProviderToken, Provider, ProviderRecord, HookRecord, InjectionHook, InjectionAnnotations
 } from "../interfaces";
-import { createInjectionArgument } from '.';
 
 export class Injector {
   static create(
@@ -62,10 +61,17 @@ export class Injector {
     return destroyInjector(this);
   }
 
-  get<T>(token: ProviderToken<T>, hooks?: Array<InjectionHook>, session?: Session): T | Promise<T> {
+  get<T = any>(token?: ProviderToken<T>): T | Promise<T>;
+  get<T = any>(hooks?: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations, session?: Session): T | Promise<T> {
     if (this.status & InjectorStatus.DESTROYED) return; 
     if (this.status & InjectorStatus.INITIALIZED) {
-      return inject(this, session, createInjectionArgument(token, hooks, { target: Injector, kind: InjectionKind.STANDALONE, annotations: {} })); // TODO: Change order of arguments, injection argument, injector, session
+      ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
+      return inject(this, session, createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, { target: Injector, kind: InjectionKind.STANDALONE, annotations }));
     };
   }
 
@@ -73,6 +79,7 @@ export class Injector {
     module: ModuleImportItem | ModuleMetadata | Array<Provider>,
     options?: InjectorOptions,
   ): Injector | Promise<Injector> {
+    if (this.status & InjectorStatus.DESTROYED) return; 
     return importModule(this, module, options);
   }
 
@@ -82,6 +89,7 @@ export class Injector {
   }
 
   export(exports: Array<ModuleExportItem> = [], to: Injector): void {
+    if (this.status & InjectorStatus.DESTROYED) return; 
     return exportModule(exports, this, to)
   }
 }

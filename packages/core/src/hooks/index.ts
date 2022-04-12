@@ -8,5 +8,6 @@ export * from './onDestroy';
 export * from './onInit';
 export * from './optional';
 export * from './ref';
+export * from './skip';
 export * from './tagged';
 export * from './token';

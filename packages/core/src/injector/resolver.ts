@@ -11,18 +11,19 @@ import { handleOnInitLifecycle } from '../utils/lifecycle-hooks';
 
 export function inject<T>(injector: Injector, parentSession: Session | undefined, arg: InjectionArgument): T | undefined | Promise<T | undefined> {
   const session = createSession(arg.token, arg.metadata, injector, parentSession);
+  parentSession && parentSession.children.push(session);
   return resolve(injector, session, arg.hooks);
 }
 
-export function injectArray(injector: Injector, session: Session, deps: Array<InjectionArgument>): Array<any | Promise<any>> {
+export function injectArray(injector: Injector, session: Session, deps: Array<InjectionArgument>): Array<any> | Promise<Array<any>> {
   const args: Array<any> = [];
   for (let i = 0, l = deps.length; i < l; i++) {
     args.push(inject(injector, session, deps[i]));
   };
-  return args;
+  return waitAll(args);
 }
 
-export function injectDictionary<T>(injector: Injector, session: Session, obj: T, properties: Record<string, InjectionArgument>): Array<any | Promise<any>> {
+export function injectDictionary<T>(injector: Injector, session: Session, obj: T, properties: Record<string, InjectionArgument>): Array<void> | Promise<Array<void>> {
   const props = Object.keys(properties);
   props.push(...Object.getOwnPropertySymbols(properties) as any[]);
   const args: Array<any> = [];
@@ -30,12 +31,12 @@ export function injectDictionary<T>(injector: Injector, session: Session, obj: T
     const prop = props[i];
     args.push(injectKey(injector, session, obj, prop, properties[prop]));
   }
-  return args;
+  return waitAll(args);
 }
 
 function injectKey<T>(injector: Injector, session: Session, obj: T, prop: string | symbol, dep: InjectionArgument): any {
   return wait(
-    () => inject(injector, session, dep),
+    inject(injector, session, dep),
     (value: any) => obj[prop] = value,
   );
 }
@@ -73,12 +74,12 @@ function injectMethod<T>(injector: Injector, session: Session, originalMethod: F
 
 export function factoryClass<T>(injector: Injector, session: Session, data: { classType: ClassType, inject: InjectionArguments }): T | undefined | Promise<T | undefined> {
   return wait(
-    () => injectArray(injector, session, data.inject.parameters),
+    injectArray(injector, session, data.inject.parameters),
     deps => {
       const instance = new data.classType(...deps);
       injectMethods(injector, session, instance, data.inject.methods);
       return wait(
-        () => waitAll(injectDictionary(injector, session, instance, data.inject.properties)),
+        injectDictionary(injector, session, instance, data.inject.properties),
         () => instance,
       );
     }
@@ -87,7 +88,7 @@ export function factoryClass<T>(injector: Injector, session: Session, data: { cl
 
 export function factoryFactory<T>(injector: Injector, session: Session, data: { useFactory: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }): T | undefined | Promise<T | undefined> {
   return wait(
-    () => injectArray(injector, session, data.inject),
+    injectArray(injector, session, data.inject),
     deps => data.useFactory(...deps) as any,
   ) as unknown as T;
 }
@@ -163,10 +164,15 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
         value = Object.assign(instance.value, value);
       }
       instance.value = value;
-      return handleOnInitLifecycle(instance, () => {
-        instance.status |= InstanceStatus.RESOLVED;
-        return instance.value;
-      });
+      return wait(
+        handleOnInitLifecycle(session, instance),
+        () => {
+          instance.status |= InstanceStatus.RESOLVED;
+          // resolve pararell injections
+          instance.meta['adi:promise-resolve']?.(instance.value); // fix place for that - it should be called at the end in some first hook
+          return instance.value;
+        }
+      );
     }
   ) as unknown as T | Promise<T>;
 }
@@ -189,12 +195,15 @@ function handleParallelInjection<T>(session: Session, instance: ProviderInstance
   // check circular injection
   let tempSession = session;
   while (tempSession) {
-    if (instance === (tempSession = tempSession.parent)?.ctx.instance) {
+    if (!tempSession) { // case when injection is performed by new injector.get() call - parallel injection
+      break;
+    }
+    if (instance === (tempSession = tempSession.parent)?.ctx.instance) { // found circular references
       return handleCircularInjection(session, instance);
     }
   }
   // otherwise parallel injection detected (in async resolution)
-  return instance.meta.promiseDone || applyParallelHook(instance);
+  return instance.meta['adi:promise-done'] || applyParallelHook(instance);
 }
 
 function handleCircularInjection<T>(session: Session, instance: ProviderInstance<T>): T {
@@ -209,16 +218,38 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
   }
 
   instance.status |= InstanceStatus.CIRCULAR;
-  while (session) {
-    session.setFlag(SessionFlag.CIRCULAR);
-    if (instance === (session = session.parent)?.ctx.instance) {
+  const circularSessions: Array<Session> = [];
+  let doBreak = false, tempSession = session;
+  while (tempSession) {
+    if (instance === (tempSession = tempSession.parent)?.ctx.instance) { // found circular references
+      doBreak = true;
+    }
+
+    tempSession.setFlag(SessionFlag.CIRCULAR);
+    circularSessions.push(tempSession);
+
+    if (doBreak === true) {
+      let deeper = false;
+      let deeperSession = tempSession;
+      while (deeperSession?.parent?.hasFlag(SessionFlag.CIRCULAR)) { // case when circular references are deeper
+        deeper = true;
+        deeperSession = deeperSession.parent;
+      }
+      if (deeper) {
+        const index = (deeperSession.meta['adi:circular-sessions'] as any[]).indexOf(tempSession);
+        deeperSession.meta['adi:circular-sessions'].splice(index, 1, ...circularSessions);
+      } else {
+        tempSession.meta['adi:circular-sessions'] = circularSessions;
+      }
       break;
+    } else if (tempSession.meta['adi:circular-sessions']) {
+      tempSession.meta['adi:circular-sessions'].pop(); // remove duplication of the last session - it is inside 'circularSessions'
+      circularSessions.unshift(...tempSession.meta['adi:circular-sessions']);
+      delete tempSession.meta['adi:circular-sessions'];
     }
   }
-  
-  // TODO: Save circular instance to the cache and resolve in proper order resolution of chain
-  instance.value = Object.create(proto);
-  return instance.value;
+
+  return instance.value = Object.create(proto); // create object from prototype (only classes)
 }
 
 function getPrototype<T>(instance: ProviderInstance<T>): Object {
@@ -227,7 +258,7 @@ function getPrototype<T>(instance: ProviderInstance<T>): Object {
 }
 
 function applyParallelHook<T>(instance: ProviderInstance<T>) {
-  return instance.meta.promiseDone = new Promise<T>(resolve => {
-    instance.meta.promiseResolve = resolve;
+  return instance.meta['adi:promise-done'] = new Promise<T>(resolve => {
+    instance.meta['adi:promise-resolve'] = resolve;
   });
 }

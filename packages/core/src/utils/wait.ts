@@ -22,6 +22,23 @@ export function wait<T>(
   return thenAction(result as any);
 }
 
+export function waitCallback<T>(
+  action: () => T,
+  thenAction: (value: Exclude<T, PromiseLike<T>>) => T | never = noopThen,
+  catchAction: (err: unknown) => T | never = noopCatch,
+) {
+  let result: T | never;
+  try {
+    result = action();
+  } catch(err) {
+    result = catchAction(err);
+  }
+  if (isPromiseLike(result)) {
+    return result.then(thenAction, catchAction);
+  }
+  return thenAction(result as any);
+}
+
 export function waitAll<T>(
   maybePromises: Array<T | Promise<T>>,
   thenAction?: (value: Exclude<T[], PromiseLike<T[]>>) => T | never,
@@ -34,7 +51,7 @@ export function waitAll<T>(
   return wait(result, thenAction, catchAction);
 }
 
-// return all performed data
+// TODO: return all performed data
 export function waitSequentially<T>(
   data: T[],
   action: (data: T) => any,
@@ -53,8 +70,7 @@ function _waitSequentially<T>(
   catchAction?: (err: unknown) => any | never,
   idx: number = -1,
 ) {
-  idx++;
-  if (idx === data.length - 1) {
+  if (++idx === data.length - 1) {
     return wait(
       () => action(data[idx]),
       thenAction,
@@ -63,6 +79,6 @@ function _waitSequentially<T>(
   }
   return wait(
     () => action(data[idx]),
-    () => waitSequentially(data, action, thenAction, catchAction, idx),
+    () => _waitSequentially(data, action, thenAction, catchAction, idx),
   )
 }

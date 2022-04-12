@@ -13,6 +13,8 @@ export interface SessionContext<T> {
 
 export class Session<T = any> {
   public flags: SessionFlag = SessionFlag.SIDE_EFFECTS;
+  public children: Array<Session> = [];
+  public meta: Record<string | symbol, any> = {};
 
   constructor(
     public options: InjectionOptions<T>,

@@ -243,15 +243,17 @@ function initInjector(injector: Injector) {
   // loadOptions(injector);
 
   return wait(
-    () => {
-      const initializers = injector.providers.get(INITIALIZERS) || [];
-      if (initializers[0]?.defs.length) {
-        return injector.get(INITIALIZERS);
-      }
-    },
+    initInitializers(injector),
     () => wait(
       injector.get(MODULE_REF), 
       () => injector.status |= InjectorStatus.INITIALIZED,      
     ),
   );
+}
+
+function initInitializers(injector: Injector) {
+  const initializers = injector.providers.get(INITIALIZERS);
+  if (initializers[0].defs.length) {
+    return injector.get(INITIALIZERS);
+  }
 }

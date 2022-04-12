@@ -3,7 +3,7 @@ import { SessionFlag } from "../enums";
 import { wait } from "../utils";
 import { DESTROY_HOOKS_KEY } from "../utils/lifecycle-hooks";
 
-export const OnDestroyLifecycle = createHook((hook: () => void | Promise<void>) => {
+export const OnDestroyLifecycle = createHook((hook: (value: any) => void | Promise<void>) => {
   return (session, next) => {
     if (session.hasFlag(SessionFlag.DRY_RUN)) {
       return next(session);
