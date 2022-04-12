@@ -103,9 +103,10 @@ export function getProviderInstance<T>(session: Session): ProviderInstance<T> {
   let instance = def.values.get(ctx);
   if (instance === undefined) {
     instance = {
+      def,
+      session,
       ctx,
       value: undefined,
-      def,
       status: InstanceStatus.UNKNOWN,
       scope,
       meta: {},

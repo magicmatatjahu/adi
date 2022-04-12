@@ -1,3 +1,4 @@
+import type { ADI } from './adi';
 import type { ADI_HOOK_DEF } from './constants';
 import type { InstanceStatus, ProviderKind, InjectionKind } from './enums';
 import type { Context } from './injector/context';
@@ -60,6 +61,7 @@ export type ExportedModule = {
 export type InjectorScope<T = any> = string | symbol | ClassType<T>;
 
 export interface InjectorOptions {
+  adi?: ADI;
   id?: ModuleID;
   scopes?: Array<InjectorScope>;
   importing?: 'enabled' | 'disabled';
@@ -193,14 +195,12 @@ export interface ProviderDefinition<T = any> {
 
 export interface ProviderInstance<T = any> {
   def: ProviderDefinition;
+  session: Session;
   ctx: Context,
   value: T;
-  scope: ScopeType;
   status: InstanceStatus;
+  scope: ScopeType;
   meta: Record<string | symbol, any>;
-  // // for pararell resolution
-  // donePromise?: Promise<T>;
-  // doneResolve?: (value: T) => void;
   // what is injected to instance
   children?: Set<ProviderInstance>;
   // where instance is injected

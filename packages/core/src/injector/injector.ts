@@ -1,3 +1,4 @@
+import { ADI } from '../adi';
 import { destroyInjector } from './garbage-collector';
 import { toProviderRecord, serializeInjectArguments, createInjectionArgument } from './metadata';
 import { initModule, importModule, exportModule } from './module';
@@ -23,6 +24,7 @@ export class Injector {
     return new Injector(metatype, injector, options);
   }
 
+  public adi: ADI = ADI.globalADI;
   public status: InjectorStatus = InjectorStatus.NONE;
   public readonly imports = new Map<ClassType, Map<string | symbol, Injector>>();
   public readonly providers = new Map<ProviderToken, Array<ProviderRecord>>();
