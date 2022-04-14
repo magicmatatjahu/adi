@@ -176,18 +176,13 @@ export function createSession(token: ProviderToken, metadata: InjectionMetadata,
   return new Session({ token, ctx: undefined, scope: undefined, annotations: {} }, { injector, record: undefined, def: undefined, instance: undefined }, metadata, parentSession);
 }
 
-type SerializedInjectArguments<T> = {
-  token: ProviderToken<T>;
-  hooks: Array<InjectionHook>;
-  annotations: InjectionAnnotations;
-}
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T>): SerializedInjectArguments<T>;
-export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>): SerializedInjectArguments<T>;
-export function serializeInjectArguments<T = any>(annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
-export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): SerializedInjectArguments<T>;
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): SerializedInjectArguments<T> {
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T> {
   if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
     if (Array.isArray(token)) { // hooks
       annotations = hooks as InjectionAnnotations;

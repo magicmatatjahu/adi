@@ -5,23 +5,19 @@ import { handleOnDestroyLifecycle } from '../utils/lifecycle-hooks';
 import type { Injector } from "./injector";
 import type { ProviderRecord, ProviderDefinition, ProviderInstance } from "../interfaces";
 
-export enum DestroyEvent {
-  DEFAULT = 'default',
-  INJECTOR = 'injector',
-  MANUALLY = 'manually',
-}
+export type DestroyEvent = 'default' | 'injector' | 'manually';
 
 export interface DestroyContext {
   event: DestroyEvent;
 }
 
-export async function destroy(instance: ProviderInstance, event: DestroyEvent = DestroyEvent.DEFAULT) {
+export async function destroy(instance: ProviderInstance, event: DestroyEvent = 'default') {
   if (!instance || instance.status & InstanceStatus.DESTROYED) {
     return;
   }
 
   const { kind, options } = instance.scope;
-  const shouldDestroy = kind.canDestroy(instance.session, options, { event }) || shouldForceDestroy(instance);
+  const shouldDestroy = kind.canDestroy(instance, options, { event }) || shouldForceDestroy(instance);
 
   if (!shouldDestroy) return;
   instance.status |= InstanceStatus.DESTROYED;
@@ -61,7 +57,7 @@ export async function destroyInjector(injector: Injector) {
 
   injector.providers.clear()
   try {
-    await waitSequentially(records, record => destroyRecord(record, DestroyEvent.INJECTOR));
+    await waitSequentially(records, record => destroyRecord(record, 'injector'));
   } catch {}
 
   // remove injector from parent imports

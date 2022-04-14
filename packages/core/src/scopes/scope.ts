@@ -1,4 +1,5 @@
 import type { Context, Session, DestroyContext } from '../injector';
+import type { ProviderInstance } from '../interfaces';
 
 export interface ScopeType<O = any> {
   (options: O): {
@@ -18,7 +19,7 @@ export abstract class Scope<O = any> {
   ): Context;
 
   public abstract canDestroy(
-    session: Session,
+    instance: ProviderInstance,
     options: O,
     ctx: DestroyContext,
   ): boolean;

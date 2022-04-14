@@ -6,16 +6,10 @@ const noopThen = <T>(value: T) => { return value; }
 const noopCatch = (err: unknown) => { throw err; }
 
 export function wait<T>(
-  action: T | (() => T),
+  result: T,
   thenAction: (value: Exclude<T, PromiseLike<T>>) => T | never = noopThen,
   catchAction: (err: unknown) => T | never = noopCatch,
 ) {
-  let result: T | never;
-  try {
-    result = typeof action === 'function' ? (action as () => T)() : action;
-  } catch(err) {
-    result = catchAction(err);
-  }
   if (isPromiseLike(result)) {
     return result.then(thenAction, catchAction);
   }
@@ -72,13 +66,13 @@ function _waitSequentially<T>(
 ) {
   if (++idx === data.length - 1) {
     return wait(
-      () => action(data[idx]),
+      action(data[idx]),
       thenAction,
       catchAction,
     )
   }
   return wait(
-    () => action(data[idx]),
+    action(data[idx]),
     () => _waitSequentially(data, action, thenAction, catchAction, idx),
   )
 }

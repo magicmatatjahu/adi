@@ -5,6 +5,7 @@ import { InjectorStatus } from "../enums";
 import { Context, getHostInjector } from "../injector";
 
 import type { Injector, Session, DestroyContext } from "../injector";
+import type { ProviderInstance } from "../interfaces";
 
 export interface SingletonScopeOptions {
   perInjector?: boolean;
@@ -36,12 +37,11 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
     return STATIC_CONTEXT;
   }
 
-  override canDestroy(session: Session, options: SingletonScopeOptions, ctx: DestroyContext): boolean {
+  override canDestroy(instance: ProviderInstance, options: SingletonScopeOptions, ctx: DestroyContext): boolean {
     if (!options.perInjector) {
-      return DefaultScope.kind.canDestroy(session, options, ctx);
+      return DefaultScope.kind.canDestroy(instance, options, ctx);
     }
     
-    const instance = session.ctx.instance;
     const injector = this.perInjectors.get(instance.ctx) as Injector;
     if (injector && injector.status & InjectorStatus.DESTROYED && (instance.parents === undefined || instance.parents.size === 0)) {
       this.perInjectors.delete(instance.ctx);

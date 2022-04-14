@@ -3,7 +3,7 @@ import { SessionFlag } from "../enums";
 import { Context } from "../injector";
 
 import type { Session, DestroyContext } from "../injector";
-import type { InjectionMetadata } from "../interfaces";
+import type { ProviderInstance, InjectionMetadata } from "../interfaces";
 
 export interface TransientScopeOptions {
   reuseContext?: boolean;
@@ -37,7 +37,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     return ctx;
   }
 
-  override canDestroy(session: Session, _: TransientScopeOptions, ctx: DestroyContext): boolean {
+  override canDestroy(instance: ProviderInstance, _: TransientScopeOptions, ctx: DestroyContext): boolean {
     return false;
     // destroy only on `injector` event and when parents don't exist 
     // return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);

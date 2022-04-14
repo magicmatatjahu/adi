@@ -66,7 +66,7 @@ export class Injector {
   get<T = any>(token?: ProviderToken<T>): T | Promise<T>;
   get<T = any>(hooks?: Array<InjectionHook>): T | Promise<T>;
   get<T = any>(annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook> | InjectionAnnotations): T | Promise<T>;
   get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations, session?: Session): T | Promise<T> {

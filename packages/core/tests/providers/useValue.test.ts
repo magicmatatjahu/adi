@@ -1,7 +1,7 @@
 import { Injector, Context, Ctx, when } from "../../src";
 
 describe('useValue', function() {
-  test('should works with simple provider', function() {
+  test('should work with simple provider', function() {
     const injector = Injector.create([
       {
         provide: 'useValue',
@@ -13,7 +13,7 @@ describe('useValue', function() {
     expect(resolvedToken).toEqual('foobar');
   });
 
-  test('should works with custom context', function() {
+  test('should work with custom context', function() {
     const ctx = new Context();
 
     const injector = Injector.create([
@@ -32,5 +32,19 @@ describe('useValue', function() {
     expect(foobar).toEqual('foobar');
     const barfoo = injector.get<string>('useValue', [Ctx(ctx)]);
     expect(barfoo).toEqual('barfoo');
+  });
+
+  test('should work with function as value', function() {
+    function testFunction() {}
+
+    const injector = Injector.create([
+      {
+        provide: 'useValue',
+        useValue: testFunction,
+      },
+    ]).init() as Injector;
+
+    const fn = injector.get<Function>('useValue');
+    expect(fn).toEqual(testFunction);
   });
 });

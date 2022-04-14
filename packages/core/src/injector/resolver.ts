@@ -161,7 +161,7 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
   instance.status |= InstanceStatus.PENDING;
   const { def: { factory }, injector } = ctx;
   return wait(
-    () => factory.factory(injector, session, factory.data),
+    factory.factory(injector, session, factory.data),
     value => {
       if (instance.status & InstanceStatus.CIRCULAR) {
         value = Object.assign(instance.value, value);

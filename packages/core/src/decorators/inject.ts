@@ -9,7 +9,7 @@ import { createInjectionArgument } from "../injector/metadata";
 export function Inject<T = any>(token?: ProviderToken<T>);
 export function Inject<T = any>(hooks?: Array<InjectionHook>);
 export function Inject<T = any>(annotations?: InjectionAnnotations);
-export function Inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook> | InjectionAnnotations);
 export function Inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
