@@ -17,5 +17,5 @@ export function runHooks(hooks: Array<InjectionHook>, session: Session, lastHook
 }
 
 function _runHooks(hooks: Array<InjectionHook>, session: Session, index: number) {
-  return hooks[index](session, (s: Session) => _runHooks(hooks, s, index+1));
+  return hooks[index](session, (s: Session) => _runHooks(hooks, s, ++index));
 }

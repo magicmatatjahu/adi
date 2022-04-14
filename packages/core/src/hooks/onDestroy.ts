@@ -1,7 +1,7 @@
 import { createHook } from "./hook";
 import { SessionFlag } from "../enums";
 import { wait } from "../utils";
-import { DESTROY_HOOKS_KEY } from "../utils/lifecycle-hooks";
+import { destroyHooksMetaKey } from "../utils";
 
 export const OnDestroyLifecycle = createHook((hook: (value: any) => void | Promise<void>) => {
   return (session, next) => {
@@ -13,7 +13,7 @@ export const OnDestroyLifecycle = createHook((hook: (value: any) => void | Promi
       next(session),
       value => {
         const instance = session.ctx.instance;
-        const hooks = instance.meta[DESTROY_HOOKS_KEY] || (instance.meta[DESTROY_HOOKS_KEY] = []);
+        const hooks = instance.meta[destroyHooksMetaKey] || (instance.meta[destroyHooksMetaKey] = []);
         hooks.push(hook);
         return value;
       }

@@ -4,10 +4,14 @@ import { InstanceStatus, SessionFlag } from '../enums';
 import { runHooks } from '../hooks';
 import { NilInjectorError } from '../problem';
 import { wait, waitAll } from '../utils';
+import { handleOnInitLifecycle } from '../utils';
 
 import type { Injector } from './injector';
 import type { ClassType, InjectionArgument, InjectionArguments, ProviderToken, ProviderRecord, InjectionHook, ProviderInstance, ProviderDefinition } from '../interfaces';
-import { handleOnInitLifecycle } from '../utils/lifecycle-hooks';
+
+const circularSessionsMetaKey = 'adi:circular-sessions';
+const promiseResolveMetaKey = 'adi:promise-resolve';
+const promiseDoneMetaKey = 'adi:promise-done';
 
 export function inject<T>(injector: Injector, parentSession: Session | undefined, arg: InjectionArgument): T | undefined | Promise<T | undefined> {
   const session = createSession(arg.token, arg.metadata, injector, parentSession);
@@ -93,7 +97,7 @@ export function factoryFactory<T>(injector: Injector, session: Session, data: { 
   ) as unknown as T;
 }
 
-export function factoryValue<T>(_: Injector, __: Session, data: any): T | undefined | Promise<T | undefined> {
+export function factoryValue<T>(_: Injector, __: Session, data: T): T {
   return data;
 }
 
@@ -110,15 +114,14 @@ export function resolveRecord<T>(session: Session): T | undefined | Promise<T | 
     return runHooks(filterHooks(record.hooks, session), session, resolveDefinition);
   }
 
-  record = getRecord(ctx.injector, session.options.token);
+  record = ctx.injector.providers.get(session.options.token);
   if (record === undefined) { // check provider in the parent injector - reuse session
     return resolveFromParent(session);
   } else if (record.length === 1) { // only self provider
     record = ctx.record = record[0];
     return runHooks(filterHooks(record.hooks, session), session, resolveDefinition);
   }
-
-  return;
+  return resolveMultipleRecords(session, record, 0);
 }
 
 export function resolveDefinition<T>(session: Session): T | Promise<T> {
@@ -169,12 +172,28 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
         () => {
           instance.status |= InstanceStatus.RESOLVED;
           // resolve pararell injections
-          instance.meta['adi:promise-resolve']?.(instance.value); // fix place for that - it should be called at the end in some first hook
+          instance.meta[promiseResolveMetaKey]?.(instance.value); // fix place for that - it should be called at the end in some first hook
           return instance.value;
         }
       );
     }
   ) as unknown as T | Promise<T>;
+}
+
+function resolveMultipleRecords<T>(original: Session, records: Array<ProviderRecord>, index: number): T | undefined | Promise<T | undefined> {
+  if (records.length === index) {
+    return resolveFromParent(original);
+  }
+
+  const session = original.fork(); // fork session for every record
+  const record = session.ctx.record = records[index];
+  return runHooks(filterHooks(record.hooks, session), session, s => {
+    const ctx = s.ctx;
+    const def = filterProviderDefinition(ctx.record.defs, s);
+    if (def === undefined) return resolveMultipleRecords(original, records, ++index);
+    ctx.injector = (ctx.record = (ctx.def = def).record).host;
+    return runHooks(def.hooks, s, resolveInstance);
+  });
 }
 
 function resolveFromParent<T>(session: Session): T | Promise<T> {
@@ -185,10 +204,6 @@ function resolveFromParent<T>(session: Session): T | Promise<T> {
     throw new NilInjectorError(session.options.token);
   }
   return resolveRecord(session);
-}
-
-function getRecord(injector: Injector, token: ProviderToken): Array<ProviderRecord> | undefined {
-  return injector.providers.get(token);
 }
 
 function handleParallelInjection<T>(session: Session, instance: ProviderInstance<T>): T | Promise<T> {
@@ -203,7 +218,9 @@ function handleParallelInjection<T>(session: Session, instance: ProviderInstance
     }
   }
   // otherwise parallel injection detected (in async resolution)
-  return instance.meta['adi:promise-done'] || applyParallelHook(instance);
+  return instance.meta[promiseDoneMetaKey] || (instance.meta[promiseDoneMetaKey] = new Promise<T>(resolve => {
+    instance.meta[promiseResolveMetaKey] = resolve;
+  }));
 }
 
 function handleCircularInjection<T>(session: Session, instance: ProviderInstance<T>): T {
@@ -236,16 +253,16 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
         deeperSession = deeperSession.parent;
       }
       if (deeper) {
-        const index = (deeperSession.meta['adi:circular-sessions'] as any[]).indexOf(tempSession);
-        deeperSession.meta['adi:circular-sessions'].splice(index, 1, ...circularSessions);
+        const index = (deeperSession.meta[circularSessionsMetaKey] as any[]).indexOf(tempSession);
+        deeperSession.meta[circularSessionsMetaKey].splice(index, 1, ...circularSessions);
       } else {
-        tempSession.meta['adi:circular-sessions'] = circularSessions;
+        tempSession.meta[circularSessionsMetaKey] = circularSessions;
       }
       break;
-    } else if (tempSession.meta['adi:circular-sessions']) {
-      tempSession.meta['adi:circular-sessions'].pop(); // remove duplication of the last session - it is inside 'circularSessions'
-      circularSessions.unshift(...tempSession.meta['adi:circular-sessions']);
-      delete tempSession.meta['adi:circular-sessions'];
+    } else if (tempSession.meta[circularSessionsMetaKey]) {
+      tempSession.meta[circularSessionsMetaKey].pop(); // remove duplication of the last session - it is inside 'circularSessions'
+      circularSessions.unshift(...tempSession.meta[circularSessionsMetaKey]);
+      delete tempSession.meta[circularSessionsMetaKey];
     }
   }
 
@@ -255,10 +272,4 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
 function getPrototype<T>(instance: ProviderInstance<T>): Object {
   const provider = instance.def.provider;
   return typeof provider === 'function' ? provider.prototype : provider.useClass;
-}
-
-function applyParallelHook<T>(instance: ProviderInstance<T>) {
-  return instance.meta['adi:promise-done'] = new Promise<T>(resolve => {
-    instance.meta['adi:promise-resolve'] = resolve;
-  });
 }

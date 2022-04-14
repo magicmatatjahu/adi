@@ -1,4 +1,4 @@
-import { getHostInjector } from "./utils";
+import { getHostInjector } from "./injector/metadata";
 
 import type { Context } from "./injector";
 import type { ConstraintDefinition } from "./interfaces";
@@ -16,7 +16,7 @@ export function named(named: string | symbol, strict: boolean = true): Constrain
 }
 
 export function tagged(tags: Array<string | symbol> = [], strict: boolean = true): ConstraintDefinition {
-  const everyTags = (tag: string) => tags.includes(tag);
+  const includeTags = (tag: string) => tags.includes(tag);
   return (session) => {
     const metaTags = session.metadata.annotations["adi:tagged"] || [];
     const optionsTags = session.options.annotations["adi:tagged"] || [];
@@ -24,7 +24,7 @@ export function tagged(tags: Array<string | symbol> = [], strict: boolean = true
     if (strict === false && alltags.length === 0) {
       return true;
     }
-    return alltags.every(everyTags);
+    return alltags.every(includeTags);
   }
 }
 

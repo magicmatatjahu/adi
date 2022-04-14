@@ -7,10 +7,11 @@ import type { InjectionMetadata } from "../interfaces";
 
 export interface TransientScopeOptions {
   reuseContext?: boolean;
+  canBeOverrided?: boolean;
 }
 
 export class TransientScope extends Scope<TransientScopeOptions> {
-  private instances = new WeakMap<Context, InjectionMetadata>();
+  protected contexts = new WeakMap<Context, InjectionMetadata>();
 
   override get name(): string {
     return "adi:scope:transient"
@@ -30,7 +31,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     let ctx = options.reuseContext === true ? session.options.ctx : undefined;
     if (ctx === undefined) {
       ctx = new Context();
-      this.instances.set(ctx, session.metadata);
+      this.contexts.set(ctx, session.metadata);
       session.setFlag(SessionFlag.SIDE_EFFECTS);
     }
     return ctx;
@@ -41,6 +42,10 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     // destroy only on `injector` event and when parents don't exist 
     // return event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
   };
+
+  override canBeOverrided(_: Session, options: TransientScopeOptions): boolean {
+    return options.canBeOverrided;
+  }
 }
 
-export default createScope<TransientScopeOptions>(new TransientScope(), { reuseContext: true });
+export default createScope<TransientScopeOptions>(new TransientScope(), { reuseContext: true, canBeOverrided: true });

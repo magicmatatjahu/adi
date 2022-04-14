@@ -1,6 +1,6 @@
 import { createHook } from "./hook";
 import { SessionFlag } from "../enums";
-import { INIT_HOOKS_KEY } from "../utils/lifecycle-hooks";
+import { initHooksMetaKey } from "../utils";
 
 export const OnInitLifecycle = createHook((hook: (value: any) => void | Promise<void>) => {
   return (session, next) => {
@@ -8,7 +8,7 @@ export const OnInitLifecycle = createHook((hook: (value: any) => void | Promise<
       return next(session);
     }
 
-    const hooks = session.meta[INIT_HOOKS_KEY] || (session.meta[INIT_HOOKS_KEY] = []);
+    const hooks = session.meta[initHooksMetaKey] || (session.meta[initHooksMetaKey] = []);
     hooks.push(hook);
     return next(session);
   }

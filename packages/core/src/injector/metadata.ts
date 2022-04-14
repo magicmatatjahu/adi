@@ -7,7 +7,6 @@ import { ProviderKind, InjectionKind, InstanceStatus } from "../enums";
 import { createHook } from "../hooks";
 import { getInjectableDefinition } from "../decorators/injectable";
 import { DefaultScope } from "../scopes";
-import { getHostInjector } from "../utils";
 
 import type { Injector } from "./injector";
 import type { 
@@ -16,7 +15,7 @@ import type {
   DefinitionFactory, InjectionItem, PlainInjectionItem, PlainInjections, InjectionArgument, InjectionArguments, InjectionMetadata, InjectionHook, ConstraintDefinition, ProviderAnnotations, ProviderDefinition, ProviderInstance, InjectorScope, InjectionAnnotations,
 } from "../interfaces";
 
-export function toProviderRecord<T>(host: Injector, provider: Provider<T>): ProviderRecord | undefined {
+export function toProviderRecord<T>(host: Injector, provider: Provider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
   if (typeof provider === "function") {
     return typeProviderToRecord(host, provider);
   } else {
@@ -24,7 +23,7 @@ export function toProviderRecord<T>(host: Injector, provider: Provider<T>): Prov
   }
 }
 
-function typeProviderToRecord<T>(host: Injector, provider: ClassTypeProvider<T>): ProviderRecord | undefined {
+function typeProviderToRecord<T>(host: Injector, provider: ClassTypeProvider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
   const def = getInjectableDefinition(provider);
   if (def === undefined) return;
 
@@ -32,14 +31,14 @@ function typeProviderToRecord<T>(host: Injector, provider: ClassTypeProvider<T>)
   const factory = { factory: factoryClass, data: { classType: provider, inject: def.injections } };
   const options = def.options;
   const annotations = options.annotations || {};
-  const recordDef: ProviderDefinition = { kind: ProviderKind.CLASS, provider, record, factory, scope: options.scope || DefaultScope, when: undefined, hooks: options.hooks || [], annotations, values: new Map(), meta: {} };
-  record.defs.push(recordDef);
+  const definition: ProviderDefinition = { kind: ProviderKind.CLASS, provider, record, factory, scope: options.scope || DefaultScope, when: undefined, hooks: options.hooks || [], annotations, values: new Map(), meta: {} };
+  record.defs.push(definition);
   // record.defs.sort(compareOrder);
-  handleProviderAnnotations(record, recordDef, annotations);
-  return record;
+  handleProviderAnnotations(record, definition, annotations);
+  return { record, definition };
 }
 
-function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvider<T>): ProviderRecord | undefined {
+function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
   const token = provider.provide;
 
   // injector hooks
@@ -67,8 +66,9 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
     const def = getInjectableDefinition(provider.useClass);
     if (def) {
       const options = def.options;
-      if (options.scope && options.scope.kind.canBeOverrided() === false) {
-        scope = options.scope;
+      const defScope = options.scope;
+      if (defScope && defScope.kind.canBeOverrided({} as any, defScope.options) === false) { // TODO: fix first argument to the `canBeOverrided` function
+        scope = defScope;
       }
       annotations = (Object.keys(annotations).length ? annotations : options.annotations) || {};
     }
@@ -81,21 +81,21 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
     hooks.push(useExistingHook(provider.useExisting));
   } else if (Array.isArray(provider.hooks)) { // case with standalone `hooks`
     addHook(record, hooks, when, annotations);
-    return record;
+    return { record, definition: undefined };
   }
 
   // add provider definition
-  const def: ProviderDefinition = { kind, provider, record, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
-  record.defs.push(def);
+  const definition: ProviderDefinition = { kind, provider, record, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
+  record.defs.push(definition);
   // record.defs.sort(compareOrder);
-  handleProviderAnnotations(record, def, annotations);
-  return record;
+  handleProviderAnnotations(record, definition, annotations);
+  return { record, definition };
 }
 
 export function getProviderInstance<T>(session: Session): ProviderInstance<T> {
   const def = session.ctx.def;
   let scope = def.scope;
-  if (scope.kind.canBeOverrided()) {
+  if (scope.kind.canBeOverrided(session, scope.options)) {
     scope = session.options.scope || scope;
   }
 
@@ -310,6 +310,12 @@ export function compareOrder(a: { annotations: ProviderAnnotations }, b: { annot
   return a.annotations['adi:order'] - b.annotations['adi:order'];
 }
 
+export function getHostInjector(session: Session): Injector | undefined {
+  if (session.parent) return session.parent.ctx.record.host;
+  if (session.metadata.kind & InjectionKind.STANDALONE) return session.metadata.target as Injector;
+  return;
+}
+
 let DEFINITION_ID = 0;
 function handleProviderAnnotations(record: ProviderRecord, definition: ProviderDefinition, annotations: ProviderAnnotations) {
   const uid = annotations['adi:uid'] = `adi:uid:${DEFINITION_ID++}`;
@@ -334,17 +340,28 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
   if (annotations['adi:visible']) {
     addConstraint(definition, when.visible(annotations['adi:visible']));
   }
+
   if (annotations['adi:component'] === true) {
     definition.hooks.unshift(useComponentHook);
     addConstraint(definition, when.visible('private'));
   }
-
+  if (annotations['adi:aliases']) {
+    annotations['adi:aliases'].forEach(alias => {
+      const { definition: def } = customProviderToProviderRecord(record.host, {
+        provide: alias, 
+        useExisting: record.token,
+      });
+      def.hooks.pop(); // remove useExistingHook;
+      def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
+    })
+  }
   if (annotations['adi:eager'] === true) {
-    record.host.provide({
+    const { definition: def } = customProviderToProviderRecord(record.host, {
       provide: INITIALIZERS, 
-      useFactory: (value) => value,
-      inject: [{ token: record.token, annotations: { 'adi:named': name } }],
+      useExisting: record.token,
     });
+    def.hooks.pop(); // remove useExistingHook;
+    def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
   }
 }
 
@@ -412,11 +429,19 @@ function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn?: Arr
 const useExistingHook = createHook((token: ProviderToken) => {
   return (session) => {
     const ctx = session.ctx;
-    ctx.record = ctx.def = ctx.instance = undefined;
+    ctx.record = ctx.def = undefined;
     session.options.token = token;
     return resolveRecord(session);
   }
 }, { name: 'adi:hook:use-existing' });
+
+const useExistingDefinitionHook = createHook((definition: ProviderDefinition) => {
+  return (session) => {
+    const ctx = session.ctx;
+    session.options.token = (ctx.record = (ctx.def = definition).record).token;
+    return resolveRecord(session);
+  }
+}, { name: 'adi:hook:use-existing-definition' });
 
 const useComponentHook = createHook(() => {
   return (session, next) => {

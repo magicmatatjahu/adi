@@ -21,7 +21,7 @@ export async function destroy(instance: ProviderInstance, event: DestroyEvent = 
   }
 
   const { kind, options } = instance.scope;
-  const shouldDestroy = kind.canDestroy({} as any, options, { event }) || shouldForceDestroy(instance);
+  const shouldDestroy = kind.canDestroy(instance.session, options, { event }) || shouldForceDestroy(instance);
 
   if (!shouldDestroy) return;
   instance.status |= InstanceStatus.DESTROYED;
@@ -30,7 +30,6 @@ export async function destroy(instance: ProviderInstance, event: DestroyEvent = 
   
   await handleOnDestroyLifecycle(instance);
   instance.children && await destroyCollection(Array.from(instance.children), event);
-  // instance.meta.hostInjector && await instance.meta.hostInjector.destroy();
 }
 
 export async function destroyCollection(instances: Array<ProviderInstance> = [], event?: DestroyEvent) {

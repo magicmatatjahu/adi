@@ -1,5 +1,5 @@
 import { ADI_INJECTABLE_DEF } from '../constants';
-import { InjectionKind, SessionFlag } from '../enums';
+import { SessionFlag } from '../enums';
 
 import type { Injector } from './injector';
 import type { InjectionOptions, InjectionMetadata, ProviderRecord, ProviderDefinition, ProviderInstance, InjectableDefinition } from '../interfaces';
@@ -12,7 +12,7 @@ export interface SessionContext<T> {
 }
 
 export class Session<T = any> {
-  public flags: SessionFlag = SessionFlag.SIDE_EFFECTS;
+  public flags: SessionFlag = SessionFlag.NONE;
   public children: Array<Session> = [];
   public meta: Record<string | symbol, any> = {};
 
@@ -25,7 +25,11 @@ export class Session<T = any> {
 
   fork(): Session {
     const options: InjectionOptions = { ...this.options, annotations: { ...this.options.annotations } };
-    return new Session(options, { ...this.ctx }, this.metadata, this.parent);
+    const newSession = new Session(options, { ...this.ctx }, this.metadata, this.parent);
+    newSession.flags = newSession.flags;
+    newSession.children = newSession.children;
+    newSession.meta = newSession.meta;
+    return newSession;
   }
 
   setFlag(flag: SessionFlag) {
@@ -42,7 +46,7 @@ export class Session<T = any> {
 
   static [ADI_INJECTABLE_DEF]: InjectableDefinition = {
     token: Session,
-    status: 'full',
+    status: 'full', // TODO: Change name for it
     options: {
       hooks: [(session) => {
         session.setFlag(SessionFlag.SIDE_EFFECTS);

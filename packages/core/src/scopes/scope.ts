@@ -23,7 +23,10 @@ export abstract class Scope<O = any> {
     ctx: DestroyContext,
   ): boolean;
 
-  public canBeOverrided(): boolean {
+  public canBeOverrided(
+    session: Session,
+    options: O,
+  ): boolean {
     return true;
   }
 }

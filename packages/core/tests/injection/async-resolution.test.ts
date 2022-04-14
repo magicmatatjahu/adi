@@ -1,4 +1,4 @@
-import { Injector, Injectable, InjectionToken, Inject } from "../../src";
+import { Injector, Injectable, Inject } from "../../src";
 
 describe('Async resolution', function() {
   test('should work', async function() {

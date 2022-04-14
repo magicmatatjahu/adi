@@ -1,5 +1,6 @@
 .DS_Store
 /node_modules
 .vscode/
-/lib
+/packages/*/lib
+/packages/*/node_modules
 /build

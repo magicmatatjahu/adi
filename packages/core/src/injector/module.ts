@@ -228,7 +228,7 @@ function importRecord(injector: Injector, token: ProviderToken, record: Provider
     collection = [undefined];
     injector.providers.set(token, collection);
   }
-  collection.push(record);
+  collection.splice(1, 0, record); // always insert to the second index 
 }
 
 function initInjectors(stack: Array<Injector>): void {
