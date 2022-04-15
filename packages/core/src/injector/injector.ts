@@ -1,7 +1,7 @@
 import { ADI } from '../adi';
 import { destroyInjector } from './garbage-collector';
 import { toProviderRecord, serializeInjectArguments, createInjectionArgument } from './metadata';
-import { initModule, importModule, exportModule } from './module';
+import { initModule, importModule, exportModule, importModuleToParent } from './module';
 import { inject } from './resolver';
 import { INITIALIZERS, MODULE_REF } from '../constants';
 import { InjectionKind, InjectorStatus } from '../enums';
@@ -12,7 +12,7 @@ import type { Session } from './session';
 import type { 
   ClassType, 
   ModuleMetadata, ModuleImportItem, ModuleExportItem, InjectorOptions,
-  ProviderToken, Provider, ProviderRecord, HookRecord, InjectionHook, InjectionAnnotations
+  ProviderToken, Provider, ProviderRecord, HookRecord, InjectionHook, InjectionAnnotations, ModuleID
 } from "../interfaces";
 
 export class Injector {
@@ -26,7 +26,7 @@ export class Injector {
 
   public adi: ADI = ADI.globalADI;
   public status: InjectorStatus = InjectorStatus.NONE;
-  public readonly imports = new Map<ClassType, Map<string | symbol, Injector>>();
+  public readonly imports = new Map<ClassType, Map<ModuleID, Injector>>();
   public readonly providers = new Map<ProviderToken, Array<ProviderRecord>>();
   public readonly hooks: Array<HookRecord> = [];
   public readonly meta: Record<string | symbol, any> = {};
@@ -36,6 +36,15 @@ export class Injector {
     public readonly parent: Injector | null = null,
     public readonly options: InjectorOptions = {},
   ) {
+    options.id = options.id || 'static';
+    options.importing = options.importing || 'enabled';
+    options.exporting = options.exporting || 'enabled';
+    options.scopes = ['any', metatype as ClassType, ...(options.scopes || [])];
+
+    if (parent !== null) {
+      importModuleToParent(this, metatype as ClassType, options.id, parent);
+    } 
+
     const providers: Provider[] = [];
     if (typeof metatype === 'function') { // module class
       providers.push({ provide: MODULE_REF, useExisting: metatype }, metatype);
@@ -81,7 +90,7 @@ export class Injector {
     module: ModuleImportItem | ModuleMetadata | Array<Provider>,
     options?: InjectorOptions,
   ): Injector | Promise<Injector> {
-    if (this.status & InjectorStatus.DESTROYED) return; 
+    if (this.status & InjectorStatus.DESTROYED || this.options.importing !== 'enabled') return; 
     return importModule(this, module, options);
   }
 
@@ -91,7 +100,7 @@ export class Injector {
   }
 
   export(exports: Array<ModuleExportItem> = [], to: Injector): void {
-    if (this.status & InjectorStatus.DESTROYED) return; 
+    if (this.status & InjectorStatus.DESTROYED || this.options.exporting !== 'enabled') return; 
     return exportModule(exports, this, to)
   }
 }

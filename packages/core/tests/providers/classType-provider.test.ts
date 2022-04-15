@@ -240,4 +240,35 @@ describe('ClassType provider (injectable provider)', function() {
     expect(instances[2]).toEqual('asyncFunction');
     expect(instances[3]).toEqual('asyncDeps');
   });
+
+  describe('should works as tree shakable provider', function() {
+    test('when provideIn scope is this same as injector', function() {
+      @Injectable({
+        annotations: {
+          'adi:provide-in': 'any',
+        }
+      })
+      class Service {}
+  
+      const injector = Injector.create().init() as Injector;
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+    });
+
+    test('should works with EXPORT annotation', async () => {
+      @Injectable({
+        annotations: {
+          'adi:provide-in': 'child',
+          'adi:export': true,
+        }
+      })
+      class Service {}
+
+      const injector = Injector.create([]).init() as Injector;
+      Injector.create([], injector, { scopes: ['child'] }).init() as Injector;
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+    });
+  });
 });

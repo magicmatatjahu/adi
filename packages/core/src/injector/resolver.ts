@@ -1,4 +1,4 @@
-import { createSession, getProviderInstance, filterHooks, filterProviderDefinition } from './metadata';
+import { createSession, getProviderInstance, filterHooks, filterProviderDefinition, getTreeshakableProvider } from './metadata';
 import { Session } from './session';
 import { InstanceStatus, SessionFlag } from '../enums';
 import { runHooks } from '../hooks';
@@ -115,13 +115,26 @@ export function resolveRecord<T>(session: Session): T | undefined | Promise<T | 
   }
 
   record = ctx.injector.providers.get(session.options.token);
-  if (record === undefined) { // check provider in the parent injector - reuse session
+  if (record === undefined) { // check provider in the parent injector
+    record = ctx.record = getTreeshakableProvider(ctx.injector, session.options.token);
+    if (record) { // resolved treeshakable provider
+      return runHooks(filterHooks(record.hooks, session), session, resolveDefinition);
+    }
     return resolveFromParent(session);
-  } else if (record.length === 1) { // only self provider
+  }
+  
+  if (record.length === 1) { // only self provider, without imports
     record = ctx.record = record[0];
+    if (record === null) { // treeshakable null fallback - check provider in the parent injector
+      return resolveFromParent(session);
+    }
     return runHooks(filterHooks(record.hooks, session), session, resolveDefinition);
   }
-  return resolveMultipleRecords(session, record, 0);
+
+  if (record[0] === undefined) { // maybe treeshakable provider
+    record[0] = getTreeshakableProvider(ctx.injector, session.options.token);
+  }
+  return resolveMultipleRecords(session, record, record[0] ? 0 : 1);
 }
 
 export function resolveDefinition<T>(session: Session): T | Promise<T> {
@@ -180,7 +193,7 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
   ) as unknown as T | Promise<T>;
 }
 
-function resolveMultipleRecords<T>(original: Session, records: Array<ProviderRecord>, index: number): T | undefined | Promise<T | undefined> {
+function resolveMultipleRecords<T>(original: Session, records: Array<ProviderRecord>, index: number, defaultDef?: ProviderDefinition): T | undefined | Promise<T | undefined> {
   if (records.length === index) {
     return resolveFromParent(original);
   }
@@ -190,9 +203,22 @@ function resolveMultipleRecords<T>(original: Session, records: Array<ProviderRec
   return runHooks(filterHooks(record.hooks, session), session, s => {
     const ctx = s.ctx;
     const def = filterProviderDefinition(ctx.record.defs, s);
-    if (def === undefined) return resolveMultipleRecords(original, records, ++index);
-    ctx.injector = (ctx.record = (ctx.def = def).record).host;
-    return runHooks(def.hooks, s, resolveInstance);
+
+    if (def === undefined) {
+      return resolveMultipleRecords(original, records, ++index, defaultDef);
+    }
+
+    if (def.when) { // handle constrained definition
+      ctx.injector = (ctx.record = (ctx.def = def).record).host;
+      return runHooks(def.hooks, s, resolveInstance);
+    }
+
+    defaultDef = defaultDef || def;
+    if (records.length === ++index && defaultDef) {
+      ctx.injector = (ctx.record = (ctx.def = defaultDef).record).host;
+      return runHooks(defaultDef.hooks, s, resolveInstance);
+    }
+    return resolveMultipleRecords(original, records, index, defaultDef);
   });
 }
 

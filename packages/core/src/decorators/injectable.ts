@@ -121,6 +121,6 @@ function inheritance(target: Function, def: InjectableDefinition, parameters: Ar
 
 function mergeParameters(target: Object, defParameters: Array<InjectionArgument>, parameters: Array<ClassType>): void {
   for (let index = 0, l = parameters.length; index < l; index++) {
-    defParameters[index] = defParameters[index] || createInjectionArgument(parameters[index], undefined, { kind: InjectionKind.PARAMETER, target, index });
+    defParameters[index] = defParameters[index] || createInjectionArgument(parameters[index], undefined, { kind: InjectionKind.PARAMETER, target, index, key: undefined, handler: undefined, annotations: {} });
   }
 }

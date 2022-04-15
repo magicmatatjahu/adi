@@ -2,7 +2,7 @@ import { Injector } from "./injector";
 import { INITIALIZERS, MODULE_REF } from "../constants";
 import { InjectorStatus } from "../enums";
 import { getModuleDefinition } from "../decorators";
-import { resolveRef, wait, waitAll, waitSequentially } from "../utils";
+import { resolveRef, wait, waitAll, waitSequence } from "../utils";
 
 import type { ClassType, ModuleID, DynamicModule, ModuleImportItem, ModuleMetadata, ModuleExportItem, InjectorOptions, Provider, ProviderToken, ProviderRecord, CustomProvider, ExportedModule } from "../interfaces";
 
@@ -12,6 +12,7 @@ interface CompiledModule {
   dynamicDef: DynamicModule;
   injector: Injector;
   exportTo: Injector;
+  proxy: boolean;
 }
 
 export function initModule(injector: Injector): Injector | Promise<Injector> {
@@ -47,14 +48,17 @@ export function exportModule(exports: Array<ModuleExportItem> = [], from: Inject
 }
 
 function processModule(compiled: CompiledModule, stack: Array<Injector>): void | Promise<void> {
-  const { moduleDef, dynamicDef, injector } = compiled;
+  const { moduleDef, dynamicDef, injector, proxy } = compiled;
   const compiledModules: Array<CompiledModule> = [];
 
-  const imports: Array<ModuleImportItem> = [...moduleDef.imports || [], ...dynamicDef.imports || []];
-  if (imports.length === 0) return;
+  const imports: Array<ModuleImportItem> = [];
+  if (proxy === false) imports.push(...moduleDef.imports || []);
+  imports.push(...dynamicDef.imports || []);
+
+  if (imports.length === 0) return processMetadata(compiled);
   return waitAll(
-    imports.map(i => processImportItem(i, compiledModules, injector, stack)),
-    () => waitSequentially(
+    imports.map(i => processImport(i, compiledModules, injector, stack)),
+    () => waitSequence(
       compiledModules, 
       c => processModule(c, stack),
       () => processMetadata(compiled),
@@ -62,7 +66,7 @@ function processModule(compiled: CompiledModule, stack: Array<Injector>): void |
   );
 }
 
-function processImportItem(
+function processImport(
   module: ModuleImportItem, 
   compiledModules: Array<CompiledModule>, 
   parent: Injector,
@@ -70,53 +74,42 @@ function processImportItem(
 ): void | Promise<void> {
   return wait(
     compileMetadata(module),
-    compiled => processCompiledImportItem(compiled, compiledModules, parent, stack) as any,
+    compiled => {
+      if (!compiled) return undefined;
+      compiledModules.push(compiled);
+      compiled.exportTo = parent;
+    
+      const { type, dynamicDef } = compiled;
+      const id = (dynamicDef && dynamicDef.id) || 'static';
+      
+      const foundInjector = findModule(parent, type, id);
+      if (foundInjector === undefined) {
+        stack.push(compiled.injector = Injector.create(type, parent, { id }));
+      } else {
+        compiled.injector = foundInjector;
+        compiled.proxy = true;
+      }
+    }
   ) as unknown as void;
 }
 
-function processCompiledImportItem(
-  processed: CompiledModule | undefined,
-  compiled: Array<CompiledModule>,
-  parent: Injector,
-  stack: Array<Injector>,
-) {
-  if (!processed) return;
-  compiled.push(processed);
-
-  const { type, dynamicDef } = processed;
-  const id = (dynamicDef && dynamicDef.id) || 'static';
-  
-  let injector: Injector, foundedInjector = findModule(parent, type, id);
-  if (foundedInjector === undefined) {
-    injector = new Injector(type, parent, { id });
-    stack.push(injector);
-  } else {
-    // check also here circular references between modules
-
-    // make proxy and don't push to the `stack` array - it shouldn't be initialized (TODO: Initialize only MODULE_INITIALIZERS)
-    injector = new Injector(type, foundedInjector, { id });
-    // injector.status |= InjectorStatus.PROXY_MODE;
-    // processedModule.isProxy = true;
-  }
-  processed.injector = injector;
-  processed.exportTo = parent;
-
-  // add injector to the imports of parent injector
+export function importModuleToParent(injector: Injector, type: ClassType, id: ModuleID, parent: Injector) {
   let modules = parent.imports.get(type);
   if (modules === undefined) {
     modules = new Map<ModuleID, Injector>();
     parent.imports.set(type, modules);
   }
+  if (modules.has(id)) return; // TODO: Fix that
   modules.set(id, injector);
-}
+} 
 
-function processMetadata({ injector, moduleDef, dynamicDef, exportTo }: CompiledModule) {
-  injector.provide(...moduleDef.providers || []);
-  injector.export(moduleDef.exports, exportTo);
-  if (dynamicDef) {
-    injector.provide(...dynamicDef.providers || []);
-    injector.export(dynamicDef.exports, exportTo);
+function processMetadata({ injector, moduleDef, dynamicDef, exportTo, proxy }: CompiledModule) {
+  if (proxy === false) {
+    injector.provide(...moduleDef.providers || []);
+    injector.export(moduleDef.exports, exportTo);
   }
+  injector.provide(...dynamicDef.providers || []);
+  injector.export(dynamicDef.exports, exportTo);
 }
 
 function compileMetadata(module: ModuleImportItem | ModuleMetadata | Array<Provider>): CompiledModule | Promise<CompiledModule> {
@@ -132,7 +125,7 @@ function extractModuleMetadata(meta: ClassType | ModuleMetadata | DynamicModule 
 
   if (moduleDef === undefined) { // maybe DynamicModule case
     dynamicDef = meta as DynamicModule;
-    if (dynamicDef.module !== undefined) { // DynamicModule case
+    if (dynamicDef && dynamicDef.module !== undefined) { // DynamicModule case
       meta = dynamicDef.module;
       moduleDef = getModuleDefinition(meta);
     } else { // ModuleMetadata case
@@ -141,40 +134,34 @@ function extractModuleMetadata(meta: ClassType | ModuleMetadata | DynamicModule 
     }
   }
 
-  if (moduleDef === undefined && dynamicDef === undefined) {
-    throw new Error(`Given value/type ${meta} cannot be used as ADI Module`);
-  }
-  return { type: meta as any, moduleDef: moduleDef || {}, dynamicDef: dynamicDef || {} as any, injector: undefined, exportTo: undefined };
+  if (moduleDef === undefined && dynamicDef === undefined) return;
+  return { type: meta as any, moduleDef: moduleDef || {}, dynamicDef: dynamicDef || {} as any, injector: undefined, exportTo: undefined, proxy: false };
 }
 
-function findModule(injector: Injector, type: ClassType, id: ModuleID): Injector | undefined | never {
-  if (type === injector.metatype) {
-    // TODO: Check this statement - maybe error isn't needed
-    // throw Error('Cannot import this same module to injector');
-    // console.log('Cannot import this same module to itself');
-    return undefined;
+function findModule(injector: Injector, type: ClassType, id: ModuleID): Injector | undefined {
+  if (type === injector.metatype && id === injector.options.id) { // cannot import module to itself
+    return;
   }
   
-  let foundedModule = injector.imports.get(type);
-  if (foundedModule && foundedModule.has(id)) {
-    return foundedModule.get(id);
+  let foundModule: Injector = injector.imports.get(type)?.get(id);
+  if (foundModule) {
+    return foundModule;
   }
   
   let parentInjector = injector.parent;
   // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
   while (parentInjector !== null) {
     // TODO: Check this statement - maybe it's needed
-    if (type === parentInjector.metatype) {
+    if (type === parentInjector.metatype && id === parentInjector.options.id) {
       return parentInjector;
     }
 
-    foundedModule = parentInjector.imports.get(type);
-    if (foundedModule && foundedModule.has(id)) {
-      return foundedModule.get(id);
+    foundModule = parentInjector.imports.get(type)?.get(id);
+    if (foundModule) {
+      return foundModule;
     }
     parentInjector = parentInjector.parent;
   }
-  return undefined;
 }
 
 function processExport(exp: ModuleExportItem, from: Injector, to: Injector): void {
@@ -208,21 +195,21 @@ function processExport(exp: ModuleExportItem, from: Injector, to: Injector): voi
 
 function processModuleExports(exportedModule: ExportedModule, from: Injector, to: Injector) {
   const { from: module, id, providers } = exportedModule;
-  const fromInjector = from.imports.get(module)?.get(id);
+  const fromInjector = from.imports.get(module)?.get(id || 'static');
   if (fromInjector === undefined) {
     throw Error(`Cannot export from ${module} module`);
   }
 
   return from.providers.forEach((collection, token) => {
     collection.forEach(record => {
-      if (record.host === fromInjector && (providers ? providers.includes(token) : true)) {
+      if (record && record.host === fromInjector && (providers ? providers.includes(token) : true)) {
         importRecord(to, token, record);
       }
     });
   });
 }
 
-function importRecord(injector: Injector, token: ProviderToken, record: ProviderRecord) {
+export function importRecord(injector: Injector, token: ProviderToken, record: ProviderRecord) {
   let collection = injector.providers.get(token);
   if (collection === undefined) {
     collection = [undefined];
@@ -232,7 +219,7 @@ function importRecord(injector: Injector, token: ProviderToken, record: Provider
 }
 
 function initInjectors(stack: Array<Injector>): void {
-  return waitSequentially(stack.reverse(), initInjector);
+  return waitSequence(stack.reverse(), initInjector);
 }
 
 function initInjector(injector: Injector) {

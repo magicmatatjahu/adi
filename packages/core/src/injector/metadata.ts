@@ -14,6 +14,7 @@ import type {
   ProviderRecord, HookRecord,
   DefinitionFactory, InjectionItem, PlainInjectionItem, PlainInjections, InjectionArgument, InjectionArguments, InjectionMetadata, InjectionHook, ConstraintDefinition, ProviderAnnotations, ProviderDefinition, ProviderInstance, InjectorScope, InjectionAnnotations,
 } from "../interfaces";
+import { importRecord } from "./module";
 
 export function toProviderRecord<T>(host: Injector, provider: Provider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
   if (typeof provider === "function") {
@@ -159,13 +160,9 @@ export function filterProviderDefinitions(defs: Array<ProviderDefinition>, sessi
 }
 
 export function filterHooks(hooks: Array<HookRecord>, session: Session) {
-  const satisfyingHooks: Array<InjectionHook> = [];
-  for (let i = 0, l = hooks.length; i < l; i++) {
-    if (hooks[i].when(session) === true) {
-      satisfyingHooks.push(hooks[i].hook);
-    }
-  }
-  return satisfyingHooks;
+  const satisfied: Array<InjectionHook> = [];
+  hooks.forEach(hook => hook.when(session) && satisfied.push(hook.hook));
+  return satisfied;
 }
 
 export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: Array<InjectionHook> = [], metadata: InjectionMetadata): InjectionArgument<T> {
@@ -386,38 +383,43 @@ function addConstraint(definition: ProviderDefinition, constraint: ConstraintDef
 
 function getRecord<T>(host: Injector, token: ProviderToken<T>): ProviderRecord {
   const record = host.providers.get(token) || [];
-  if (record[0] === undefined) {
-    const provider = record[0] = { token, host, defs: [], hooks: [] }
+  if (!record[0]) {
+    const provider = record[0] = { token, host, defs: [], hooks: [], meta: {} };
     host.providers.set(token, record);
     return provider;
   }
   return record[0];
 }
 
-function getTreeshakableProvider(injector: Injector, token: ProviderRecord): ProviderRecord | undefined {
-  let provideIn = getInjectableDefinition(token)?.options?.provideIn;
+export function getTreeshakableProvider(injector: Injector, token: ProviderToken): ProviderRecord | null {
+  const def = getInjectableDefinition(token);
+  const annotations = def?.options?.annotations || {};
+  let provideIn = annotations['adi:provide-in'];
   if (provideIn === undefined) {
-    return;
+    return null;
   }
 
-  // provideIn = Array.isArray(provideIn) ? provideIn : [provideIn];
-  // let record: ProviderRecord;  
-  // if (isProviderInInjectorScope(injector.options.scopes, provideIn)) {
-  //   record = toProviderRecord(injector, typeof token === 'function' ? token : {});
-  //   if (typeof token === "function") { // type provider case
-  //     record = typeProviderToRecord(token as Type, injector);
-  //   } else { // injection token case
-  //     record = customProviderToRecord(token, def as any, injector);
-  //   }
-  // } else { // imports case
-  //   const annotations = def?.options?.annotations || EMPTY_OBJECT;
-  //   if (annotations[ANNOTATIONS.EXPORT] !== true) {
-  //     return;
-  //   }
-  // }
+  provideIn = Array.isArray(provideIn) ? provideIn : [provideIn];
+  if (isProviderInInjectorScope(injector.options.scopes, provideIn)) {
+    return toProviderRecord(injector, typeof token === 'function' ? token : {} as any).record;
+  }
+
+  if (annotations['adi:export'] !== true) {
+    return null;
+  }
+
+  // TOOD: Fix case when imports has that record - don't override
+  let record: ProviderRecord = null;  
+  injector.imports.forEach(imp => imp.forEach(inj => {
+    if (isProviderInInjectorScope(inj.options.scopes, provideIn as Array<InjectorScope>)) {
+      record = toProviderRecord(injector, typeof token === 'function' ? token : {} as any).record;
+      importRecord(injector, token, record);
+    };
+  }));
+  return record;
 }
 
-function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn?: Array<InjectorScope>): boolean {
+function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Array<InjectorScope>): boolean {
   return provideIn.some(scope => scopes.includes(scope));
 }
 
@@ -441,7 +443,7 @@ const useExistingDefinitionHook = createHook((definition: ProviderDefinition) =>
 const useComponentHook = createHook(() => {
   return (session, next) => {
     if (session.parent || getHostInjector(session) !== session.ctx.injector) {
-      throw new Error('Component cannot be injected to another one provider');
+      throw new Error('Component cannot be injected to another provider.');
     }
     return next(session);
   }

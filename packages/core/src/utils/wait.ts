@@ -36,7 +36,7 @@ export function waitCallback<T>(
 export function waitAll<T>(
   maybePromises: Array<T | Promise<T>>,
   thenAction?: (value: Exclude<T[], PromiseLike<T[]>>) => T | never,
-  catchAction?: (err: unknown) => T[] | never,
+  catchAction: (err: unknown) => T | never = noopCatch,
 ) {
   let result: any = maybePromises;
   if (maybePromises.some(isPromiseLike)) {
@@ -46,33 +46,28 @@ export function waitAll<T>(
 }
 
 // TODO: return all performed data
-export function waitSequentially<T>(
+export function waitSequence<T>(
   data: T[],
   action: (data: T) => any,
-  thenAction: () => any | never = noopThen as any,
-  catchAction?: (err: unknown) => any | never,
-  idx: number = -1,
+  thenAction: (value: Array<any>) => any | never = noopThen as any,
+  catchAction: (err: unknown) => T | never = noopCatch,
 ) {
-  if (data.length === 0) return thenAction();
-  return _waitSequentially(data, action, thenAction, catchAction, idx);
+  if (data.length === 0) return thenAction([]);
+  return _waitSequence(data, action, thenAction, catchAction, [], -1);
 }
 
-function _waitSequentially<T>(
+function _waitSequence<T>(
   data: T[],
   action: (data: T) => any,
-  thenAction?: () => any | never,
-  catchAction?: (err: unknown) => any | never,
+  thenAction: (value: Array<any>) => any | never = noopThen as any,
+  catchAction: (err: unknown) => T | never = noopCatch,
+  resolvedData: Array<any> = [],
   idx: number = -1,
 ) {
-  if (++idx === data.length - 1) {
-    return wait(
-      action(data[idx]),
-      thenAction,
-      catchAction,
-    )
-  }
+  if (++idx === data.length) return thenAction(resolvedData);
   return wait(
     action(data[idx]),
-    () => _waitSequentially(data, action, thenAction, catchAction, idx),
+    () => _waitSequence(data, action, thenAction, catchAction, resolvedData, idx),
+    catchAction,
   )
 }

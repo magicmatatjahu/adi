@@ -1,4 +1,4 @@
-import { wait, waitSequentially } from "./wait";
+import { wait, waitSequence } from "./wait";
 import { SessionFlag } from "../enums";
 
 import type { Session } from "../injector";
@@ -19,7 +19,7 @@ function _handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   }
   delete session.meta[initHooksMetaKey];
   hasOnInitLifecycle(value) && hooks.push(() => value.onInit());
-  return waitSequentially(hooks.reverse(), hook => hook(value));
+  return waitSequence(hooks.reverse(), hook => hook(value));
 }
 
 export function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
@@ -27,7 +27,7 @@ export function handleOnInitLifecycle(session: Session, instance: ProviderInstan
     if (!(session.parent?.hasFlag(SessionFlag.CIRCULAR))) { // run only when parent isn't in circular loop
       const sessions = session.meta[circularSessionsMetaKey];
       delete session.meta[circularSessionsMetaKey];
-      return waitSequentially(sessions, (s: Session) => _handleOnInitLifecycle(s, s.ctx.instance));
+      return waitSequence(sessions, (s: Session) => _handleOnInitLifecycle(s, s.ctx.instance));
     }
     return;
   }

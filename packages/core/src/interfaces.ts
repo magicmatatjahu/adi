@@ -20,8 +20,9 @@ export interface AbstractClassType<T = any> extends Function {
 // TOKEN
 export type ProviderToken<T = any> = ClassType<T> | AbstractClassType<T> | InjectionToken<T> | string | symbol;
 
-export interface InjectionTokenOptions<T> {
-
+export interface InjectionTokenOptions<T = any> {
+  provide?: Omit<ClassProvider<T>, 'provide'> | Omit<FactoryProvider<T>, 'provide'> | Omit<ValueProvider<T>, 'provide'> | Omit<ExistingProvider<T>, 'provide'>;
+  annotations?: ProviderAnnotations;
 }
 
 // MODULE
@@ -41,7 +42,8 @@ export interface DynamicModule<T = any> extends ModuleMetadata {
 export type ModuleImportItem = 
   | ClassType
   | DynamicModule
-  | Promise<ClassType | DynamicModule>
+  | Promise<ClassType>
+  | Promise<DynamicModule>
   | ForwardReference;
 
 export type ModuleExportItem = 
@@ -58,7 +60,7 @@ export type ExportedModule = {
   providers?: Array<ProviderToken>;
 }
 
-export type InjectorScope<T = any> = string | symbol | ClassType<T>;
+export type InjectorScope<T = any> = 'any' | string | symbol | ClassType<T>;
 
 export interface InjectorOptions {
   adi?: ADI;
@@ -163,14 +165,15 @@ export interface ProviderAnnotations {
   'adi:name'?: string | symbol;
   'adi:tags'?: Array<string>;
   'adi:order'?: number;
-  'adi:config'?: any;
-  'adi:eager'?: boolean;
-  'adi:use-named'?: string | symbol;
   'adi:visible'?: 'public' | 'private';
-  'adi:override'?: 'all' | 'definition';
-  'adi:export'?: boolean;
+  'adi:eager'?: boolean;
   'adi:aliases'?: Array<ProviderToken>;
+  'adi:use-named'?: string | symbol;
+  'adi:config'?: any;
+  'adi:override'?: 'all' | 'definition';
   'adi:component'?: boolean;
+  'adi:provide-in'?: InjectorScope | Array<InjectorScope>;
+  'adi:export'?: boolean;
   [key: string | symbol]: any;
 }
 
@@ -179,6 +182,7 @@ export interface ProviderRecord<T = any> {
   host: Injector;
   defs: Array<ProviderDefinition>;
   hooks: Array<HookRecord>;
+  meta: Record<string | symbol, any>;
 }
 
 export interface ProviderDefinition<T = any> {
@@ -201,11 +205,9 @@ export interface ProviderInstance<T = any> {
   value: T;
   status: InstanceStatus;
   scope: ScopeType;
-  meta: Record<string | symbol, any>;
-  // what is injected to instance
   children?: Set<ProviderInstance>;
-  // where instance is injected
   parents?: Set<ProviderInstance>;
+  meta: Record<string | symbol, any>;
 }
 
 export interface HookRecord {
@@ -302,7 +304,6 @@ export interface OnDestroy {
 
 // DECORATORS
 export type InjectableOptions = {
-  provideIn?: InjectorScope | Array<InjectorScope>;
   scope?: ScopeType;
   hooks?: Array<InjectionHook>; 
   annotations?: ProviderAnnotations;

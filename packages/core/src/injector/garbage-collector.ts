@@ -1,5 +1,5 @@
 import { InstanceStatus, InjectorStatus } from "../enums";
-import { waitSequentially } from "../utils";
+import { waitSequence } from "../utils";
 import { handleOnDestroyLifecycle } from '../utils/lifecycle-hooks';
 
 import type { Injector } from "./injector";
@@ -29,13 +29,13 @@ export async function destroy(instance: ProviderInstance, event: DestroyEvent = 
 }
 
 export async function destroyCollection(instances: Array<ProviderInstance> = [], event?: DestroyEvent) {
-  return waitSequentially(instances, instance => destroy(instance, event));
+  return waitSequence(instances, instance => destroy(instance, event));
 }
 
 export function destroyRecord(record: ProviderRecord, event?: DestroyEvent) {
   const defs = record.defs;
   record.defs = [];
-  return waitSequentially(defs, def => destroyDefinition(def, event))
+  return waitSequence(defs, def => destroyDefinition(def, event))
 }
 
 export function destroyDefinition(definition: ProviderDefinition, event?: DestroyEvent) {
@@ -57,22 +57,22 @@ export async function destroyInjector(injector: Injector) {
 
   injector.providers.clear()
   try {
-    await waitSequentially(records, record => destroyRecord(record, 'injector'));
+    await waitSequence(records, record => destroyRecord(record, 'injector'));
   } catch {}
 
   // remove injector from parent imports
   if (injector.parent !== null) {
-    const importInParent = injector.parent.imports.get(this.metatype as any);
+    const importInParent = injector.parent.imports.get(injector.metatype as any);
     importInParent && importInParent.delete(injector.options.id);
   }
 
   // then destroy and clean all imported modules
   const imports = Array.from(injector.imports.values());
-  this.imports.clear();
+  injector.imports.clear();
   try {
-    return waitSequentially(
+    return waitSequence(
       imports, 
-      imp => waitSequentially(Array.from(imp.values()), inj => destroyInjector(inj)),
+      imp => waitSequence(Array.from(imp.values()), inj => destroyInjector(inj)),
     );
   } catch {}
 }

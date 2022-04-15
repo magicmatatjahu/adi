@@ -8,4 +8,4 @@ export { createHook, All, Ctx, Named, New, OnDestroyLifecycle, OnInitLifecycle, 
 export { Context, InjectionToken, Injector, Session } from './injector';
 export * from './interfaces';
 export { Scope, createScope, DefaultScope, SingletonScope, TransientScope } from './scopes';
-export { wait, waitCallback, waitAll, waitSequentially, ref, resolveRef } from './utils';
+export { wait, waitCallback, waitAll, waitSequence, ref, resolveRef } from './utils';
