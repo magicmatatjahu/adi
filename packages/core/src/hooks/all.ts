@@ -27,7 +27,7 @@ function allHook(session: Session, next: NextHook, options: AllHookOptions) {
   const forkedSession = session.fork();
   forkedSession.setFlag(SessionFlag.DRY_RUN);
 
-  wait(
+  return wait(
     next(forkedSession), // run to update session
     () => {
       // retrieve all satisfied definitions

@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Optional } from "../../src";
 
-describe('Optional hook', function () {
+describe('Optional injection hook', function () {
   test('should handle exception when token is not defined in providers array', function () {
     @Injectable()
     class TestService {}

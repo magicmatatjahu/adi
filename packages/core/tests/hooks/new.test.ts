@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, New } from "../../src";
 
-describe('New hook', function () {
+describe('New injection hook', function () {
   test('should create new instances', function () {
     @Injectable()
     class TestService {}

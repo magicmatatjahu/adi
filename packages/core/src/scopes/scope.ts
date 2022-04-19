@@ -2,10 +2,7 @@ import type { Context, Session, DestroyContext } from '../injector';
 import type { ProviderInstance } from '../interfaces';
 
 export interface ScopeType<O = any> {
-  (options: O): {
-    kind: Scope<O>;
-    options: O;
-  };
+  (options: O): ScopeType<O>;
   kind: Scope<O>;
   options: O;
 }
@@ -33,14 +30,8 @@ export abstract class Scope<O = any> {
 }
 
 export function createScope<O = any>(scope: Scope<O>, defaultOptions: O): ScopeType<O> {
-  function scopeType(options: O) {
-    return {
-      kind: scope,
-      options: {
-        ...defaultOptions,
-        ...options,
-      },
-    }
+  function scopeType(options: O): ScopeType<O> {
+    return createScope(scope, { ...defaultOptions, ...options, });
   };
   (scopeType as ScopeType<O>).kind = scope;
   (scopeType as ScopeType<O>).options = defaultOptions;

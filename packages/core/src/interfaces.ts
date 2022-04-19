@@ -11,10 +11,12 @@ import type { ForwardReference } from './utils';
 // COMMON
 export interface ClassType<T = any> extends Function {
   new (...args: any[]): T;
+  [ADI_HOOK_DEF]?: never;
 }
 
 export interface AbstractClassType<T = any> extends Function {
   prototype: T;
+  [ADI_HOOK_DEF]?: never;
 }
 
 // TOKEN
@@ -217,7 +219,7 @@ export interface HookRecord {
 }
 
 export interface DefinitionFactory {
-  factory: FactoryDefinition;
+  resolver: ResolverDefinition;
   data: any;
 }
 
@@ -238,6 +240,7 @@ export interface InjectionAnnotations {
   'adi:named'?: string | symbol;
   'adi:tagged'?: Array<string | symbol>;
   'adi:labelled'?: Record<string | symbol, string | symbol>;
+  [ADI_HOOK_DEF]?: never;
   [key: string | symbol]: any;
 }
 
@@ -318,6 +321,6 @@ export interface InjectableDefinition<T = any> {
   meta: Record<string | symbol, any>;
 }
 
-export type FactoryDefinition<T = any> = (injector: Injector, session: Session, data: any) => Promise<T | undefined> | T | undefined;
+export type ResolverDefinition<T = any> = (injector: Injector, session: Session, data: any, ...args: Array<any>) => Promise<T | undefined> | T | undefined;
 
 export type ConstraintDefinition = (session: Session) => boolean;

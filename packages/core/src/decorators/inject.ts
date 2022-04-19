@@ -1,5 +1,6 @@
 import { ensureInjectableDefinition } from "./injectable";
 import { InjectionKind } from "../enums";
+import { WithInstance } from "../hooks/internal";
 import { serializeInjectArguments } from "../injector";
 import { Reflection } from "../utils";
 
@@ -37,6 +38,7 @@ export function Inject<T = any>(token?: ProviderToken<T> | Array<InjectionHook> 
   }
 }
 
+const withInstanceHook = WithInstance();
 function applyInjectionArgument(
   token: ProviderToken,
   hooks: Array<InjectionHook> = [],
@@ -54,7 +56,7 @@ function applyInjectionArgument(
   const injections = ensureInjectableDefinition(target).injections;
   if (typeof index === "number") { // method injection
     const method = injections.methods[key as string] || (injections.methods[key as string] = []);
-    return method[index] = createInjectionArgument(token, hooks, { ...metadata, kind: InjectionKind.METHOD });
+    return method[index] = createInjectionArgument(token, [withInstanceHook, ...hooks], { ...metadata, kind: InjectionKind.METHOD });
   }
   // property injection
   return injections.properties[key as string] = createInjectionArgument(token, hooks, { ...metadata, kind: InjectionKind.PROPERTY });

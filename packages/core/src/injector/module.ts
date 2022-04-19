@@ -1,6 +1,8 @@
+import { InjectionToken } from "./injection-token";
 import { Injector } from "./injector";
-import { INITIALIZERS, MODULE_REF } from "../constants";
-import { InjectorStatus } from "../enums";
+import { inject } from "./resolver";
+import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from "../constants";
+import { InjectionKind, InjectorStatus } from "../enums";
 import { getModuleDefinition } from "../decorators";
 import { resolveRef, wait, waitAll, waitSequence } from "../utils";
 
@@ -48,6 +50,7 @@ export function exportModule(exports: Array<ModuleExportItem> = [], from: Inject
 }
 
 function processModule(compiled: CompiledModule, stack: Array<Injector>): void | Promise<void> {
+  processProviders(compiled);
   const { moduleDef, dynamicDef, injector, proxy } = compiled;
   const compiledModules: Array<CompiledModule> = [];
 
@@ -55,13 +58,13 @@ function processModule(compiled: CompiledModule, stack: Array<Injector>): void |
   if (proxy === false) imports.push(...moduleDef.imports || []);
   imports.push(...dynamicDef.imports || []);
 
-  if (imports.length === 0) return processMetadata(compiled);
+  if (imports.length === 0) return processExports(compiled);
   return waitAll(
     imports.map(i => processImport(i, compiledModules, injector, stack)),
     () => waitSequence(
       compiledModules, 
       c => processModule(c, stack),
-      () => processMetadata(compiled),
+      () => processExports(compiled),
     ),
   );
 }
@@ -103,12 +106,14 @@ export function importModuleToParent(injector: Injector, type: ClassType, id: Mo
   modules.set(id, injector);
 } 
 
-function processMetadata({ injector, moduleDef, dynamicDef, exportTo, proxy }: CompiledModule) {
-  if (proxy === false) {
-    injector.provide(...moduleDef.providers || []);
-    injector.export(moduleDef.exports, exportTo);
-  }
+function processProviders({ injector, moduleDef, dynamicDef, proxy }: CompiledModule) {
+  proxy === false && injector.provide(...moduleDef.providers || []);
   injector.provide(...dynamicDef.providers || []);
+  loadModuleConfig(injector);
+}
+
+function processExports({ injector, moduleDef, dynamicDef, exportTo, proxy }: CompiledModule) {
+  proxy === false && injector.export(moduleDef.exports, exportTo);
   injector.export(dynamicDef.exports, exportTo);
 }
 
@@ -176,7 +181,11 @@ function processExport(exp: ModuleExportItem, from: Injector, to: Injector): voi
     if ((exp as CustomProvider).provide) {
       to.provide(exp as CustomProvider);
     }
-    return;
+
+    // InjectionToken case
+    const injectionToken = exp as InjectionToken;
+    const record = from.providers.get(injectionToken);
+    return record && record[0] && importRecord(to, injectionToken, record[0]);
   }
 
   // classType provider
@@ -188,7 +197,7 @@ function processExport(exp: ModuleExportItem, from: Injector, to: Injector): voi
     return (record && record[0]) ? importRecord(to, exp, record[0]) : to.provide(exp as any);
   }
 
-  // string, symbol or InjectionToken case
+  // string, symbol
   const record = from.providers.get(exp);
   record && record[0] && importRecord(to, exp, record[0]);
 }
@@ -225,10 +234,7 @@ function initInjectors(stack: Array<Injector>): void {
 function initInjector(injector: Injector) {
   if (injector.status & InjectorStatus.INITIALIZED) return; 
   injector.status |= InjectorStatus.INITIALIZED;
-
-  // // resolve INJECTOR_OPTIONS provider again
-  // loadOptions(injector);
-
+  
   return wait(
     initInitializers(injector),
     () => wait(
@@ -243,4 +249,10 @@ function initInitializers(injector: Injector) {
   if (initializers[0].defs.length) {
     return injector.get(INITIALIZERS);
   }
+}
+
+function loadModuleConfig(injector: Injector): void {
+  if (!injector.providers.has(INJECTOR_CONFIG)) return;
+  const options = (inject(injector, undefined, { token: INJECTOR_CONFIG, hooks: [], metadata: { target: injector, kind: InjectionKind.STANDALONE } }) || {}) as InjectorOptions;
+  Object.assign(injector.options, options, { scopes: ['any', injector.metatype, ...options.scopes || []] });
 }

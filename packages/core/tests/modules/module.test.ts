@@ -225,14 +225,12 @@ describe('Module', function() {
     }
 
     const injector = await Injector.create(MainModule).init();
-    // init components
     injector.get(Controller);
-    // init providers
     injector.get(Service2);
 
     // destroy module/injector
     await injector.destroy();
-    expect(onDestroyOrder).toEqual(['MainModule', 'Service1', 'Controller', 'Service2']);
+    expect(onDestroyOrder).toEqual(['MainModule', 'Controller', 'Service1', 'Service2']);
   });
 
   test('should destroy itself and imported modules in proper order', async function() {
@@ -311,21 +309,13 @@ describe('Module', function() {
     }
 
     const injector = await Injector.create(MainModule).init();
-    // init components
     injector.get(Controller);
-    // init providers
     injector.get(Service);
-
-    // const childInjector = injector.getChild(ChildModule);
-    // // init components
-    // childInjector.get(ChildController);
-    // // init providers
-    // childInjector.get(ChildService);
 
     // destriy module/injector
     await injector.destroy();
     expect(onDestroyOrder).toEqual([
-      'MainModule', 'Service', 'Controller',
+      'MainModule', 'Controller', 'Service',
       'ChildModule', 'ChildController', 'ChildService',
     ]);
   });

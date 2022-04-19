@@ -28,7 +28,7 @@ export class Session<T = any> {
     const newSession = new Session(options, { ...this.ctx }, this.metadata, this.parent);
     newSession.flags = newSession.flags;
     newSession.children = newSession.children;
-    newSession.meta = newSession.meta;
+    newSession.meta = { ...newSession.meta };
     return newSession;
   }
 
@@ -52,6 +52,9 @@ export class Session<T = any> {
         session.setFlag(SessionFlag.SIDE_EFFECTS);
         return session.parent;
       }],
+      annotations: {
+        'adi:provide-in': 'any',
+      }
     },
     injections: {} as any,
     meta: {},

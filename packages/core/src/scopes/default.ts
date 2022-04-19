@@ -15,9 +15,8 @@ export class DefaultScope extends Scope<DefaultScopeOptions> {
     return session.options.ctx || STATIC_CONTEXT;
   }
 
-  override canDestroy(instance: ProviderInstance, _: DefaultScopeOptions, ctx: DestroyContext): boolean {
-    if (ctx.event === 'injector') return true;
-    return instance.parents === undefined || instance.parents.size === 0;
+  override canDestroy(instance: ProviderInstance, _: DefaultScopeOptions, destroyCtx: DestroyContext): boolean {
+    return destroyCtx.event === 'injector' && instance.parents?.size === 0;
   };
 }
 

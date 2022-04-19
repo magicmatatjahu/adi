@@ -1,5 +1,5 @@
 import { InjectionToken } from "./injection-token";
-import { resolveRecord, factoryClass, factoryFactory, factoryValue } from "./resolver";
+import { resolveRecord, resolverClass, resolverFactory, resolverValue } from "./resolver";
 import { Session } from "./session";
 import { INITIALIZERS, STATIC_CONTEXT } from "../constants";
 import { when } from "../constraints";
@@ -29,7 +29,7 @@ function typeProviderToRecord<T>(host: Injector, provider: ClassTypeProvider<T>)
   if (def === undefined) return;
 
   const record = getRecord(host, provider);
-  const factory = { factory: factoryClass, data: { classType: provider, inject: def.injections } };
+  const factory = { resolver: resolverClass, data: { useClass: provider, inject: def.injections } };
   const options = def.options;
   const annotations = options.annotations || {};
   const definition: ProviderDefinition = { kind: ProviderKind.CLASS, provider, record, factory, scope: options.scope || DefaultScope, when: undefined, hooks: options.hooks || [], annotations, values: new Map(), meta: {} };
@@ -59,10 +59,10 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
   if (isFactoryProvider(provider)) {
     kind = ProviderKind.FACTORY;
     const inject = convertDependencies(provider.inject || [], { kind: InjectionKind.FACTORY, handler: provider.useFactory });
-    factory = { factory: factoryFactory, data: { useFactory: provider.useFactory, inject } };
+    factory = { resolver: resolverFactory, data: { useFactory: provider.useFactory, inject } };
   } else if (isValueProvider(provider)) {
     kind = ProviderKind.VALUE;
-    factory = { factory: factoryValue, data: provider.useValue };
+    factory = { resolver: resolverValue, data: provider.useValue };
   } else if (isClassProvider(provider)) {
     const def = getInjectableDefinition(provider.useClass);
     if (def) {
@@ -76,7 +76,7 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
     
     const inject = overrideDependencies(def?.injections, provider.inject) || {};
     kind = ProviderKind.CLASS;
-    factory = { factory: factoryClass, data: { classType: provider.useClass, inject } };
+    factory = { resolver: resolverClass, data: { useClass: provider.useClass, inject } };
   } else if (isExistingProvider(provider)) {
     kind = ProviderKind.ALIAS;
     hooks.push(useExistingHook(provider.useExisting));
@@ -146,7 +146,7 @@ export function filterProviderDefinition(defs: Array<ProviderDefinition>, sessio
 export function filterProviderDefinitions(defs: Array<ProviderDefinition>, session: Session, mode: 'defaults' | 'constraints' | 'all' = 'constraints'): Array<ProviderDefinition> {
   const satisfiedDefinitions: Array<ProviderDefinition> = [];
   const defaultDefs: Array<ProviderDefinition> = [];
-  for (let i = defs.length - 1; i > -1; i--) {
+  for (let i = 0, l = defs.length; i < l; i++) {
     const def = defs[i];
     if (def.when === undefined) { // default def
       defaultDefs.push(def);
@@ -310,17 +310,17 @@ export function getHostInjector(session: Session): Injector | undefined {
 
 let DEFINITION_ID = 0;
 function handleProviderAnnotations(record: ProviderRecord, definition: ProviderDefinition, annotations: ProviderAnnotations) {
+  // TODO: Copy annotations
   const uid = annotations['adi:uid'] = `adi:uid:${DEFINITION_ID++}`;
-  let name = annotations['adi:name'];
-  if (name || typeof name === 'string') {
-    addConstraint(definition, when.named(name, false));
-  } else {
-    name = annotations['adi:name'] = uid;
-  }
   if (typeof annotations['adi:order'] !== 'number') {
     annotations['adi:order'] = 0;
   }
-  if (Object.keys(annotations).length === 3) return;
+  if (Object.keys(annotations).length === 2) return;
+
+  let name = annotations['adi:name'];
+  if (name || typeof name === 'string') {
+    addConstraint(definition, when.named(name, false));
+  }
 
   // if (annotations['adi:override']) {
   //   const override = annotations['adi:override'];

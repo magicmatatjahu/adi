@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Token } from "../../src";
 
-describe('Token hook', function() {
+describe('Token injection hook', function() {
   test('should override inferred token', function() {
     @Injectable()
     class TestService {}

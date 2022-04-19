@@ -8,6 +8,7 @@ import { handleOnInitLifecycle } from '../utils';
 
 import type { Injector } from './injector';
 import type { ClassType, InjectionArgument, InjectionArguments, ProviderToken, ProviderRecord, InjectionHook, ProviderInstance, ProviderDefinition } from '../interfaces';
+import { destroyCollection } from './garbage-collector';
 
 const circularSessionsMetaKey = 'adi:circular-sessions';
 const promiseResolveMetaKey = 'adi:promise-resolve';
@@ -59,28 +60,38 @@ function injectMethod<T>(injector: Injector, session: Session, originalMethod: F
   return function(this: T, ...args: any[]) {
     let methodDep: InjectionArgument = undefined;
     const actions: any[] = [];
+    const instances: ProviderInstance[] = [];
 
     for (let i = 0, l = deps.length; i < l; i++) {
       if (args[i] === undefined && (methodDep = deps[i]) !== undefined) {
         actions.push(wait(
           inject(injector, session, methodDep),
-          value => args[i] = value,
+          (result: { value: any, instance: ProviderInstance }) => {
+            instances.push(result.instance);
+            args[i] = result.value;
+          }
         ));
       }
     }
 
     return waitAll(
       actions,
-      () => wait(originalMethod.apply(this, args)),
+      () => wait(
+        originalMethod.apply(this, args), 
+        result => {
+          destroyCollection(instances);
+          return result;
+        },
+      ),
     );
   }
 }
 
-export function factoryClass<T>(injector: Injector, session: Session, data: { classType: ClassType, inject: InjectionArguments }): T | undefined | Promise<T | undefined> {
+export function resolverClass<T>(injector: Injector, session: Session, data: { useClass: ClassType, inject: InjectionArguments }): T | undefined | Promise<T | undefined> {
   return wait(
     injectArray(injector, session, data.inject.parameters),
     deps => {
-      const instance = new data.classType(...deps);
+      const instance = new data.useClass(...deps);
       injectMethods(injector, session, instance, data.inject.methods);
       return wait(
         injectDictionary(injector, session, instance, data.inject.properties),
@@ -90,19 +101,26 @@ export function factoryClass<T>(injector: Injector, session: Session, data: { cl
   ) as unknown as T;
 }
 
-export function factoryFactory<T>(injector: Injector, session: Session, data: { useFactory: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }): T | undefined | Promise<T | undefined> {
+export function resolverFactory<T>(injector: Injector, session: Session, data: { useFactory: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }): T | undefined | Promise<T | undefined> {
   return wait(
     injectArray(injector, session, data.inject),
     deps => data.useFactory(...deps) as any,
   ) as unknown as T;
 }
 
-export function factoryValue<T>(_: Injector, __: Session, data: T): T {
+export function resolverValue<T>(_: Injector, __: Session, data: T): T {
   return data;
 }
 
+export function resolverFunction<T>(injector: Injector, session: Session, data: { useFunction: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }, ...args: any[]): T | undefined | Promise<T | undefined> {
+  return wait(
+    injectArray(injector, session, data.inject),
+    deps => data.useFunction(...args, ...deps) as any,
+  ) as unknown as T;
+}
+
 export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | undefined | Promise<T | undefined> {
-  hooks = [...hooks, ...filterHooks(injector.hooks, session)];
+  hooks = [...filterHooks(injector.hooks, session), ...hooks];
   return runHooks(hooks, session, resolveRecord);
 }
 
@@ -174,7 +192,7 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
   instance.status |= InstanceStatus.PENDING;
   const { def: { factory }, injector } = ctx;
   return wait(
-    factory.factory(injector, session, factory.data),
+    factory.resolver(injector, session, factory.data),
     value => {
       if (instance.status & InstanceStatus.CIRCULAR) {
         value = Object.assign(instance.value, value);
@@ -205,7 +223,11 @@ function resolveMultipleRecords<T>(original: Session, records: Array<ProviderRec
     const def = filterProviderDefinition(ctx.record.defs, s);
 
     if (def === undefined) {
-      return resolveMultipleRecords(original, records, ++index, defaultDef);
+      if (records.length === ++index && defaultDef) {
+        ctx.injector = (ctx.record = (ctx.def = defaultDef).record).host;
+        return runHooks(defaultDef.hooks, s, resolveInstance);
+      }
+      return resolveMultipleRecords(original, records, index, defaultDef);
     }
 
     if (def.when) { // handle constrained definition

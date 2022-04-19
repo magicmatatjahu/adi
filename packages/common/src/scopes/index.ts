@@ -1,2 +1,2 @@
-export * from './instance';
-export * from './local';
+export { default as InstanceScope } from './instance';
+export { default as LocalScope } from './local';

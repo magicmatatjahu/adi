@@ -1,6 +1,6 @@
-import { createHook } from "./hook";
+import { createHook } from "@adi/core";
 
-import type { ScopeType } from "../scopes";
+import type { ScopeType } from "@adi/core/lib/scopes";
 
 export const Scoped = createHook((scope: ScopeType) => {
   return (session, next) => {

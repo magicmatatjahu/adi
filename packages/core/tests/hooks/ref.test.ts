@@ -1,6 +1,6 @@
 import { Injector, Injectable, Inject, Ref } from "../../src";
 
-describe('Ref hook', function() {
+describe('Ref injection hook', function() {
   test('should wrap reference to function and forward it', function() {
     @Injectable()
     class ServiceA {
