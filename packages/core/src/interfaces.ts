@@ -296,6 +296,10 @@ export interface PlainInjections {
   override?: (arg: InjectionArgument) => InjectionItem | undefined;
 }
 
+export interface StandaloneInjections {
+  inject?: Array<InjectionItem>;
+}
+
 // LIFECYCLE
 export interface OnInit {
   onInit(): void | Promise<void>;

@@ -1,8 +1,8 @@
-import { createHook, InjectionHook, waitCallback } from "@adi/core";
+import { createHook, waitCallback } from "@adi/core";
 import { resolve } from "@adi/core/lib/injector";
 import { NilInjectorError } from "@adi/core/lib/problem";
 
-import type { ProviderToken } from "@adi/core";
+import type { ProviderToken, InjectionHook } from "@adi/core";
 
 export interface FallbackHookOptions {
   token: ProviderToken;

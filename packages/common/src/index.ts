@@ -1,2 +1,2 @@
-export { Decorate, DecorateHookOptions, Delegate, Delegations, Factory, Fallback, FallbackHookOptions, Inquirer, Lazy, Transform, TransformHookOptions, Value } from './hooks';
+export { Decorate, DecorateHookOptions, Delegate, Delegations, Factory, Fallback, FallbackHookOptions, Inquirer, Lazy, Scoped, Transform, TransformHookOptions, Value } from './hooks';
 export * from './scopes';

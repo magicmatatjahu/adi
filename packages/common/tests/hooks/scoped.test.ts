@@ -1,5 +1,5 @@
 import { Injector, Inject, Injectable, TransientScope, DefaultScope, SingletonScope } from "@adi/core";
-import { Scoped } from "../../src/hooks";
+import { Scoped } from "../../src";
 
 describe('Scoped injection hook', function () {
   test('should inject provider using passed scope - case with TRANSIENT scope', function () {

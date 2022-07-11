@@ -1,9 +1,10 @@
 import { InjectionToken } from "./injection-token";
+import { importRecord } from "./module";
 import { resolveRecord, resolverClass, resolverFactory, resolverValue } from "./resolver";
 import { Session } from "./session";
 import { INITIALIZERS, STATIC_CONTEXT } from "../constants";
 import { when } from "../constraints";
-import { ProviderKind, InjectionKind, InstanceStatus } from "../enums";
+import { ProviderKind, InjectionKind, InstanceStatus, SessionFlag } from "../enums";
 import { createHook } from "../hooks";
 import { getInjectableDefinition } from "../decorators/injectable";
 import { DefaultScope } from "../scopes";
@@ -14,7 +15,6 @@ import type {
   ProviderRecord, HookRecord,
   DefinitionFactory, InjectionItem, PlainInjectionItem, PlainInjections, InjectionArgument, InjectionArguments, InjectionMetadata, InjectionHook, ConstraintDefinition, ProviderAnnotations, ProviderDefinition, ProviderInstance, InjectorScope, InjectionAnnotations,
 } from "../interfaces";
-import { importRecord } from "./module";
 
 export function toProviderRecord<T>(host: Injector, provider: Provider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
   if (typeof provider === "function") {
@@ -424,7 +424,11 @@ function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Arra
 }
 
 const useExistingHook = createHook((token: ProviderToken) => {
-  return (session) => {
+  return (session, next) => {
+    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+      return next(session);
+    }
+
     const ctx = session.ctx;
     ctx.record = ctx.def = undefined;
     session.options.token = token;
@@ -433,7 +437,11 @@ const useExistingHook = createHook((token: ProviderToken) => {
 }, { name: 'adi:hook:use-existing' });
 
 const useExistingDefinitionHook = createHook((definition: ProviderDefinition) => {
-  return (session) => {
+  return (session, next) => {
+    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+      return next(session);
+    }
+
     const ctx = session.ctx;
     session.options.token = (ctx.record = (ctx.def = definition).record).token;
     return resolveRecord(session);
@@ -442,6 +450,10 @@ const useExistingDefinitionHook = createHook((definition: ProviderDefinition) =>
 
 const useComponentHook = createHook(() => {
   return (session, next) => {
+    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+      return next(session);
+    }
+
     if (session.parent || getHostInjector(session) !== session.ctx.injector) {
       throw new Error('Component cannot be injected to another provider.');
     }

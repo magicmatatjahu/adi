@@ -10,6 +10,6 @@ export const ADI_REFLECTION = Symbol.for('adi:reflection');
 
 export const STATIC_CONTEXT = new Context({}, "adi:static_context");
 
-export const INJECTOR_CONFIG = new InjectionToken<InjectorOptions>({}, "adi:token:injector_config");
+export const INJECTOR_CONFIG = new InjectionToken<InjectorOptions>({}, "adi:token:injector-config");
 export const INITIALIZERS = new InjectionToken<void>({}, 'adi:token:initializers');
-export const MODULE_REF = new InjectionToken<any>({}, "adi:token:module_ref");
+export const MODULE_REF = new InjectionToken<any>({}, "adi:token:module-ref");
