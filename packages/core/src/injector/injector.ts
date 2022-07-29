@@ -78,12 +78,11 @@ export class Injector {
   get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook> | InjectionAnnotations): T | Promise<T>;
   get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations, session?: Session): T | Promise<T> {
-    if (this.status & InjectorStatus.DESTROYED) return; 
-    if (this.status & InjectorStatus.INITIALIZED) {
-      ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
-      return inject(this, session, createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, { target: Injector, kind: InjectionKind.STANDALONE, annotations }));
-    };
+    if (this.status & InjectorStatus.DESTROYED || (this.status & InjectorStatus.INITIALIZED) === 0) return; 
+    ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
+    return inject(this, session, createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, { target: Injector, kind: InjectionKind.STANDALONE, annotations }));
   }
 
   import(

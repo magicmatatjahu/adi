@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, TransientScope, SingletonScope } from "../../src";
+import { Injector, Injectable, Inject, TransientScope, SingletonScope, injectableMixin } from "../../src";
 
 describe('ClassType provider (injectable provider)', function() {
   test('should work with class without constructor', function() {
@@ -269,6 +269,43 @@ describe('ClassType provider (injectable provider)', function() {
       Injector.create([], injector, { scopes: ['child'] }).init() as Injector;
       const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
+    });
+  });
+
+  describe('should work with injectable mixin', function() {
+    test('should create injectable provider by injectable mixin', function() {
+      class Service {}
+      injectableMixin(Service);
+
+      const injector = Injector.create([
+        Service,
+      ]).init() as Injector;
+  
+      const service = injector.get(Service);
+      expect(service).toBeInstanceOf(Service);
+    });
+
+    test('should pass injections by injectable mixin', function() {
+      @Injectable()
+      class TestService {}
+
+      class Service {
+        constructor(
+          public service: TestService,
+        ) {}
+      }
+      injectableMixin(Service, undefined, {
+        parameters: [TestService],
+      });
+
+      const injector = Injector.create([
+        Service,
+        TestService,
+      ]).init() as Injector;
+  
+      const service = injector.get(Service) as Service;
+      expect(service).toBeInstanceOf(Service);
+      expect(service.service).toBeInstanceOf(TestService);
     });
   });
 });

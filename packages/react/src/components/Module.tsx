@@ -1,36 +1,34 @@
-import { useEffect, useRef, createElement } from "react";
+import { createElement, useContext, useEffect, useState } from "react";
 import { Injector } from "@adi/core";
 
-import { useInjector } from "../hooks";
 import { InjectorContext } from "../context";
 
 import type { FunctionComponent, PropsWithChildren } from "react";
 import type { InjectorOptions, ModuleMetadata, Provider, ClassType } from "@adi/core";
 
 export interface ModuleProps {
-  module: ClassType<any> | Omit<ModuleMetadata, | 'exports'> | Array<Provider>;
+  module: ClassType<any> | Omit<ModuleMetadata, | 'exports'> | Array<Provider> | Injector;
   options?: InjectorOptions;
   cacheID?: string | symbol;
 }
 
 export const Module: FunctionComponent<PropsWithChildren<ModuleProps>> = (props) => {
-  const parentInjector = useInjector();
-  const injectorRef = useRef<Injector>(null);
+  const parentInjector = useContext(InjectorContext);
+  const [injector] = useState<Injector>(() => {
+    return createInjector(props, parentInjector || undefined) as Injector;
+  });
 
   useEffect(() => {
-    if (!props.cacheID) {
+    const cacheIdTypeof = typeof props.cacheID;
+    if (cacheIdTypeof === 'string' || cacheIdTypeof === 'symbol') {
       return () => {
         setTimeout(() => {
           // use setTimeout to add destruction to the end of event loop
-          injectorRef.current.destroy();
+          injector.destroy();
         }, 0);
       }; 
     }
   }, []);
-
-  const injector = 
-    injectorRef.current ||
-    (injectorRef.current = createInjector(props, parentInjector || undefined) as Injector);
 
   return createElement(InjectorContext.Provider, { value: injector }, props.children);
 }
@@ -42,10 +40,16 @@ function createInjector(props: ModuleProps, parentInjector: Injector | undefined
     return cache.get(cacheID);
   }
 
-  let adiModule = props.module || [];
-  let options = props.options || {};
+  const adiModule = props.module || [];
+  let injector: Injector;
+  if (adiModule instanceof Injector) {
+    injector = adiModule;
+  } else {
+    const options = props.options || {};
+    options.exporting = 'disabled';
+    injector = Injector.create(adiModule, parentInjector, options).init() as Injector;
+  }
 
-  const injector = Injector.create(adiModule, parentInjector, options).init();
   if (cacheID !== undefined) {
     cache.set(cacheID, injector as Injector);
   }

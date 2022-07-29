@@ -53,7 +53,7 @@ describe('useExisting', function() {
       scope: TransientScope,
     })
     class Service {
-      prop: object = null;
+      prop: object | null = null;
     }
 
     const injector = Injector.create([

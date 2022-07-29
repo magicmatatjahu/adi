@@ -1,6 +1,6 @@
 import { ADI_INJECTABLE_DEF } from "../constants";
 import { InjectionKind } from '../enums';
-import { createInjectionArgument } from '../injector/metadata';
+import { createInjectionArgument, convertDependency } from '../injector/metadata';
 import { Reflection } from "../utils";
 
 import type { ClassType, InjectableDefinition, InjectableOptions, InjectionArgument, PlainInjections } from "../interfaces";
@@ -12,7 +12,7 @@ export function Injectable(options?: InjectableOptions): ClassDecorator {
 }
 
 export function injectableMixin(target: Function, options?: InjectableOptions, injections?: PlainInjections): void {
-  applyInjectableDefinition(target, options);
+  applyInjectableDefinition(target, options, injections);
 }
 
 export function getInjectableDefinition<T>(injectable: unknown): InjectableDefinition<T> | undefined {
@@ -38,6 +38,7 @@ function applyInjectableDefinition<T>(target: Function, options: InjectableOptio
   def.options = Object.assign(def.options, options);
 
   // check inheritance
+  mergeInjections(target, def, injections);
   inheritance(target, def, paramtypes);
 }
 
@@ -113,6 +114,51 @@ function inheritance(target: Function, def: InjectableDefinition, parameters: Ar
         const arg = method[i];
         const handler = Object.getOwnPropertyDescriptor(target.prototype, key);
         copiedMethod[i] = createInjectionArgument(arg.token, arg.hooks, { ...arg.metadata, target, handler: handler.value });
+      }
+      injections.methods[key] = copiedMethod;
+    }
+  }
+}
+
+function mergeInjections(target: Function, def: InjectableDefinition, additionalInjections: PlainInjections): void {
+  if (!additionalInjections) {
+    return;
+  }
+  const injections = def.injections;
+  
+  // override constructor injection
+  // definedArgs is empty array in case of merging parent ctor arguments
+  const defParameters = injections.parameters;
+  const additionalParameters = additionalInjections.parameters || [];
+  for (let i = 0, l = additionalParameters.length; i < l; i++) {
+    const param = additionalParameters[i];
+    defParameters[i] = convertDependency(param, { kind: InjectionKind.PARAMETER, target, index: i, key: undefined, handler: undefined, annotations: {} });
+  }
+
+  // override/adjust properties injection
+  const defProps = injections.properties;
+  const additionalProps = additionalInjections.properties || {};
+  const props = Object.keys(additionalProps);
+  props.push(...Object.getOwnPropertySymbols(additionalProps) as any[]);
+  for (let i = 0, l = props.length; i < l; i++) {
+    const key = props[i];
+    const prop = additionalProps[key];
+    defProps[key] = convertDependency(prop, { kind: InjectionKind.PROPERTY, target, index: undefined, key, handler: undefined, annotations: {} });
+  }
+
+  // override/adjust methods injection
+  const targetMethods = Object.getOwnPropertyNames((target as any).prototype);
+  for (let key in additionalInjections.methods || {}) {
+    // check if target has method.
+    // if yes, user could make it injectable from scratch or override to pure (without injection) function in extended class.
+    // if not, copy injections from parent class
+    if (targetMethods.includes(key) === false) {
+      const copiedMethod: InjectionArgument[] = [];
+      const method = additionalInjections.methods[key];
+      for (let i = 0, l = method.length; i < l; i++) {
+        const arg = method[i];
+        const handler = Object.getOwnPropertyDescriptor(target.prototype, key);
+        copiedMethod[i] = convertDependency(arg, { kind: InjectionKind.METHOD, target, index: undefined, key, handler: handler.value, annotations: {} });
       }
       injections.methods[key] = copiedMethod;
     }

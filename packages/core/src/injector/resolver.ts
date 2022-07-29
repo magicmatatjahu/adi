@@ -3,12 +3,11 @@ import { Session } from './session';
 import { InstanceStatus, SessionFlag } from '../enums';
 import { runHooks } from '../hooks';
 import { NilInjectorError } from '../problem';
-import { wait, waitAll } from '../utils';
-import { handleOnInitLifecycle } from '../utils';
+import { wait, waitAll, handleOnInitLifecycle } from '../utils';
+import { destroy } from './garbage-collector';
 
 import type { Injector } from './injector';
-import type { ClassType, InjectionArgument, InjectionArguments, ProviderToken, ProviderRecord, InjectionHook, ProviderInstance, ProviderDefinition } from '../interfaces';
-import { destroyCollection } from './garbage-collector';
+import type { ClassType, InjectionArgument, InjectionArguments, ProviderRecord, InjectionHook, ProviderInstance, ProviderDefinition } from '../interfaces';
 
 const circularSessionsMetaKey = 'adi:circular-sessions';
 const promiseResolveMetaKey = 'adi:promise-resolve';
@@ -34,16 +33,12 @@ export function injectDictionary<T>(injector: Injector, session: Session, obj: T
   const args: Array<any> = [];
   for (let i = 0, l = props.length; i < l; i++) {
     const prop = props[i];
-    args.push(injectKey(injector, session, obj, prop, properties[prop]));
+    args.push(wait(
+      inject(injector, session, properties[prop]),
+      (value: any) => obj[prop] = value,
+    ));
   }
   return waitAll(args);
-}
-
-function injectKey<T>(injector: Injector, session: Session, obj: T, prop: string | symbol, dep: InjectionArgument): any {
-  return wait(
-    inject(injector, session, dep),
-    (value: any) => obj[prop] = value,
-  );
 }
 
 function injectMethods<T>(injector: Injector, session: Session, obj: T, methods: Record<string, Array<InjectionArgument>>): any {
@@ -79,7 +74,7 @@ function injectMethod<T>(injector: Injector, session: Session, originalMethod: F
       () => wait(
         originalMethod.apply(this, args), 
         result => {
-          destroyCollection(instances);
+          destroy(instances);
           return result;
         },
       ),
@@ -120,7 +115,8 @@ export function resolverFunction<T>(injector: Injector, session: Session, data: 
 }
 
 export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | undefined | Promise<T | undefined> {
-  hooks = [...filterHooks(injector.hooks, session), ...hooks];
+  const filteredHooks = filterHooks(injector.hooks, session);
+  filteredHooks.push(...hooks);
   return runHooks(hooks, session, resolveRecord);
 }
 

@@ -64,7 +64,7 @@ export function always() {
 }
 
 export function never() {
-  return true;
+  return false;
 }
 
 export const when = {

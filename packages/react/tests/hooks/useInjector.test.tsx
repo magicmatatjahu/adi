@@ -82,10 +82,7 @@ describe('useInjector hook', function() {
       );
     }
 
-    render(
-      <TestComponent />
-    )
 
-    expect(screen.getByText('InjectorContext is not defined.')).toBeDefined();
+    expect(() => render(<TestComponent />)).toThrow(`Injector context not found. Check if you have connected the ADI Module in the current component's VDOM parent tree.`);
   });
 });

@@ -12,8 +12,7 @@ export function createHook<T, F extends (...args: any) => InjectionHook<T>>(hook
 
 export function runHooks(hooks: Array<InjectionHook>, session: Session, lastHook: NextHook) {
   if (hooks.length === 0) return lastHook(session);
-  hooks = [...hooks, lastHook];
-  return _runHooks(hooks, session, -1);
+  return _runHooks([...hooks, lastHook], session, -1);
 }
 
 function _runHooks(hooks: Array<InjectionHook>, session: Session, index: number) {

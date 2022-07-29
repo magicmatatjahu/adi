@@ -48,7 +48,7 @@ describe('Singleton scope', function () {
       TestService,
     ]).init() as Injector;
 
-    let error: any, instance: Service;
+    let error: any, instance: Service | undefined;
     try {
       instance = injector.get(Service) as Service;
     } catch(err) {
@@ -257,7 +257,7 @@ describe('Singleton scope', function () {
     let service = injector.get(Transient, [Destroyable()]) as unknown as DestroyableType<Transient>;
     expect(service.value).toBeInstanceOf(Transient);
 
-    const childInjector = injector.imports.get(ChildModule).get('static');
+    const childInjector = injector.imports.get(ChildModule)!.get('static')!;
 
     await childInjector.destroy();
     expect(destroyOrder).toEqual(['ChildModule']);
@@ -312,7 +312,7 @@ describe('Singleton scope', function () {
     }
 
     const injector = Injector.create(MainModule).init() as Injector;
-    const childInjector = injector.imports.get(ChildModule).get('static');
+    const childInjector = injector.imports.get(ChildModule)!.get('static')!;
 
     await childInjector.destroy();
     expect(destroyOrder).toEqual(['ChildModule', 'Singleton']);

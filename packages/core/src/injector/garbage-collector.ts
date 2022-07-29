@@ -11,7 +11,17 @@ export interface DestroyContext {
   event: DestroyEvent;
 }
 
-export async function destroy(instance: ProviderInstance, event: DestroyEvent = 'default') {
+export async function destroy(instance: ProviderInstance, event?: DestroyEvent): Promise<void>;
+export async function destroy(instances: Array<ProviderInstance>, event?: DestroyEvent): Promise<void>;
+export async function destroy(instances: ProviderInstance | Array<ProviderInstance>, event?: DestroyEvent): Promise<void>;
+export async function destroy(instances: ProviderInstance | Array<ProviderInstance>, event: DestroyEvent = 'default'): Promise<void> {
+  if (Array.isArray(instances)) {
+    return destroyCollection(instances, event);
+  }
+  return destroyInstance(instances, event);
+}
+
+async function destroyInstance(instance: ProviderInstance, event: DestroyEvent = 'default') {
   if (!instance || instance.status & InstanceStatus.DESTROYED) {
     return;
   }
@@ -28,7 +38,7 @@ export async function destroy(instance: ProviderInstance, event: DestroyEvent = 
   instance.children && await destroyCollection(Array.from(instance.children), event);
 }
 
-export async function destroyCollection(instances: Array<ProviderInstance> = [], event?: DestroyEvent) {
+async function destroyCollection(instances: Array<ProviderInstance> = [], event?: DestroyEvent) {
   return waitSequence(instances, instance => destroy(instance, event));
 }
 

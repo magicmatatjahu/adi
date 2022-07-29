@@ -1,44 +1,33 @@
-import { useRef, useEffect, createElement } from "react";
-import { destroyCollection } from "@adi/core/lib/injector";
+import { createElement, useContext, useState } from "react";
 
 import { Module } from "../components";
-import { useInjector } from "../hooks";
-import { injectMap } from "../utils";
+import { InjectorContext } from "../context";
+import { injectMap, useDestroy } from "../utils";
 
-import type { ModuleMetadata, Provider, InjectionItem, ProviderInstance } from "@adi/core";
+import type { InjectorOptions, ModuleMetadata, Provider, InjectionItem, ProviderInstance } from "@adi/core";
 
 export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
   Component: React.JSXElementConstructor<TProps>,
   injections: Record<keyof Pick<TProps, TInjectedKeys>, InjectionItem>,
   module?: Omit<ModuleMetadata, 'exports'> | Array<Provider>,
+  options?: InjectorOptions,
+  cacheID?: string | symbol,
 ) {
   const ComponentWithInjection = (props: Omit<TProps, TInjectedKeys>) => {
-    const injector = useInjector(true);
-    const instancesRef = useRef<{ values: Record<string, any>; instances: Array<ProviderInstance> }>(null);
+    const injector = useContext(InjectorContext);
+    const [instances] = useState<{ values: Record<string, any>; instances: Array<ProviderInstance> }>(() => {
+      return injectMap(injector, injections)
+    });
   
-    useEffect(() => {
-      return () => {
-        // use setTimeout to add destruction to the end of event loop
-        setTimeout(() => {
-          destroyCollection(instancesRef.current.instances);
-          instancesRef.current = null;
-        }, 0);
-      };
-    }, []);
-
-    let values: Record<string, any> = instancesRef.current?.values;
-    if (!values) {
-      values = (instancesRef.current = injectMap(injector, injections)).values;
-    }
-
-    return createElement(Component, { ...(props as TProps), ...values });
+    useDestroy(instances.instances);
+    return createElement(Component, { ...(props as TProps), ...instances.values });
   };
 
   // create component with Module wrapper
   if (module && typeof module === 'object') {
     const ComponentWithModule = (props: Omit<TProps, TInjectedKeys>) => {
       return (
-        <Module module={module}>
+        <Module module={module} options={options} cacheID={cacheID}>
           <ComponentWithInjection {...props} />
         </Module>
       );

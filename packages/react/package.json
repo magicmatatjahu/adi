@@ -36,13 +36,13 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:types": "tsc -p tsconfig.types.json",
-    "test": "jest --runInBand"
+    "test": "jest --silent --runInBand"
   },
   "dependencies": {
     "@adi/core": "0.1.0"
   },
   "peerDependencies": {
-    "react": "^16.8.0"
+    "react": ">=16.8.0"
   },
   "devDependencies": {
     "@testing-library/react": "^12.0.0",

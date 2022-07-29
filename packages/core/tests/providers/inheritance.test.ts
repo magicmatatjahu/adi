@@ -43,7 +43,7 @@ describe('Inheritance', function() {
       constructor(
         readonly service: TestService,
       ) {
-        super(undefined, undefined);
+        super('', 0);
       }
     }
 
@@ -64,8 +64,8 @@ describe('Inheritance', function() {
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
     expect(extendedService.service).toBeInstanceOf(TestService);
-    expect(extendedService.parentService).toEqual(undefined);
-    expect(extendedService.additionalArg).toEqual(undefined);
+    expect(extendedService.parentService).toEqual('');
+    expect(extendedService.additionalArg).toEqual(0);
   });
 
   test('should override parent constructor arguments with empty constructor', function() {
@@ -80,7 +80,7 @@ describe('Inheritance', function() {
     @Injectable()
     class ExtendedService extends Service {
       constructor() {
-        super(undefined, undefined);
+        super('', 0);
       }
     }
 
@@ -99,8 +99,8 @@ describe('Inheritance', function() {
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
-    expect(extendedService.stringArg).toEqual(undefined);
-    expect(extendedService.numberArg).toEqual(undefined);
+    expect(extendedService.stringArg).toEqual('');
+    expect(extendedService.numberArg).toEqual(0);
   });
 
   test('should override property injection', function() {
@@ -249,7 +249,7 @@ describe('Inheritance', function() {
       constructor(
         readonly service: TestService,
       ) {
-        super(undefined, undefined);
+        super('', 0);
       }
     }
 
@@ -277,8 +277,8 @@ describe('Inheritance', function() {
     const deepExtendedService = injector.get(DeepExtendedService) as DeepExtendedService;
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
-    expect(deepExtendedService.parentService).toEqual(undefined);
-    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.parentService).toEqual('');
+    expect(deepExtendedService.additionalArg).toEqual(0);
     expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);
     expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
   });
@@ -308,7 +308,7 @@ describe('Inheritance', function() {
       constructor(
         readonly service: TestService,
       ) {
-        super(undefined, undefined);
+        super('', 0);
       }
     }
 
@@ -330,8 +330,8 @@ describe('Inheritance', function() {
     const deepExtendedService = injector.get(DeepExtendedService) as DeepExtendedService;
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
-    expect(deepExtendedService.parentService).toEqual(undefined);
-    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.parentService).toEqual('');
+    expect(deepExtendedService.additionalArg).toEqual(0);
     expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);
     expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
   });
@@ -364,7 +364,7 @@ describe('Inheritance', function() {
       constructor(
         readonly service: TestService,
       ) {
-        super(undefined, undefined);
+        super('', 0);
       }
     }
 
@@ -386,8 +386,8 @@ describe('Inheritance', function() {
     const deepExtendedService = injector.get(DeepExtendedService) as DeepExtendedService;
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
     expect(deepExtendedService.service).toBeInstanceOf(TestService);
-    expect(deepExtendedService.parentService).toEqual(undefined);
-    expect(deepExtendedService.additionalArg).toEqual(undefined);
+    expect(deepExtendedService.parentService).toEqual('');
+    expect(deepExtendedService.additionalArg).toEqual(0);
     expect(deepExtendedService.deepPropertyService).toBeInstanceOf(TestService);
     expect(deepExtendedService.extendedService).toBeInstanceOf(TestService);
     expect(deepExtendedService.propertyService).toBeInstanceOf(TestService);

@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { InjectionKind } from "@adi/core";
-import { inject as coreInject, convertDependency } from "@adi/core/lib/injector";
+import { inject as coreInject, convertDependency, destroy } from "@adi/core/lib/injector";
 import { WithInstance } from "@adi/core/lib/hooks/internal";
 
 import type { Injector, ProviderInstance, InjectionItem } from "@adi/core";
@@ -34,4 +35,17 @@ export function injectMap(injector: Injector, injections: Record<string, Injecti
     result.instances.push(instance);
   }
   return result;
+}
+
+export function useDestroy(instance: ProviderInstance): void;
+export function useDestroy(instances: Array<ProviderInstance>): void;
+export function useDestroy(instances: ProviderInstance | Array<ProviderInstance>): void {
+  useEffect(() => {
+    return () => {
+      // use setTimeout to add destruction to the end of event loop
+      setTimeout(() => {
+        destroy(instances);
+      }, 0);
+    };
+  }, []);
 }

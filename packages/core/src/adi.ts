@@ -99,6 +99,7 @@ export class ADI {
       plugin(this);
     }
     this.plugins.push(plugin);
+    return this;
   }
 
   on(event: 'adi:injection:init', action: (data: ADIEventInjectionInitData) => void): void;

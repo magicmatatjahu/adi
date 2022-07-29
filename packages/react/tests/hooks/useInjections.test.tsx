@@ -56,7 +56,7 @@ describe('useInjections hook', function() {
     expect(screen.getByText('useValue is injected!')).toBeDefined();
   });
 
-  test('should works with wrappers', async function() {
+  test('should works with hooks', async function() {
     @Injectable()
     class DeepService {
       prop: string = "useInjections works";
