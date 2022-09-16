@@ -170,6 +170,7 @@ export interface ProviderAnnotations {
   'adi:visible'?: 'public' | 'private';
   'adi:eager'?: boolean;
   'adi:aliases'?: Array<ProviderToken>;
+  'adi:token-aliases'?: Array<ProviderToken>;
   'adi:use-named'?: string | symbol;
   'adi:config'?: any;
   'adi:override'?: 'all' | 'definition';

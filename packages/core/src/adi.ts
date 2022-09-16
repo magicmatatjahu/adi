@@ -1,4 +1,4 @@
-import { getGlobalThis } from "./utils";
+import { getGlobalThis, waitSequence } from "./utils";
 
 import type { Injector } from "./injector";
 import type { HookRecord } from "./interfaces";
@@ -70,20 +70,20 @@ export class ADI {
     this.globalADI.on(event as any, action);
   }
   
-  static run(event: 'adi:injection:init', data: ADIEventInjectionInitData): void;
-  static run(event: 'adi:provider:init', data: ADIEventProviderInitData): void;
-  static run(event: 'adi:provider:create', data: ADIEventProviderCreateData): void;
-  static run(event: 'adi:provider:destroy', data: ADIEventProviderDestroyData): void;
-  static run(event: 'adi:module:init', data: ADIEventModuleInitData): void;
-  static run(event: 'adi:module:create', data: ADIEventModuleCreateData): void;
-  static run(event: 'adi:module:destroy', data: ADIEventModuleDestroyData): void;
-  static run(event: ADIEventKind, data: ADIEventData): void {
-    this.globalADI.run(event as any, data);
+  static emit(event: 'adi:injection:init', data: ADIEventInjectionInitData): void;
+  static emit(event: 'adi:provider:init', data: ADIEventProviderInitData): void;
+  static emit(event: 'adi:provider:create', data: ADIEventProviderCreateData): void;
+  static emit(event: 'adi:provider:destroy', data: ADIEventProviderDestroyData): void;
+  static emit(event: 'adi:module:init', data: ADIEventModuleInitData): void;
+  static emit(event: 'adi:module:create', data: ADIEventModuleCreateData): void;
+  static emit(event: 'adi:module:destroy', data: ADIEventModuleDestroyData): void;
+  static emit(event: ADIEventKind, data: ADIEventData): void {
+    this.globalADI.emit(event as any, data);
   }
 
-  protected plugins: Array<ADIPlugin | InstallPlugin>;
-  protected hooks: Array<HookRecord>;
-  protected actions: Map<ADIEventKind, Array<(data: ADIEventData) => any>>;
+  protected plugins: Array<ADIPlugin | InstallPlugin> = [];
+  protected hooks: Array<HookRecord> = [];
+  protected actions: Map<ADIEventKind, Array<(data: ADIEventData) => any>> = new Map();
 
   use<O>(plugin: ADIPlugin<O> | InstallPlugin, options?: O): ADI {
     if (
@@ -113,16 +113,16 @@ export class ADI {
     this.getActions(event).push(action);
   }
 
-  run(event: 'adi:injection:init', data: ADIEventInjectionInitData): void;
-  run(event: 'adi:provider:init', data: ADIEventProviderInitData): void;
-  run(event: 'adi:provider:create', data: ADIEventProviderCreateData): void;
-  run(event: 'adi:provider:destroy', data: ADIEventProviderDestroyData): void;
-  run(event: 'adi:module:init', data: ADIEventModuleInitData): void;
-  run(event: 'adi:module:create', data: ADIEventModuleCreateData): void;
-  run(event: 'adi:module:destroy', data: ADIEventModuleDestroyData): void;
-  run(event: ADIEventKind, data: ADIEventData): void {
+  emit(event: 'adi:injection:init', data: ADIEventInjectionInitData): void;
+  emit(event: 'adi:provider:init', data: ADIEventProviderInitData): void;
+  emit(event: 'adi:provider:create', data: ADIEventProviderCreateData): void;
+  emit(event: 'adi:provider:destroy', data: ADIEventProviderDestroyData): void;
+  emit(event: 'adi:module:init', data: ADIEventModuleInitData): void;
+  emit(event: 'adi:module:create', data: ADIEventModuleCreateData): void;
+  emit(event: 'adi:module:destroy', data: ADIEventModuleDestroyData): void;
+  emit(event: ADIEventKind, data: ADIEventData): void {
     const actions = this.getActions(event);
-    return actions.length && this.runActions(this.getActions(event), data, 0);
+    return actions.length && this._emit(actions, data);
   }
 
   private getActions(event: ADIEventKind): Array<(data: ADIEventData) => any> {
@@ -134,8 +134,8 @@ export class ADI {
     return actions;
   }
 
-  private runActions(actions: Array<(data: ADIEventData) => any>, data: ADIEventData, index: number) {
-    // return actions[index](data, (d) => runActions(hooks, d, index+1));
+  private _emit(actions: Array<(data: ADIEventData) => any>, data: ADIEventData) {
+    return waitSequence(actions, action => action(data));
   };
 }
 

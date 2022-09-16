@@ -242,11 +242,11 @@ function resolveMultipleRecords<T>(original: Session, records: Array<ProviderRec
 
 function resolveFromParent<T>(session: Session): T | Promise<T> {
   const ctx = session.ctx;
-  ctx.def = ctx.record = undefined;
   const injector = ctx.injector = ctx.injector.parent;
   if (injector === null) {
     throw new NilInjectorError(session.options.token);
   }
+  ctx.def = ctx.record = undefined;
   return resolveRecord(session);
 }
 

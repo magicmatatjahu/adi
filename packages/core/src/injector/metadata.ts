@@ -319,7 +319,7 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
 
   let name = annotations['adi:name'];
   if (name || typeof name === 'string') {
-    addConstraint(definition, when.named(name, false));
+    concatConstraints(definition, when.named(name, false));
   }
 
   // if (annotations['adi:override']) {
@@ -327,16 +327,17 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
   // }
 
   if (annotations['adi:tags']) {
-    addConstraint(definition, when.tagged(annotations['adi:tags'], false));
+    concatConstraints(definition, when.tagged(annotations['adi:tags'], false));
   }
   if (annotations['adi:visible']) {
-    addConstraint(definition, when.visible(annotations['adi:visible']));
+    concatConstraints(definition, when.visible(annotations['adi:visible']));
   }
 
   if (annotations['adi:component'] === true) {
     definition.hooks.unshift(useComponentHook);
-    addConstraint(definition, when.visible('private'));
+    concatConstraints(definition, when.visible('private'));
   }
+
   if (annotations['adi:aliases']) {
     annotations['adi:aliases'].forEach(alias => {
       const { definition: def } = customProviderToProviderRecord(record.host, {
@@ -347,6 +348,14 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
       def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
     })
   }
+  if (annotations['adi:token-aliases']) {
+    const providers = record.host.providers;
+    const records = record.host.providers.get(record.token);
+    annotations['adi:token-aliases'].forEach(alias => {
+      providers.set(alias, records);
+    })
+  }
+
   if (annotations['adi:eager'] === true) {
     const { definition: def } = customProviderToProviderRecord(record.host, {
       provide: INITIALIZERS, 
@@ -377,7 +386,7 @@ function addHook(
   obj.hooks.sort(compareOrder);
 }
 
-function addConstraint(definition: ProviderDefinition, constraint: ConstraintDefinition) {
+function concatConstraints(definition: ProviderDefinition, constraint: ConstraintDefinition) {
   definition.when = definition.when ? when.and(constraint, definition.when) : constraint;
 }
 
