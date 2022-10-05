@@ -4,7 +4,7 @@ import { compareOrder, filterProviderDefinitions } from "../injector";
 import { wait, waitAll } from "../utils";
 
 import type { Session } from '../injector';
-import type { NextHook, ProviderDefinition, ProviderRecord } from '../interfaces';
+import type { NextInjectionHook, ProviderDefinition, ProviderRecord } from '../interfaces';
 
 export interface AllHookOptions {
   // from?: 'self';
@@ -17,7 +17,7 @@ function filterDefinitions(records: Array<ProviderRecord>, session: Session, mod
   return defs.sort(compareOrder);
 }
 
-function allHook(session: Session, next: NextHook, options: AllHookOptions) {
+function allHook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
   if (session.hasFlag(SessionFlag.DRY_RUN)) {
     return next(session);
   }

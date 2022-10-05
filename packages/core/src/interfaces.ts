@@ -226,7 +226,7 @@ export interface DefinitionFactory {
 
 // HOOK
 export interface InjectionHook<T = any> {
-  (session: Session, next: NextHook): Promise<T | undefined> | T | undefined;
+  (session: Session, next: NextInjectionHook): Promise<T | undefined> | T | undefined;
   [ADI_HOOK_DEF]?: InjectionHookDefinition;
 }
 
@@ -234,7 +234,7 @@ export interface InjectionHookDefinition {
   name: string;
 }
 
-export type NextHook<T = any> = (session: Session) => Promise<T | undefined> | T | undefined;
+export type NextInjectionHook<T = any> = (session: Session) => Promise<T | undefined> | T | undefined;
 
 // INJECTION
 export interface InjectionAnnotations {

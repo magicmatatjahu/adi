@@ -6,7 +6,7 @@ export const Optional = createHook((defaultValue?: any) => {
   return (session, next) => {
     return waitCallback(
       () => next(session),
-      val => val,
+      undefined,
       err => {
         if (err instanceof NilInjectorError) {
           return defaultValue;

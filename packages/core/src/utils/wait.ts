@@ -2,8 +2,8 @@ function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
   return maybePromise && typeof maybePromise.then === 'function';
 }
 
-const noopThen = <T>(value: T) => { return value; }
-const noopCatch = (err: unknown) => { throw err; }
+export const noopThen = <T>(value: T) => { return value; }
+export const noopCatch = (err: unknown) => { throw err; }
 
 export function wait<T>(
   result: T,

@@ -39,7 +39,7 @@ function typeProviderToRecord<T>(host: Injector, provider: ClassTypeProvider<T>)
   return { record, definition };
 }
 
-function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
+function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvider<T>, addExistingHook?: boolean): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
   const token = provider.provide;
 
   // injector hooks
@@ -79,7 +79,9 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
     factory = { resolver: resolverClass, data: { useClass: provider.useClass, inject } };
   } else if (isExistingProvider(provider)) {
     kind = ProviderKind.ALIAS;
-    hooks.push(useExistingHook(provider.useExisting));
+    if (addExistingHook !== false) {
+      hooks.push(useExistingHook(provider.useExisting));
+    }
   } else if (Array.isArray(provider.hooks)) { // case with standalone `hooks`
     addHook(record, hooks, when, annotations);
     return { record, definition: undefined };
@@ -87,9 +89,9 @@ function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvi
 
   // add provider definition
   const definition: ProviderDefinition = { kind, provider, record, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
-  record.defs.push(definition);
-  // record.defs.sort(compareOrder);
   handleProviderAnnotations(record, definition, annotations);
+  record.defs.push(definition);
+  record.defs.sort(compareOrder);
   return { record, definition };
 }
 
@@ -329,6 +331,7 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
   if (annotations['adi:tags']) {
     concatConstraints(definition, when.tagged(annotations['adi:tags'], false));
   }
+
   if (annotations['adi:visible']) {
     concatConstraints(definition, when.visible(annotations['adi:visible']));
   }
@@ -340,29 +343,42 @@ function handleProviderAnnotations(record: ProviderRecord, definition: ProviderD
 
   if (annotations['adi:aliases']) {
     annotations['adi:aliases'].forEach(alias => {
-      const { definition: def } = customProviderToProviderRecord(record.host, {
+      customProviderToProviderRecord(record.host, {
         provide: alias, 
         useExisting: record.token,
+        hooks: [useExistingDefinitionHook(definition)],
       });
-      def.hooks.pop(); // remove useExistingHook;
-      def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
+      // const { definition: def } = customProviderToProviderRecord(record.host, {
+      //   provide: alias, 
+      //   useExisting: record.token,
+      //   hooks: [useExistingDefinitionHook(definition)]
+      // });
+      // def.hooks.pop(); // remove useExistingHook;
+      // def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
     })
   }
+  
   if (annotations['adi:token-aliases']) {
     const providers = record.host.providers;
     const records = record.host.providers.get(record.token);
     annotations['adi:token-aliases'].forEach(alias => {
       providers.set(alias, records);
     })
-  }
+  } 
 
   if (annotations['adi:eager'] === true) {
-    const { definition: def } = customProviderToProviderRecord(record.host, {
+    customProviderToProviderRecord(record.host, {
       provide: INITIALIZERS, 
       useExisting: record.token,
+      hooks: [useExistingDefinitionHook(definition)],
     });
-    def.hooks.pop(); // remove useExistingHook;
-    def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
+    // const { definition: def } = customProviderToProviderRecord(record.host, {
+    //   provide: INITIALIZERS, 
+    //   useExisting: record.token,
+    //   hooks: [useExistingDefinitionHook(definition)]
+    // });
+    // def.hooks.pop(); // remove useExistingHook;
+    // def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
   }
 }
 
