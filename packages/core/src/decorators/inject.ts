@@ -7,6 +7,7 @@ import { Reflection } from "../utils";
 import { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata, InjectionArgument } from "../interfaces";
 import { createInjectionArgument } from "../injector/metadata";
 
+// TODO: Add possibility to pass single hook without array
 export function Inject<T = any>(token?: ProviderToken<T>);
 export function Inject<T = any>(hooks?: Array<InjectionHook>);
 export function Inject<T = any>(annotations?: InjectionAnnotations);

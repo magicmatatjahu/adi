@@ -10,14 +10,24 @@ export function Module(metadata?: ModuleMetadata) {
   }
 }
 
-export function moduleMixin(target: Function, metadata: ModuleMetadata): void {
-  const def = getInjectableDefinition(target);
-  if (def === undefined) return;
-  def.meta[ADI_MODULE_DEF] = metadata;
+export function moduleMixin(target: Function, metadata?: ModuleMetadata): void {
+  if (!target.hasOwnProperty(ADI_MODULE_DEF)) {
+    Object.defineProperty(target, ADI_MODULE_DEF, { value: metadata || {}, enumerable: true });
+  }
+  // const def = getInjectableDefinition(target);
+  // if (def === undefined) return;
+  // def.meta[ADI_MODULE_DEF] = metadata;
 }
 
-export function getModuleDefinition(module: unknown): ModuleMetadata | undefined {
-  const def = getInjectableDefinition(module);
-  if (def === undefined) return;
-  return def.meta[ADI_MODULE_DEF];
+export function getModuleDefinition(target: unknown): ModuleMetadata | undefined {
+  if (target && target.hasOwnProperty(ADI_MODULE_DEF)) {
+    return target[ADI_MODULE_DEF];
+  }
+  return;
 }
+
+// function setModuleMetadata(module: unknown, metadata: ModuleMetadata) {
+//   if (!module.hasOwnProperty(ADI_MODULE_DEF)) {
+//     Object.defineProperty(module, ADI_MODULE_DEF, { value: metadata, enumerable: true });
+//   }
+// }

@@ -9,7 +9,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "target": "ES2015",
-    "sourceMap": false,
+    "sourceMap": true,
     "allowJs": true,
     "outDir": "lib",
     "lib": ["es7"]

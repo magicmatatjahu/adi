@@ -2,72 +2,114 @@ function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
   return maybePromise && typeof maybePromise.then === 'function';
 }
 
-export const noopThen = <T>(value: T) => { return value; }
+export const noopThen = (value: any) => { return value; }
 export const noopCatch = (err: unknown) => { throw err; }
 
-export function wait<T>(
+export function wait<T, R>(
   result: T,
-  thenAction: (value: Exclude<T, PromiseLike<T>>) => T | never = noopThen,
-  catchAction: (err: unknown) => T | never = noopCatch,
-) {
+  thenAction: (value: Awaited<T>) => R | Promise<R>,
+): R | Promise<R>;
+export function wait<T, R, C>(
+  result: T,
+  thenAction: (value: Awaited<T>) => R | Promise<R>,
+  catchAction: (err: unknown) => C | Promise<C> | never,
+): R | Promise<R> | C | Promise<C> | never;
+export function wait<T, R, C>(
+  result: T,
+  thenAction: (value: Awaited<T>) => R | Promise<R> = noopThen,
+  catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
+): R | Promise<R> | C | Promise<C> | never {
   if (isPromiseLike(result)) {
-    return result.then(thenAction, catchAction);
+    return result.then(thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never
   }
-  return thenAction(result as any);
+  return thenAction(result as any) as R | Promise<R>;
 }
 
-export function waitCallback<T>(
+export function waitCallback<T, R>(
+  result: () => T,
+  thenAction: (value: Awaited<T>) => R | Promise<R>,
+): R | Promise<R>;
+export function waitCallback<T, R, C>(
+  result: () => T,
+  thenAction: (value: Awaited<T>) => R | Promise<R>,
+  catchAction: (err: unknown) => C | Promise<C> | never,
+): R | Promise<R> | C | Promise<C> | never;
+export function waitCallback<T, R, C>(
   action: () => T,
-  thenAction: (value: Exclude<T, PromiseLike<T>>) => T | never = noopThen,
-  catchAction: (err: unknown) => T | never = noopCatch,
-) {
+  thenAction: (value: Awaited<T>) => R | Promise<R> = noopThen,
+  catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
+): R | Promise<R> | C | Promise<C> | never {
   let result: T | never;
   try {
     result = action();
   } catch(err) {
-    result = catchAction(err);
+    result = catchAction(err) as any;
   }
   if (isPromiseLike(result)) {
-    return result.then(thenAction, catchAction);
+    return result.then(thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never;
   }
-  return thenAction(result as any);
+  return thenAction(result as any) as R | Promise<R>;
 }
 
-export function waitAll<T>(
+export function waitAll<T, R>(
   maybePromises: Array<T | Promise<T>>,
-  thenAction?: (value: Exclude<T[], PromiseLike<T[]>>) => T | never,
+  thenAction?: (value: Awaited<T[]>) => R | Promise<R> | never,
+): R | Promise<R>;
+export function waitAll<T, R, C>(
+  maybePromises: Array<T | Promise<T>>,
+  thenAction?: (value: Awaited<T[]>) => R | Promise<R> | never,
+  catchAction?: (err: unknown) => C | Promise<C> | never,
+): R | Promise<R> | C | Promise<C> | never;
+export function waitAll<T, R, C>(
+  maybePromises: Array<T | Promise<T>>,
+  thenAction?: (value: Awaited<T[]>) => T | never,
   catchAction: (err: unknown) => T | never = noopCatch,
-) {
+): R | Promise<R> | C | Promise<C> | never {
   let result: any = maybePromises;
   if (maybePromises.some(isPromiseLike)) {
     result = Promise.all(maybePromises);
   }
-  return wait(result, thenAction, catchAction);
+  return wait(result, thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never;
 }
 
 // TODO: return all performed data
-export function waitSequence<T>(
+export function waitSequence<T, D, R>(
   data: T[],
-  action: (data: T) => any,
-  thenAction: (value: Array<any>) => any | never = noopThen as any,
-  catchAction: (err: unknown) => T | never = noopCatch,
-) {
-  if (data.length === 0) return thenAction([]);
+  action: (data: T, index: number, array: T[]) => D | Promise<D>,
+): D | Promise<D>;
+export function waitSequence<T, D, R>(
+  data: T[],
+  action: (data: T, index: number, array: T[]) => D | Promise<D>,
+  thenAction: (value: Array<D>) => R | Promise<R>,
+): R | Promise<R>;
+export function waitSequence<T, D, R, C>(
+  data: T[],
+  action: (data: T, index: number, array: T[]) => D | Promise<D>,
+  thenAction: (value: Array<D>) => R | Promise<R>,
+  catchAction: (err: unknown) => C | Promise<C> | never,
+): R | Promise<R> | C | Promise<C> | never;
+export function waitSequence<T, D, R, C>(
+  data: T[] = [],
+  action: (data: T, index: number, array: T[]) => D | Promise<D>,
+  thenAction: (value: Array<D>) => R | Promise<R> = noopThen,
+  catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
+): R | Promise<R> | C | Promise<C> | never {
+  if (!data.length) return thenAction([]);
   return _waitSequence(data, action, thenAction, catchAction, [], -1);
 }
 
-function _waitSequence<T>(
+function _waitSequence<T, D, R, C>(
   data: T[],
-  action: (data: T) => any,
-  thenAction: (value: Array<any>) => any | never = noopThen as any,
-  catchAction: (err: unknown) => T | never = noopCatch,
-  resolvedData: Array<any> = [],
-  idx: number = -1,
+  action: (data: T, index: number, array: T[]) => D | Promise<D>,
+  thenAction: (value: Array<D>) => R | Promise<R>,
+  catchAction: (err: unknown) => C | Promise<C> | never,
+  resolvedData: Array<any>,
+  idx: number,
 ) {
   if (++idx === data.length) return thenAction(resolvedData);
   return wait(
-    action(data[idx]),
-    () => _waitSequence(data, action, thenAction, catchAction, resolvedData, idx),
+    action(data[idx], idx, data),
+    result => (resolvedData.push(result), _waitSequence(data, action, thenAction, catchAction, resolvedData, idx)),
     catchAction,
   )
 }

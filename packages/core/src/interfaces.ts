@@ -46,7 +46,7 @@ export type ModuleImportItem =
   | DynamicModule
   | Promise<ClassType>
   | Promise<DynamicModule>
-  | ForwardReference;
+  | ForwardReference<ModuleImportItem>;
 
 export type ModuleExportItem = 
   | ProviderToken
@@ -54,7 +54,7 @@ export type ModuleExportItem =
   | ExportedModule
   | DynamicModule
   | Promise<DynamicModule>
-  | ForwardReference;
+  | ForwardReference<ModuleExportItem>;
 
 export type ExportedModule = {
   from: ClassType;
