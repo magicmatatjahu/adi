@@ -1,9 +1,9 @@
 import { Scope, createScope } from "./scope";
-import { InjectionKind, SessionFlag } from "../enums";
 import { Context } from "../injector";
+import { isMethodInjection } from "../utils";
 
-import type { Session, DestroyContext } from "../injector";
-import type { ProviderInstance, InjectionMetadata } from "../interfaces";
+import type { Session } from "../injector";
+import type { ProviderInstance, InjectionMetadata, DestroyContext } from "../interfaces";
 
 export interface TransientScopeOptions {
   reuseContext?: boolean;
@@ -20,29 +20,27 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   override getContext(session: Session, options: TransientScopeOptions): Context {
     // TODO: Handle cicular references between providers with transient scope 
 
-    let ctx = options.reuseContext === true ? session.options.ctx : undefined;
-    if (ctx === undefined) {
-      ctx = new Context();
-      this.contexts.set(ctx, session.metadata);
-      session.setFlag(SessionFlag.SIDE_EFFECTS);
+    let context = options.reuseContext && session.iOptions.context;
+    if (!context) {
+      context = new Context();
+      this.contexts.set(context, session.iMetadata);
+      session.setFlag('side-effect');
     }
-    return ctx;
+    return context;
   }
 
-  override canDestroy(instance: ProviderInstance, _: TransientScopeOptions, destroyCtx: DestroyContext): boolean {
-    const ctx = instance.ctx;
+  override shouldDestroy(instance: ProviderInstance, _: TransientScopeOptions, destroyCtx: DestroyContext): boolean {
+    const context = instance.context;
+    const noParents = !instance.parents?.size;
 
     // operating on an instance with a context passed by user - destroy only with `injector` event and with no parents
-    if (!this.contexts.has(ctx)) {
-      return destroyCtx.event === 'injector' && (instance.parents === undefined || instance.parents.size === 0);
+    if (!this.contexts.has(context)) {
+      return destroyCtx.event === 'injector' && noParents;
     }
 
     // with no parents
-    if (
-      instance.parents === undefined || instance.parents.size === 0 ||
-      (instance.session.metadata.kind & InjectionKind.METHOD)
-    ) {
-      this.contexts.delete(ctx);
+    if (noParents || isMethodInjection(instance.session.iMetadata)) {
+      this.contexts.delete(context);
       return true;
     }
 

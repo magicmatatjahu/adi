@@ -1,8 +1,8 @@
 import { createHook } from "./hook";
 
-export const Named = createHook((name: string | symbol) => {
+export const Named = createHook((name: string | symbol | object) => {
   return (session, next) => {
-    session.options.annotations['adi:named'] = name;
+    session.iOptions.annotations.named = name;
     return next(session);
   }
 }, { name: 'adi:hook:named' });

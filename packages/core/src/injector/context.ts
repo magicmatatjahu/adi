@@ -1,30 +1,35 @@
-import { ADI_INJECTABLE_DEF } from '../constants';
-import { SessionFlag } from '../enums';
+// import { injectableMixin } from './injectable';
+import { Hook } from '../hooks';
+import { getDeepProperty } from '../utils';
 
-import type { InjectableDefinition } from '../interfaces';
+import type { Path, PathValue } from '../types';
 
-const circularInjectableDefSymbol = Symbol.for('adi:definition:injectable');
-
-export class Context<T extends Record<string | symbol, unknown> = Record<string | symbol, unknown>> {
+export class Context<D extends Record<string | symbol, unknown> = Record<string | symbol, unknown>> {
   constructor(
-    public readonly data: T = {} as T,
+    private readonly data: D = {} as D,
     public readonly name?: string,
   ) {}
 
-  static [circularInjectableDefSymbol]: InjectableDefinition = {
-    token: Context,
-    status: 'full', // TODO: Change name for it
-    options: {
-      hooks: [(session) => {
-        session.setFlag(SessionFlag.SIDE_EFFECTS);
-        const parent = session.parent;
-        return parent && parent.ctx.instance?.ctx;
-      }],
-      annotations: {
-        'adi:provide-in': 'any',
-      }
-    },
-    injections: {} as any,
-    meta: {},
+  get(): D;
+  get<T = D, P extends Path<T> = any, PV = PathValue<T, P>>(path: P): PV;
+  get<T = D, P extends Path<T> = any, PV = PathValue<T, P>>(path?: P): PV | D {
+    if (typeof path !== 'string') {
+      return this.data as D;
+    }
+    return getDeepProperty(this.data, path) as PV;
   }
 }
+
+// injectableMixin(Context, { 
+//   provideIn: 'any',
+//   hooks: [
+//     Hook(session => {
+//       session.setFlag('side-effect');
+//       const parent = session.parent;
+//       if (parent) {
+//         return parent.context.instance?.context;
+//       }
+//       return session.context.instance?.context;
+//     }),
+//   ] 
+// });

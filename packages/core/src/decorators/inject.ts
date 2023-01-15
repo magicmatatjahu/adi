@@ -1,64 +1,73 @@
-import { ensureInjectableDefinition } from "./injectable";
-import { InjectionKind } from "../enums";
-import { WithInstance } from "../hooks/internal";
-import { serializeInjectArguments } from "../injector";
-import { Reflection } from "../utils";
+import { injectableDefinitions } from '../injector/injectable';
+import { serializeInjectArguments, createInjectionArgument } from '../injector/metadata';
+import { InjectionKind } from '../enums';
+import { getDecoratorInfo, Reflection } from '../utils';
 
-import { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata, InjectionArgument } from "../interfaces";
-import { createInjectionArgument } from "../injector/metadata";
+import type { ProviderToken, InjectionHook, InjectionAnnotations, PlainInjectionItem, InjectionArguments } from '../interfaces';
+import type { Decorator } from '../utils';
 
-// TODO: Add possibility to pass single hook without array
 export function Inject<T = any>(token?: ProviderToken<T>);
+export function Inject<T = any>(hook?: InjectionHook);
 export function Inject<T = any>(hooks?: Array<InjectionHook>);
 export function Inject<T = any>(annotations?: InjectionAnnotations);
-export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook> | InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook);
+export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>);
+export function Inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(hook?: InjectionHook, annotations?: InjectionAnnotations);
 export function Inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
-export function Inject<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
-  ({ token, hooks, annotations } = serializeInjectArguments(token as any, hooks as any, annotations));
-  
+export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): ParameterDecorator | PropertyDecorator {
+  const injection = serializeInjectArguments(token, hooks, annotations);
   return function(target: Function, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
-    let handler: Function | undefined;
-    if (token === undefined) {
-      if (key === undefined) { // constructor injection
-        token = Reflection.getOwnMetadata("design:paramtypes", target)[indexOrDescriptor as number];
-      } else {
-        if (indexOrDescriptor === undefined) { // property injection
-          token = Reflection.getOwnMetadata("design:type", target, key);
-        } else if (typeof indexOrDescriptor === 'number') { // method injection
-          token = Reflection.getOwnMetadata("design:paramtypes", target, key)[indexOrDescriptor];
-          handler = Object.getOwnPropertyDescriptor(target, key).value;
-        } else { // setter injection
-          token = Reflection.getOwnMetadata("design:type", target, key);
-          handler = indexOrDescriptor.value;
-          indexOrDescriptor = undefined;
-        }
-      }
-    }
-    applyInjectionArgument(token as ProviderToken, hooks as Array<InjectionHook>, { target, key, index: indexOrDescriptor as number, handler, annotations });
+    applyInject(getDecoratorInfo(target, key, indexOrDescriptor), injection);
   }
 }
 
-const withInstanceHook = WithInstance();
-function applyInjectionArgument(
-  token: ProviderToken,
-  hooks: Array<InjectionHook> = [],
-  metadata: Omit<InjectionMetadata, 'kind'>,
-): InjectionArgument {
-  const { key, index } = metadata;
+function applyInject(decoratorInfo: Decorator, { token, hooks, annotations }: PlainInjectionItem) {
+  const injections = injectableDefinitions.ensure(decoratorInfo.class).injections;
+  const target = decoratorInfo.class;
+  const argument = createInjectionArgument(token as ProviderToken, hooks as InjectionHook | Array<InjectionHook>, {
+    kind: InjectionKind.UNKNOWN,
+    target,
+    annotations,
+    static: (decoratorInfo as { static: boolean }).static || false,
+    index: (decoratorInfo as { index: number }).index,
+    key: (decoratorInfo as { key: string | symbol }).key,
+    descriptor: (decoratorInfo as { descriptor: PropertyDescriptor }).descriptor,
+  });
 
-  // constructor injection
-  if (key === undefined) {
-    const def = ensureInjectableDefinition(metadata.target);
-    return def.injections.parameters[index] = createInjectionArgument(token, hooks, { ...metadata, kind: InjectionKind.PARAMETER });
-  }
+  switch (decoratorInfo.kind) {
+    case 'parameter': {
+      argument.metadata.kind = InjectionKind.PARAMETER;
+      const index = decoratorInfo.index;
 
-  const target = metadata.target = metadata.target.constructor;
-  const injections = ensureInjectableDefinition(target).injections;
-  if (typeof index === "number") { // method injection
-    const method = injections.methods[key as string] || (injections.methods[key as string] = []);
-    return method[index] = createInjectionArgument(token, [withInstanceHook, ...hooks], { ...metadata, kind: InjectionKind.METHOD });
+      if (decoratorInfo.descriptor) { // method injection
+        const key = decoratorInfo.key;
+        argument.token = argument.token = Reflection.getOwnMetadata("design:paramtypes", target, key)[index];
+        const properInjections = getProperInjections(argument.metadata.static, injections);
+        const parameters = properInjections.methods[key] || (properInjections.methods[key] = []);
+        parameters[index] = argument; 
+      } else { // constructor injection
+        argument.token = argument.token = Reflection.getOwnMetadata("design:paramtypes", target)[index];
+        injections.parameters[index] = argument;
+      }
+
+      break;
+    };
+    case 'property':
+    case 'accessor': {
+      const key = decoratorInfo.key;
+      argument.token = argument.token || Reflection.getOwnMetadata("design:type", target.prototype, key);
+      argument.metadata.kind = decoratorInfo.kind === 'property' ? InjectionKind.PROPERTY : InjectionKind.ACCESSOR;
+      getProperInjections(argument.metadata.static, injections).properties[key] = argument;
+      break;
+    };
+    default: throw new Error('@Inject decorator can be only used on parameter/property/accessor level.');
   }
-  // property injection
-  return injections.properties[key as string] = createInjectionArgument(token, hooks, { ...metadata, kind: InjectionKind.PROPERTY });
+}
+
+function getProperInjections(isStatic: boolean, injections: InjectionArguments): InjectionArguments {
+  return isStatic ? (injections.static || (injections.static = { properties: {}, methods: {} })) as InjectionArguments : injections;
 }

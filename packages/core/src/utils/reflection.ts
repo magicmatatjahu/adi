@@ -1,10 +1,11 @@
-export const Reflection = ((Reflect as any).getOwnMetadata ? Reflect : {
-  getOwnMetadata(metaKey: string) {
-    switch(metaKey) {
-      case "design:type": return undefined;
-      case "design:paramtypes": return [];
-      case "design:returntype": return undefined;
-      default: return undefined;
-    }
+interface ReflectAPI {
+  getOwnMetadata(metadataKey: any, target: Object): any;
+  getOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
+}
+
+export const Reflection: ReflectAPI = ((Reflect as unknown as ReflectAPI).getOwnMetadata ? Reflect : {
+  getOwnMetadata() {
+    return undefined;
   }
-}) as any;
+}) as ReflectAPI;
+

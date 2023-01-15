@@ -1,258 +1,304 @@
-import { InjectionToken } from "./injection-token";
-import { Injector } from "./injector";
-import { inject } from "./resolver";
-import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from "../constants";
-import { InjectionKind, InjectorStatus } from "../enums";
-import { getModuleDefinition } from "../decorators";
-import { resolveRef, wait, waitAll, waitSequence } from "../utils";
+import { Injector } from './injector';
+import { INITIALIZERS, MODULE_REF } from '../constants';
+import { InjectorStatus } from '../enums';
+import { processProvider } from './metadata';
+import { createDefinition, wait, waitSequence, resolveRef, isModuleToken } from '../utils';
+import { ADI_MODULE_DEF } from '../private';
 
-import type { ClassType, ModuleID, DynamicModule, ModuleImportItem, ModuleMetadata, ModuleExportItem, InjectorOptions, Provider, ProviderToken, ProviderRecord, CustomProvider, ExportedModule } from "../interfaces";
+import type { Provider } from './provider';
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule } from "../interfaces";
+import type { ModuleToken } from '../tokens';
+
+export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
+
+export function moduleMixin(token: ClassType | ModuleToken, metadata?: ModuleMetadata): ModuleMetadata {
+  const definition = moduleDefinitions.ensure(token);
+  Object.assign(definition, metadata || {});
+  return definition;
+}
+
+function moduleFactory(): ModuleMetadata {
+  return {
+    imports: [],
+    providers: [],
+    exports: [],
+  };
+}
+
+interface ExtractedMetadata {
+  input?: ClassType | ModuleToken;
+  core?: ModuleMetadata;
+  extended: Array<ModuleMetadata>;
+}
 
 interface CompiledModule {
-  type: ClassType;
-  moduleDef: ModuleMetadata;
-  dynamicDef: DynamicModule;
+  input: ClassType | ModuleToken;
+  extracted: ExtractedMetadata;
+  imports: Map<Exclude<ModuleImportType, ForwardReference | Promise<any>>, CompiledModule>;
+  exports: Array<ProviderToken | ProviderType | ExportedModule>;
   injector: Injector;
-  exportTo: Injector;
-  proxy: boolean;
+  parent: CompiledModule;
+  stack: Set<CompiledModule>;
 }
 
-export function initModule(injector: Injector): Injector | Promise<Injector> {
-  return importModule(injector, injector.metatype, injector.options, false);
+export function initModule(injector: Injector) {
+  return wait(importModule(injector, injector.input as any), _ => injector);
 }
 
-export function importModule(to: Injector, metadata: ModuleImportItem | ModuleMetadata | Array<Provider>, options: InjectorOptions, createInjector: boolean = true): Injector | Promise<Injector> {
-  let metatype = to.metatype;
-  if (Array.isArray(metatype)) {
-    metatype = { providers: to.metatype } as ModuleMetadata;
+export function importModule(to: Injector, input: ModuleImportType): Injector | Promise<Injector> {
+  if (to.status & InjectorStatus.PENDING) {
+    return to;
+  }
+  to.status |= InjectorStatus.PENDING;
+
+  if (Array.isArray(input)) {
+    return wait(initInjector(to), () => to);
   }
 
   return wait(
-    compileMetadata(metadata),
-    compiled => {
-      const injector = createInjector ? new Injector(compiled.type, to, options) : to;
-      compiled.injector = injector;
-      compiled.exportTo = injector.parent;
-      const stack: Array<Injector> = [injector];
+    retrieveMetadata(input),
+    extracted => {
+      const compiled = createCompiledModule(extracted);
       return wait(
-        processModule(compiled, stack), 
+        processImports(extracted, compiled),
         () => wait(
-          initInjectors(stack),
-          () => injector
+          processCompiled(compiled),
+          () => wait(
+            waitSequence(
+              Array.from(compiled.stack.values()).reverse(), 
+              ({ injector }) => initInjector(injector),
+            ),
+            () => to,
+          ),
         ),
-      ) as any;
-    }
-  ) as any
+      )
+    },
+  );
 }
 
-export function exportModule(exports: Array<ModuleExportItem> = [], from: Injector, to: Injector): void {
-  exports.forEach(exp => processExport(exp, from, to));
+function processCompiled(compiled: CompiledModule) {
+  return wait(
+    waitSequence(
+      [...compiled.imports.values()],
+      importedCompile => wait(
+        processImports(importedCompile.extracted, importedCompile),
+        () => processCompiled(importedCompile),
+      ),
+    ),
+    () => processInjector(compiled),
+  )
 }
 
-function processModule(compiled: CompiledModule, stack: Array<Injector>): void | Promise<void> {
-  processProviders(compiled);
-  const { moduleDef, dynamicDef, injector, proxy } = compiled;
-  const compiledModules: Array<CompiledModule> = [];
-
-  const imports: Array<ModuleImportItem> = [];
-  if (proxy === false) imports.push(...moduleDef.imports || []);
-  imports.push(...dynamicDef.imports || []);
-
-  if (imports.length === 0) return processExports(compiled);
-  return waitAll(
-    imports.map(i => processImport(i, compiledModules, injector, stack)),
-    () => waitSequence(
-      compiledModules, 
-      c => processModule(c, stack),
-      () => processExports(compiled),
+function processImports(extracted: ExtractedMetadata, parent: CompiledModule) {
+  const { core, extended } = extracted;
+  return waitSequence(
+    [core, ...extended],
+    item => waitSequence(
+      item.imports,
+      importItem => processImport(importItem, parent),
     ),
   );
 }
 
-function processImport(
-  module: ModuleImportItem, 
-  compiledModules: Array<CompiledModule>, 
-  parent: Injector,
-  stack: Array<Injector>,
-): void | Promise<void> {
+function processImport(importItem: ModuleImportType, parent: CompiledModule) {
   return wait(
-    compileMetadata(module),
-    compiled => {
-      if (!compiled) return undefined;
-      compiledModules.push(compiled);
-      compiled.exportTo = parent;
-    
-      const { type, dynamicDef } = compiled;
-      const id = (dynamicDef && dynamicDef.id) || 'static';
-      
-      const foundInjector = findModule(parent, type, id);
-      if (foundInjector === undefined) {
-        stack.push(compiled.injector = Injector.create(type, parent, { id }));
-      } else {
-        compiled.injector = foundInjector;
-        compiled.proxy = true;
+    retrieveMetadata(importItem),
+    extracted => {
+      // doesn't have input - no module type (class, module token or extended module)
+      if (!extracted.input) {
+        return;
       }
-    }
-  ) as unknown as void;
+      
+      // TODO: Handle case when import is already created in ancestors compiled modules
+      let compiled = findModuleInTree(extracted.input, parent);
+      if (!compiled) {
+        compiled = createCompiledModule(extracted, parent);
+        parent.imports.set(extracted.input, compiled);
+      }
+      return processExports(extracted, compiled);
+    },
+  )
 }
 
-export function importModuleToParent(injector: Injector, type: ClassType, id: ModuleID, parent: Injector) {
-  let modules = parent.imports.get(type);
-  if (modules === undefined) {
-    modules = new Map<ModuleID, Injector>();
-    parent.imports.set(type, modules);
-  }
-  if (modules.has(id)) return; // TODO: Fix that
-  modules.set(id, injector);
-} 
-
-function processProviders({ injector, moduleDef, dynamicDef, proxy }: CompiledModule) {
-  proxy === false && injector.provide(...moduleDef.providers || []);
-  injector.provide(...dynamicDef.providers || []);
-  loadModuleConfig(injector);
+// TODO: Check and handle circular references
+function processExports(extracted: ExtractedMetadata, compiled: CompiledModule) {
+  const { core, extended } = extracted;
+  return waitSequence(
+    [core, ...extended],
+    item => waitSequence(
+      item.exports,
+      exportItem => processExport(exportItem, compiled),
+    ),
+  );
 }
 
-function processExports({ injector, moduleDef, dynamicDef, exportTo, proxy }: CompiledModule) {
-  proxy === false && injector.export(moduleDef.exports, exportTo);
-  injector.export(dynamicDef.exports, exportTo);
-}
-
-function compileMetadata(module: ModuleImportItem | ModuleMetadata | Array<Provider>): CompiledModule | Promise<CompiledModule> {
+function processExport(exportItem: ModuleExportType, compiled: CompiledModule) {
   return wait(
-    resolveRef(module),
-    m => extractModuleMetadata(m) as any,
-  ) as any;
+    retrieveMetadata(exportItem as any),
+    extracted => {
+      // case with module
+      if (extracted.input) {
+        return processImports(extracted, compiled.parent);
+      }
+      // normal export item
+      compiled.exports.push(extracted as any);
+    }
+  )
 }
 
-function extractModuleMetadata(meta: ClassType | ModuleMetadata | DynamicModule | Array<Provider>): CompiledModule | Promise<CompiledModule> {
-  let moduleDef = getModuleDefinition(meta), 
-    dynamicDef: DynamicModule = undefined;
+function processInjector(compiled: CompiledModule) {
+  const { input, extracted: { core, extended }, exports } = compiled;
+  const parentInjector = compiled.parent?.injector;
+  const injector = compiled.injector = Injector.create(input, undefined, parentInjector);
 
-  if (moduleDef === undefined) { // maybe DynamicModule case
-    dynamicDef = meta as DynamicModule;
-    if (dynamicDef && dynamicDef.module !== undefined) { // DynamicModule case
-      meta = dynamicDef.module;
-      moduleDef = getModuleDefinition(meta);
-    } else { // ModuleMetadata case
-      dynamicDef = undefined;
-      moduleDef = meta as ModuleMetadata;
-    }
+  [core, ...extended].forEach(item => {
+    item.providers.forEach(provider => provider && processProvider(injector, provider));
+  });
+
+  if (!parentInjector) {
+    return injector;
   }
-
-  if (moduleDef === undefined && dynamicDef === undefined) return;
-  return { type: meta as any, moduleDef: moduleDef || {}, dynamicDef: dynamicDef || {} as any, injector: undefined, exportTo: undefined, proxy: false };
+  exports.forEach(exportItem => processNormalExport(exportItem, injector, parentInjector));
 }
 
-function findModule(injector: Injector, type: ClassType, id: ModuleID): Injector | undefined {
-  if (type === injector.metatype && id === injector.options.id) { // cannot import module to itself
-    return;
-  }
-  
-  let foundModule: Injector = injector.imports.get(type)?.get(id);
-  if (foundModule) {
-    return foundModule;
-  }
-  
-  let parentInjector = injector.parent;
-  // Change this statement in the future as CoreInjector - ADI should read imports from CoreInjector
-  while (parentInjector !== null) {
-    // TODO: Check this statement - maybe it's needed
-    if (type === parentInjector.metatype && id === parentInjector.options.id) {
-      return parentInjector;
-    }
-
-    foundModule = parentInjector.imports.get(type)?.get(id);
-    if (foundModule) {
-      return foundModule;
-    }
-    parentInjector = parentInjector.parent;
-  }
-}
-
-function processExport(exp: ModuleExportItem, from: Injector, to: Injector): void {
-  exp = resolveRef(exp);
-
+function processNormalExport(exportItem: ProviderToken | ProviderType | ExportedModule, from: Injector, to: Injector): void {
   // exported module or provider
-  if (typeof exp === 'object') {
-    if ((exp as ExportedModule).from) {
-      return processModuleExports(exp as ExportedModule, from, to);
+  if (typeof exportItem === 'object') {
+    // from module exports case
+    if ((exportItem as ExportedModule).from) {
+      return processModuleExports(exportItem as ExportedModule, from, to);
     }
 
-    if ((exp as CustomProvider).provide) {
-      to.provide(exp as CustomProvider);
+    // object provider case
+    if ((exportItem as Exclude<ProviderType, ClassType>).provide) {
+      return to.provide(exportItem as Exclude<ProviderType, ClassType>);
     }
-
-    // InjectionToken case
-    const injectionToken = exp as InjectionToken;
-    const record = from.providers.get(injectionToken);
-    return record && record[0] && importRecord(to, injectionToken, record[0]);
   }
+
+  const provider = from.providers.get(exportItem as ProviderToken);
+  const selfProvider = provider?.self;
 
   // classType provider
-  if (typeof exp === 'function') {
-    // maybe module
-    if (getModuleDefinition(exp)) return;
-
-    const record = from.providers.get(exp);
-    return (record && record[0]) ? importRecord(to, exp, record[0]) : to.provide(exp as any);
+  if (typeof exportItem === 'function') {
+    if (selfProvider) {
+      importProvider(to, exportItem, selfProvider);
+    }
+    return to.provide(exportItem as any);
   }
-
-  // string, symbol
-  const record = from.providers.get(exp);
-  record && record[0] && importRecord(to, exp, record[0]);
+  
+  // string, symbol or InjectionToken case
+  if (selfProvider) {
+    importProvider(to, exportItem as ProviderToken, selfProvider);
+  };
 }
 
-function processModuleExports(exportedModule: ExportedModule, from: Injector, to: Injector) {
-  const { from: module, id, providers } = exportedModule;
-  const fromInjector = from.imports.get(module)?.get(id || 'static');
-  if (fromInjector === undefined) {
+function processModuleExports(exportedModule: Exclude<ExportedModule, ForwardReference>, from: Injector, to: Injector) {
+  const { from: fromExported, providers } = exportedModule;
+  const fromInjector = from.imports.get(resolveRef(fromExported));
+  if (!fromInjector) {
     throw Error(`Cannot export from ${module} module`);
   }
 
   return from.providers.forEach((collection, token) => {
-    collection.forEach(record => {
-      if (record && record.host === fromInjector && (providers ? providers.includes(token) : true)) {
-        importRecord(to, token, record);
+    [collection.self, ...collection.imported].forEach(provider => {
+      if ((provider.host === fromInjector) && (providers ? providers.includes(token) : true)) {
+        importProvider(to, token, provider);
       }
     });
   });
 }
 
-export function importRecord(injector: Injector, token: ProviderToken, record: ProviderRecord) {
-  let collection = injector.providers.get(token);
-  if (collection === undefined) {
-    collection = [undefined];
-    injector.providers.set(token, collection);
+function importProvider(injector: Injector, token: ProviderToken, provider: Provider) {
+  let hostProvider = injector.providers.get(token);
+  if (!hostProvider) {
+    hostProvider = { self: undefined, imported: [] };
+    injector.providers.set(token, hostProvider);
   }
-  collection.splice(1, 0, record); // always insert to the second index 
+  (hostProvider.imported || (hostProvider.imported = [])).push(provider);
 }
 
-function initInjectors(stack: Array<Injector>) {
-  return waitSequence(stack.reverse(), initInjector);
-}
-
-function initInjector(injector: Injector) {
-  if (injector.status & InjectorStatus.INITIALIZED) return; 
-  injector.status |= InjectorStatus.INITIALIZED;
-  
+function retrieveMetadata(maybeModule: ModuleImportType) {
   return wait(
-    initInitializers(injector),
-    () => wait(
-      injector.get(MODULE_REF), 
-      () => injector.status |= InjectorStatus.INITIALIZED,      
-    ),
+    maybeModule,
+    resolved => extractModuleMetadata(resolveRef(resolved) as Exclude<ModuleImportType, ForwardReference | Promise<any>>),
   );
 }
 
-function initInitializers(injector: Injector) {
-  const initializers = injector.providers.get(INITIALIZERS);
-  if (initializers[0].defs.length) {
-    return injector.get(INITIALIZERS);
+function extractModuleMetadata(ref: Exclude<ModuleImportType, ForwardReference | Promise<any>>): ExtractedMetadata | Promise<ExtractedMetadata> {
+  const moduleMetadata = moduleDefinitions.get(ref);
+  if (moduleMetadata) {
+    return { input: ref as ClassType | ModuleToken, core: moduleMetadata, extended: [] };
+  }
+
+  // maybe ExtendedModule case
+  const extracted: ExtractedMetadata = {
+    input: undefined,
+    core: undefined,
+    extended: [],
+  }
+  return wait(
+    processExtendedModule(ref as ExtendedModule, extracted),
+    () => {
+      extracted.extended.reverse();
+      return extracted;
+    },
+  );
+}
+
+function processExtendedModule(extendedModule: ExtendedModule, extracted: ExtractedMetadata) {
+  const moduleExtends = (extendedModule as ExtendedModule)?.extends;
+  if (!moduleExtends) {
+    return;
+  }
+
+  extracted.extended.push(extendedModule);
+  return wait(
+    moduleExtends,
+    probablyModule => {
+      const ref = resolveRef(probablyModule);
+      const definition = moduleDefinitions.get(ref);
+      if (definition) {
+        extracted.core = definition;
+        return extracted.input = ref as ClassType | ModuleToken;
+      }
+      return processExtendedModule(ref as ExtendedModule, extracted);
+    }
+  );
+}
+
+function createCompiledModule(extracted: ExtractedMetadata, parent?: CompiledModule): CompiledModule {
+  const stack = parent?.stack || new Set();
+  return { input: extracted.input, extracted, imports: new Map(), exports: [], injector: undefined, parent, stack };
+}
+
+function findModuleInTree(input: ExtractedMetadata['input'], parent: CompiledModule): CompiledModule | undefined {
+  if (!input) {
+    return;
+  }
+
+  while (parent) {
+    if (parent.input === input) {
+      return parent;
+    }
+
+    const maybeImport = parent.imports.get(input);
+    if (maybeImport) {
+      return maybeImport;
+    }
+
+    parent = parent.parent;
   }
 }
 
-function loadModuleConfig(injector: Injector): void {
-  if (!injector.providers.has(INJECTOR_CONFIG)) return;
-  const options = (inject(injector, undefined, { token: INJECTOR_CONFIG, hooks: [], metadata: { target: injector, kind: InjectionKind.STANDALONE } }) || {}) as InjectorOptions;
-  Object.assign(injector.options, options, { scopes: ['any', injector.metatype, ...options.scopes || []] });
+function initInjector(injector: Injector) {
+  injector.status |= InjectorStatus.INITIALIZED;
+  return wait(
+    injector.get(INITIALIZERS),
+    _ => injector.get(MODULE_REF),
+  )
+}
+
+export function retrieveExtendedModule(module: ExtendedModule) {
+  const _extends = module.extends;
+  return (_extends as any).extends ? retrieveExtendedModule((_extends as any).extends) : _extends;
 }

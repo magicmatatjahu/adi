@@ -1,385 +1,145 @@
-import { InjectionToken } from "./injection-token";
-import { importRecord } from "./module";
-import { resolveRecord, resolverClass, resolverFactory, resolverValue } from "./resolver";
-import { Session } from "./session";
-import { INITIALIZERS, STATIC_CONTEXT } from "../constants";
-import { when } from "../constraints";
-import { ProviderKind, InjectionKind, InstanceStatus, SessionFlag } from "../enums";
-import { createHook } from "../hooks";
-import { getInjectableDefinition } from "../decorators/injectable";
-import { DefaultScope } from "../scopes";
+import { injectableDefinitions, injectableMixin } from './injectable';
+import { Provider as ProviderRecord, getOrCreateProvider, Provider } from './provider';
+import { resolveProvider, resolverClass, resolverFactory, resolverValue } from './resolver';
+import { INITIALIZERS } from '../constants';
+import { when } from '../constraints';
+import { ProviderKind, InjectionKind } from '../enums';
+import { createHook, isHook } from '../hooks';
+import { ComponentProviderError } from '../problem';
+import { DefaultScope, SingletonScope } from '../scopes';
+import { createArray, getAllKeys, isClassProvider, isClassicProvider, isExistingProvider, isFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 
-import type { Injector } from "./injector";
+import type { Injector } from './injector';
+import type { Session } from './session';
 import type { 
-  ProviderToken, Provider, ClassTypeProvider, CustomProvider, ClassProvider, FactoryProvider, ValueProvider, ExistingProvider,
-  ProviderRecord, HookRecord,
-  DefinitionFactory, InjectionItem, PlainInjectionItem, PlainInjections, InjectionArgument, InjectionArguments, InjectionMetadata, InjectionHook, ConstraintDefinition, ProviderAnnotations, ProviderDefinition, ProviderInstance, InjectorScope, InjectionAnnotations,
-} from "../interfaces";
+  ProviderToken, ProviderType, ProviderDefinition, ProviderAnnotations, 
+  InjectionHook, HookRecord, ConstraintDefinition, 
+  InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
+  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType,
+} from '../interfaces';
 
-export function toProviderRecord<T>(host: Injector, provider: Provider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
-  if (typeof provider === "function") {
-    return typeProviderToRecord(host, provider);
+export function processProvider<T>(host: Injector, original: ProviderType<T>): { provider: ProviderRecord, definition: ProviderDefinition | undefined } | undefined {
+  let provider: Provider;
+  let definition: ProviderDefinition;
+  let annotations: ProviderAnnotations
+
+  // handle provider defined as class
+  if (typeof original === "function") {
+    const injectableDefinition = ensureInjectable(original);
+    if (!injectableDefinition) {
+      return;
+    }
+
+    const { options, injections } = injectableDefinition;
+    provider = getOrCreateProvider(host, original);
+    annotations = options.annotations || {};
+
+    const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
+    definition = { provider, original, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks: options.hooks || [], annotations, values: new Map(), meta: {} };
   } else {
-    return customProviderToProviderRecord(host, provider);
+    let token = original.provide,
+      factory: FactoryDefinition,
+      kind: ProviderKind,
+      scope = original.scope || DefaultScope,
+      hooks = createArray(original.hooks),
+      when = original.when;
+
+    provider = getOrCreateProvider(host, token);
+    annotations = original.annotations || {};
+
+    if (isFactoryProvider(original)) {
+      kind = ProviderKind.FACTORY;
+      const inject = convertDependencies(original.inject || [], { kind: InjectionKind.FACTORY, function: original.useFactory });
+      factory = { resolver: resolverFactory, data: { factory: original.useFactory, inject } } as FactoryDefinitionFactory;
+    } else if (isValueProvider(original)) {
+      kind = ProviderKind.VALUE;
+      scope = SingletonScope;
+      factory = { resolver: resolverValue, data: { value: original.useValue } } as FactoryDefinitionValue;
+    } else if (isClassProvider(original)) {
+      kind = ProviderKind.CLASS;
+      const clazz = original.useClass;
+      const definition = ensureInjectable(clazz);
+      if (definition) {
+        const options = definition.options;
+        scope = scope || options.scope;
+        // if (defScope && !defScope.kind.canBeOverrided({} as any, defScope.options)) { // TODO: fix first argument to the `canBeOverrided` function
+        //   scope = defScope;
+        // }
+        annotations = { ...options.annotations, ...annotations }
+      }
+
+      const inject = overrideDependencies(definition?.injections, original.inject);
+      factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
+    } else if (isClassicProvider(original)) {
+      // TODO...
+    } else if (isExistingProvider(original)) {
+      kind = ProviderKind.ALIAS;
+      scope = DefaultScope;
+      hooks.push(useExistingHook(original.useExisting));
+    } else if (isHook(hooks)) {
+      // standalone hooks - injector hooks
+      if (!token) {
+        addHook(host, hooks, when, annotations);
+        return;
+      }
+      // standalone hooks on provider level
+      addHook(provider, hooks, when, annotations);
+      return { provider, definition: undefined };
+    }
+
+    definition = { provider, original, kind, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
   }
+
+  handleProviderAnnotations(provider, definition, annotations);
+  provider.defs.push(definition);
+  provider.defs.sort(compareOrder);
+  return { provider, definition };
 }
 
-function typeProviderToRecord<T>(host: Injector, provider: ClassTypeProvider<T>): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
-  const def = getInjectableDefinition(provider);
-  if (def === undefined) return;
-
-  const record = getRecord(host, provider);
-  const factory = { resolver: resolverClass, data: { useClass: provider, inject: def.injections } };
-  const options = def.options;
-  const annotations = options.annotations || {};
-  const definition: ProviderDefinition = { kind: ProviderKind.CLASS, provider, record, factory, scope: options.scope || DefaultScope, when: undefined, hooks: options.hooks || [], annotations, values: new Map(), meta: {} };
-  record.defs.push(definition);
-  // record.defs.sort(compareOrder);
-  handleProviderAnnotations(record, definition, annotations);
-  return { record, definition };
-}
-
-function customProviderToProviderRecord<T>(host: Injector, provider: CustomProvider<T>, addExistingHook?: boolean): { record: ProviderRecord, definition: ProviderDefinition } | undefined {
-  const token = provider.provide;
-
-  // injector hooks
-  if (!token && provider.hooks) {
-    addHook(host, provider.hooks, provider.when, provider.annotations);
+function handleProviderAnnotations(provider: ProviderRecord, definition: ProviderDefinition, annotations: ProviderAnnotations) {
+  if (typeof annotations.order !== 'number') {
+    annotations.order = 0;
+  }
+  if (getAllKeys(annotations).length === 1) {
     return;
   }
 
-  const record = getRecord(host, token);
-  let factory: DefinitionFactory,
-    kind: ProviderKind,
-    scope = provider.scope || DefaultScope,
-    hooks = provider.hooks || [],
-    when = provider.when,
-    annotations = provider.annotations || {};
-
-  if (isFactoryProvider(provider)) {
-    kind = ProviderKind.FACTORY;
-    const inject = convertDependencies(provider.inject || [], { kind: InjectionKind.FACTORY, handler: provider.useFactory });
-    factory = { resolver: resolverFactory, data: { useFactory: provider.useFactory, inject } };
-  } else if (isValueProvider(provider)) {
-    kind = ProviderKind.VALUE;
-    factory = { resolver: resolverValue, data: provider.useValue };
-  } else if (isClassProvider(provider)) {
-    const def = getInjectableDefinition(provider.useClass);
-    if (def) {
-      const options = def.options;
-      const defScope = options.scope;
-      if (defScope && defScope.kind.canBeOverrided({} as any, defScope.options) === false) { // TODO: fix first argument to the `canBeOverrided` function
-        scope = defScope;
-      }
-      annotations = (Object.keys(annotations).length ? annotations : options.annotations) || {};
-    }
-    
-    const inject = overrideDependencies(def?.injections, provider.inject) || {};
-    kind = ProviderKind.CLASS;
-    factory = { resolver: resolverClass, data: { useClass: provider.useClass, inject } };
-  } else if (isExistingProvider(provider)) {
-    kind = ProviderKind.ALIAS;
-    if (addExistingHook !== false) {
-      hooks.push(useExistingHook(provider.useExisting));
-    }
-  } else if (Array.isArray(provider.hooks)) { // case with standalone `hooks`
-    addHook(record, hooks, when, annotations);
-    return { record, definition: undefined };
+  if (annotations.eager) {
+    processProvider(provider.host, {
+      provide: INITIALIZERS, 
+      useExisting: provider.token,
+      hooks: [useExistingDefinitionHook(definition)],
+    });
   }
 
-  // add provider definition
-  const definition: ProviderDefinition = { kind, provider, record, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
-  handleProviderAnnotations(record, definition, annotations);
-  record.defs.push(definition);
-  record.defs.sort(compareOrder);
-  return { record, definition };
-}
-
-export function getProviderInstance<T>(session: Session): ProviderInstance<T> {
-  const def = session.ctx.def;
-  let scope = def.scope;
-  if (scope.kind.canBeOverrided(session, scope.options)) {
-    scope = session.options.scope || scope;
-  }
-
-  const ctx = scope.kind.getContext(session, scope.options) || STATIC_CONTEXT;
-  let instance = def.values.get(ctx);
-  if (instance === undefined) {
-    instance = {
-      def,
-      session,
-      ctx,
-      value: undefined,
-      status: InstanceStatus.UNKNOWN,
-      scope,
-      meta: {},
-      children: undefined,
-      parents: undefined,
-    };
-    def.values.set(ctx, instance);
-  }
-
-  // add links
-  if (session.parent) {
-    const parentInstance = session.parent.ctx.instance;
-    // TODO: retrieve first instance
-    if (parentInstance) {
-      (parentInstance.children || (parentInstance.children = new Set())).add(instance);
-      (instance.parents || (instance.parents = new Set())).add(parentInstance);
-    }
-  }
-
-  return instance;
-}
-
-export function filterProviderDefinition(defs: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
-  let defaultDefinition: ProviderDefinition = undefined;
-  for (let i = defs.length - 1; i > -1; i--) {
-    const def = defs[i];
-    if (def.when === undefined) { // default def
-      defaultDefinition = defaultDefinition || def;
-    } else if (def.when(session) === true) {
-      return def;
-    }
-  }
-  return defaultDefinition;
-}
-
-export function filterProviderDefinitions(defs: Array<ProviderDefinition>, session: Session, mode: 'defaults' | 'constraints' | 'all' = 'constraints'): Array<ProviderDefinition> {
-  const satisfiedDefinitions: Array<ProviderDefinition> = [];
-  const defaultDefs: Array<ProviderDefinition> = [];
-  for (let i = 0, l = defs.length; i < l; i++) {
-    const def = defs[i];
-    if (def.when === undefined) { // default def
-      defaultDefs.push(def);
-      mode === 'all' && satisfiedDefinitions.push(def);
-    } else if (mode !== 'defaults' && def.when(session) === true) {
-      satisfiedDefinitions.push(def);
-    }
-  }
-  if (mode === 'defaults') return defaultDefs;
-  return satisfiedDefinitions.length ? satisfiedDefinitions : defaultDefs;
-}
-
-export function filterHooks(hooks: Array<HookRecord>, session: Session) {
-  const satisfied: Array<InjectionHook> = [];
-  hooks.forEach(hook => hook.when(session) && satisfied.push(hook.hook));
-  return satisfied;
-}
-
-export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: Array<InjectionHook> = [], metadata: InjectionMetadata): InjectionArgument<T> {
-  return { token, hooks, metadata };
-}
-
-export function createSession(token: ProviderToken, metadata: InjectionMetadata, injector: Injector, parentSession?: Session): Session {
-  return new Session({ token, ctx: undefined, scope: undefined, annotations: {} }, { injector, record: undefined, def: undefined, instance: undefined }, metadata, parentSession);
-}
-
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T>): PlainInjectionItem<T>;
-export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>): PlainInjectionItem<T>;
-export function serializeInjectArguments<T = any>(annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | Array<InjectionHook> | InjectionAnnotations, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T> {
-  if (typeof token === 'object' && !(token instanceof InjectionToken)) { // case with one argument
-    if (Array.isArray(token)) { // hooks
-      annotations = hooks as InjectionAnnotations;
-      hooks = token;
-    } else {
-      annotations = token as InjectionAnnotations;
-    }
-    token = undefined;
-  } else if (typeof hooks === 'object' && !Array.isArray(hooks)) { // case with two arguments argument
-    annotations = hooks as InjectionAnnotations;
-    hooks = [];
-  }
-  annotations = annotations || {};
-  return { token: token as ProviderToken, hooks: hooks as Array<InjectionHook>, annotations };
-}
-
-export function convertDependency<T>(dep: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
-  // hooks case
-  if (Array.isArray(dep)) {
-    return createInjectionArgument(undefined, dep, metadata);
-  }
-  // plain injection case
-  const plainDep = dep as PlainInjectionItem;
-  if (plainDep.token !== undefined) {
-    return createInjectionArgument(plainDep.token, plainDep.hooks, metadata);
-  }
-  // standalone token case
-  return createInjectionArgument(dep as ProviderToken, undefined, metadata);
-}
-
-export function convertDependencies(deps: Array<InjectionItem>, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {
-  const converted: InjectionArgument[] = [];
-  for (let i = 0, l = deps.length; i < l; i++) {
-    converted.push(convertDependency(deps[i], { ...metadata, index: i }));
-  }
-  return converted;
-}
-
-export function overrideDependencies(
-  original: Array<InjectionArgument>,
-  overriding: Array<InjectionItem>,
-): Array<InjectionArgument>;
-export function overrideDependencies(
-  original: InjectionArguments,
-  overriding: Array<InjectionItem> | PlainInjections,
-): InjectionArguments
-export function overrideDependencies(
-  original: Array<InjectionArgument> | InjectionArguments,
-  overriding: Array<InjectionItem> | PlainInjections,
-) {
-  if (overriding === undefined) {
-    return original;
-  }
-  return original;
-
-  // if (Array.isArray(original)) {
-  //   return;
-  // }
-  // if (Array.isArray(overriding)) {
-  //   return;
-  // }
-
-  // const newDeps: InjectionArguments = {
-  //   parameters: [...original.parameters],
-  //   properties: { ...original.properties },
-  //   methods: { ...original.methods },
-  // };
-
-  // const { parameters, properties, methods, override } = overriding;
-  // if (typeof override === 'function') {
-
-  // }
-
-  // // properties and symbols
-  // const props = Object.keys(properties);
-  // props.push(...Object.getOwnPropertySymbols(properties) as any[]);
-
-}
-
-function overrideArrayDependencies(
-  arg: InjectionArgument,
-  to: InjectionArgument,
-  metadata: InjectionMetadata,
-  override: (arg: InjectionArgument) => InjectionItem | undefined,
-) {
-  if (to) return convertDependency(to, metadata);
-  const inject = override(arg); 
-  return inject && convertDependency(inject, metadata);
-}
-
-const nopeOverride = () => undefined;
-function overrideInjectionArgument(
-  arg: InjectionArgument,
-  to: InjectionArgument,
-  metadata: InjectionMetadata,
-  override: (arg: InjectionArgument) => InjectionItem | undefined,
-) {
-  if (to) return convertDependency(to, metadata);
-  const inject = override(arg); 
-  return inject && convertDependency(inject, metadata);
-}
-
-export function isClassProvider(provider: unknown): provider is ClassProvider {
-  return 'useClass' in (provider as ClassProvider);
-}
-
-export function isFactoryProvider(provider: unknown): provider is FactoryProvider {
-  return typeof (provider as FactoryProvider).useFactory === "function";
-}
-
-export function isValueProvider(provider: unknown): provider is ValueProvider {
-  return 'useValue' in (provider as ValueProvider);
-}
-
-export function isExistingProvider(provider: unknown): provider is ExistingProvider {
-  return 'useExisting' in (provider as ExistingProvider);
-}
-
-export function compareOrder(a: { annotations: ProviderAnnotations }, b: { annotations: ProviderAnnotations }): number {
-  return a.annotations['adi:order'] - b.annotations['adi:order'];
-}
-
-export function getHostInjector(session: Session): Injector | undefined {
-  if (session.parent) return session.parent.ctx.record.host;
-  if (session.metadata.kind & InjectionKind.STANDALONE) return session.metadata.target as Injector;
-  return;
-}
-
-let DEFINITION_ID = 0;
-function handleProviderAnnotations(record: ProviderRecord, definition: ProviderDefinition, annotations: ProviderAnnotations) {
-  // TODO: Copy annotations
-  const uid = annotations['adi:uid'] = `adi:uid:${DEFINITION_ID++}`;
-  if (typeof annotations['adi:order'] !== 'number') {
-    annotations['adi:order'] = 0;
-  }
-  if (Object.keys(annotations).length === 2) return;
-
-  let name = annotations['adi:name'];
-  if (name || typeof name === 'string') {
-    concatConstraints(definition, when.named(name, false));
-  }
-
-  // if (annotations['adi:override']) {
-  //   const override = annotations['adi:override'];
-  // }
-
-  if (annotations['adi:tags']) {
-    concatConstraints(definition, when.tagged(annotations['adi:tags'], false));
-  }
-
-  if (annotations['adi:visible']) {
-    concatConstraints(definition, when.visible(annotations['adi:visible']));
-  }
-
-  if (annotations['adi:component'] === true) {
-    definition.hooks.unshift(useComponentHook);
+  if (annotations.component) {
+    definition.hooks.push(useComponentHook);
     concatConstraints(definition, when.visible('private'));
   }
 
-  if (annotations['adi:aliases']) {
-    annotations['adi:aliases'].forEach(alias => {
-      customProviderToProviderRecord(record.host, {
+  if (annotations.visible) {
+    concatConstraints(definition, when.visible(annotations.visible));
+  }
+
+  if (annotations.aliases) {
+    annotations.aliases.forEach(alias => {
+      processProvider(provider.host, {
         provide: alias, 
-        useExisting: record.token,
+        useExisting: provider.token,
         hooks: [useExistingDefinitionHook(definition)],
       });
-      // const { definition: def } = customProviderToProviderRecord(record.host, {
-      //   provide: alias, 
-      //   useExisting: record.token,
-      //   hooks: [useExistingDefinitionHook(definition)]
-      // });
-      // def.hooks.pop(); // remove useExistingHook;
-      // def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
     })
   }
-  
-  if (annotations['adi:token-aliases']) {
-    const providers = record.host.providers;
-    const records = record.host.providers.get(record.token);
-    annotations['adi:token-aliases'].forEach(alias => {
-      providers.set(alias, records);
-    })
+}
+
+export function filterHooks(hooks: Array<HookRecord>, session: Session): Array<InjectionHook> {
+  const satisfied: Array<InjectionHook> = [];
+  if (hooks.length === 0) {
+    return satisfied;
   } 
 
-  if (annotations['adi:eager'] === true) {
-    customProviderToProviderRecord(record.host, {
-      provide: INITIALIZERS, 
-      useExisting: record.token,
-      hooks: [useExistingDefinitionHook(definition)],
-    });
-    // const { definition: def } = customProviderToProviderRecord(record.host, {
-    //   provide: INITIALIZERS, 
-    //   useExisting: record.token,
-    //   hooks: [useExistingDefinitionHook(definition)]
-    // });
-    // def.hooks.pop(); // remove useExistingHook;
-    // def.hooks.push(useExistingDefinitionHook(definition)); // add useExistingDefinitionHook;
-  }
+  hooks.forEach(hook => hook.when(session) && satisfied.push(hook.hook));
+  return satisfied;
 }
 
 function addHook(
@@ -388,17 +148,15 @@ function addHook(
   constraint: ConstraintDefinition = when.always,
   annotations: ProviderAnnotations = {},
 ): void {
-  if (typeof annotations['adi:order'] !== 'number') {
-    annotations['adi:order'] = 0;
+  if (typeof annotations.order !== 'number') {
+    annotations.order = 0;
   }
 
-  obj.hooks.push(
-    ...hooks.map(hook => ({
-      hook,
-      when: constraint,
-      annotations,
-    }),
-  ));
+  hooks.forEach(hook => obj.hooks.push({
+    hook,
+    when: constraint,
+    annotations,
+  }));
   obj.hooks.sort(compareOrder);
 }
 
@@ -406,82 +164,190 @@ function concatConstraints(definition: ProviderDefinition, constraint: Constrain
   definition.when = definition.when ? when.and(constraint, definition.when) : constraint;
 }
 
-function getRecord<T>(host: Injector, token: ProviderToken<T>): ProviderRecord {
-  const record = host.providers.get(token) || [];
-  if (!record[0]) {
-    const provider = record[0] = { token, host, defs: [], hooks: [], meta: {} };
-    host.providers.set(token, record);
-    return provider;
-  }
-  return record[0];
+export function compareOrder(a: { annotations: ProviderAnnotations }, b: { annotations: ProviderAnnotations }): number {
+  return (a.annotations['adi:order'] || 0) - (b.annotations['adi:order'] || 0);
 }
 
-export function getTreeshakableProvider(injector: Injector, token: ProviderToken): ProviderRecord | null {
-  const def = getInjectableDefinition(token);
-  const annotations = def?.options?.annotations || {};
-  let provideIn = annotations['adi:provide-in'];
-  if (provideIn === undefined) {
+function ensureInjectable(token: InjectableDefinition['token']): InjectableDefinition | undefined {
+  const definition = injectableDefinitions.get(token)
+  if (definition && !definition.init) {
+    injectableMixin(token);
+  }
+  return definition;
+}
+
+export function getTreeshakableProvider(token: InjectableDefinition['token'], injector: Injector): ProviderRecord | null {
+  const definition = ensureInjectable(token);
+  if (!definition) {
     return null;
   }
 
-  provideIn = Array.isArray(provideIn) ? provideIn : [provideIn];
-  if (isProviderInInjectorScope(injector.options.scopes, provideIn)) {
-    return toProviderRecord(injector, typeof token === 'function' ? token : {} as any).record;
-  }
-
-  if (annotations['adi:export'] !== true) {
+  let provideIn = definition.options.provideIn;
+  if (!provideIn) {
     return null;
   }
 
-  // TOOD: Fix case when imports has that record - don't override
-  let record: ProviderRecord = null;  
-  injector.imports.forEach(imp => imp.forEach(inj => {
-    if (isProviderInInjectorScope(inj.options.scopes, provideIn as Array<InjectorScope>)) {
-      record = toProviderRecord(injector, typeof token === 'function' ? token : {} as any).record;
-      importRecord(injector, token, record);
-    };
-  }));
-  return record;
+  provideIn = (Array.isArray(provideIn) ? provideIn : [provideIn]) as Array<InjectorScope>;
+  if (!isProviderInInjectorScope(injector.options.scopes, provideIn)) {
+    return null;
+  }
+
+  // if class
+  if (typeof token === 'function') {
+    return processProvider(injector, token as ClassType).provider;
+  }
+
+  const options = definition.options;
+  return processProvider(injector, {
+    provide: token,
+    ...definition.options.provide || {},
+    hooks: options.hooks,
+    annotations: options.annotations,
+  } as any).provider;
 }
 
 function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Array<InjectorScope>): boolean {
   return provideIn.some(scope => scopes.includes(scope));
 }
 
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(hook?: InjectionHook): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(hook?: InjectionHook, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
+export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T> {
+  if (typeof token === 'object' && !isInjectionToken(token)) { // case with one argument
+    if (isHook(token)) { // hooks
+      annotations = hooks as InjectionAnnotations;
+      hooks = createArray(token);
+    } else {
+      annotations = token as InjectionAnnotations;
+    }
+    token = undefined;
+  } else if (typeof hooks === 'object' && !isHook(hooks)) { // case with two arguments
+    annotations = hooks as InjectionAnnotations;
+    hooks = [];
+  }
+  annotations = annotations || {};
+  return { token: token as ProviderToken, hooks: hooks as Array<InjectionHook>, annotations };
+}
+
+export function convertDependency<T>(dependency: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
+  // hooks case
+  if (Array.isArray(dependency)) {
+    return createInjectionArgument(undefined, dependency, metadata);
+  }
+
+  // plain injection case
+  const plainDep = dependency as PlainInjectionItem;
+  if (plainDep.token !== undefined) {
+    return createInjectionArgument(plainDep.token, plainDep.hooks, metadata);
+  }
+
+  // standalone token case
+  return createInjectionArgument(dependency as ProviderToken, undefined, metadata);
+}
+
+export function convertDependencies(dependencies: Array<InjectionItem>, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {
+  const converted: InjectionArgument[] = [];
+  for (let i = 0, l = dependencies.length; i < l; i++) {
+    converted.push(convertDependency(dependencies[i], { ...metadata, index: i }));
+  }
+  return converted;
+}
+
+export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: InjectionHook | Array<InjectionHook> = [], metadata?: InjectionMetadata): InjectionArgument<T> {
+  if (!Array.isArray(hooks)) {
+    hooks = [hooks];
+  }
+  return { token, hooks, metadata: createInjectionMetadata(metadata) };
+}
+
+export function createInjectionMetadata<T>(metadata: InjectionMetadata = {} as any): InjectionMetadata {
+  return {
+    kind: InjectionKind.UNKNOWN,
+    target: undefined,
+    key: undefined,
+    index: undefined,
+    descriptor: undefined,
+    static: undefined,
+    annotations: undefined,
+    ...metadata
+  }
+}
+
+export function overrideDependencies(
+  original: Array<InjectionArgument>,
+  overriding: Array<InjectionItem>,
+): Array<InjectionArgument>;
+export function overrideDependencies(
+  original: InjectionArguments,
+  overriding: Array<InjectionItem>,
+): InjectionArguments
+export function overrideDependencies(
+  original: InjectionArguments,
+  overriding: Injections,
+): InjectionArguments
+export function overrideDependencies(
+  original: Array<InjectionArgument> | InjectionArguments,
+  overriding: Array<InjectionItem> | Injections,
+): InjectionArguments
+export function overrideDependencies(
+  original: Array<InjectionArgument> | InjectionArguments,
+  overriding: Array<InjectionItem> | Injections,
+): InjectionArguments | Array<InjectionArgument> {
+  if (!overriding) {
+    return original;
+  }
+}
+
+export function getHostInjector(session: Session): Injector | undefined {
+  if (session.parent) return session.parent.context.provider.host;
+  if (session.iMetadata.kind === InjectionKind.STANDALONE) return session.iMetadata.target as Injector;
+  return;
+}
+
 const useExistingHook = createHook((token: ProviderToken) => {
   return (session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
 
-    const ctx = session.ctx;
-    ctx.record = ctx.def = undefined;
-    session.options.token = token;
-    return resolveRecord(session);
+    const context = session.context;
+    context.provider = context.definition = undefined;
+    session.iOptions.token = token;
+    return resolveProvider(session);
   }
 }, { name: 'adi:hook:use-existing' });
 
-const useExistingDefinitionHook = createHook((definition: ProviderDefinition) => {
-  return (session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
-      return next(session);
-    }
-
-    const ctx = session.ctx;
-    session.options.token = (ctx.record = (ctx.def = definition).record).token;
-    return resolveRecord(session);
-  }
-}, { name: 'adi:hook:use-existing-definition' });
-
 const useComponentHook = createHook(() => {
   return (session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
 
-    if (session.parent || getHostInjector(session) !== session.ctx.injector) {
-      throw new Error('Component cannot be injected to another provider.');
+    if (session.parent || getHostInjector(session) !== session.context.injector) {
+      throw new ComponentProviderError();
     }
     return next(session);
   }
 }, { name: 'adi:hook:use-component' })();
+
+const useExistingDefinitionHook = createHook((definition: ProviderDefinition) => {
+  return (session, next) => {
+    if (session.hasFlag('dry-run')) {
+      return next(session);
+    }
+
+    const context = session.context;
+    session.iOptions.token = (context.provider = (context.definition = definition).provider).token;
+    return resolveProvider(session);
+  }
+}, { name: 'adi:hook:use-existing-definition' });

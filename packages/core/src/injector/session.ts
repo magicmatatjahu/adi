@@ -1,62 +1,75 @@
-import { ADI_INJECTABLE_DEF } from '../constants';
+// import { injectableMixin } from './injectable';
 import { SessionFlag } from '../enums';
+import { Hook } from '../hooks';
 
-import type { Injector } from './injector';
-import type { InjectionOptions, InjectionMetadata, ProviderRecord, ProviderDefinition, ProviderInstance, InjectableDefinition } from '../interfaces';
+import type { Injector } from '../injector'; 
+import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations } from '../interfaces';
 
-export interface SessionContext<T> {
-  injector: Injector;
-  record?: ProviderRecord<T>;
-  def?: ProviderDefinition<T>;
-  instance?: ProviderInstance<T>;
+const sessionFlags = {
+  'side-effect': SessionFlag.SIDE_EFFECTS,
+  'dry-run': SessionFlag.DRY_RUN,
+  'circular': SessionFlag.CIRCULAR,
 }
+
+type FlagsType = keyof typeof sessionFlags;
 
 export class Session<T = any> {
-  public flags: SessionFlag = SessionFlag.NONE;
-  public children: Array<Session> = [];
-  public meta: Record<string | symbol, any> = {};
+  static create(token: ProviderToken, metadata: InjectionMetadata, injector: Injector, parentSession?: Session): Session {
+    const injections: SessionInjection = {
+      options: { token, context: undefined, scope: undefined, annotations: {} },
+      metadata,
+    };
+    const session = new Session(injections, { injector, provider: undefined, definition: undefined, instance: undefined }, parentSession);
+    parentSession && parentSession.children.push(session);
+    return session;
+  }
+
+  private flags: SessionFlag = SessionFlag.NONE;
+  public result: any;
+  public readonly children: Array<Session> = [];
 
   constructor(
-    public options: InjectionOptions<T>,
-    public readonly ctx: SessionContext<T>,
-    public readonly metadata: InjectionMetadata,
+    public readonly injection: SessionInjection<T>,
+    public readonly context: SessionContext<T>,
     public readonly parent?: Session,
+    public readonly annotations: SessionAnnotations = {},
   ) {}
 
+  get iOptions(): SessionInjection<T>['options'] {
+    return this.injection.options;
+  }
+
+  get iMetadata(): SessionInjection<T>['metadata'] {
+    return this.injection.metadata;
+  } 
+
   fork(): Session {
-    const options: InjectionOptions = { ...this.options, annotations: { ...this.options.annotations } };
-    const newSession = new Session(options, { ...this.ctx }, this.metadata, this.parent);
-    newSession.flags = newSession.flags;
-    newSession.children = newSession.children;
-    newSession.meta = { ...newSession.meta };
-    return newSession;
+    const { options, metadata } = this.injection;
+    const forked = new Session({ options: { ...options, annotations: { ...options.annotations } }, metadata }, { ...this.context }, this.parent, { ...this.annotations });
+    (forked as any).children = [...forked.children];
+    return forked;
   }
 
-  setFlag(flag: SessionFlag) {
-    this.flags |= flag;
+  setFlag(flag: FlagsType) {
+    this.flags |= sessionFlags[flag];
   }
 
-  removeFlag(flag: SessionFlag) {
-    this.flags &= ~flag;
+  removeFlag(flag: FlagsType) {
+    this.flags &= ~sessionFlags[flag];
   }
 
-  hasFlag(flag: SessionFlag) {
-    return (this.flags & flag) > 0;
+  hasFlag(flag: FlagsType) {
+    return (this.flags & sessionFlags[flag]) > 0;
   }
 
-  static [ADI_INJECTABLE_DEF]: InjectableDefinition = {
-    token: Session,
-    status: 'full', // TODO: Change name for it
-    options: {
-      hooks: [(session) => {
-        session.setFlag(SessionFlag.SIDE_EFFECTS);
-        return session.parent;
-      }],
-      annotations: {
-        'adi:provide-in': 'any',
-      }
-    },
-    injections: {} as any,
-    meta: {},
-  }
 }
+
+// injectableMixin(Session, { 
+//   provideIn: 'any',
+//   hooks: [
+//     Hook(session => {
+//       session.setFlag('side-effect');
+//       return session.parent || session;
+//     }),
+//   ] 
+// });

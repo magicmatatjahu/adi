@@ -1,8 +1,8 @@
 export * from './context';
-export * from './garbage-collector';
-export * from './injection-token';
+export { injectableMixin, injectableDefinitions } from './injectable';
 export * from './injector';
-export * from './metadata';
-export * from './module-token';
-export * from './resolver';
+export { destroy } from './lifecycle-manager';
+export { moduleMixin, moduleDefinitions } from './module';
+export { provideMixin, provideDefinitions } from './provide';
+export * from './provider';
 export * from './session';

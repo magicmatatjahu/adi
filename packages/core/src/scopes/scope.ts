@@ -1,8 +1,8 @@
-import type { Context, Session, DestroyContext } from '../injector';
-import type { ProviderInstance } from '../interfaces';
+import type { Context, Session } from '../injector';
+import type { ProviderInstance, DestroyContext } from '../interfaces';
 
-export interface ScopeType<O = any> {
-  (options: O): ScopeType<O>;
+export interface ScopeInstance<O = any> {
+  (options: O): ScopeInstance<O>;
   kind: Scope<O>;
   options: O;
 }
@@ -15,25 +15,28 @@ export abstract class Scope<O = any> {
     options: O,
   ): Context;
 
-  public abstract canDestroy(
+  public abstract shouldDestroy(
     instance: ProviderInstance,
     options: O,
-    ctx: DestroyContext,
+    context: DestroyContext,
   ): boolean;
 
+  // TODO: think about it
   public canBeOverrided(
     session: Session,
     options: O,
   ): boolean {
     return true;
   }
+
+  // public abstract getOptions(): O;
 }
 
-export function createScope<O = any>(scope: Scope<O>, defaultOptions: O): ScopeType<O> {
-  function scopeType(options: O): ScopeType<O> {
+export function createScope<O = any>(scope: Scope<O>, defaultOptions: O): ScopeInstance<O> {
+  function scopeType(options: O): ScopeInstance<O> {
     return createScope(scope, { ...defaultOptions, ...options, });
   };
-  (scopeType as ScopeType<O>).kind = scope;
-  (scopeType as ScopeType<O>).options = defaultOptions;
-  return scopeType as ScopeType<O>;
+  (scopeType as ScopeInstance<O>).kind = scope;
+  (scopeType as ScopeInstance<O>).options = defaultOptions;
+  return scopeType as ScopeInstance<O>;
 }

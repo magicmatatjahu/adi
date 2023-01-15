@@ -2,7 +2,7 @@ import { createHook } from "./hook";
 import { destroy } from "../injector";
 import { wait } from "../utils";
 
-export interface DestroyableType<T> {
+export type DestroyableType<T> = {
   value: T;
   destroy: () => Promise<void>;
 }
@@ -13,7 +13,7 @@ export const Destroyable = createHook(() => {
       next(session),
       value => ({
         value,
-        destroy: () => destroy(session.ctx.instance, 'manually'),
+        destroy: () => destroy(session.context.instance, { event: 'manually' }),
       }),
     );
   }

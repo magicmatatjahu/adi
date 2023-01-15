@@ -1,11 +1,11 @@
 import { Scope, createScope } from "./scope";
-import { default as DefaultScope } from "./default";
 import { STATIC_CONTEXT } from "../constants";
 import { InjectorStatus } from "../enums";
-import { Context, getHostInjector } from "../injector";
+import { Context } from "../injector";
+import { getHostInjector } from "../injector/metadata";
 
-import type { Injector, Session, DestroyContext } from "../injector";
-import type { ProviderInstance } from "../interfaces";
+import type { Injector, Session } from "../injector";
+import type { ProviderInstance, DestroyContext } from "../interfaces";
 
 export interface SingletonScopeOptions {
   perInjector?: boolean;
@@ -19,32 +19,35 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
   }
 
   override getContext(session: Session, options: SingletonScopeOptions): Context {
-    if (options.perInjector === true) {
+    if (options.perInjector) {
       const hostInjector = getHostInjector(session);
-      let ctx = this.perInjectors.get(hostInjector) as Context;
-      if (ctx === undefined) {
-        ctx = new Context(STATIC_CONTEXT.data);
-        this.perInjectors.set(hostInjector, ctx);
-        this.perInjectors.set(ctx, hostInjector);
+      let context = this.perInjectors.get(hostInjector) as Context;
+      if (context === undefined) {
+        context = new Context(STATIC_CONTEXT.get());
+        this.perInjectors.set(hostInjector, context);
+        this.perInjectors.set(context, hostInjector);
       }
-      return ctx;
+      return context;
     }
     
-    const ctx = session.options.ctx;
-    if (ctx && ctx !== STATIC_CONTEXT) {
-      throw new Error("Cannot create provider with singleton scope");
+    const context = session.iOptions.context;
+    if (context && context !== STATIC_CONTEXT) {
+      throw new Error("Cannot recreate provider with singleton scope");
     }
     return STATIC_CONTEXT;
   }
 
-  override canDestroy(instance: ProviderInstance, options: SingletonScopeOptions, ctx: DestroyContext): boolean {
+  override shouldDestroy(instance: ProviderInstance, options: SingletonScopeOptions, destroyCtx: DestroyContext): boolean {
+    const noParents = !instance.parents?.size;
+    
     if (!options.perInjector) {
-      return DefaultScope.kind.canDestroy(instance, options, ctx);
+      return destroyCtx.event === 'injector' && noParents;
     }
     
-    const injector = this.perInjectors.get(instance.ctx) as Injector;
-    if (injector && injector.status & InjectorStatus.DESTROYED && (instance.parents === undefined || instance.parents.size === 0)) {
-      this.perInjectors.delete(instance.ctx);
+    const context = instance.context;
+    const injector = this.perInjectors.get(context) as Injector;
+    if (injector && injector.status & InjectorStatus.DESTROYED && noParents) {
+      this.perInjectors.delete(context);
       this.perInjectors.delete(injector);
       return true;
     }

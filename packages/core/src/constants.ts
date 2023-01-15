@@ -1,15 +1,11 @@
-import { Context } from "./injector/context";
-import { InjectionToken } from "./injector/injection-token";
+import { All, Optional } from "./hooks";
+import { Context } from "./injector";
+import { InjectionToken } from "./tokens";
 
-import type { InjectorOptions } from "./interfaces";
+import type { InjectorInput, InjectorOptions } from "./interfaces";
 
-export const ADI_INJECTABLE_DEF = Symbol.for('adi:definition:injectable');
-export const ADI_MODULE_DEF = Symbol.for('adi:definition:module');
-export const ADI_HOOK_DEF = Symbol.for('adi:definition:hook');
-export const ADI_REFLECTION = Symbol.for('adi:reflection');
-
-export const STATIC_CONTEXT = new Context({}, "adi:static_context");
-
+export const MODULE_REF = new InjectionToken<InjectorInput>(undefined, "adi:token:module-ref");
 export const INJECTOR_CONFIG = new InjectionToken<InjectorOptions>({}, "adi:token:injector-config");
-export const INITIALIZERS = new InjectionToken<void>({}, 'adi:token:initializers');
-export const MODULE_REF = new InjectionToken<any>({}, "adi:token:module-ref");
+export const INITIALIZERS = new InjectionToken<void>({ provideIn: 'any', hooks: [Optional(), All({ imported: false })] }, 'adi:token:initializers');
+
+export const STATIC_CONTEXT = new Context(undefined, 'adi:context:static');

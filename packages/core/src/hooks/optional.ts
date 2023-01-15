@@ -1,15 +1,17 @@
 import { createHook } from "./hook";
-import { NilInjectorError } from "../problem";
+import { NoProviderError } from "../problem";
 import { waitCallback } from "../utils";
 
-export const Optional = createHook((defaultValue?: any) => {
+export type OptionalType<T> = T | undefined; 
+
+export const Optional = createHook(() => {
   return (session, next) => {
     return waitCallback(
       () => next(session),
       undefined,
       err => {
-        if (err instanceof NilInjectorError) {
-          return defaultValue;
+        if (err instanceof NoProviderError) {
+          return undefined;
         }
         throw err;
       }

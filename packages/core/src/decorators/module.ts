@@ -1,33 +1,15 @@
-import { injectableMixin, getInjectableDefinition } from "./injectable";
-import { ADI_MODULE_DEF } from "../constants";
+import { moduleMixin, injectableMixin } from '../injector';
+import { getDecoratorInfo } from '../utils';
 
-import type { ModuleMetadata } from "../interfaces";
+import type { ModuleMetadata } from '../interfaces';
 
-export function Module(metadata?: ModuleMetadata) {
-  return function(target: Function) {
-    injectableMixin(target, {});
+export function Module(metadata?: ModuleMetadata): ClassDecorator {
+  return function(target: Function, ...rest: any[]) {
+    const { kind } = getDecoratorInfo(target, ...rest);
+    if (kind !== 'class') {
+      throw new Error('Cannot use @Module on non-class level.');
+    }
     moduleMixin(target, metadata);
+    injectableMixin(target);
   }
 }
-
-export function moduleMixin(target: Function, metadata?: ModuleMetadata): void {
-  if (!target.hasOwnProperty(ADI_MODULE_DEF)) {
-    Object.defineProperty(target, ADI_MODULE_DEF, { value: metadata || {}, enumerable: true });
-  }
-  // const def = getInjectableDefinition(target);
-  // if (def === undefined) return;
-  // def.meta[ADI_MODULE_DEF] = metadata;
-}
-
-export function getModuleDefinition(target: unknown): ModuleMetadata | undefined {
-  if (target && target.hasOwnProperty(ADI_MODULE_DEF)) {
-    return target[ADI_MODULE_DEF];
-  }
-  return;
-}
-
-// function setModuleMetadata(module: unknown, metadata: ModuleMetadata) {
-//   if (!module.hasOwnProperty(ADI_MODULE_DEF)) {
-//     Object.defineProperty(module, ADI_MODULE_DEF, { value: metadata, enumerable: true });
-//   }
-// }

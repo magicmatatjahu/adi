@@ -1,11 +1,41 @@
-export { ADI } from './adi';
+import { Context, Session, injectableMixin } from './injector';
+import { Hook } from './hooks';
 
-export { STATIC_CONTEXT, INJECTOR_CONFIG, INITIALIZERS, MODULE_REF } from './constants';
+// handle circular references
+injectableMixin(Context, { 
+  provideIn: 'any',
+  hooks: [
+    Hook(session => {
+      session.setFlag('side-effect');
+      const parent = session.parent;
+      if (parent) {
+        return parent.context.instance?.context;
+      }
+      return session.context.instance?.context;
+    }),
+  ] 
+});
+
+injectableMixin(Session, { 
+  provideIn: 'any',
+  hooks: [
+    Hook(session => {
+      session.setFlag('side-effect');
+      return session.parent || session;
+    }),
+  ] 
+});
+
+export * from './decorators';
+export { createHook, All, Config, Ctx, Destroyable, Hook, SessionHook, Named, New, OnDestroyHook, OnInitHook, Optional, Ref, Skip, Tagged, Token } from './hooks';
+export { Context, Injector, Session, injectableMixin, moduleMixin, provideMixin } from './injector';
+export { Scope, DefaultScope, SingletonScope, createScope } from './scopes';
+export { InjectionToken, ModuleToken } from './tokens';
+export { wait, waitCallback, waitSequence } from './utils';
+export { ADI } from './adi';
+export { MODULE_REF, INITIALIZERS, INJECTOR_CONFIG } from './constants';
 export { when } from './constraints';
-export { ProviderKind, InstanceStatus, InjectionKind, SessionFlag } from './enums';
-export { Inject, Injectable, Module, injectableMixin, moduleMixin } from './decorators';
-export { createHook, All, Destroyable, DestroyableType, Ctx, Named, New, OnDestroyLifecycle, OnInitLifecycle, Optional, Ref, Skip, Tagged, Token } from './hooks';
-export { Context, InjectionToken, Injector, Session } from './injector';
+
+export type { DestroyableType, OptionalType } from './hooks';
+export type { ScopeInstance } from './scopes';
 export * from './interfaces';
-export { Scope, createScope, DefaultScope, SingletonScope, TransientScope } from './scopes';
-export { wait, waitCallback, waitAll, waitSequence, ref, resolveRef } from './utils';

@@ -1,53 +1,56 @@
 import { createHook } from "./hook";
-import { SessionFlag } from "../enums";
-import { compareOrder, filterProviderDefinitions } from "../injector";
+import { compareOrder } from "../injector/metadata";
 import { wait, waitAll } from "../utils";
 
-import type { Session } from '../injector';
-import type { NextInjectionHook, ProviderDefinition, ProviderRecord } from '../interfaces';
+import type { Session, Provider } from '../injector';
+import type { NextInjectionHook, ProviderDefinition } from '../interfaces';
 
 export interface AllHookOptions {
-  // from?: 'self';
-  filterMode?: 'defaults' | 'constraints' | 'all';
-}
-
-function filterDefinitions(records: Array<ProviderRecord>, session: Session, mode: AllHookOptions['filterMode']): Array<ProviderDefinition> {
-  const defs: Array<ProviderDefinition> = [];
-  records.forEach(record => defs.push(...filterProviderDefinitions(record.defs, session, mode)));
-  return defs.sort(compareOrder);
-}
-
-function allHook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
-  if (session.hasFlag(SessionFlag.DRY_RUN)) {
-    return next(session);
-  }
-
-  session.setFlag(SessionFlag.SIDE_EFFECTS);
-  // fork session
-  const forkedSession = session.fork();
-  forkedSession.setFlag(SessionFlag.DRY_RUN);
-
-  return wait(
-    next(forkedSession), // run to update session
-    () => {
-      // retrieve all satisfied definitions
-      const records = session.ctx.injector.providers.get(forkedSession.options.token);
-      if (!records || records.length === 0) return [];
-      const defs = filterDefinitions(records, forkedSession, options.filterMode);
-
-      const values = [];
-      defs.forEach(def => {
-        const instanceSession = session.fork();
-        instanceSession.ctx.record = (instanceSession.ctx.def = def).record;
-        values.push(next(instanceSession));
-      })
-      return waitAll(values);
-    }
-  );
+  filter?: 'defaults' | 'constraints' | 'all';
+  imported?: boolean;
 }
 
 const defaultOptions: AllHookOptions = {
-  filterMode: 'constraints',
+  filter: 'all',
+  imported: true,
+}
+
+function filterDefinitions(providers: { self: Provider, imported?: Array<Provider> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
+  if (options.imported && providers.imported) {
+    const definitions: Array<ProviderDefinition> = [];
+    [providers.self, ...providers.imported].forEach(provider => definitions.push(...provider.filter(session, options.filter)));
+    return definitions.sort(compareOrder);
+  }
+
+  return providers.self.filter(session, options.filter);
+}
+
+function allHook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
+  if (session.hasFlag('dry-run')) {
+    return next(session);
+  }
+
+  const forkedSession = session.fork();
+  forkedSession.setFlag('dry-run');
+
+  return wait(
+    next(forkedSession),
+    () => {
+      session.setFlag('side-effect');
+
+      // TODO: Fix retrieved provider from injector, we can operate on providers from imported injector, not from host injector
+      const providers = forkedSession.context.injector.providers.get(forkedSession.iOptions.token);
+      const definitions = filterDefinitions(providers, forkedSession, options);
+
+      const values: Array<any> = [];
+      definitions.forEach(definition => {
+        const instanceSession = session.fork();
+        instanceSession.context.provider = (instanceSession.context.definition = definition).provider;
+        values.push(next(instanceSession));
+      })
+      return waitAll(values);
+    },
+  );
 }
 
 export const All = createHook((options: AllHookOptions = {}) => {

@@ -1,3 +1,4 @@
-export * from './inject';
-export * from './injectable';
-export * from './module';
+export { Inject } from './inject';
+export { Injectable } from './injectable';
+export { Module } from './module';
+export { Provide } from './provide';
