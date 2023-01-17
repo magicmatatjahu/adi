@@ -14,8 +14,8 @@ export class Provider<T = any> {
   ) {}
 
   filter(session: Session): ProviderDefinition | undefined;
-  filter(session: Session, filter: 'all' | 'defaults' | 'constraints'): Array<ProviderDefinition>;
-  filter(session: Session, filter?: 'all' | 'defaults' | 'constraints'): ProviderDefinition | Array<ProviderDefinition> | undefined {
+  filter(session: Session, filter: 'all' | 'satisfies'): Array<ProviderDefinition>;
+  filter(session: Session, filter?: 'all' | 'satisfies'): ProviderDefinition | Array<ProviderDefinition> | undefined {
     if (filter) {
       return filterProviderDefinitions(this.defs, session, filter);
     }
@@ -55,7 +55,7 @@ export function getOrCreateProviderInstance<T>(session: Session): ProviderInstan
     definition.values.set(context, instance);
   }
 
-  let parentInstance: Session | ProviderInstance | undefined;
+  let parentInstance: Session | ProviderInstance | undefined = session.parent;
   if (parentInstance && (parentInstance = (parentInstance as Session).context.instance)) {
     (instance.parents || (instance.parents = new Set())).add(parentInstance);
   }
@@ -76,14 +76,24 @@ function filterDefinition(definitions: Array<ProviderDefinition>, session: Sessi
   return defaultDefinition;
 }
 
-export function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, filter: 'all' | 'defaults' | 'constraints' = 'all'): Array<ProviderDefinition> {
-  const satisfiedDefinitions: Array<ProviderDefinition> = [];
+export function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, filter: 'all' | 'satisfies' = 'satisfies'): Array<ProviderDefinition> {
+  const constraints: Array<ProviderDefinition> = [];
+  const defaults: Array<ProviderDefinition> = [];
+  const all: Array<ProviderDefinition> = [];
+
   definitions.forEach(definition => {
-    if (filter !== 'defaults' && definition.when && definition.when(session)) {
-      satisfiedDefinitions.push(definition);
-    } else if (filter !== 'constraints') {
-      satisfiedDefinitions.push(definition);
+    const when = definition.when;
+    if (!when) {
+      defaults.push(definition);
+      all.push(definition);
+    } else if (when(session)) {
+      constraints.push(definition);
+      all.push(definition);
     }
   });
-  return satisfiedDefinitions;
+
+  if (filter === 'satisfies') {
+    return constraints.length ? constraints : defaults;
+  }
+  return all;
 }

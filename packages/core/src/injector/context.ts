@@ -1,5 +1,3 @@
-// import { injectableMixin } from './injectable';
-import { Hook } from '../hooks';
 import { getDeepProperty } from '../utils';
 
 import type { Path, PathValue } from '../types';
@@ -19,17 +17,3 @@ export class Context<D extends Record<string | symbol, unknown> = Record<string 
     return getDeepProperty(this.data, path) as PV;
   }
 }
-
-// injectableMixin(Context, { 
-//   provideIn: 'any',
-//   hooks: [
-//     Hook(session => {
-//       session.setFlag('side-effect');
-//       const parent = session.parent;
-//       if (parent) {
-//         return parent.context.instance?.context;
-//       }
-//       return session.context.instance?.context;
-//     }),
-//   ] 
-// });

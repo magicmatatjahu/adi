@@ -1,7 +1,7 @@
 import { Injector, Inject, Injectable } from "@adi/core";
 import { Fallback, Value } from "../../src";
 
-describe('Fallback wrapper', function () {
+describe('Fallback injection hook', function () {
   test('should inject fallback provider when given provider does not exist in injector', function () {
     @Injectable()
     class TestService {}

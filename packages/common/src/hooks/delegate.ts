@@ -1,20 +1,26 @@
-import { createHook, SessionFlag } from '@adi/core';
+import { createHook } from '@adi/core';
+import { DELEGATION_KEY } from './delegations';
 
 import type { Session } from '@adi/core';
 
+export type DelegateType<T, K extends string> = T;
+
 const uRef = {}; // fallback for undefined, null, '', false, 0
+
 function retrieveDelegation(session: Session, key: string | symbol) {
-  const delegations = session.meta['adi:delegations'];
+  const delegations = session.annotations[DELEGATION_KEY];
   if (delegations && delegations.hasOwnProperty(key)) {
     return delegations[key];
   }
-  if (!session.parent) return uRef;
+  if (!session.parent) {
+    return uRef;
+  }
   return retrieveDelegation(session.parent, key);
 }
 
 export const Delegate = createHook((key: string | symbol = 'default') => {
   return function(session, next) {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
 
@@ -23,7 +29,7 @@ export const Delegate = createHook((key: string | symbol = 'default') => {
       return next(session);
     }
 
-    session.setFlag(SessionFlag.SIDE_EFFECTS);
+    session.setFlag('side-effect');
     return delegate;
   }
 }, { name: "adi:hook:delegate" });

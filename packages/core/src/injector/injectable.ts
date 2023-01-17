@@ -1,27 +1,33 @@
-import { createInjectionArgument } from './metadata';
+import { createInjectionArgument, overrideInjections } from './metadata';
 import { InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
 import { createDefinition, getAllKeys, Reflection } from '../utils';
 
-import type { ClassType, AbstractClassType, InjectableDefinition, Injections, InjectionArguments } from "../interfaces";
+import type { ClassType, AbstractClassType, InjectableDefinition, Injections, InjectionArguments, InjectionItem } from "../interfaces";
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 
-export function injectableMixin(token: InjectableDefinition['token'], options?: InjectableDefinition['options'], injections?: Injections): InjectableDefinition {
+export function injectableMixin(token: InjectableDefinition['token'], options?: InjectableDefinition['options'], injections?: Injections | Array<InjectionItem>): InjectableDefinition {
   const definition = injectableDefinitions.ensure(token);
   if (definition.init) {
     return definition;
   }
-  
   definition.init = true;
+
+  definition.token = token;
   if (options) {
     definition.options = Object.assign(definition.options, options);
   }
+
   if (typeof token === 'function') {
     const reflectedTypes = Reflection.getOwnMetadata("design:paramtypes", token) || [];
     mergeParameters(token, definition.injections.parameters, reflectedTypes);
-    mergeInjections(token, definition, injections);
-    const inherited = inheritance(token, definition, reflectedTypes);
+
+    inheritance(token, definition, reflectedTypes);
+    if (injections) {
+      definition.injections = overrideInjections(definition.injections, injections, token);
+    }
+
     // if (inherited && inherited.init) {
     //   const options = definition.options;
     //   const inheritedOptions = inherited.options;
@@ -47,11 +53,6 @@ function injectableFactory(): InjectableDefinition {
   };
 }
 
-function mergeInjections(target: ClassType | AbstractClassType, def: InjectableDefinition, additionalInjections: Injections): void {
-  // TODO: To implement
-  return;
-}
-
 function inheritance(target: ClassType | AbstractClassType, definition: InjectableDefinition, reflectedTypes: Array<ClassType | AbstractClassType>): InjectableDefinition {
   // when class is not extended, skip klogic
   if (target.prototype.__proto__ === Object.prototype) {
@@ -73,15 +74,15 @@ function inheritance(target: ClassType | AbstractClassType, definition: Injectab
   return inherited;
 }
 
-function mergeParameters(target: Function, injectionArguments: InjectionArguments['parameters'], parameters: Array<ClassType | AbstractClassType>): void {
+function mergeParameters(target: Function, injectionParameters: InjectionArguments['parameters'], parameters: Array<ClassType | AbstractClassType>): void {
   parameters.forEach((parameter, index) => {
-    injectionArguments[index] = injectionArguments[index] || createInjectionArgument(parameter, undefined, { kind: InjectionKind.PARAMETER, target, index, key: undefined, descriptor: undefined, annotations: {} });
+    injectionParameters[index] = injectionParameters[index] || createInjectionArgument(parameter, undefined, { kind: InjectionKind.PARAMETER, target, index, key: undefined, descriptor: undefined, annotations: {} });
   });
 }
 
 function inheritanceParemeters(target: ClassType | AbstractClassType, defParameters: InjectionArguments['parameters'], parameters: InjectionArguments['parameters'], reflectedTypes: Array<ClassType | AbstractClassType>) {
   // if class has defined parameters, then skip overriding parameters from parent class
-  if (parameters.length > 0) {
+  if (defParameters.length > 0) {
     return mergeParameters(target, defParameters, reflectedTypes);
   }
 

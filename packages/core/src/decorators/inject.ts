@@ -28,6 +28,7 @@ export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array
 function applyInject(decoratorInfo: Decorator, { token, hooks, annotations }: PlainInjectionItem) {
   const injections = injectableDefinitions.ensure(decoratorInfo.class).injections;
   const target = decoratorInfo.class;
+
   const argument = createInjectionArgument(token as ProviderToken, hooks as InjectionHook | Array<InjectionHook>, {
     kind: InjectionKind.UNKNOWN,
     target,
@@ -38,6 +39,9 @@ function applyInject(decoratorInfo: Decorator, { token, hooks, annotations }: Pl
     descriptor: (decoratorInfo as { descriptor: PropertyDescriptor }).descriptor,
   });
 
+  const isStatic = argument.metadata.static;
+  const targetObject = target.prototype || target;
+
   switch (decoratorInfo.kind) {
     case 'parameter': {
       argument.metadata.kind = InjectionKind.PARAMETER;
@@ -45,12 +49,12 @@ function applyInject(decoratorInfo: Decorator, { token, hooks, annotations }: Pl
 
       if (decoratorInfo.descriptor) { // method injection
         const key = decoratorInfo.key;
-        argument.token = argument.token = Reflection.getOwnMetadata("design:paramtypes", target, key)[index];
-        const properInjections = getProperInjections(argument.metadata.static, injections);
+        argument.token = argument.token || Reflection.getOwnMetadata("design:paramtypes", targetObject, key)[index];
+        const properInjections = getProperInjections(isStatic, injections);
         const parameters = properInjections.methods[key] || (properInjections.methods[key] = []);
         parameters[index] = argument; 
       } else { // constructor injection
-        argument.token = argument.token = Reflection.getOwnMetadata("design:paramtypes", target)[index];
+        argument.token = argument.token || Reflection.getOwnMetadata("design:paramtypes", target)[index];
         injections.parameters[index] = argument;
       }
 
@@ -59,9 +63,9 @@ function applyInject(decoratorInfo: Decorator, { token, hooks, annotations }: Pl
     case 'property':
     case 'accessor': {
       const key = decoratorInfo.key;
-      argument.token = argument.token || Reflection.getOwnMetadata("design:type", target.prototype, key);
+      argument.token = argument.token || Reflection.getOwnMetadata("design:type", targetObject, key);
       argument.metadata.kind = decoratorInfo.kind === 'property' ? InjectionKind.PROPERTY : InjectionKind.ACCESSOR;
-      getProperInjections(argument.metadata.static, injections).properties[key] = argument;
+      getProperInjections(isStatic, injections).properties[key] = argument;
       break;
     };
     default: throw new Error('@Inject decorator can be only used on parameter/property/accessor level.');

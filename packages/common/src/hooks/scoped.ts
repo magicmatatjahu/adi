@@ -1,10 +1,10 @@
 import { createHook } from "@adi/core";
 
-import type { ScopeType } from "@adi/core/lib/scopes";
+import type { ScopeType } from "@adi/core";
 
 export const Scoped = createHook((scope: ScopeType) => {
   return (session, next) => {
-    session.options.scope = scope;
+    session.iOptions.scope = scope;
     return next(session);
   }
 }, { name: 'adi:hook:scoped' });

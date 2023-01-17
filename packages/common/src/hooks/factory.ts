@@ -1,16 +1,20 @@
-import { createHook, SessionFlag } from '@adi/core';
+import { createHook } from '@adi/core';
+
+import { DELEGATION_KEY } from './delegations';
+
+export type FactoryType<T> = (...args: any[]) => T;
 
 export const Factory = createHook(() => {
   return (session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
   
-    const oldSession = session.fork();
     return (...args: any[]) => {
-      const newSession = oldSession.fork();
+      // TODO: preserve session between calls - sometimes we can create two instances (by transient scope) but instance will be saved in one session - problem with destroying it
+      const newSession = session.fork();
       if (Array.isArray(args) && args.length > 0) {
-        newSession.meta['adi:delegations'] = args;
+        newSession.annotations[DELEGATION_KEY] = args;
       }
       return next(newSession);
     }

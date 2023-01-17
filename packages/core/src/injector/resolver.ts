@@ -1,9 +1,9 @@
-import { processOnInitLifecycle } from './lifecycle-manager';
+import { processOnInitLifecycle, destroy } from './lifecycle-manager';
 import { filterHooks, getTreeshakableProvider } from './metadata';
 import { getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
 import { InstanceStatus } from '../enums';
-import { runHooks } from '../hooks';
+import { runHooks, SessionHook } from '../hooks';
 import { circularSessionsMetaKey, promiseResolveMetaKey, promiseDoneMetaKey } from '../private';
 import { NoProviderError } from "../problem";
 import { getAllKeys, wait, waitAll } from '../utils';
@@ -12,8 +12,12 @@ import type { Injector } from './injector'
 import type { Provider } from './provider';
 import type { ProviderDefinition, ProviderInstance, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, FactoryDefinitionFunction, InjectionArgument, InjectableDefinition, InjectionItem } from '../interfaces'
 
-export function inject<T>(injector: Injector, argument: InjectionArgument, session?: Session): T | Promise<T> {
-  return resolve(injector, Session.create(argument.token, argument.metadata, injector, session), argument.hooks);
+export function inject<T>(injector: Injector, argument: InjectionArgument, parentSession?: Session): T | Promise<T> {
+  const session = Session.create(argument.token, argument.metadata, injector, parentSession);
+  if (parentSession) {
+    parentSession.children.push(session);
+  }
+  return resolve(injector, session, argument.hooks);
 }
 
 export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | Promise<T> {
@@ -21,7 +25,7 @@ export function resolve<T>(injector: Injector, session: Session, hooks: Array<In
   filteredHooks.push(...hooks);
   return wait(
     runHooks(hooks, session, resolveProvider),
-    result => session.result = result, 
+    result => session.result = result,
   );
 }
 
@@ -58,10 +62,10 @@ export function resolveProvider<T>(session: Session): T | Promise<T> {
     return resolveFromParent(session);
   }
 
-  return resolveWithImportedProviders(session, [self, ...imported], self ? 0 : 1) as T;
+  return resolveImportedProviders(session, [self, ...imported], self ? 0 : 1) as T;
 }
 
-function resolveWithImportedProviders(originalSession: Session, providers: Array<Provider>, index: number, defaultDefinition?: ProviderDefinition) {
+function resolveImportedProviders(originalSession: Session, providers: Array<Provider>, index: number, defaultDefinition?: ProviderDefinition) {
   if (providers.length === index) {
     return resolveFromParent(originalSession);
   }
@@ -69,30 +73,6 @@ function resolveWithImportedProviders(originalSession: Session, providers: Array
   const session = originalSession.fork(); // fork session for every imported provider
   const provider = session.context.provider = providers[index];
   return runHooks(filterHooks(provider.hooks, session), session, currentSession => resolveImportedProvider(currentSession, originalSession, providers, index, defaultDefinition));
-  // return runHooks(filterHooks(provider.hooks, session), session, currentSession => {
-  //   const context = currentSession.context;
-  //   const definition = context.provider.filter(currentSession);
-
-  //   if (!definition) {
-  //     if (providers.length === ++index && defaultDefinition) {
-  //       context.injector = (context.provider = (context.definition = defaultDefinition).provider).host;
-  //       return runHooks(defaultDefinition.hooks, currentSession, resolveInstance);
-  //     }
-  //     return resolveWithImportedProviders(originalSession, providers, index, defaultDefinition);
-  //   }
-
-  //   if (definition.when) { // handle constrained definition
-  //     context.injector = (context.provider = (context.definition = definition).provider).host;
-  //     return runHooks(definition.hooks, currentSession, resolveInstance);
-  //   }
-
-  //   defaultDefinition = defaultDefinition || definition;
-  //   if (providers.length === ++index && defaultDefinition) {
-  //     context.injector = (context.provider = (context.definition = defaultDefinition).provider).host;
-  //     return runHooks(defaultDefinition.hooks, currentSession, resolveInstance);
-  //   }
-  //   return resolveWithImportedProviders(originalSession, providers, index, defaultDefinition);
-  // });
 }
 
 function resolveImportedProvider(currentSession: Session, originalSession: Session, providers: Array<Provider>, index: number, defaultDefinition?: ProviderDefinition) {
@@ -104,20 +84,22 @@ function resolveImportedProvider(currentSession: Session, originalSession: Sessi
       context.injector = (context.provider = (context.definition = defaultDefinition).provider).host;
       return runHooks(defaultDefinition.hooks, currentSession, resolveInstance);
     }
-    return resolveWithImportedProviders(originalSession, providers, index, defaultDefinition);
+    return resolveImportedProviders(originalSession, providers, index, defaultDefinition);
   }
 
   if (definition.when) { // handle constrained definition
-    context.injector = (context.provider = (context.definition = definition).provider).host;
-    return runHooks(definition.hooks, currentSession, resolveInstance);
+    context.definition = definition;
+    originalSession.apply(currentSession);
+    return resolveDefinition(originalSession)
   }
 
   defaultDefinition = defaultDefinition || definition;
   if (providers.length === ++index && defaultDefinition) {
-    context.injector = (context.provider = (context.definition = defaultDefinition).provider).host;
-    return runHooks(defaultDefinition.hooks, currentSession, resolveInstance);
+    context.definition = defaultDefinition;
+    originalSession.apply(currentSession);
+    return resolveDefinition(originalSession)
   }
-  return resolveWithImportedProviders(originalSession, providers, index, defaultDefinition);
+  return resolveImportedProviders(originalSession, providers, index, defaultDefinition);
 }
 
 export function resolveDefinition<T>(session: Session): T | Promise<T> {
@@ -143,8 +125,15 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
     return;
   }
 
+  // if ((session.iOptions.token as any).name === 'Singleton') {
+  //   console.log(session.parent.children[0] === session);
+  //   console.log((session.iOptions.token as any).name);
+  //   console.log((session.parent.iOptions.token as any).name);
+  // }
+
   const context = session.context;
   const instance = context.instance = getOrCreateProviderInstance(session);
+
   if (instance.status & InstanceStatus.RESOLVED) {
     return instance.value;
   }
@@ -181,7 +170,7 @@ function resolveFromParent<T>(session: Session): T | Promise<T> {
   const context = session.context;
   const injector = context.injector = context.injector.parent;
   if (injector === null) {
-    throw new NoProviderError(session.iOptions.token);
+    throw new NoProviderError(session);
   }
   context.provider = context.definition = undefined;
   return resolveProvider(session);
@@ -286,9 +275,47 @@ function injectMethods<T>(injector: Injector, obj: T, methods: Record<string | s
   })
 }
 
-function injectMethod<T>(injector: Injector, originalMethod: Function, deps: Array<InjectionArgument>, session: Session): Function {
-  return function(this: T, ...args: any[]) {
+// TODO: optimize it by saving non side-effects dependencies
+const sessionHook = SessionHook();
+function injectMethod<T>(injector: Injector, originalMethod: Function, injections: Array<InjectionArgument>, session: Session): Function {
+  injections = injections.map(injection => ({ ...injection, hooks: [sessionHook, ...injection.hooks] }));
 
+  const cache: any[] = [];
+  return function(this: T, ...args: any[]) {
+    let dependency: InjectionArgument = undefined;
+    const actions: any[] = [];
+    const instances: ProviderInstance[] = [];
+
+    for (let i = 0, l = injections.length; i < l; i++) {
+      if (args[i] === undefined && (dependency = injections[i])) {
+        if (cache[i]) {
+          args[i] = cache[i];
+          continue;
+        }
+
+        actions.push(wait(
+          inject(injector, dependency, session),
+          ({ result, session }: { result: any, session: Session }) => {
+            if (!session.hasFlag('side-effect')) {
+              cache[i] = result;
+            }
+            instances.push(session.context.instance);
+            args[i] = result;
+          }
+        ));
+      }
+    }
+
+    return waitAll(
+      actions,
+      () => wait(
+        originalMethod.apply(this, args), 
+        result => {
+          destroy(instances);
+          return result;
+        },
+      ),
+    );
   }
 }
 

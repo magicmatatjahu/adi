@@ -1,8 +1,10 @@
-import { createHook, SessionFlag, wait } from '@adi/core';
+import { createHook, wait } from '@adi/core';
+
+export type LazyType<T = any> = () => T;
 
 export const Lazy = createHook(() => {
   return (session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
 

@@ -30,12 +30,15 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
       return;
     }
 
+    // TODO: Handle options.provide;
     const { options, injections } = injectableDefinition;
     provider = getOrCreateProvider(host, original);
     annotations = options.annotations || {};
 
+    const hooks = createArray(options.hooks);
     const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
-    definition = { provider, original, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks: options.hooks || [], annotations, values: new Map(), meta: {} };
+
+    definition = { provider, original, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), meta: {} };
   } else {
     let token = original.provide,
       factory: FactoryDefinition,
@@ -49,11 +52,11 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
 
     if (isFactoryProvider(original)) {
       kind = ProviderKind.FACTORY;
-      const inject = convertDependencies(original.inject || [], { kind: InjectionKind.FACTORY, function: original.useFactory });
+      const inject = convertInjections(original.inject || [], { kind: InjectionKind.FACTORY, function: original.useFactory });
       factory = { resolver: resolverFactory, data: { factory: original.useFactory, inject } } as FactoryDefinitionFactory;
     } else if (isValueProvider(original)) {
       kind = ProviderKind.VALUE;
-      scope = SingletonScope;
+      // scope = SingletonScope;
       factory = { resolver: resolverValue, data: { value: original.useValue } } as FactoryDefinitionValue;
     } else if (isClassProvider(original)) {
       kind = ProviderKind.CLASS;
@@ -62,13 +65,10 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
       if (definition) {
         const options = definition.options;
         scope = scope || options.scope;
-        // if (defScope && !defScope.kind.canBeOverrided({} as any, defScope.options)) { // TODO: fix first argument to the `canBeOverrided` function
-        //   scope = defScope;
-        // }
         annotations = { ...options.annotations, ...annotations }
       }
 
-      const inject = overrideDependencies(definition?.injections, original.inject);
+      const inject = overrideInjections(definition?.injections, original.inject, clazz);
       factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
     } else if (isClassicProvider(original)) {
       // TODO...
@@ -165,7 +165,7 @@ function concatConstraints(definition: ProviderDefinition, constraint: Constrain
 }
 
 export function compareOrder(a: { annotations: ProviderAnnotations }, b: { annotations: ProviderAnnotations }): number {
-  return (a.annotations['adi:order'] || 0) - (b.annotations['adi:order'] || 0);
+  return (a.annotations.order || 0) - (b.annotations.order || 0);
 }
 
 function ensureInjectable(token: InjectableDefinition['token']): InjectableDefinition | undefined {
@@ -239,72 +239,123 @@ export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | Inj
   return { token: token as ProviderToken, hooks: hooks as Array<InjectionHook>, annotations };
 }
 
-export function convertDependency<T>(dependency: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
+export function convertInjection<T>(dependency: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
   // hooks case
-  if (Array.isArray(dependency)) {
+  if (isHook(dependency)) {
     return createInjectionArgument(undefined, dependency, metadata);
   }
-
-  // plain injection case
-  const plainDep = dependency as PlainInjectionItem;
-  if (plainDep.token !== undefined) {
-    return createInjectionArgument(plainDep.token, plainDep.hooks, metadata);
+  // provide token case
+  if (typeof dependency !== 'object' || isInjectionToken(dependency)) {
+    return createInjectionArgument(dependency, undefined, metadata);
   }
-
-  // standalone token case
-  return createInjectionArgument(dependency as ProviderToken, undefined, metadata);
+  // plain injection case
+  return createInjectionArgument(dependency.token, dependency.hooks, metadata, dependency.annotations);
 }
 
-export function convertDependencies(dependencies: Array<InjectionItem>, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {
+export function convertInjections(dependencies: Array<InjectionItem>, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {
   const converted: InjectionArgument[] = [];
-  for (let i = 0, l = dependencies.length; i < l; i++) {
-    converted.push(convertDependency(dependencies[i], { ...metadata, index: i }));
-  }
+  dependencies.forEach((dependency, index) => converted.push(convertInjection(dependency, { ...metadata, index })));
   return converted;
 }
 
-export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: InjectionHook | Array<InjectionHook> = [], metadata?: InjectionMetadata): InjectionArgument<T> {
+export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: InjectionHook | Array<InjectionHook> = [], metadata?: InjectionMetadata, annotations?: InjectionAnnotations): InjectionArgument<T> {
   if (!Array.isArray(hooks)) {
     hooks = [hooks];
   }
-  return { token, hooks, metadata: createInjectionMetadata(metadata) };
+  return { token, hooks, metadata: createInjectionMetadata(metadata, annotations) };
 }
 
-export function createInjectionMetadata<T>(metadata: InjectionMetadata = {} as any): InjectionMetadata {
+export function createInjectionMetadata<T>(metadata: InjectionMetadata = {} as any, annotations: InjectionAnnotations = {}): InjectionMetadata {
   return {
     kind: InjectionKind.UNKNOWN,
     target: undefined,
     key: undefined,
     index: undefined,
     descriptor: undefined,
-    static: undefined,
-    annotations: undefined,
+    function: undefined,
+    static: false,
+    annotations,
     ...metadata
   }
 }
 
-export function overrideDependencies(
-  original: Array<InjectionArgument>,
-  overriding: Array<InjectionItem>,
-): Array<InjectionArgument>;
-export function overrideDependencies(
+export function overrideInjections(
   original: InjectionArguments,
-  overriding: Array<InjectionItem>,
-): InjectionArguments
-export function overrideDependencies(
-  original: InjectionArguments,
-  overriding: Injections,
-): InjectionArguments
-export function overrideDependencies(
-  original: Array<InjectionArgument> | InjectionArguments,
   overriding: Array<InjectionItem> | Injections,
-): InjectionArguments
-export function overrideDependencies(
-  original: Array<InjectionArgument> | InjectionArguments,
-  overriding: Array<InjectionItem> | Injections,
-): InjectionArguments | Array<InjectionArgument> {
+  target: Function,
+): InjectionArguments {
   if (!overriding) {
     return original;
+  }
+
+  const newInjections: InjectionArguments = {
+    parameters: [...original.parameters],
+    properties: { ...original.properties },
+    methods: { ...original.methods },
+  };
+
+  if (Array.isArray(overriding)) {
+    newInjections.parameters = overrideArrayInjections(newInjections.parameters, overriding, { kind: InjectionKind.PARAMETER, target });
+    return newInjections;
+  }
+
+  const { parameters, static: _static } = overriding;
+  if (parameters) {
+    newInjections.parameters = overrideArrayInjections(newInjections.parameters, parameters, { kind: InjectionKind.PARAMETER, target });
+  }
+
+  overridePropertiesAndMethodsInjections(newInjections, overriding, target, true);
+  if (_static) {
+    overridePropertiesAndMethodsInjections(newInjections.static, _static, target, true);
+  }
+
+  return newInjections;
+}
+
+function overrideArrayInjections(
+  injections: Array<InjectionArgument>,
+  overriding: Array<InjectionItem>,
+  metadata: InjectionMetadata = {} as any,
+): Array<InjectionArgument> {
+  const newInjections = [...injections];
+  overriding.forEach((override, index) => {
+    if (override !== undefined) {
+      newInjections[index] = convertInjection(override, { ...metadata, index });
+    }
+  });
+  return newInjections;
+}
+
+function overridePropertiesAndMethodsInjections(
+  injections: Pick<InjectionArguments, 'properties' | 'methods'>,
+  overriding: Pick<Injections, 'properties' | 'methods'>,
+  target: Function,
+  isStatic: boolean = false,
+) {
+  const { properties, methods } = overriding;
+  const descriptorTarget = isStatic ? target : target.prototype;
+
+  if (properties) {
+    const metadata = createInjectionMetadata({
+      kind: InjectionKind.PROPERTY,
+      target,
+      static: isStatic,
+    });
+    getAllKeys(properties).forEach(property => {
+      const descriptor = Object.getOwnPropertyDescriptor(descriptorTarget, property);
+      injections.properties[property] = convertInjection(properties[property], { ...metadata, target, key: property, descriptor });
+    });
+  }
+  if (methods) {
+    const metadata = createInjectionMetadata({
+      kind: InjectionKind.PARAMETER,
+      target,
+      static: isStatic,
+    });
+    getAllKeys(methods).forEach(method => {
+      const descriptor = Object.getOwnPropertyDescriptor(descriptorTarget, method);
+      injections.methods[method] = overrideArrayInjections(injections.methods[method], methods[method], { ...metadata, target, key: method, descriptor });
+    });
   }
 }
 

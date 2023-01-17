@@ -111,12 +111,12 @@ describe('Factory injection hook', function () {
       {
         provide: 'test',
         useValue: 'foobar',
-        when(session) { return session.metadata.target === ServiceA; }
+        when(session) { return session.iMetadata.target === ServiceA; }
       },
       {
         provide: 'test',
         useValue: 'barfoo',
-        when(session) { return session.metadata.target === ServiceB; }
+        when(session) { return session.iMetadata.target === ServiceB; }
       }
     ]).init() as Injector;
 
@@ -163,4 +163,6 @@ describe('Factory injection hook', function () {
     expect(await testService1 === await testService3).toEqual(false);
     expect(await testService2 === await testService3).toEqual(false);
   });
+
+  test.todo('should destroy instances with Destroyable hook');
 });

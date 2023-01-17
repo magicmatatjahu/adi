@@ -34,7 +34,9 @@ export enum InjectorStatus {
 
 export enum SessionFlag {
   NONE = 0,
-  SIDE_EFFECTS = 1,
-  DRY_RUN = 2,
-  CIRCULAR = 4,
+  RESOLVED = 1,
+  SIDE_EFFECTS = 2,
+  DRY_RUN = 4,
+  HAS_DYNAMIC = 8,
+  CIRCULAR = 16,
 }

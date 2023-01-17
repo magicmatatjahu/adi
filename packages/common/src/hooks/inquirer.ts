@@ -1,11 +1,9 @@
-import { createHook, SessionFlag } from "@adi/core";
+import { createHook } from "@adi/core";
 import { resolveInstance } from "@adi/core/lib/injector/resolver";
 
-import type { Session } from "@adi/core";
-
 export const Inquirer = createHook(() => {
-  return (session: Session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+  return (session, next) => {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
 
@@ -13,8 +11,9 @@ export const Inquirer = createHook(() => {
     if (inquirerSession === undefined) {
       return;
     }
-    Object.assign(session.ctx, inquirerSession.ctx);
-    Object.assign(session.options, inquirerSession.options);
+    
+    Object.assign(session.injection.options, inquirerSession.injection.options);
+    Object.assign(session.context, inquirerSession.context);
     return resolveInstance(session);
   }
 }, { name: 'adi:hook:inquirer' });

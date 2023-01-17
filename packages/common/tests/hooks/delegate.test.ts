@@ -1,5 +1,5 @@
 import { Injector, Injectable, Inject, createHook } from "@adi/core";
-import { Delegate } from "../../src";
+import { Delegate, DELEGATION_KEY } from "../../src";
 
 describe('Delegate injection hook', function () {
   test('should return normal provider when delegations are not passed', function () {
@@ -26,7 +26,7 @@ describe('Delegate injection hook', function () {
   test('should return delegation', function () {
     const TestHook = createHook(() => {
       return (session, next) => {
-        session.meta['adi:delegations'] = { default: 'foobar' };
+        session.annotations[DELEGATION_KEY] = { default: 'foobar' };
         return next(session);
       }
     });
@@ -54,7 +54,7 @@ describe('Delegate injection hook', function () {
   test('should return normal provider when key in delegations does not exist', function () {
     const TestHook = createHook(() => {
       return (session, next) => {
-        session.meta['adi:delegations'] = { default: 'foobar' };
+        session.annotations[DELEGATION_KEY] = { default: 'foobar' };
         return next(session);
       }
     });

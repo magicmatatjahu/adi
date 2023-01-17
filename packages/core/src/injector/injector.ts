@@ -3,9 +3,9 @@ import { Session } from './session';
 import { inject } from './resolver';
 import { processProvider, serializeInjectArguments, createInjectionArgument } from './metadata';
 import { initModule, importModule, retrieveExtendedModule } from './module';
-import { MODULE_REF, INITIALIZERS, INJECTOR_CONFIG } from '../constants';
+import { Optional, All } from '../hooks';
+import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectorStatus, InjectionKind } from '../enums';
-import { All } from '../hooks';
 import { isExtendedModule, isModuleToken } from '../utils';
 
 import type { Provider } from './provider';
@@ -26,7 +26,7 @@ export class Injector {
   public readonly hooks: Array<HookRecord> = [];
 
   constructor(
-    public readonly input: InjectorInput = {},
+    public readonly input: InjectorInput = [],
     public readonly options: InjectorOptions = {},
     public readonly parent: Injector | null | undefined = null,
   ) {
@@ -44,7 +44,7 @@ export class Injector {
       if (typeof deepModule === 'function' && isModuleToken(deepModule)) {
         providers.push({ provide: MODULE_REF, useValue: deepModule });
       } else {
-        // TODO...
+        // TODO... throw error
       }
     } else {
       providers.push({ provide: MODULE_REF, useValue: input });
@@ -52,6 +52,7 @@ export class Injector {
     this.provide(
       { provide: Injector, useValue: this }, 
       { provide: INJECTOR_CONFIG, useValue: options }, 
+      { provide: INITIALIZERS, hooks: [Optional(), All({ imported: false })] },
       ...providers
     );
   }

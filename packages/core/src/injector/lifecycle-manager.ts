@@ -77,12 +77,14 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) 
   const { kind, options } = instance.scope;
   const shouldDestroy = kind.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
 
-  if (!shouldDestroy) return;
+  if (!shouldDestroy) {
+    return;
+  }
   instance.status |= InstanceStatus.DESTROYED;
   instance.definition.values.delete(instance.context);
   
   await processOnDestroyLifecycle(instance);
-  destroyCollection(getInstanceChildren(instance), ctx);
+  return destroyChildren(instance, ctx);
 }
 
 async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: DestroyContext) {
@@ -132,8 +134,15 @@ export async function destroyInjector(injector: Injector) {
   } catch {}
 }
 
-function getInstanceChildren(instance: ProviderInstance) {
-  return instance.session.children.map(s => s.context.instance);
+function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
+  const children = instance.session.children.map(s => s.context.instance);
+
+  children.forEach(child => child.parents?.delete(instance));
+  if (instance.links) {
+    children.push(...Array.from(instance.links));
+  }
+
+  return destroyCollection(children, ctx);
 }
 
 function shouldForceDestroy(instance: ProviderInstance) {

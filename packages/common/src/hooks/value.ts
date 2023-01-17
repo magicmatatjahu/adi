@@ -1,4 +1,4 @@
-import { createHook, SessionFlag, wait } from '@adi/core';
+import { createHook, wait } from '@adi/core';
 
 // copy from lodash
 const INFINITY = 1 / 0;
@@ -25,7 +25,7 @@ export const Value = createHook((path: string = '') => {
   const props = path.split('.').filter(Boolean);
   
   return (session, next) => {
-    if (session.hasFlag(SessionFlag.DRY_RUN)) {
+    if (session.hasFlag('dry-run')) {
       return next(session);
     }
 

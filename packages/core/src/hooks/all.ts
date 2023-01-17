@@ -6,23 +6,23 @@ import type { Session, Provider } from '../injector';
 import type { NextInjectionHook, ProviderDefinition } from '../interfaces';
 
 export interface AllHookOptions {
-  filter?: 'defaults' | 'constraints' | 'all';
+  filter?: 'all' | 'satisfies';
   imported?: boolean;
 }
 
 const defaultOptions: AllHookOptions = {
-  filter: 'all',
+  filter: 'satisfies',
   imported: true,
 }
 
-function filterDefinitions(providers: { self: Provider, imported?: Array<Provider> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
-  if (options.imported && providers.imported) {
+function filterDefinitions(provider: { self: Provider, imported?: Array<Provider> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
+  if (options.imported && provider.imported) {
     const definitions: Array<ProviderDefinition> = [];
-    [providers.self, ...providers.imported].forEach(provider => definitions.push(...provider.filter(session, options.filter)));
+    [provider.self, ...provider.imported].forEach(provider => definitions.push(...provider.filter(session, options.filter)));
     return definitions.sort(compareOrder);
   }
 
-  return providers.self.filter(session, options.filter);
+  return provider.self.filter(session, options.filter);
 }
 
 function allHook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
@@ -37,10 +37,16 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
     next(forkedSession),
     () => {
       session.setFlag('side-effect');
+      const injector = forkedSession.context.injector;
 
-      // TODO: Fix retrieved provider from injector, we can operate on providers from imported injector, not from host injector
-      const providers = forkedSession.context.injector.providers.get(forkedSession.iOptions.token);
-      const definitions = filterDefinitions(providers, forkedSession, options);
+      // if injector doesn't exist - token doesn't exist
+      if (!injector) {
+        return next(session);
+      }
+
+      // TODO: Fix retrieved provider from injector, we should operate on providers from imported injector, not from host injector
+      const provider = forkedSession.context.injector.providers.get(forkedSession.iOptions.token);
+      const definitions = filterDefinitions(provider, forkedSession, options);
 
       const values: Array<any> = [];
       definitions.forEach(definition => {

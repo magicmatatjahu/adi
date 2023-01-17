@@ -57,8 +57,9 @@ export function getDecoratorInfo(target: Function, key?: string | symbol, indexO
     const klass = getClass(target);
     const _static = isStatic(target);
 
-    if (indexOrDescriptor) {
-      if (typeof indexOrDescriptor === 'number') {
+    const isNumber = typeof indexOrDescriptor === 'number';
+    if (isNumber || indexOrDescriptor) {
+      if (isNumber) {
         const descriptor = Object.getOwnPropertyDescriptor(target, key);
         return {
           kind: 'parameter',

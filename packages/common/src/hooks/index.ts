@@ -1,4 +1,4 @@
-export * from './decorate';
+// export * from './decorate';
 export * from './delegate';
 export * from './delegations';
 export * from './factory';
@@ -6,5 +6,6 @@ export * from './fallback';
 export * from './inquirer';
 export * from './lazy';
 export * from './scoped';
-export * from './transform';
+export * from './self';
+// export * from './transform';
 export * from './value';

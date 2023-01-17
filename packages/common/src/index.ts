@@ -1,2 +1,5 @@
-export { Decorate, DecorateHookOptions, Delegate, Delegations, Factory, Fallback, FallbackHookOptions, Inquirer, Lazy, Scoped, Transform, TransformHookOptions, Value } from './hooks';
-export * from './scopes';
+export { Delegate, Delegations, DELEGATION_KEY, Factory, Fallback, Inquirer, Lazy, Scoped, Self, Value } from './hooks';
+export { InstanceScope, LocalScope } from './scopes';
+
+export type { DelegateType, FactoryType, FallbackType, FallbackHookOptions, LazyType } from './hooks';
+export type { InstanceScopeOptions, LocalScopeOptions } from './scopes';

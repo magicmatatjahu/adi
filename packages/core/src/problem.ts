@@ -1,10 +1,13 @@
-import { ProviderToken } from "./interfaces";
-import { InjectionToken } from "./tokens";
+import { isInjectionToken } from "./utils";
+
+import type { Session } from "./injector";
 
 export class NoProviderError extends Error {
-  constructor(token: ProviderToken) {
+  constructor(session: Session) {
+    const token = session.iOptions.token;
+
     let name: string;
-    if (typeof token === 'function' || token instanceof InjectionToken) {
+    if (typeof token === 'function' || isInjectionToken(token)) {
       name = token.name;
     } else if (typeof token === 'symbol') {
       name = token.toString();
