@@ -1,5 +1,5 @@
 import { Injector, Inject, Injectable, New } from "@adi/core";
-import { Factory, Delegate } from "../../src";
+import { Factory, Delegation } from "../../src";
 
 describe('Factory injection hook', function () {
   test('should work - using the New hook', function () {
@@ -41,8 +41,8 @@ describe('Factory injection hook', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject([Delegate('0')]) readonly stringValue: string,
-        @Inject([Delegate('1')]) readonly numberValue: number,
+        @Inject([Delegation('0')]) readonly stringValue: string,
+        @Inject([Delegation('1')]) readonly numberValue: number,
       ) {}
     }
 
