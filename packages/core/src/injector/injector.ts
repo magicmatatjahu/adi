@@ -1,11 +1,12 @@
 import { destroyInjector } from './lifecycle-manager';
 import { Session } from './session';
 import { inject } from './resolver';
-import { processProvider, serializeInjectArguments, createInjectionArgument } from './metadata';
+import { processProviders, serializeInjectArguments, createInjectionArgument } from './metadata';
 import { initModule, importModule, retrieveExtendedModule } from './module';
-import { Optional, All } from '../hooks';
+import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectorStatus, InjectionKind } from '../enums';
+import { Optional, All } from '../hooks';
 import { isExtendedModule, isModuleToken } from '../utils';
 
 import type { Provider } from './provider';
@@ -30,6 +31,10 @@ export class Injector {
     public readonly options: InjectorOptions = {},
     public readonly parent: Injector | null | undefined = null,
   ) {
+    if (!parent) {
+      parent = ADI.coreInjector;
+    }
+
     options.importing = options.importing || 'enabled';
     options.exporting = options.exporting || 'enabled';
     options.scopes = ['any', input as ClassType, ...(options.scopes || [])];
@@ -91,6 +96,6 @@ export class Injector {
 
   provide(...providers: ProviderType[]): void {
     if (this.status & InjectorStatus.DESTROYED) return;
-    providers.forEach(provider => provider && processProvider(this, provider));
+    processProviders(this, providers);
   }
 }

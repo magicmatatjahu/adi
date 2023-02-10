@@ -1,7 +1,7 @@
 import { createInjectionArgument, overrideInjections } from './metadata';
 import { InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
-import { createDefinition, getAllKeys, Reflection } from '../utils';
+import { createArray, createDefinition, getAllKeys, Reflection } from '../utils';
 
 import type { ClassType, AbstractClassType, InjectableDefinition, Injections, InjectionArguments, InjectionItem } from "../interfaces";
 
@@ -16,7 +16,10 @@ export function injectableMixin(token: InjectableDefinition['token'], options?: 
 
   definition.token = token;
   if (options) {
-    definition.options = Object.assign(definition.options, options);
+    options = definition.options = Object.assign(definition.options, options);
+    if (options.hooks) {
+      options.hooks = createArray(options.hooks);
+    }
   }
 
   if (typeof token === 'function') {

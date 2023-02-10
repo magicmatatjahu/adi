@@ -1,3 +1,4 @@
+import type { ADI } from './adi';
 import type { Context, Injector, Provider, Session } from './injector';
 import type { InjectionKind, ProviderKind, InstanceStatus } from './enums';
 import type { ScopeInstance } from './scopes';
@@ -21,7 +22,7 @@ export interface InjectionTokenOptions<T = any> {
   annotations?: ProviderAnnotations;
 }
 
-export type ProvideOptions<T = any> = { provide: ProviderToken<T> } & SimplifiedProvider<T>;
+export type ProvidesOptions<T = any> = { provide: ProviderToken<T> } & SimplifiedProvider<T>;
 
 export type ModuleImportType<T = any> = 
   | ClassType
@@ -65,29 +66,28 @@ export type ProviderType<T = any> =
   | FactoryProvider<T>
   | ValueProvider<T>
   | ExistingProvider<T>
-  | HookProvider<T>;
+  | HookProvider<T>
+  | ExtraProvider<T>;
 
 export type SimplifiedProvider<T = any> = 
   | Omit<ClassProvider<T>, 'provide' | 'hooks' | 'annotations'> 
   | Omit<FactoryProvider<T>, 'provide' | 'hooks' | 'annotations'> 
-  | Omit<ClassicProvider<T>, 'provide' | 'hooks' | 'annotations'> 
   | Omit<ValueProvider<T>, 'provide' | 'hooks' | 'annotations'>
-  | Omit<ExistingProvider<T>, 'provide' | 'hooks' | 'annotations'>;
+  | Omit<ExistingProvider<T>, 'provide' | 'hooks' | 'annotations'>
+  | Omit<ExtraProvider<T>, 'provide' | 'hooks' | 'annotations'>; 
 
 export interface ClassTypeProvider<T = any> extends ClassType<T> {}
 
-// Add hooks?: InjectionHook | Array<InjectionHook>;
 export interface ClassProvider<T = any> {
   provide: ProviderToken<T>;
   useClass: ClassType<T>;
-  inject?: Array<InjectionItem> | Injections;
+  inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
   annotations?: ProviderAnnotations;
   scope?: ScopeType;
 
   useFactory?: never;
-  useProvider?: never;
   useValue?: never;
   useExisting?: never;
 }
@@ -102,22 +102,6 @@ export interface FactoryProvider<T = any> {
   scope?: ScopeType;
 
   useClass?: never;
-  useProvider?: never;
-  useValue?: never;
-  useExisting?: never;
-}
-
-export interface ClassicProvider<T = any> {
-  provide: ProviderToken<T>;
-  useProvider: AdiProvider<T> | ClassType<AdiProvider<T>> | ClassType | AbstractClassType;
-  inject?: Array<InjectionItem>;
-  hooks?: InjectionHook | Array<InjectionHook>;
-  when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
-  scope?: ScopeType;
-
-  useClass?: never;
-  useFactory?: never;
   useValue?: never;
   useExisting?: never;
 }
@@ -131,7 +115,6 @@ export interface ValueProvider<T = any> {
 
   useClass?: never;
   useFactory?: never;
-  useProvider?: never;
   useExisting?: never;
   inject?: never;
   scope?: never;
@@ -146,7 +129,6 @@ export interface ExistingProvider<T = any> {
 
   useClass?: never;
   useFactory?: never;
-  useProvider?: never;
   useValue?: never;
   inject?: never;
   scope?: never;
@@ -166,9 +148,17 @@ export interface HookProvider<T = any> {
   scope?: never;
 }
 
-export interface AdiProvider<T = any> {
-  provide(): T | Promise<T>;
+export interface ExtraProvider<T = any> {
+  provide: ProviderToken<T>;
+  useClass?: never;
+  useFactory?: never;
+  useValue?: never;
+  useExisting?: never;
 }
+
+// export interface AdiProvider<T = any> {
+//   provide(): T | Promise<T>;
+// }
 
 export interface ProviderAnnotations {
   name?: string | symbol | object;
@@ -245,12 +235,12 @@ export interface PlainInjectionItem<T = any> {
 };
 
 export interface Injections {
-  parameters?: Array<InjectionItem>;
-  properties?: Record<string | symbol, InjectionItem>;
-  methods?: Record<string | symbol, Array<InjectionItem>>;
+  parameters?: Array<InjectionItem | undefined>;
+  properties?: Record<string | symbol, InjectionItem | undefined>;
+  methods?: Record<string | symbol, Array<InjectionItem | undefined>>;
   static?: {
-    properties: Record<string | symbol, InjectionItem>;
-    methods: Record<string | symbol, Array<InjectionItem>>;
+    properties: Record<string | symbol, InjectionItem | undefined>;
+    methods: Record<string | symbol, Array<InjectionItem | undefined>>;
   }
 }
 
@@ -341,16 +331,12 @@ export interface InjectableDefinition<T = any> {
   injections: InjectionArguments;
 }
 
-export interface ProvideDefinition {
-  prototype: Record<string | symbol, ProvideOptions>;
-  static: Record<string | symbol, ProvideOptions>;
-}
-
 export type InjectorInput = ClassType | ModuleToken | ModuleMetadata | Array<ProviderType> | ExtendedModule;
 
 export type InjectorScope = 'any' | string | symbol | InjectorInput;
 
 export interface InjectorOptions {
+  name?: string;
   scopes?: Array<InjectorScope>;
   importing?: 'enabled' | 'disabled';
   exporting?: 'enabled' | 'disabled';
@@ -373,12 +359,37 @@ export interface ForwardReference<T = any> {
   _$ref: Function;
 };
 
+export type InstallPlugin = (adi: typeof ADI) => void;
+
+export interface ADIPlugin<O = any> {
+  name: string;
+  install: (adi: typeof ADI, options: O) => void;
+}
+
+export interface OnProviderCreateEvent { 
+  injector: Injector;
+  original: ProviderType;
+  provider: Provider;
+  definition?: ProviderDefinition;
+}
+
+export interface OnProviderDestroyEvent { 
+  injector: Injector;
+  instance: ProviderInstance;
+}
+
+export interface OnModuleCreateEvent { 
+  injector: Injector;
+  original: ModuleImportType;
+}
+
+export interface OnModuleDestroyEvent { 
+  injector: Injector;
+}
+
 export interface ADIEvents {
-  'injection:init': {},
-  'provider:init': {},
-  'provider:create': {},
-  'provider:destroy': {},
-  'module:init': {},
-  'module:create': {},
-  'module:destroy': {},
+  'provider:create': OnProviderCreateEvent,
+  'provider:destroy': OnProviderDestroyEvent,
+  'module:create': OnModuleCreateEvent,
+  'module:destroy': OnModuleDestroyEvent,
 }

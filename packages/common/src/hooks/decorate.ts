@@ -1,17 +1,19 @@
-import { createHook, wait, ClassType, InjectionItem, createFunctionResolver } from '@adi/core';
-// import { getInjectableDefinition } from '@adi/core/lib/decorators';
+import { createHook, wait, InjectionItem, createFunctionResolver } from '@adi/core';
+import { injectableDefinitions } from '@adi/core/lib/injector';
+import { resolverClass } from '@adi/core/lib/injector/resolver';
 import { DELEGATE_KEY } from './delegate';
 
-import type { Injector, Session } from '@adi/core';
+import type { Session, ClassType, ProviderInstance } from '@adi/core';
 
 export type DecorateHookOptions = 
   | ClassType
   | DecorateClass
+  | ((decorate: any) => any)
   | DecorateFunction;
 
 interface DecorateClass {
-  useClass: ClassType;
-  delegationKey: string | symbol;
+  class: ClassType;
+  delegationKey?: string | symbol;
 }
 
 interface DecorateFunction<T = any> {
@@ -19,12 +21,24 @@ interface DecorateFunction<T = any> {
   inject?: Array<InjectionItem>;
 }
 
-function isDecorateClass(decorator: unknown): decorator is DecorateClass {
-  return 'useClass' in (decorator as DecorateClass);
+function hasDecorateClass(decorator: unknown): decorator is DecorateClass {
+  return 'class' in (decorator as DecorateClass);
 }
 
-function isDecorateFunction(decorator: unknown): decorator is DecorateFunction {
+function hasDecorateFunction(decorator: unknown): decorator is DecorateFunction {
   return typeof (decorator as DecorateFunction).decorate === 'function';
+}
+
+function reassignSession(original: Session, forked: Session, instance: ProviderInstance) {
+  const parent = original.parent;
+  if (!parent) {
+    return;
+  }
+
+  const chilren = parent.children;
+  const indexOf = chilren.indexOf(original);
+  chilren.splice(indexOf, 1, forked);
+  instance.session = forked;
 }
 
 // uniqueID is used to avoid redecorate the given instance
@@ -32,25 +46,28 @@ let uniqueID = 0;
 
 export const Decorate = createHook((options: DecorateHookOptions) => {
   // decoratorID is added to the every instances with `true` value to avoid redecorate the given instance
-  const metaKey = `adi:key:decorator-${uniqueID++}`;
+  const decorateKey = `adi:key:decorator-${uniqueID++}`;
   let resolver: ReturnType<typeof createFunctionResolver>;
-  let delegationKey: string | symbol;
+  let delegationKey: string | symbol | undefined;
+  let isClass: boolean = false;
 
-  if (isDecorateFunction(options)) { // function based decorator
+  if (typeof options === 'function') {
+    const definition = injectableDefinitions.get(options);
+    if (!definition) { // normal function case
+      resolver = (_, [value]) => (options as ((decorate: any) => any))(value);
+    } else {
+      resolver = (session) => resolverClass(session.context.injector, session, { class: options as ClassType, inject: definition.injections });
+      isClass = true;
+    }
+  } else if (hasDecorateFunction(options)) { // function based decorator
     resolver = createFunctionResolver(options.decorate, options.inject || []);
+  } else if (hasDecorateClass(options)) {
+    const clazz = options.class;
+    const definition = injectableDefinitions.ensure(clazz);
+    resolver = (session) => resolverClass(session.context.injector, session, { class: clazz, inject: definition.injections });
+    delegationKey = options.delegationKey;
+    isClass = true;
   }
-
-  // if (isDecorateFunction(options)) { // function based decorator
-  //   resolver = createFunctionResolver(options.decorate, options.inject);
-  // } else if (isDecorateClass(options)) { // classType based decorator with `useClass` property
-  //   const def = getInjectableDefinition(options.useClass);
-  //   resolver = (injector: Injector, session: Session) => resolverClass(injector, session, { useClass: options.useClass, inject: def.injections });
-  //   delegationKey = options.delegationKey || 'decorate';
-  // } else { // classType based decorator
-  //   const def = getInjectableDefinition(options);
-  //   resolver = (injector: Injector, session: Session) => resolverClass(injector, session, { useClass: options, inject: def.injections });
-  //   delegationKey = 'decorate';
-  // }
 
   return (session, next) => {
     if (session.hasFlag('dry-run')) {
@@ -65,30 +82,37 @@ export const Decorate = createHook((options: DecorateHookOptions) => {
         const sessionInstance = session.context.instance;
 
         // if it has been decorated before, return value.
-        if (sessionInstance.meta[metaKey] ===  true) {
+        if (sessionInstance.meta[decorateKey]) {
           return decorated;
         }
 
         if (delegationKey) { // classType based decorator
-          if (forked.annotations[DELEGATE_KEY]) {
-            forked.annotations[DELEGATE_KEY][delegationKey] = decorated;
+          const annotations = forked.annotations;
+          if (annotations[DELEGATE_KEY]) {
+            annotations[DELEGATE_KEY][delegationKey] = decorated;
           } else {
-            forked.annotations[DELEGATE_KEY] = {
+            annotations[DELEGATE_KEY] = {
               [delegationKey]: decorated,
             }
           }
         };
 
+        const parent = forked.parent;
+        parent.children.push(forked);
         // resolve decorator and save decorated value to the instance value
         return wait(
           resolver(forked, [decorated]),
           value => {
-
             // possible problem with async resolution - check again
-            if (sessionInstance.meta[metaKey]) {
+            if (sessionInstance.meta[decorateKey]) {
               return value;
             }
-            sessionInstance.meta[metaKey] = true;
+
+            sessionInstance.meta[decorateKey] = true;
+            if (isClass) {
+              reassignSession(session, forked, sessionInstance);
+            }
+
             // redeclare instance value to save decorated value
             return sessionInstance.value = value;
           }

@@ -1,13 +1,14 @@
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { Provider as ProviderRecord, getOrCreateProvider, Provider } from './provider';
 import { resolveProvider, resolverClass, resolverFactory, resolverValue } from './resolver';
+import { ADI } from '../adi';
 import { INITIALIZERS } from '../constants';
 import { when } from '../constraints';
 import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { ComponentProviderError } from '../problem';
-import { DefaultScope, SingletonScope } from '../scopes';
-import { createArray, getAllKeys, isClassProvider, isClassicProvider, isExistingProvider, isFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
+import { DefaultScope } from '../scopes';
+import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
@@ -15,10 +16,27 @@ import type {
   ProviderToken, ProviderType, ProviderDefinition, ProviderAnnotations, 
   InjectionHook, HookRecord, ConstraintDefinition, 
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
-  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType,
+  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType, ClassProvider,
 } from '../interfaces';
 
-export function processProvider<T>(host: Injector, original: ProviderType<T>): { provider: ProviderRecord, definition: ProviderDefinition | undefined } | undefined {
+type ProcessProviderResult = { injector: Injector, original: ProviderType, provider: ProviderRecord, definition?: ProviderDefinition } | undefined;
+
+export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<ProcessProviderResult> {
+  const processed: Array<ProcessProviderResult> = [];
+  providers.forEach(provider => {
+    const result = processProvider(host, provider);
+    result && processed.push(result);
+  })
+
+  if (ADI.canEmit('provider:create')) {
+    processed.forEach(result => ADI.emit('provider:create', result));
+  }
+
+  return processed;
+}
+
+// TODO: Return add definition from hook provider and return ProcessProviderResult from standalone hooks
+export function processProvider<T>(injector: Injector, original: ProviderType<T>): ProcessProviderResult {
   let provider: Provider;
   let definition: ProviderDefinition;
   let annotations: ProviderAnnotations
@@ -32,7 +50,7 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
 
     // TODO: Handle options.provide;
     const { options, injections } = injectableDefinition;
-    provider = getOrCreateProvider(host, original);
+    provider = getOrCreateProvider(injector, original);
     annotations = options.annotations || {};
 
     const hooks = createArray(options.hooks);
@@ -43,12 +61,20 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
     let token = original.provide,
       factory: FactoryDefinition,
       kind: ProviderKind,
-      scope = original.scope || DefaultScope,
-      hooks = createArray(original.hooks),
-      when = original.when;
+      scope = (original as ClassProvider).scope || DefaultScope,
+      hooks = createArray((original as ClassProvider).hooks),
+      when = (original as ClassProvider).when;
 
-    provider = getOrCreateProvider(host, token);
-    annotations = original.annotations || {};
+    if (!token) {
+      // standalone hooks - injector hooks
+      if (isHook(hooks)) {
+        addHook(injector, hooks, when, annotations);
+      }
+      return;
+    }
+
+    provider = getOrCreateProvider(injector, token);
+    annotations = (original as ClassProvider).annotations || {};
 
     if (isFactoryProvider(original)) {
       kind = ProviderKind.FACTORY;
@@ -70,21 +96,14 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
 
       const inject = overrideInjections(definition?.injections, original.inject, clazz);
       factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
-    } else if (isClassicProvider(original)) {
-      // TODO...
     } else if (isExistingProvider(original)) {
       kind = ProviderKind.ALIAS;
       scope = DefaultScope;
       hooks.push(useExistingHook(original.useExisting));
     } else if (isHook(hooks)) {
-      // standalone hooks - injector hooks
-      if (!token) {
-        addHook(host, hooks, when, annotations);
-        return;
-      }
       // standalone hooks on provider level
       addHook(provider, hooks, when, annotations);
-      return { provider, definition: undefined };
+      return { injector, original, provider, definition: undefined };
     }
 
     definition = { provider, original, kind, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
@@ -93,7 +112,7 @@ export function processProvider<T>(host: Injector, original: ProviderType<T>): {
   handleProviderAnnotations(provider, definition, annotations);
   provider.defs.push(definition);
   provider.defs.sort(compareOrder);
-  return { provider, definition };
+  return { injector, original, provider, definition };
 }
 
 function handleProviderAnnotations(provider: ProviderRecord, definition: ProviderDefinition, annotations: ProviderAnnotations) {
@@ -142,7 +161,7 @@ export function filterHooks(hooks: Array<HookRecord>, session: Session): Array<I
   return satisfied;
 }
 
-function addHook(
+export function addHook(
   obj: { hooks: Array<HookRecord> },
   hooks: Array<InjectionHook>,
   constraint: ConstraintDefinition = when.always,
@@ -223,20 +242,19 @@ export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hook
 export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
 export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
 export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T> {
-  if (typeof token === 'object' && !isInjectionToken(token)) { // case with one argument
-    if (isHook(token)) { // hooks
-      annotations = hooks as InjectionAnnotations;
-      hooks = createArray(token);
-    } else {
-      annotations = token as InjectionAnnotations;
-    }
+  if (isHook(token)) { // case with one argument
+    annotations = hooks as InjectionAnnotations;
+    hooks = token;
     token = undefined;
-  } else if (typeof hooks === 'object' && !isHook(hooks)) { // case with two arguments
+  } else if (typeof token === 'object' && !isInjectionToken(token)) {
+    annotations = token as InjectionAnnotations;
+    token = undefined;
+  } else if (!isHook(hooks)) { // case with two arguments
     annotations = hooks as InjectionAnnotations;
     hooks = [];
   }
   annotations = annotations || {};
-  return { token: token as ProviderToken, hooks: hooks as Array<InjectionHook>, annotations };
+  return { token: token as ProviderToken, hooks: createArray(hooks) as Array<InjectionHook>, annotations };
 }
 
 export function convertInjection<T>(dependency: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
@@ -319,7 +337,7 @@ function overrideArrayInjections(
 ): Array<InjectionArgument> {
   const newInjections = [...injections];
   overriding.forEach((override, index) => {
-    if (override !== undefined) {
+    if (override) {
       newInjections[index] = convertInjection(override, { ...metadata, index });
     }
   });

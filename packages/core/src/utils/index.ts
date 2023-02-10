@@ -4,6 +4,7 @@ export * from './forward-reference';
 export * from './get-all-keys';
 export * from './get-decorator-info';
 export * from './get-deep-property';
+export * from './get-global-this';
 export * from './guards';
 export * from './is-method-injection';
 export * from './reflection';

@@ -24,7 +24,7 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   if (hasOnInitLifecycle(value)) {
     hooks.push(() => value.onInit());
   }
-  return waitSequence(hooks.reverse(), hook => hook(value));
+  return waitSequence(hooks.reverse(), hook => hook(session, [value]));
 }
 
 export function processOnInitLifecycle(instance: ProviderInstance) {
@@ -53,9 +53,10 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
     return;
   }
 
+  const session = instance.session;
   delete instance.meta[destroyHooksMetaKey];
   for (let i = 0, l = hooks.length; i < l; i++) {
-    await hooks[i](value);
+    await hooks[i](session, [value]);
   }
 }
 
@@ -88,6 +89,7 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) 
 }
 
 async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: DestroyContext) {
+  if (!instances.length) return;
   return waitSequence(instances, instance => destroy(instance, ctx));
 }
 
@@ -104,6 +106,28 @@ export function destroyDefinition(definition: ProviderDefinition, ctx?: DestroyC
     instance.status |= InstanceStatus.DEFINITION_DESTROYED;
   });
   return destroyCollection(instances, ctx);
+}
+
+function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
+  const children = instance.session.children.map(s => s.context.instance);
+
+  children.forEach(child => child.parents?.delete(instance));
+  if (instance.links) {
+    children.push(...Array.from(instance.links));
+  }
+
+  return destroyCollection(children, ctx);
+}
+
+function shouldForceDestroy(instance: ProviderInstance) {
+  const { status, parents } = instance;
+  const parentsSize = parents?.size;
+  return (
+    // Definition destroyed case
+    ((status & InstanceStatus.DEFINITION_DESTROYED) && !parentsSize) ||
+    // Circular injection case
+    ((status & InstanceStatus.CIRCULAR) && (parentsSize === 1))
+  );
 }
 
 export async function destroyInjector(injector: Injector) {
@@ -132,26 +156,4 @@ export async function destroyInjector(injector: Injector) {
     injector.imports.clear();
     return waitSequence(injectors, destroyInjector);
   } catch {}
-}
-
-function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
-  const children = instance.session.children.map(s => s.context.instance);
-
-  children.forEach(child => child.parents?.delete(instance));
-  if (instance.links) {
-    children.push(...Array.from(instance.links));
-  }
-
-  return destroyCollection(children, ctx);
-}
-
-function shouldForceDestroy(instance: ProviderInstance) {
-  const { status, parents } = instance;
-  const parentsSize = parents?.size;
-  return (
-    // Definition destroyed case
-    ((status & InstanceStatus.DEFINITION_DESTROYED) && !parentsSize) ||
-    // Circular injection case
-    ((status & InstanceStatus.CIRCULAR) && (parentsSize === 1))
-  );
 }

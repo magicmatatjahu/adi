@@ -2,8 +2,7 @@
 
 ## TODO
 
-- rething API for `inject` method and order of arguments, maybe dep should be first or second
-// - sort all hooks in creating definitions
-- create from `Injectable definition` on class level something like reflection for everything.
 - make something like `reflection-metadata` library but only for ADI
 - connect instance's `links` as session, not instances
+- add events like in v2
+- links sessions in inline function resolver to some session (as children) to destroy created (maybe) instances in the resolver function to avoid stack overflow 

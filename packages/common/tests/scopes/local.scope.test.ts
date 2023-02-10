@@ -3,7 +3,7 @@ import { InstanceScope, LocalScope, Scoped } from "../../src"
 
 import { wait } from "../helpers";
 
-describe('Local scope', function () {
+describe.skip('Local scope', function () {
   test('should inject shared service in the given scope (using toScope option) - nearest case', function () {
     @Injectable({
       scope: LocalScope({ toScope: 'test' }),

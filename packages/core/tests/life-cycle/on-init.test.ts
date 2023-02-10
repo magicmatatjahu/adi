@@ -1,5 +1,7 @@
 import { Injector, Injectable, OnInit, OnInitHook, Inject, TransientScope } from "../../src";
 
+import type { OnInitHookOptions } from "../../src";
+
 describe('onInit', function() {
   test('should work', function() {
     let checkInit = false;
@@ -306,33 +308,37 @@ describe('onInit', function() {
     expect(order).toEqual([1, 2, 3]);
   });
 
-  test.skip('should call hook with dependencies', function() {
-    // let checkInit = false;
+  test('should call hook with dependencies', function() {
+    let checkInit = false;
 
-    // const hook: StandaloneOnInit = {
-    //   onInit(value: Service, foobar: string) {
-    //     if (foobar === 'foobar' && value instanceof Service) {
-    //       checkInit = true;
-    //     } 
-    //   },
-    //   inject: ['foobar'],
-    // }
+    const hook: OnInitHookOptions = {
+      onInit(value: Service, foobar: string) {
+        if (foobar === 'foobar' && value instanceof Service) {
+          checkInit = true;
+        } 
+      },
+      inject: ['foobar'],
+    }
 
-    // @Injectable({
-    //   hooks: [OnInitHook(hook)],
-    // })
-    // class Service {}
+    @Injectable({
+      hooks: [OnInitHook(hook)],
+    })
+    class Service {}
 
-    // const injector = new Injector([
-    //   Service,
-    //   {
-    //     provide: 'foobar',
-    //     useValue: 'foobar',
-    //   }
-    // ]);
+    const injector = new Injector([
+      Service,
+      {
+        provide: 'foobar',
+        useValue: 'foobar',
+      }
+    ]).init() as Injector;
 
-    // const service = injector.get(Service);
-    // expect(service).toBeInstanceOf(Service);
-    // expect(checkInit).toEqual(true);
+    const service = injector.get(Service);
+    expect(service).toBeInstanceOf(Service);
+    expect(checkInit).toEqual(true);
   });
+
+  test.todo('test circular references cases');
+
+  test.todo('test destroying instances in hooks');
 });

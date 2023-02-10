@@ -20,7 +20,7 @@ export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<Injectio
 export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): ParameterDecorator | PropertyDecorator {
   const injection = serializeInjectArguments(token, hooks, annotations);
-  return function(target: Function, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
+  return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
     applyInject(getDecoratorInfo(target, key, indexOrDescriptor), injection);
   }
 }

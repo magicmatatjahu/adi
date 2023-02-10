@@ -4,7 +4,7 @@ import { getDecoratorInfo } from '../utils';
 import type { ModuleMetadata } from '../interfaces';
 
 export function Module(metadata?: ModuleMetadata): ClassDecorator {
-  return function(target: Function, ...rest: any[]) {
+  return function(target: Object, ...rest: any[]) {
     const { kind } = getDecoratorInfo(target, ...rest);
     if (kind !== 'class') {
       throw new Error('Cannot use @Module on non-class level.');

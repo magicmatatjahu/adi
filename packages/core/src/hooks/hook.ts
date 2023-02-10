@@ -24,7 +24,6 @@ export function createHook<F extends (...args: any) => InjectionHookFn>(hook: F,
     fn[ADI_HOOK_DEF] = true || options;
     return fn as InjectionHook<ReturnHookFnType<F>>;
   }
-  // return hook as unknown as (...args: Parameters<F>) => InjectionHook<ReturnHookFnType<F>>;
 }
 
 export const Hook = createHook((hook: InjectionHookFn) => {
@@ -32,6 +31,7 @@ export const Hook = createHook((hook: InjectionHookFn) => {
 }, { name: 'adi:hook:hook' });
 
 export function isHook(hooks: unknown): hooks is InjectionHook | Array<InjectionHook> {
+  if (!hooks) return false;
   return Array.isArray(hooks) ? hooks[0]?.[ADI_HOOK_DEF] : hooks[ADI_HOOK_DEF];
 }
 

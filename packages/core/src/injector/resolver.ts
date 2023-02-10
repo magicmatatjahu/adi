@@ -1,8 +1,8 @@
 import { processOnInitLifecycle, destroy } from './lifecycle-manager';
-import { filterHooks, getTreeshakableProvider } from './metadata';
+import { convertInjections, filterHooks, getTreeshakableProvider } from './metadata';
 import { getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
-import { InstanceStatus } from '../enums';
+import { InjectionKind, InstanceStatus } from '../enums';
 import { runHooks, SessionHook } from '../hooks';
 import { circularSessionsMetaKey, promiseResolveMetaKey, promiseDoneMetaKey } from '../private';
 import { NoProviderError } from "../problem";
@@ -124,12 +124,6 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
   if (session.hasFlag('dry-run')) {
     return;
   }
-
-  // if ((session.iOptions.token as any).name === 'Singleton') {
-  //   console.log(session.parent.children[0] === session);
-  //   console.log((session.iOptions.token as any).name);
-  //   console.log((session.parent.iOptions.token as any).name);
-  // }
 
   const context = session.context;
   const instance = context.instance = getOrCreateProviderInstance(session);
@@ -352,6 +346,19 @@ export function resolverFunction<T>(injector: Injector, session: Session, data: 
   );
 }
 
-export function createFunctionResolver(inject: Array<InjectionItem>) {
-  // const 
+export function createFunctionResolver<T>(factory: (...args: any[]) => T | Promise<T>, injections: Array<InjectionItem> = []) {
+  const converted = convertInjections(injections, { kind: InjectionKind.FUNCTION, function: factory });
+  return (session: Session, args: any[] = []) => {
+    const injector = session.context.injector;
+    if (args.length) {
+      return wait(
+        injectArray(injector, converted, session),
+        deps => factory(...args, ...deps),
+      );
+    }
+    return wait(
+      injectArray(injector, converted, session),
+      deps => factory(...deps),
+    );
+  }
 }

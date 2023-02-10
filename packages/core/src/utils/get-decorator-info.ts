@@ -52,7 +52,7 @@ function getClass(target: any): ClassType {
   return target.prototype ? target : target.constructor;
 }
 
-export function getDecoratorInfo(target: Function, key?: string | symbol, indexOrDescriptor?: number | PropertyDescriptor): Decorator {
+export function getDecoratorInfo(target: Object, key?: string | symbol, indexOrDescriptor?: number | PropertyDescriptor): Decorator {
   if (key) {
     const klass = getClass(target);
     const _static = isStatic(target);

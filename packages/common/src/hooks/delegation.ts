@@ -3,8 +3,6 @@ import { DELEGATE_KEY } from './delegate';
 
 import type { Session } from '@adi/core';
 
-export type DelegateType<T, K extends string> = T;
-
 const uRef = {}; // fallback for undefined, null, '', false, 0
 
 function retrieveDelegation(session: Session, key: string | symbol) {

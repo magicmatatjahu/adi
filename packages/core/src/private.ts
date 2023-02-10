@@ -1,5 +1,4 @@
 export const ADI_INJECTABLE_DEF = 'adi:definition:injectable';
-export const ADI_PROVIDE_DEF = 'adi:definition:provide';
 export const ADI_MODULE_DEF = 'adi:definition:module';
 export const ADI_HOOK_DEF = 'adi:definition:hook';
 

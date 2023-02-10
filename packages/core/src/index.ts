@@ -1,4 +1,5 @@
-import { Context, Session, injectableMixin } from './injector';
+import { ADI, installADI } from './adi';
+import { Context, Injector, Session, injectableMixin } from './injector';
 import { Hook } from './hooks';
 
 function patchCircularRefs() {
@@ -26,11 +27,24 @@ function patchCircularRefs() {
     ] 
   });
 }
+
+function initADI() {
+  // create core Injector
+  const coreInjector = Injector.create(undefined, { name: 'adi:core-injector', importing: 'disabled', exporting: 'disabled' });
+  // override parent to null
+  (coreInjector as any).parent = null;
+  // override scopes of core injector to only ADI reference
+  coreInjector.options.scopes = [ADI];
+  // install ADI to global object
+  installADI(coreInjector);
+}
+
 patchCircularRefs();
+initADI();
 
 export * from './decorators';
 export { createHook, All, Config, Ctx, Destroyable, Hook, SessionHook, Named, New, OnDestroyHook, OnInitHook, Optional, Ref, Skip, Tagged, Token } from './hooks';
-export { Context, Injector, Session, injectableMixin, moduleMixin, provideMixin } from './injector';
+export { Context, Injector, Session, injectableMixin, moduleMixin, createFunctionResolver } from './injector';
 export { Scope, DefaultScope, SingletonScope, TransientScope, createScope } from './scopes';
 export { InjectionToken, ModuleToken } from './tokens';
 export { ref, resolveRef, wait, waitCallback, waitSequence } from './utils';
@@ -38,6 +52,6 @@ export { ADI } from './adi';
 export { MODULE_REF, INITIALIZERS, INJECTOR_CONFIG, STATIC_CONTEXT } from './constants';
 export { when } from './constraints';
 
-export type { DestroyableType, OptionalType } from './hooks';
+export type { DestroyableType, OptionalType, OnInitHookOptions, OnDestroyHookOptions } from './hooks';
 export type { ScopeInstance, DefaultScopeOptions, SingletonScopeOptions, TransientScopeOptions } from './scopes';
 export * from './interfaces';
