@@ -1,3 +1,4 @@
+import { ADI } from '../adi';
 import { InjectorStatus, InstanceStatus } from '../enums';
 import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey } from '../private';
 import { waitSequence } from '../utils';
@@ -14,10 +15,16 @@ function hasOnDestroyLifecycle(instance: unknown): instance is OnDestroy {
 }
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
+  const injector = session.context.injector;
+  ADI.emit('instance:create', { injector, instance });
+
   const value = instance.value;
   const hooks: undefined | Array<Function> = session.annotations[initHooksMetaKey];
   if (!hooks) {
-    return hasOnInitLifecycle(value) && value.onInit();
+    if (hasOnInitLifecycle(value)) {
+      return value.onInit();
+    }
+    return;
   }
 
   delete session.annotations[initHooksMetaKey];
@@ -43,6 +50,10 @@ export function processOnInitLifecycle(instance: ProviderInstance) {
 }
 
 export async function processOnDestroyLifecycle(instance: ProviderInstance) {
+  const session = instance.session;
+  const injector = session.context.injector;
+  ADI.emit('instance:destroy', { injector, instance });
+
   const value = instance.value;
   if (hasOnDestroyLifecycle(value)) {
     await value.onDestroy();
@@ -53,7 +64,6 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
     return;
   }
 
-  const session = instance.session;
   delete instance.meta[destroyHooksMetaKey];
   for (let i = 0, l = hooks.length; i < l; i++) {
     await hooks[i](session, [value]);
@@ -94,12 +104,15 @@ async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: D
 }
 
 export function destroyRecord(record: Provider, ctx?: DestroyContext) {
+  const injector = record.host;
   const defs = record.defs;
   record.defs = [];
-  return waitSequence(defs, def => destroyDefinition(def, ctx))
+  return waitSequence(defs, def => destroyDefinition(injector, def, ctx))
 }
 
-export function destroyDefinition(definition: ProviderDefinition, ctx?: DestroyContext) {
+export function destroyDefinition(injector: Injector, definition: ProviderDefinition, ctx?: DestroyContext) {
+  ADI.emit('provider:destroy', { injector, definition });
+
   const instances = Array.from(definition.values.values());
   definition.values = new Map();
   instances.forEach(instance => {

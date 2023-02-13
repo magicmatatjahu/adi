@@ -1,51 +1,62 @@
 import { getGlobalThis } from "./utils";
 
 import type { Injector } from './injector';
-import type { ADIPlugin, InstallPlugin, ADIEvents } from './interfaces';
-
-type ADIEventKind = keyof ADIEvents;
+import type { ADIPlugin, ADIEventKind, ADIEvents, ADIEventUnsubscribe } from './interfaces';
 
 const enum ADIFlags {
   NONE = 0,
   PROVIDER_CREATE = 1,
   PROVIDER_DESTROY = 2,
-  MODULE_CREATE = 4,
-  MODULE_DESTROY = 8,
+  INSTANCE_CREATE = 4,
+  INSTANCE_DESTROY = 8,
+  MODULE_CREATE = 16,
+  MODULE_DESTROY = 32,
 }
 
 const adiFlags: Record<ADIEventKind, ADIFlags> = {
   'provider:create': ADIFlags.PROVIDER_CREATE,
   'provider:destroy': ADIFlags.PROVIDER_DESTROY,
+  'instance:create': ADIFlags.INSTANCE_CREATE,
+  'instance:destroy': ADIFlags.INSTANCE_DESTROY,
   'module:create': ADIFlags.MODULE_CREATE,
   'module:destroy': ADIFlags.MODULE_DESTROY,
+}
+
+type PluginState = {
+  name: string;
+  plugin: ADIPlugin,
+  unsubscribers: Array<ADIEventUnsubscribe>;
 }
 
 export class ADI {
   static coreInjector: Injector;
   protected static flags: ADIFlags = ADIFlags.NONE;
-  protected static injectors: Array<ADIPlugin | InstallPlugin> = [];
-  protected static plugins: Array<ADIPlugin | InstallPlugin> = [];
+  protected static injectors: Set<Injector> = new Set();
+  protected static plugins: Map<string, PluginState> = new Map();
   protected static actions: Map<ADIEventKind, Array<(data: ADIEvents[ADIEventKind]) => any>> = new Map();
 
-  static use<O>(plugin: ADIPlugin<O> | InstallPlugin, options?: O): typeof ADI {
-    if (
-      this.plugins.includes(plugin) ||
-      this.plugins.some(p => p.name === plugin.name)
-    ) {
+  static use(plugin: ADIPlugin): typeof ADI {
+    const name = plugin.name;
+    if (this.plugins.has(name)) {
       return this;
     }
 
-    if (typeof plugin === 'object' && typeof plugin.install === 'function') {
-      plugin.install.apply(plugin, [this, options]);
-    } else if (typeof plugin === 'function') {
-      plugin(this);
-    }
-
-    this.plugins.push(plugin);
+    const unsubscribers: ADIEventUnsubscribe[] = [];
+    plugin.install.apply(plugin, [this, { unsubscribers }]);
+    this.plugins.set(name, { name, plugin, unsubscribers });
     return this;
   }
 
-  static on<K extends ADIEventKind>(event: K, action: (data: ADIEvents[K]) => void): { unsubscribe: () => void } {
+  static destroy(plugin: string | ADIPlugin): typeof ADI {
+    const existing = this.getPlugin(plugin);
+    if (existing) {
+      existing.plugin.destroy?.apply(existing, [this]);
+      existing.unsubscribers.forEach(item => item.unsubscribe());
+    }
+    return this;
+  }
+
+  static on<K extends ADIEventKind>(event: K, action: (data: ADIEvents[K]) => void): ADIEventUnsubscribe {
     const actions = this.getActions(event);
     actions.push(action);
     this.flags |= adiFlags[event];
@@ -62,13 +73,20 @@ export class ADI {
   }
 
   static emit<K extends ADIEventKind>(event: K, data: ADIEvents[K]): void {
-    const actions = this.getActions(event);
-    if (actions) {
+    if (this.canEmit(event)) {
+      const actions = this.getActions(event);
       actions.forEach(action => action(data));
     }
   }
 
-  static canEmit(flag: ADIEventKind) {
+  static emitAll<K extends ADIEventKind>(event: K, collection: Array<ADIEvents[K]>): void {
+    if (this.canEmit(event)) {
+      const actions = this.getActions(event);
+      collection.forEach(item => actions.forEach(action => action(item)));
+    }
+  }
+
+  protected static canEmit(flag: ADIEventKind) {
     return (this.flags & adiFlags[flag]) > 0;
   }
 
@@ -79,6 +97,19 @@ export class ADI {
       this.actions.set(event, actions);
     }
     return actions;
+  }
+
+  protected static getPlugin(plugin: string | ADIPlugin): PluginState | undefined {
+    const existing: PluginState = this.plugins.get(plugin as string);
+    if (existing) {
+      return existing;
+    }
+
+    for (const item of this.plugins.values()) {
+      if (item.name === plugin) {
+        return item;
+      }
+    }
   }
 }
 

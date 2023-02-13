@@ -17,6 +17,7 @@ export enum InstanceStatus {
 
 export enum InjectionKind {
   UNKNOWN = 'unknown',
+  CUSTOM = 'custom',
   STANDALONE = 'standalone',
   PARAMETER = 'parameter',
   PROPERTY = 'property',

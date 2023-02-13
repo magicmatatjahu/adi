@@ -10,7 +10,7 @@ import { getAllKeys, wait, waitAll } from '../utils';
 
 import type { Injector } from './injector'
 import type { Provider } from './provider';
-import type { ProviderDefinition, ProviderInstance, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, FactoryDefinitionFunction, InjectionArgument, InjectableDefinition, InjectionItem } from '../interfaces'
+import type { ProviderDefinition, ProviderInstance, Provider as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, FactoryDefinitionFunction, InjectionArgument, InjectableDefinition, InjectionItem } from '../interfaces'
 
 export function inject<T>(injector: Injector, argument: InjectionArgument, parentSession?: Session): T | Promise<T> {
   const session = Session.create(argument.token, argument.metadata, injector, parentSession);
@@ -241,7 +241,7 @@ function getPrototype<T>(instance: ProviderInstance<T>): Object {
   return typeof provider === 'function' ? provider.prototype : provider.useClass;
 }
 
-function injectArray(injector: Injector, dependencies: Array<InjectionArgument>, session?: Session): Array<any> | Promise<Array<any>> {
+export function injectArray(injector: Injector, dependencies: Array<InjectionArgument>, session?: Session): Array<any> | Promise<Array<any>> {
   const injections = [];
   dependencies.forEach(dependency => {
     injections.push(inject(injector, dependency, session));
@@ -332,6 +332,13 @@ export function resolverFactory<T>(injector: Injector, session: Session, data: F
   return wait(
     injectArray(injector, data.inject, session),
     deps => data.factory(...deps),
+  );
+}
+
+export function resolveClassProvider<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | undefined | Promise<T | undefined> {
+  return wait(
+    resolverClass(injector, session, data) as ClassicProvider,
+    provider => provider.provide(),
   );
 }
 

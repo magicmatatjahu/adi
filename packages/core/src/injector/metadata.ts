@@ -1,6 +1,6 @@
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { Provider as ProviderRecord, getOrCreateProvider, Provider } from './provider';
-import { resolveProvider, resolverClass, resolverFactory, resolverValue } from './resolver';
+import { resolveProvider, resolverClass, resolverFactory, resolveClassProvider, resolverValue } from './resolver';
 import { ADI } from '../adi';
 import { INITIALIZERS } from '../constants';
 import { when } from '../constraints';
@@ -8,7 +8,7 @@ import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { ComponentProviderError } from '../problem';
 import { DefaultScope } from '../scopes';
-import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
+import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
@@ -17,21 +17,19 @@ import type {
   InjectionHook, HookRecord, ConstraintDefinition, 
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType, ClassProvider,
+  OnProviderCreateEvent,
 } from '../interfaces';
 
-type ProcessProviderResult = { injector: Injector, original: ProviderType, provider: ProviderRecord, definition?: ProviderDefinition } | undefined;
+type ProcessProviderResult = OnProviderCreateEvent | undefined;
 
 export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<ProcessProviderResult> {
   const processed: Array<ProcessProviderResult> = [];
   providers.forEach(provider => {
     const result = processProvider(host, provider);
     result && processed.push(result);
-  })
+  });
 
-  if (ADI.canEmit('provider:create')) {
-    processed.forEach(result => ADI.emit('provider:create', result));
-  }
-
+  ADI.emitAll('provider:create', processed);
   return processed;
 }
 
@@ -91,11 +89,23 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       if (definition) {
         const options = definition.options;
         scope = scope || options.scope;
-        annotations = { ...options.annotations, ...annotations }
+        annotations = { ...options.annotations, ...annotations };
       }
 
       const inject = overrideInjections(definition?.injections, original.inject, clazz);
       factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
+    } else if (isClassFactoryProvider(original)) {
+      kind = ProviderKind.PROVIDER;
+      const clazz = original.useFactory;
+      const definition = ensureInjectable(clazz);
+      if (definition) {
+        const options = definition.options;
+        scope = scope || options.scope;
+        annotations = { ...options.annotations, ...annotations };
+      }
+
+      const inject = overrideInjections(definition?.injections, original.inject, clazz);
+      factory = { resolver: resolveClassProvider, data: { class: clazz, inject } } as FactoryDefinitionClass;
     } else if (isExistingProvider(original)) {
       kind = ProviderKind.ALIAS;
       scope = DefaultScope;

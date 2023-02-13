@@ -1,5 +1,5 @@
 import type { ADI } from './adi';
-import type { Context, Injector, Provider, Session } from './injector';
+import type { Context, Injector, Provider as ProviderItem, Session } from './injector';
 import type { InjectionKind, ProviderKind, InstanceStatus } from './enums';
 import type { ScopeInstance } from './scopes';
 import type { ADI_HOOK_DEF } from './private';
@@ -64,17 +64,19 @@ export type ProviderType<T = any> =
   | ClassTypeProvider<T>
   | ClassProvider<T>
   | FactoryProvider<T>
+  | ClassFactoryProvider<T>
   | ValueProvider<T>
   | ExistingProvider<T>
   | HookProvider<T>
-  | ExtraProvider<T>;
+  | CustomProvider<T>;
 
 export type SimplifiedProvider<T = any> = 
   | Omit<ClassProvider<T>, 'provide' | 'hooks' | 'annotations'> 
   | Omit<FactoryProvider<T>, 'provide' | 'hooks' | 'annotations'> 
+  | Omit<ClassFactoryProvider<T>, 'provide' | 'hooks' | 'annotations'> 
   | Omit<ValueProvider<T>, 'provide' | 'hooks' | 'annotations'>
   | Omit<ExistingProvider<T>, 'provide' | 'hooks' | 'annotations'>
-  | Omit<ExtraProvider<T>, 'provide' | 'hooks' | 'annotations'>; 
+  | Omit<CustomProvider<T>, 'provide' | 'hooks' | 'annotations'>; 
 
 export interface ClassTypeProvider<T = any> extends ClassType<T> {}
 
@@ -96,6 +98,20 @@ export interface FactoryProvider<T = any> {
   provide: ProviderToken<T>;
   useFactory: (...args: any[]) => T | Promise<T>;
   inject?: Array<InjectionItem>;
+  hooks?: InjectionHook | Array<InjectionHook>;
+  when?: ConstraintDefinition;
+  annotations?: ProviderAnnotations;
+  scope?: ScopeType;
+
+  useClass?: never;
+  useValue?: never;
+  useExisting?: never;
+}
+
+export interface ClassFactoryProvider<T = any> {
+  provide: ProviderToken<T>;
+  useFactory: ClassType<Provider>;
+  inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
   annotations?: ProviderAnnotations;
@@ -148,17 +164,21 @@ export interface HookProvider<T = any> {
   scope?: never;
 }
 
-export interface ExtraProvider<T = any> {
+export interface CustomProvider<T = any> {
   provide: ProviderToken<T>;
+  annotations?: ProviderAnnotations;
+  hooks?: InjectionHook | Array<InjectionHook>;
+  when?: ConstraintDefinition;
+
   useClass?: never;
   useFactory?: never;
   useValue?: never;
   useExisting?: never;
 }
 
-// export interface AdiProvider<T = any> {
-//   provide(): T | Promise<T>;
-// }
+export interface Provider<T = any> {
+  provide(...args: []): T | Promise<T>;
+}
 
 export interface ProviderAnnotations {
   name?: string | symbol | object;
@@ -173,7 +193,7 @@ export interface ProviderAnnotations {
 }
 
 export interface ProviderDefinition<T = any> {
-  provider: Provider<T>;
+  provider: ProviderItem<T>;
   original: ProviderType,
   kind: ProviderKind;
   factory: FactoryDefinition,
@@ -295,7 +315,7 @@ export interface SessionInjection<T = any> {
 
 export interface SessionContext<T = any> {
   injector: Injector;
-  provider?: Provider;
+  provider?: ProviderItem;
   definition?: ProviderDefinition<T>;
   instance?: ProviderInstance<T>;
 }
@@ -359,21 +379,30 @@ export interface ForwardReference<T = any> {
   _$ref: Function;
 };
 
-export type InstallPlugin = (adi: typeof ADI) => void;
-
-export interface ADIPlugin<O = any> {
+export interface ADIPlugin {
   name: string;
-  install: (adi: typeof ADI, options: O) => void;
+  install: (adi: typeof ADI, state: { unsubscribers: Array<ADIEventUnsubscribe> }) => void;
+  destroy?: (adi: typeof ADI) => void;
 }
 
 export interface OnProviderCreateEvent { 
   injector: Injector;
   original: ProviderType;
-  provider: Provider;
+  provider: ProviderItem;
   definition?: ProviderDefinition;
 }
 
 export interface OnProviderDestroyEvent { 
+  injector: Injector;
+  definition: ProviderDefinition;
+}
+
+export interface OnInstanceCreateEvent { 
+  injector: Injector;
+  instance: ProviderInstance;
+}
+
+export interface OnInstanceDestroyEvent { 
   injector: Injector;
   instance: ProviderInstance;
 }
@@ -390,6 +419,14 @@ export interface OnModuleDestroyEvent {
 export interface ADIEvents {
   'provider:create': OnProviderCreateEvent,
   'provider:destroy': OnProviderDestroyEvent,
+  'instance:create': OnInstanceCreateEvent,
+  'instance:destroy': OnInstanceDestroyEvent,
   'module:create': OnModuleCreateEvent,
   'module:destroy': OnModuleDestroyEvent,
+}
+
+export type ADIEventKind = keyof ADIEvents;
+
+export interface ADIEventUnsubscribe {
+  unsubscribe: () => void;
 }
