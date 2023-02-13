@@ -1,3 +1,4 @@
+import { ADI } from '../adi';
 import { Injector } from './injector';
 import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from '../constants';
 import { InjectorStatus } from '../enums';
@@ -52,7 +53,7 @@ export function importModule(to: Injector, input: ModuleImportType): Injector | 
   to.status |= InjectorStatus.PENDING;
 
   if (Array.isArray(input)) {
-    return wait(initInjector(to), () => to);
+    return wait(initInjector({ injector: to, input } as any), () => to);
   }
 
   return wait(
@@ -66,7 +67,7 @@ export function importModule(to: Injector, input: ModuleImportType): Injector | 
           () => wait(
             waitSequence(
               Array.from(compiled.stack.values()), 
-              ({ injector }) => initInjector(injector),
+              initInjector,
             ),
             () => to,
           ),
@@ -147,7 +148,8 @@ function processExport(exportItem: ModuleExportType, compiled: CompiledModule) {
 function processInjector(compiled: CompiledModule) {
   const { input, extracted: { concatenated }, exports } = compiled;
   const parentInjector = compiled.parent?.injector;
-  const injector = compiled.injector = compiled.injector || Injector.create(input, undefined, parentInjector);
+
+  const injector: Injector = compiled.injector || Injector.create(input, undefined, parentInjector);
   compiled.stack.add(compiled);
 
   concatenated.forEach(item => {
@@ -300,8 +302,10 @@ function findModuleInTree(input: ExtractedMetadata['input'], parent: CompiledMod
   }
 }
 
-function initInjector(injector: Injector) {
+function initInjector({ injector, input }: CompiledModule) {
   injector.status |= InjectorStatus.INITIALIZED;
+  ADI.emit('module:create', { injector, original: input });
+
   return wait(
     injector.get(INITIALIZERS),
     () => wait(
@@ -319,7 +323,7 @@ function loadModuleConfig(injector: Injector) {
       if (options.scopes) {
         scopes = Array.from(new Set([...injector.options.scopes, ...options.scopes]));
       }
-      Object.assign(injector.options, options, { scopes });
+      Object.assign(injector.options, { ...options, scopes });
     }
   )
 }

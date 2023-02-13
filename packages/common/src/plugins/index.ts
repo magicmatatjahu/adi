@@ -1,4 +1,5 @@
 export * from './cache.plugin';
+export * from './collectionProvider.plugin';
 export * from './enhancers.plugin';
 export * from './extendedProvider.plugin';
 export * from './inject.plugin';

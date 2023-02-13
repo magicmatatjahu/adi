@@ -1,7 +1,7 @@
+import { ADI } from '../adi';
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { Provider as ProviderRecord, getOrCreateProvider, Provider } from './provider';
 import { resolveProvider, resolverClass, resolverFactory, resolveClassProvider, resolverValue } from './resolver';
-import { ADI } from '../adi';
 import { INITIALIZERS } from '../constants';
 import { when } from '../constraints';
 import { ProviderKind, InjectionKind } from '../enums';
@@ -56,10 +56,11 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
 
     definition = { provider, original, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), meta: {} };
   } else {
+    annotations = (original as ClassProvider).annotations || {};
     let token = original.provide,
       factory: FactoryDefinition,
       kind: ProviderKind,
-      scope = (original as ClassProvider).scope || DefaultScope,
+      scope = (original as ClassProvider).scope,
       hooks = createArray((original as ClassProvider).hooks),
       when = (original as ClassProvider).when;
 
@@ -68,16 +69,28 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       if (isHook(hooks)) {
         addHook(injector, hooks, when, annotations);
       }
-      return;
+      return { injector, original };
     }
 
     provider = getOrCreateProvider(injector, token);
-    annotations = (original as ClassProvider).annotations || {};
-
     if (isFactoryProvider(original)) {
-      kind = ProviderKind.FACTORY;
-      const inject = convertInjections(original.inject || [], { kind: InjectionKind.FACTORY, function: original.useFactory });
-      factory = { resolver: resolverFactory, data: { factory: original.useFactory, inject } } as FactoryDefinitionFactory;
+      if (isClassFactoryProvider(original)) {
+        kind = ProviderKind.PROVIDER;
+        const clazz = original.useFactory;
+        const definition = ensureInjectable(clazz);
+        if (definition) {
+          const options = definition.options;
+          scope = scope || options.scope;
+          annotations = { ...options.annotations, ...annotations };
+        }
+  
+        const inject = overrideInjections(definition?.injections, original.inject, clazz);
+        factory = { resolver: resolveClassProvider, data: { class: clazz, inject } } as FactoryDefinitionClass;
+      } else {
+        kind = ProviderKind.FACTORY;
+        const inject = convertInjections(original.inject || [], { kind: InjectionKind.FACTORY, function: original.useFactory });
+        factory = { resolver: resolverFactory, data: { factory: original.useFactory, inject } } as FactoryDefinitionFactory;
+      }
     } else if (isValueProvider(original)) {
       kind = ProviderKind.VALUE;
       // scope = SingletonScope;
@@ -94,18 +107,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
 
       const inject = overrideInjections(definition?.injections, original.inject, clazz);
       factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
-    } else if (isClassFactoryProvider(original)) {
-      kind = ProviderKind.PROVIDER;
-      const clazz = original.useFactory;
-      const definition = ensureInjectable(clazz);
-      if (definition) {
-        const options = definition.options;
-        scope = scope || options.scope;
-        annotations = { ...options.annotations, ...annotations };
-      }
-
-      const inject = overrideInjections(definition?.injections, original.inject, clazz);
-      factory = { resolver: resolveClassProvider, data: { class: clazz, inject } } as FactoryDefinitionClass;
     } else if (isExistingProvider(original)) {
       kind = ProviderKind.ALIAS;
       scope = DefaultScope;
@@ -114,9 +115,11 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       // standalone hooks on provider level
       addHook(provider, hooks, when, annotations);
       return { injector, original, provider, definition: undefined };
+    } else {
+      return { injector, original, provider };
     }
 
-    definition = { provider, original, kind, factory, scope, when, hooks, annotations, values: new Map(), meta: {} };
+    definition = { provider, original, kind, factory, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), meta: {} };
   }
 
   handleProviderAnnotations(provider, definition, annotations);
@@ -311,8 +314,31 @@ export function overrideInjections(
   original: InjectionArguments,
   overriding: Array<InjectionItem> | Injections,
   target: Function,
-): InjectionArguments {
+): InjectionArguments;
+export function overrideInjections(
+  original: Array<InjectionArgument>,
+  overriding: Array<InjectionItem>,
+  target: Function,
+): Array<InjectionArgument>;
+export function overrideInjections(
+  original: InjectionArguments | Array<InjectionArgument>,
+  overriding: Array<InjectionItem> | Injections,
+  target: Function,
+): InjectionArguments | Array<InjectionArgument>;
+export function overrideInjections(
+  original: InjectionArguments | Array<InjectionArgument>,
+  overriding: Array<InjectionItem> | Injections,
+  target: Function,
+): InjectionArguments | Array<InjectionArgument> {
   if (!overriding) {
+    return original;
+  }
+
+  if (Array.isArray(original)) {
+    if (Array.isArray(overriding)) {
+      const kind = original.find(inj => inj.metadata?.kind)?.metadata?.kind;
+      return overrideArrayInjections(original, overriding, { kind: kind || InjectionKind.FACTORY, function: target as ((...args: any[]) => any) });
+    }
     return original;
   }
 
@@ -382,7 +408,7 @@ function overridePropertiesAndMethodsInjections(
     });
     getAllKeys(methods).forEach(method => {
       const descriptor = Object.getOwnPropertyDescriptor(descriptorTarget, method);
-      injections.methods[method] = overrideArrayInjections(injections.methods[method], methods[method], { ...metadata, target, key: method, descriptor });
+      injections.methods[method] = overrideArrayInjections(injections.methods[method] || [], methods[method], { ...metadata, target, key: method, descriptor });
     });
   }
 }

@@ -31,9 +31,13 @@ type PluginState = {
 export class ADI {
   static coreInjector: Injector;
   protected static flags: ADIFlags = ADIFlags.NONE;
-  protected static injectors: Set<Injector> = new Set();
   protected static plugins: Map<string, PluginState> = new Map();
   protected static actions: Map<ADIEventKind, Array<(data: ADIEvents[ADIEventKind]) => any>> = new Map();
+  protected static _injectors: Set<Injector> = new Set();
+
+  static get injectors() {
+    return this._injectors;
+  }
 
   static use(plugin: ADIPlugin): typeof ADI {
     const name = plugin.name;
@@ -95,8 +99,9 @@ export class ADI {
     if (!this.actions.has(event)) {
       actions = [];
       this.actions.set(event, actions);
+      return actions;
     }
-    return actions;
+    return this.actions.get(event);
   }
 
   protected static getPlugin(plugin: string | ADIPlugin): PluginState | undefined {
@@ -113,7 +118,22 @@ export class ADI {
   }
 }
 
+function corePlugin(): ADIPlugin {
+  return {
+    name: 'adi:plugin:core',
+    install(adi) {
+      adi.on('module:create', ({ injector }) => {
+        adi.injectors.add(injector);
+      });
+      adi.on('module:destroy', ({ injector }) => {
+        adi.injectors.delete(injector);
+      });
+    }
+  }
+}
+
 export function installADI(coreInjector: Injector) {
   ADI.coreInjector = coreInjector;
+  ADI.use(corePlugin());
   getGlobalThis().ADI = ADI;
 }

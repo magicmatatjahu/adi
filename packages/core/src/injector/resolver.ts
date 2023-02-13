@@ -24,7 +24,7 @@ export function resolve<T>(injector: Injector, session: Session, hooks: Array<In
   const filteredHooks = filterHooks(injector.hooks, session);
   filteredHooks.push(...hooks);
   return wait(
-    runHooks(hooks, session, resolveProvider),
+    runHooks(filteredHooks, session, resolveProvider),
     result => session.result = result,
   );
 }

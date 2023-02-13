@@ -1,4 +1,4 @@
-import type { Injector, InstallPlugin, ProviderToken, InjectionHook, InjectionAnnotations, Session } from '@adi/core';
+import type { Injector, ADIPlugin, ProviderToken, InjectionHook, InjectionAnnotations, Session } from '@adi/core';
 
 let currentInjector: Injector | undefined = undefined;
 function setCurrentInjector(injector: Injector): Injector | undefined {
@@ -26,28 +26,33 @@ export function inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array
   return currentInjector.get(token, hooks, annotations, session) as T;
 }
 
-export function injectPlugin(): InstallPlugin {
-  return (adi) => {
-    adi.on('provider:create', ({ definition }) => {
-      if (!definition) {
-        return;
-      }
+export function injectPlugin(): ADIPlugin {
+  return {
+    name: 'adi:plugin:inject',
+    install(adi, { unsubscribers }) {
+      unsubscribers.push(
+        adi.on('provider:create', ({ definition }) => {
+          if (!definition) {
+            return;
+          }
+        
+          const factory = definition.factory;
+          const injections = factory?.data?.inject;
+          if (!injections) {
+            return;
+          }
     
-      const factory = definition.factory;
-      const injections = factory?.data?.inject;
-      if (!injections) {
-        return;
-      }
-
-      const resolver = factory.resolver;
-      factory.resolver = (injector, session, data) => {
-        const previousInjector = setCurrentInjector(injector);
-        try {
-          return resolver(injector, session, data);
-        } finally {
-          setCurrentInjector(previousInjector);
-        }
-      }
-    });
+          const resolver = factory.resolver;
+          factory.resolver = (injector, session, data) => {
+            const previousInjector = setCurrentInjector(injector);
+            try {
+              return resolver(injector, session, data);
+            } finally {
+              setCurrentInjector(previousInjector);
+            }
+          }
+        })
+      );
+    }
   }
 }

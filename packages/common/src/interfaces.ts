@@ -1,63 +1,75 @@
-import type { ProviderToken, SimplifiedProvider, ClassType, AbstractClassType, InjectionItem, Injections, InjectionHook, ConstraintDefinition, ProviderAnnotations, ScopeType, ModuleImportType, ProviderType } from '@adi/core';
+import type { ProviderToken, InjectionHook, ConstraintDefinition, ProviderAnnotations, ScopeType, ClassType, AbstractClassType, ModuleImportType, ProviderType } from '@adi/core';
 
-export type ProvidesOptions<T = any> = { provide: ProviderToken<T> } & SimplifiedProvider<T>;
+export interface ProvidesOptions<T = any> {
+  provide?: ProviderToken<T>;
+  hooks?: InjectionHook | Array<InjectionHook>;
+  when?: ConstraintDefinition;
+  annotations?: ProviderAnnotations;
+  scope?: ScopeType;
+}
 
 export interface ProvideDefinition {
   prototype: Record<string | symbol, ProvidesOptions>;
   static: Record<string | symbol, ProvidesOptions>;
 }
 
-export interface Provider<T = any> {
-  provide(): T | Promise<T>;
-}
-
-export interface ClassicProvider<T = any> {
-  provide: ProviderToken<T>;
-  useProvider: Provider<T> | ClassType<Provider<T>> | ClassType | AbstractClassType;
-  inject?: Array<InjectionItem | undefined> | Injections;
-  hooks?: InjectionHook | Array<InjectionHook>;
-  when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
-  scope?: ScopeType;
-  imports?: Array<ModuleImportType>;
-  providers?: Array<ProviderType | ClassicProvider>;
-
-  useClass?: never;
-  useFactory?: never;
-  useValue?: never;
-  useExisting?: never;
+export interface CollectionProvider {
+  useCollection: ClassType | AbstractClassType;
 }
 
 declare module '@adi/core' {
   export interface ClassProvider {
     imports?: Array<ModuleImportType>;
-    providers?: Array<ProviderType | ClassicProvider>;
-    useProvider?: never;
+    providers?: Array<ProviderType>;
+    useCollection?: never;
   }
 
   export interface FactoryProvider {
     imports?: Array<ModuleImportType>;
-    providers?: Array<ProviderType | ClassicProvider>;
-    useProvider?: never;
+    providers?: Array<ProviderType>;
+    useCollection?: never;
+  }
+
+  export interface ClassFactoryProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+    useCollection?: never;
   }
 
   export interface ValueProvider {
-    useProvider?: never;
     imports?: never;
     providers?: never;
+    useCollection?: never;
   }
 
   export interface ExistingProvider {
-    useProvider?: never;
     imports?: never;
     providers?: never;
+    useCollection?: never;
   }
 
   export interface HookProvider {
-    useProvider?: never;
     imports?: never;
     providers?: never;
+    useCollection?: never;
   }
 
-  export interface ExtraProvider extends ClassicProvider {}
+  export interface CustomProvider extends CollectionProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+  }
+
+  export interface InjectableOptions {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+  }
+
+  export interface ProviderAnnotations {
+    enhancerTokens?: {
+      interceptor?: ProviderToken;
+      guard?: ProviderToken;
+      exceptionHandler?: ProviderToken;
+      pipe?: ProviderToken;
+    }
+  }
 }

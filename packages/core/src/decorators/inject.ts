@@ -40,7 +40,7 @@ function applyInject(decoratorInfo: Decorator, { token, hooks, annotations }: Pl
   });
 
   const isStatic = argument.metadata.static;
-  const targetObject = target.prototype || target;
+  const targetObject = isStatic ? target : target.prototype;
 
   switch (decoratorInfo.kind) {
     case 'parameter': {

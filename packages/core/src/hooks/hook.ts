@@ -18,10 +18,10 @@ type ReturnHookType<F> = F extends InjectionHook<infer T> ? T : unknown;
 // }
 
 export function createHook<F extends (...args: any) => InjectionHookFn>(hook: F, options?: InjectionHookOptions): (...args: Parameters<F>) => InjectionHook<ReturnHookFnType<F>> {
-  hook[ADI_HOOK_DEF] = true || options;
+  hook[ADI_HOOK_DEF] = options || true;
   return (...args: Parameters<F>) => {
     const fn = hook(...args as any);
-    fn[ADI_HOOK_DEF] = true || options;
+    fn[ADI_HOOK_DEF] = options || true;
     return fn as InjectionHook<ReturnHookFnType<F>>;
   }
 }

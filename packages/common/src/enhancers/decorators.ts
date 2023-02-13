@@ -1,7 +1,7 @@
 import { enhancersMixin, pipeMixin } from './definition';
 
 import type { InjectionItem } from '@adi/core';
-import type { Interceptor, StandaloneInterceptor, Guard, StandaloneGuard, ExceptionHandler, StandaloneExceptionHandler, PipeTransform, StandalonePipeTransform, ExtractorFactory, PipeDecorator } from "./interfaces";
+import type { Interceptor, StandaloneInterceptor, Guard, StandaloneGuard, ExceptionHandler, StandaloneExceptionHandler, PipeTransform, StandalonePipeTransform, ExtractorFactory, PipeDecorator, ExtractorOptions } from "./interfaces";
 
 export function UseInterceptors(...interceptors: Array<InjectionItem | Interceptor | StandaloneInterceptor>) {
   return function(target: Object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) {
@@ -29,6 +29,7 @@ export function Pipe(...pipes: Array<InjectionItem | PipeTransform | StandaloneP
 
 export function createExtractorDecorator<Data = unknown, Result = unknown>(
   factory: ExtractorFactory<Data, Result>,
+  options?: ExtractorOptions,
   // decorators: ParameterDecorator[] = [], // think about it
 ): PipeDecorator {
   return function(data: Data, ...pipes: Array<InjectionItem | PipeTransform | StandalonePipeTransform>) {

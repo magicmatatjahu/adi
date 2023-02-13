@@ -158,14 +158,13 @@ export interface HookProvider<T = any> {
 
   useClass?: never;
   useFactory?: never;
-  useProvider?: never;
   useValue?: never;
   inject?: never;
   scope?: never;
 }
 
 export interface CustomProvider<T = any> {
-  provide: ProviderToken<T>;
+  provide?: ProviderToken<T>;
   annotations?: ProviderAnnotations;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
@@ -388,7 +387,7 @@ export interface ADIPlugin {
 export interface OnProviderCreateEvent { 
   injector: Injector;
   original: ProviderType;
-  provider: ProviderItem;
+  provider?: ProviderItem;
   definition?: ProviderDefinition;
 }
 

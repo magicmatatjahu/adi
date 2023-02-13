@@ -20,7 +20,7 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 
 export function isClassFactoryProvider(provider: unknown): provider is ClassFactoryProvider {
   const factory = (provider as ClassFactoryProvider).useFactory as ClassType<Provider>;
-  return typeof factory?.prototype?.useFactory === 'function';
+  return typeof factory?.prototype?.provide === 'function';
 }
 
 export function isProviderToken(token: unknown): token is ProviderToken {
