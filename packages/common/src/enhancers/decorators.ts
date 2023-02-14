@@ -1,29 +1,28 @@
-import { enhancersMixin, pipeMixin } from './definition';
+import { applyEnhancers, applyPipes } from './definition';
 
-import type { InjectionItem } from '@adi/core';
-import type { Interceptor, StandaloneInterceptor, Guard, StandaloneGuard, ExceptionHandler, StandaloneExceptionHandler, PipeTransform, StandalonePipeTransform, ExtractorFactory, PipeDecorator, ExtractorOptions } from "./interfaces";
+import type { InterceptorType, GuardType, ExceptionHandlerType, PipeTransformType, PipeDecorator, ExtractorFactory, ExtractorOptions } from "./interfaces";
 
-export function UseInterceptors(...interceptors: Array<InjectionItem | Interceptor | StandaloneInterceptor>) {
+export function UseInterceptors(...interceptors: Array<InterceptorType>) {
   return function(target: Object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) {
-    enhancersMixin(interceptors, 'interceptor', target, key, descriptor);
+    applyEnhancers(interceptors, 'interceptor', target, key, descriptor);
   }
 }
 
-export function UseGuards(...guards: Array<InjectionItem | Guard | StandaloneGuard>) {
+export function UseGuards(...guards: Array<GuardType>) {
   return function(target: Object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) {
-    enhancersMixin(guards, 'guard', target, key, descriptor);
+    applyEnhancers(guards, 'guard', target, key, descriptor);
   }
 }
 
-export function UseExceptionHandlers(...handlers: Array<InjectionItem | ExceptionHandler | StandaloneExceptionHandler>) {
+export function UseExceptionHandlers(...handlers: Array<ExceptionHandlerType>) {
   return function(target: Object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) {
-    enhancersMixin(handlers, 'exceptionHandler', target, key, descriptor);
+    applyEnhancers(handlers, 'exceptionHandler', target, key, descriptor);
   }
 }
 
-export function Pipe(...pipes: Array<InjectionItem | PipeTransform | StandalonePipeTransform>) {
-  return function(target: Object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) {
-    enhancersMixin(pipes, 'pipe', target, key, descriptor);
+export function UsePipes(...pipes: Array<PipeTransformType>) {
+  return function(target: Object, key?: string | symbol, descriptorOrIndex?: TypedPropertyDescriptor<any> | number) {
+    applyPipes(pipes, target, key, descriptorOrIndex);
   }
 }
 
@@ -32,9 +31,9 @@ export function createExtractorDecorator<Data = unknown, Result = unknown>(
   options?: ExtractorOptions,
   // decorators: ParameterDecorator[] = [], // think about it
 ): PipeDecorator {
-  return function(data: Data, ...pipes: Array<InjectionItem | PipeTransform | StandalonePipeTransform>) {
+  return function(data: Data, ...pipes: Array<PipeTransformType>) {
     return function(target: Object, key: string | symbol, index: number) {
-      pipeMixin(factory, data, pipes, target, key, index);
+      applyPipes(pipes, target, key, index, factory, data);
     }
   }
 }

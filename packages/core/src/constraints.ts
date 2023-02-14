@@ -40,6 +40,10 @@ export function or(...constraints: Array<ConstraintDefinition>): ConstraintDefin
   return (session) => constraints.some(constraint => constraint(session));
 }
 
+export function not(constraint: ConstraintDefinition): ConstraintDefinition {
+  return (session) => !constraint(session);
+}
+
 export function always() {
   return true;
 }
@@ -55,6 +59,7 @@ export const when = {
   visible,
   and,
   or,
+  not,
   always,
   never,
 }

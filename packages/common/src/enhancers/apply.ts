@@ -1,8 +1,8 @@
-import { wait, waitSequence } from '@adi/core';
+import { wait, waitCallback, waitSequence } from '@adi/core';
 import { injectableDefinitions } from '@adi/core/lib/injector';
 import { getAllKeys } from '@adi/core/lib/utils';
-import { ExecutionContext, executionContextFactory, retrieveExecutionContextArguments, isExecutionContextArgument } from './execution-context';
-import { enhancersDefinitions } from './definition';
+import { ExecutionContext, executionContextFactory, retrieveExecutionContextArguments, setExecutionContextArguments, isExecutionContextArgument } from './execution-context';
+import { enhancersDefinitions, addEnhancersByToken } from './definition';
 import { INTERCEPTORS, GUARDS, EXCEPTION_HANDLERS, PIPES } from './tokens';
 
 import type { Injector, Session, ProviderDefinition, ProviderAnnotations, ProviderToken, ClassType } from "@adi/core";
@@ -20,7 +20,10 @@ export function injectEnhancers(provDefinition: ProviderDefinition) {
     return;
   }
 
-  // applyResolvers(clazz, definition);
+  const injectableDef = injectableDefinitions.get(clazz);
+  const enhancers = injectableDef.options?.annotations?.enhancers;
+
+  applyGlobalEnhancers(definition, enhancers);
   const resolver = factory.resolver;
   factory.resolver = (injector: Injector, session: Session, data: any) => {
     return wait(
@@ -30,25 +33,20 @@ export function injectEnhancers(provDefinition: ProviderDefinition) {
   }
 }
 
-function updateDefinition(clazz: ClassType, definition: EnhancersDefinition) {
-  const injectableDef = injectableDefinitions.get(clazz);
-  let enhancerTokens = injectableDef.options.annotations.enhancerTokens;
-  if (enhancerTokens) {
-    Object.keys(enhancerTokens).forEach(token => {
-      
-    });
+function applyGlobalEnhancers(definition: EnhancersDefinition, enhancers?: ProviderAnnotations['enhancers']) {
+  if (enhancers && enhancers.tokens) {
+    const tokens = enhancers.tokens;
+    tokens.interceptor && addEnhancersByToken([tokens.interceptor], 'interceptor', definition);
+    tokens.guard && addEnhancersByToken([tokens.guard], 'guard', definition);
+    tokens.exceptionHandler && addEnhancersByToken([tokens.exceptionHandler], 'exceptionHandler', definition);
+    tokens.pipe && addEnhancersByToken([tokens.pipe], 'pipe', definition);
   }
+
+  addEnhancersByToken([INTERCEPTORS], 'interceptor', definition);
+  addEnhancersByToken([GUARDS], 'guard', definition);
+  addEnhancersByToken([EXCEPTION_HANDLERS], 'exceptionHandler', definition);
+  addEnhancersByToken([PIPES], 'pipe', definition);
 }
-
-// const globalResolvers: Record<EnhancerKind, EnhancerItem> = {
-//   interceptor: { resolver: (session) =>  },
-// }
-
-// function applyResolvers(clazz: ClassType, definition: EnhancersDefinition) {
-//   const injectableDef = injectableDefinitions.get(clazz);
-//   let enhancerTokens = injectableDef.options.annotations.enhancerTokens;
-//   definition;
-// }
 
 function applyAllEnhancers<T>(instance: T, session: Session, definition: EnhancersDefinition): T {
   const methods = definition.methods;
@@ -75,23 +73,29 @@ function applyEnhancers(instance: any, methodName: string | symbol, enhancers: E
 
   const factory = executionContextFactory(instance, enhancers.ctxMetadata);
   instance[methodName] = applyExecutionContext(instance[methodName], factory);
-  return instance;
 }
 
 type NextEnhancer = (ctx: ExecutionContext) => unknown;
 
+// TODO: Resolve in pararell - create new waitAllSequence await hook
 function applyPipes(enhancers: EnhancersDefinitionMethod['pipes'], next: NextEnhancer, session: Session) {
+  let instances: PipeTransform[][] = [];
   return (ctx: ExecutionContext) => {
     const args = retrieveExecutionContextArguments(ctx);
     return waitSequence(
       enhancers,
-      (singleEnhancers, index) => {
-        if (singleEnhancers) {
-          return wait(
-            resolveEnhancers<PipeTransform>(singleEnhancers.enhancers, session),
-            pipes => runPipes(pipes, ctx, singleEnhancers.metadata, singleEnhancers.extractor, args, index),
-          );
+      (single, index) => {
+        if (instances[index]) {
+          return runPipes(instances[index], ctx, single.metadata, single.extractor, args, index);
         }
+
+        if (!single) {
+          return;
+        }
+        return wait(
+          resolveEnhancers<PipeTransform>(single.enhancers, session),
+          pipes => runPipes((instances[index] = pipes), ctx, single.metadata, single.extractor, args, index),
+        );
       },
       () => next(ctx),
     )
@@ -116,26 +120,43 @@ function runPipes(pipes: PipeTransform[], ctx: ExecutionContext, argument: Argum
 }
 
 function applyInterceptors(enhancers: Array<EnhancerItem>, next: NextEnhancer, session: Session) {
-  return (ctx: ExecutionContext) => wait(
-    resolveEnhancers<Interceptor>(enhancers, session),
-    interceptors => runInterceptors(interceptors, ctx, () => next),
-  );
+  let instances: Interceptor[];
+  return (ctx: ExecutionContext) => {
+    if (instances) {
+      return runInterceptors(instances, ctx, () => next(ctx) as any);
+    }
+
+    return wait(
+      resolveEnhancers<Interceptor>(enhancers, session),
+      interceptors => runInterceptors((instances = interceptors), ctx, () => next(ctx) as any),
+    )
+  };
 }
 
 function runInterceptors(interceptors: Array<Interceptor>, ctx: ExecutionContext, last: () => NextEnhancer) {
-  const length = interceptors.length - 1;
-  const nextInterceptor = (i: number) => {
-    const next = i === length ? last : () => nextInterceptor(i+1);
-    return interceptors[i].intercept(ctx, next);
+  if (interceptors.length) {
+    const length = interceptors.length - 1;
+    const nextInterceptor = (i: number) => {
+      const next = i === length ? last : () => nextInterceptor(i+1);
+      return interceptors[i].intercept(ctx, next);
+    }
+    return nextInterceptor(0);
   }
-  return nextInterceptor(0);
+  return last();
 }
 
 function applyGuards(enhancers: Array<EnhancerItem>, next: NextEnhancer, session: Session) {
-  return (ctx: ExecutionContext) => wait(
-    resolveEnhancers<Guard>(enhancers, session),
-    guards => runGuards(guards, 0, ctx, next),
-  );
+  let instances: Guard[];
+  return (ctx: ExecutionContext) => {
+    if (instances) {
+      return runGuards(instances, 0, ctx, next);
+    }
+
+    return wait(
+      resolveEnhancers<Guard>(enhancers, session),
+      guards => runGuards((instances = guards), 0, ctx, next),
+    )
+  };
 }
 
 function runGuards(guards: Array<Guard>, idx: number, ctx: ExecutionContext, next: NextEnhancer) {
@@ -153,26 +174,39 @@ function runGuards(guards: Array<Guard>, idx: number, ctx: ExecutionContext, nex
 }
 
 function applyExceptionHandlers(enhancers: Array<EnhancerItem>, next: NextEnhancer, session: Session) {
-  return (ctx: ExecutionContext) => wait(
-    resolveEnhancers<ExceptionHandler>(enhancers, session),
-    handlers => runExceptionHandlers(handlers, ctx, next),
-  );
+  let instances: ExceptionHandler[];
+  return (ctx: ExecutionContext) => {
+    if (instances) {
+      return runExceptionHandlers(instances, ctx, next)
+    }
+
+    return wait(
+      resolveEnhancers<ExceptionHandler>(enhancers, session),
+      handlers => runExceptionHandlers((instances = handlers), ctx, next),
+    )
+  };
 }
 
 function runExceptionHandlers(handlers: Array<ExceptionHandler>, ctx: ExecutionContext, next: NextEnhancer) {
-  if (handlers.length === 0) {
-    return;
-  }
-  
-  return wait(
-    next(ctx),
+  return waitCallback(
+    () => next(ctx),
     undefined,
-    (error: Error) => {
-      const shifted = handlers.shift();
-      // TODO: Maybe run all error handlers, not check if given error will throw error? use waitSequence()
-      return runExceptionHandlers(handlers, ctx, () => shifted.catch(error, ctx));
-    }
+    error => runExceptionHandlers(
+      handlers, ctx, () => handleExceptionHandlers(error, handlers, ctx),
+    ),
   );
+}
+
+const noop = () => {};
+function handleExceptionHandlers(error: unknown, handlers: Array<ExceptionHandler>, ctx: ExecutionContext) {
+  if (handlers.length) {
+    const length = handlers.length - 1;
+    const nextHandler = (i: number) => {
+      const next = i === length ? noop : () => nextHandler(i+1);
+      return handlers[i].catch(error, ctx, next);
+    }
+    return nextHandler(0);
+  }
 }
 
 function applyResultFunction(original: Function) {
@@ -181,7 +215,7 @@ function applyResultFunction(original: Function) {
   }
 }
 
-function applyExecutionContext<T>(next: NextEnhancer, factory: ReturnType<typeof executionContextFactory>) {
+function applyExecutionContext(next: NextEnhancer, factory: ReturnType<typeof executionContextFactory>) {
   return function(...args: any[]) {
     const maybeArgument = args[0];
     if (isExecutionContextArgument(maybeArgument)) {
@@ -190,57 +224,28 @@ function applyExecutionContext<T>(next: NextEnhancer, factory: ReturnType<typeof
     }
 
     const ctx = factory('adi:function-call', args);
+    setExecutionContextArguments(ctx, args);
     return next(ctx);
   }
 }
 
-function resolveEnhancers<T>(enhancers: Array<EnhancerItem>, session: Session): T[] {
+// TODO: Resolve in pararell - create new waitAllSequence await hook
+function resolveEnhancers<T>(enhancers: Array<EnhancerItem>, session: Session): T[] | Promise<T[]> {
   return waitSequence(
     enhancers,
-    enhancer => enhancer.resolver(session),
-  ) as T[];
+    enhancer => enhancer.resolver(session) as T,
+    flatAndFilter,
+  )
 }
 
-type HasEnhancerTokens = {
-  global: Record<EnhancerKind, boolean>;
-  custom: Record<EnhancerKind, boolean>;
-}
-
-function hasTokens(tokens: ProviderAnnotations['enhancerTokens'] | undefined, injector: Injector): HasEnhancerTokens | false {
-  const has = { has: false };
-  const hasGlobal: Record<EnhancerKind, boolean> = {
-    interceptor: findTokenInInjectors(INTERCEPTORS, injector, has),
-    guard: findTokenInInjectors(GUARDS, injector, has),
-    exceptionHandler: findTokenInInjectors(EXCEPTION_HANDLERS, injector, has),
-    pipe: findTokenInInjectors(PIPES, injector, has),
-  }
-
-  let hasCustom: Record<EnhancerKind, boolean> = {} as any;
-  if (tokens) {
-    hasCustom = {
-      interceptor: findTokenInInjectors(tokens.interceptor, injector, has),
-      guard: findTokenInInjectors(tokens.guard, injector, has),
-      exceptionHandler: findTokenInInjectors(tokens.exceptionHandler, injector, has),
-      pipe: findTokenInInjectors(tokens.pipe, injector, has),
+function flatAndFilter(value: Array<any | any[]>): any[] {
+  const flatted = [];
+  value.forEach(v => {
+    if (Array.isArray(v)) {
+      flatted.push(...v)
+    } else {
+      flatted.push(v);
     }
-  }
-
-  if (has.has === false) {
-    return false;
-  }
-
-  return {
-    global: hasGlobal,
-    custom: hasCustom,
-  }
-}
-
-function findTokenInInjectors(token: ProviderToken, injector: Injector, has: { has: boolean }) {
-  while (injector) {
-    if (injector.providers.has(token)) {
-      return has.has = true;
-    }
-    injector = injector.parent;
-  }
-  return false;
+  });
+  return flatted.filter(Boolean);
 }

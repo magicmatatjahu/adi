@@ -37,12 +37,16 @@ export type GuardType =
   | StandaloneGuard
   | InjectionItem;
 
-export interface ExceptionHandler<T extends Error = Error, R = any> {
-  catch(error: T, context: ExecutionContext): R | Promise<R>;
+export interface NextExceptionHandler<R = any> {
+  (): R | Promise<R>;
 };
 
-export interface StandaloneExceptionHandler<T extends Error = Error, R = any> {
-  catch(error: T, context: ExecutionContext, ...injections: any[]): R | Promise<R>;
+export interface ExceptionHandler<T = unknown, R = any> {
+  catch(error: T, context: ExecutionContext, next: NextExceptionHandler): R | Promise<R>;
+};
+
+export interface StandaloneExceptionHandler<T = unknown, R = any> {
+  catch(error: T, context: ExecutionContext, next: NextExceptionHandler, ...injections: any[]): R | Promise<R>;
   inject?: Array<InjectionItem>;
 };
 
@@ -107,15 +111,17 @@ export type EnhancersDefinition = {
   readonly methods: Record<string | symbol, EnhancersDefinitionMethod>;
 }
 
+export type EnhancersDefinitionPipe = {
+  readonly enhancers: EnhancerItem[];
+  readonly extractor: ExtractorFactory;
+  readonly metadata: ArgumentMetadata;
+}
+
 export interface EnhancersDefinitionMethod {
   readonly ctxMetadata: ExecutionContextMetadata;
-  readonly metadata: InjectionMetadata;
+  readonly injMetadata: InjectionMetadata;
   readonly interceptors: EnhancerItem[];
   readonly guards: EnhancerItem[];
   readonly exceptionHandlers: EnhancerItem[];
-  readonly pipes: Array<{
-    readonly enhancers: EnhancerItem[];
-    readonly extractor: ExtractorFactory;
-    readonly metadata: ArgumentMetadata;
-  }>;
+  readonly pipes: EnhancersDefinitionPipe[];
 }

@@ -44,6 +44,8 @@ function reassignSession(original: Session, forked: Session, instance: ProviderI
 // uniqueID is used to avoid redecorate the given instance
 let uniqueID = 0;
 
+export const DECORATE_KEY = 'adi:key:decorate';
+
 export const Decorate = createHook((options: DecorateHookOptions) => {
   // decoratorID is added to the every instances with `true` value to avoid redecorate the given instance
   const decorateKey = `adi:key:decorator-${uniqueID++}`;
@@ -68,6 +70,7 @@ export const Decorate = createHook((options: DecorateHookOptions) => {
     delegationKey = options.delegationKey;
     isClass = true;
   }
+  delegationKey = delegationKey || DECORATE_KEY;
 
   return (session, next) => {
     if (session.hasFlag('dry-run')) {
@@ -98,7 +101,10 @@ export const Decorate = createHook((options: DecorateHookOptions) => {
         };
 
         const parent = forked.parent;
-        parent.children.push(forked);
+        if (parent) {
+          parent.children.push(forked);
+        }
+        
         // resolve decorator and save decorated value to the instance value
         return wait(
           resolver(forked, [decorated]),

@@ -1,4 +1,6 @@
-type ClassType = abstract new (...args: any) => any;
+import type { ClassType } from '../interfaces';
+
+// TODO: Add prototype value in decorator info
 
 interface ClassDecorator {
   kind: 'class';

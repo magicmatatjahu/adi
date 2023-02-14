@@ -149,7 +149,7 @@ function processInjector(compiled: CompiledModule) {
   const { input, extracted: { concatenated }, exports } = compiled;
   const parentInjector = compiled.parent?.injector;
 
-  const injector: Injector = compiled.injector || Injector.create(input, undefined, parentInjector);
+  const injector: Injector = compiled.injector = compiled.injector || Injector.create(input, undefined, parentInjector);
   compiled.stack.add(compiled);
 
   concatenated.forEach(item => {

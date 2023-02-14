@@ -1,7 +1,7 @@
 import { Injector, Injectable, Inject, createHook } from "@adi/core";
-import { Decorate, DecorateHookOptions, Delegation, Fallback } from "../../src";
+import { Decorate, DECORATE_KEY, DecorateHookOptions, Delegation, Fallback } from "../../src";
 
-describe.skip('Decorate injection hook', function () {
+describe('Decorate injection hook', function () {
   test('should decorate provider - injection based hook with function case', function () {
     @Injectable()
     class TestService {
@@ -125,7 +125,7 @@ describe.skip('Decorate injection hook', function () {
     class DecoratorService implements TestService {
       constructor(
         @Inject('exclamation') readonly exclamation: string,
-        @Inject([Delegation('decorate')]) public decorated: any,
+        @Inject([Delegation(DECORATE_KEY)]) public decorated: any,
       ) {}
 
       method() {
@@ -165,7 +165,7 @@ describe.skip('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation('decorate')])
+      @Inject([Delegation(DECORATE_KEY)])
       public decorated: any;
 
       constructor(
@@ -217,7 +217,7 @@ describe.skip('Decorate injection hook', function () {
     @Injectable()
     class DecoratorService1 implements TestService {
       constructor(
-        @Inject([Delegation('decorate')]) public decorated: any,
+        @Inject([Delegation(DECORATE_KEY)]) public decorated: any,
         public service: AwesomeService,
       ) {}
 
@@ -230,7 +230,7 @@ describe.skip('Decorate injection hook', function () {
     class DecoratorService2 implements TestService {
       constructor(
         @Inject('exclamation') readonly exclamation: string,
-        @Inject([Delegation('decorate')]) public decorated: any,
+        @Inject([Delegation(DECORATE_KEY)]) public decorated: any,
       ) {}
 
       method() {
@@ -307,7 +307,7 @@ describe.skip('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation('decorate')])
+      @Inject([Delegation(DECORATE_KEY)])
       public decorated: TestService;
 
       constructor(
@@ -366,7 +366,7 @@ describe.skip('Decorate injection hook', function () {
     class DecoratorService implements TestService {
       @Inject([
         TestHook(),
-        Delegation('decorate'),
+        Delegation(DECORATE_KEY),
       ])
       public decorated: TestService;
 
@@ -420,7 +420,7 @@ describe.skip('Decorate injection hook', function () {
         @Inject('exclamation') readonly exclamation: string,
       ) {}
 
-      method(@Inject([Delegation('decorate')]) decorated?: TestService): string {
+      method(@Inject([Delegation(DECORATE_KEY)]) decorated?: TestService): string {
         return decorated?.method() + 'bar' + this.exclamation;
       }
     }
@@ -478,7 +478,7 @@ describe.skip('Decorate injection hook', function () {
     @Injectable()
     class DecoratorService {
       constructor(
-        @Inject([Delegation('decorate')]) readonly service: any,
+        @Inject([Delegation(DECORATE_KEY)]) readonly service: any,
       ) {}
     }
 
@@ -512,7 +512,7 @@ describe.skip('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation('decorate')])
+      @Inject([Delegation(DECORATE_KEY)])
       public decorated: TestService;
 
       constructor(

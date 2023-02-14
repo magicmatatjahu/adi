@@ -1,4 +1,5 @@
 import type { ProviderToken, InjectionHook, ConstraintDefinition, ProviderAnnotations, ScopeType, ClassType, AbstractClassType, ModuleImportType, ProviderType } from '@adi/core';
+import type { ExecutionContext } from './enhancers';
 
 export interface ProvidesOptions<T = any> {
   provide?: ProviderToken<T>;
@@ -65,11 +66,14 @@ declare module '@adi/core' {
   }
 
   export interface ProviderAnnotations {
-    enhancerTokens?: {
-      interceptor?: ProviderToken;
-      guard?: ProviderToken;
-      exceptionHandler?: ProviderToken;
-      pipe?: ProviderToken;
+    enhancers?: {
+      guardCallback?: (ctx: ExecutionContext) => unknown,
+      tokens?: {
+        interceptor?: ProviderToken;
+        guard?: ProviderToken;
+        exceptionHandler?: ProviderToken;
+        pipe?: ProviderToken;
+      }
     }
   }
 }

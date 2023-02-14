@@ -38,6 +38,6 @@ export enum SessionFlag {
   RESOLVED = 1,
   SIDE_EFFECTS = 2,
   DRY_RUN = 4,
-  HAS_DYNAMIC = 8,
+  DYNAMIC = 8,
   CIRCULAR = 16,
 }

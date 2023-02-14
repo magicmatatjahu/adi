@@ -10,5 +10,6 @@ export * from './override';
 export * from './portal';
 export * from './scoped';
 export * from './self';
+export * from './skip-self';
 export * from './transform';
 export * from './value';

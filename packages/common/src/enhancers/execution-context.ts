@@ -20,6 +20,7 @@ export interface ExecutionContextMetadata {
   reflectedTypes?: Array<any>;
 }
 
+// change it to the normal object, not class
 export class ExecutionContext<K extends keyof ExecutionContextKind = keyof ExecutionContextKind> {
   static run<K extends keyof ExecutionContextKind = keyof ExecutionContextKind>(instance: any, method: () => any, type: K, data: ExecutionContextKind[K]) {
     const argument: ExecutionContextArgument = {
@@ -27,7 +28,7 @@ export class ExecutionContext<K extends keyof ExecutionContextKind = keyof Execu
       data,
       [ExecutionContextArgumentSymbol]: true,
     }
-    return method.call(instance, [argument]);
+    return method.apply(instance, [argument]);
   }
   
   public [ExecutionContextArgumentsSymbol]: any[];
@@ -48,6 +49,10 @@ export function executionContextFactory(instance: any, metadata: ExecutionContex
 
 export function retrieveExecutionContextArguments(ctx: ExecutionContext): any[] {
   return ctx[ExecutionContextArgumentsSymbol];
+}
+
+export function setExecutionContextArguments(ctx: ExecutionContext, args: any[]): void {
+  ctx[ExecutionContextArgumentsSymbol] = args;
 }
 
 export function isExecutionContextArgument(value: unknown): value is ExecutionContextArgument {

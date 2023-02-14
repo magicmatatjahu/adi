@@ -25,7 +25,10 @@ export function resolve<T>(injector: Injector, session: Session, hooks: Array<In
   filteredHooks.push(...hooks);
   return wait(
     runHooks(filteredHooks, session, resolveProvider),
-    result => session.result = result,
+    result => {
+      session.setFlag('resolved');
+      return session.result = result
+    },
   );
 }
 

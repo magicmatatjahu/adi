@@ -7,7 +7,7 @@ const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
   'side-effect': SessionFlag.SIDE_EFFECTS,
   'dry-run': SessionFlag.DRY_RUN,
-  'has-dynamic': SessionFlag.HAS_DYNAMIC,
+  'dynamic': SessionFlag.DYNAMIC,
   'circular': SessionFlag.CIRCULAR,
 }
 
@@ -66,5 +66,4 @@ export class Session<T = any> {
   hasFlag(flag: FlagsType) {
     return (this.flags & sessionFlags[flag]) > 0;
   }
-
 }
