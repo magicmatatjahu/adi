@@ -1,6 +1,4 @@
-import { createHook } from "./hook";
-import { Context } from "../injector";
-import { TransientScope } from "../scopes";
+import { createHook, Context, TransientScope } from "@adi/core";
 
 export const New = createHook((data?: Record<string, any>) => {
   return (session, next) => {

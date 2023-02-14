@@ -1,5 +1,5 @@
-import { ADI, Injector, Injectable, Inject, TransientScope, createHook, New } from "@adi/core";
-import { cachePlugin } from "../../../src";
+import { ADI, Injector, Injectable, Inject, TransientScope, createHook } from "@adi/core";
+import { cachePlugin, New } from "../../../src";
 
 describe('Cache plugin', function () {
   const plugin = cachePlugin();

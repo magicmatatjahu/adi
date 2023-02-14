@@ -1,4 +1,5 @@
-import { Injector, Injectable, Inject, Skip } from "../../src";
+import { Injectable, Inject, Injector } from "@adi/core";
+import { Skip } from "../../src";
 
 describe('Skip injection hook', function () {
   test('should skip injection', function () {

@@ -1,6 +1,13 @@
-import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, New, Token } from "../../src";
+import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, Token, createHook, TransientScope } from "../../src";
 
 describe('Context token', function() {
+  const New = createHook(() => {
+    return (session, next) => {
+      session.iOptions.scope = TransientScope;
+      return next(session);
+    }
+  });
+
   test('should work in simple case', function() {
     @Injectable()
     class TestService {

@@ -1,5 +1,5 @@
-import { Injector, Inject, Injectable, New } from "@adi/core";
-import { Factory, Delegation } from "../../src";
+import { Injector, Inject, Injectable } from "@adi/core";
+import { Factory, Delegation, New } from "../../src";
 
 describe('Factory injection hook', function () {
   test('should work - using the New hook', function () {

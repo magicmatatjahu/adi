@@ -1,4 +1,5 @@
-import { Injector, Injectable, Inject, New } from "../../src";
+import { Injectable, Inject, Injector } from "@adi/core";
+import { New } from "../../src";
 
 describe('New injection hook', function () {
   test('should create new instances', function () {

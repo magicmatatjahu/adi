@@ -2,6 +2,7 @@
 
 ## TODO
 
+- think about adding `when` and `provide` as ProviderToken in InjectableDefinition
 - rethink All() hook - for it ADI has "dry-run". Maybe "dry-run" isn't need and we can remove it.
 - rethink dry-run functionality - it should be called not in all hooks, revisit them and check if given hook needs dry-run
 - make something like `reflection-metadata` library but only for ADI
