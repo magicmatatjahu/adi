@@ -1,12 +1,11 @@
 import { InjectionKind } from "@adi/core/lib/enums";
 import { inject as coreInject, createInjectionArgument, convertInjection } from "@adi/core/lib/injector";
 import { HasSideEffect } from "@adi/core/lib/hooks/internal";
-import { getAllKeys } from "@adi/core/lib/utils";
+import { getAllKeys, isPromiseLike, wait } from "@adi/core/lib/utils";
 
 import type { Injector, ProviderInstance, InjectionItem, PlainInjectionItem, InjectionArgument } from "@adi/core";
 
 export type InjectionResult<T = any> = { result: T, instance: ProviderInstance<T>, has: boolean };
-export type InjectionResultMap = { results: Record<string | symbol, any>, instances: Array<ProviderInstance>, hasSideEffect: boolean };
 
 const hasSideEffectHook = HasSideEffect();
 
@@ -16,21 +15,31 @@ export function inject<T>(injector: Injector, injectionItem: PlainInjectionItem)
   return coreInject(injector, arg) as InjectionResult<T>;
 }
 
-export function injectMap(injector: Injector, injections: Record<string | symbol, InjectionArgument>): InjectionResultMap {
+export function injectMap(injector: Injector, injections: Record<string | symbol, InjectionArgument>): [Record<string | symbol, any>, Array<ProviderInstance>, boolean, Array<Promise<any>> | undefined] {
   const results = {};
   const instances = [];
+  let asyncOps: Array<Promise<any> | any> | undefined;
   let hasSideEffect = false;
 
-  const result: InjectionResultMap = { results, instances, hasSideEffect };
   getAllKeys(injections).forEach(key => {
-    const { result, instance, has } = coreInject(injector, injections[key]) as InjectionResult;
-    results[key] = result;
-    instances.push(instance);
-    hasSideEffect = hasSideEffect || has;
-  });
-  result.hasSideEffect = hasSideEffect;
+    const injected = coreInject<InjectionResult>(injector, injections[key]);
+    if (isPromiseLike(injected)) {
+      asyncOps = asyncOps || [];
+      return asyncOps.push(
+        wait(injected, result => {
+          results[key] = result.result;
+          instances.push(result.instance);
+          hasSideEffect = hasSideEffect || result.has;
+        }),
+      );
+    }
 
-  return result;
+    results[key] = injected.result;
+    instances.push(injected.instance);
+    hasSideEffect = hasSideEffect || injected.has;
+  });
+
+  return [results, instances, hasSideEffect, asyncOps];
 }
 
 export function convertMapInjections(injections: Record<string | symbol, InjectionItem>): Record<string | symbol, InjectionArgument> {

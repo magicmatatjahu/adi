@@ -1,5 +1,5 @@
 import { useState, Component } from "react";
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Injectable, TransientScope } from "@adi/core";
 
 import { Module, withInjections } from "../../src";
@@ -234,5 +234,65 @@ describe('withInjections HOC', function() {
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(true);
+  });
+
+  test('should work with async injections', async function() {
+    @Injectable()
+    class DeepService {
+      prop: string = "Deep Service injected";
+    }
+
+    @Injectable()
+    class Service {
+      prop: string = "Service injected";
+    }
+
+    interface ComponentProps {
+      service: Service,
+      deepService: DeepService,
+    }
+
+    const TestComponent: React.FunctionComponent<ComponentProps> = ({ service, deepService }) => {
+      return (
+        <div>
+          <span>{service.prop}!</span>
+          <span>{deepService.prop}!</span>
+        </div>
+      );
+    }
+
+    const InjectionComponent = withInjections(TestComponent, {
+      service: Service,
+      deepService: DeepService,
+    }, {
+      fallback: (<div>Fallback is rendered!</div>),
+    });
+
+    render(
+      <Module 
+        module={{
+          providers: [
+            DeepService,
+            {
+              provide: Service,
+              async useFactory() {
+                return new Service();
+              }
+            }
+          ],
+        }}
+      >
+        <InjectionComponent />
+      </Module>
+    );
+
+    // check if fallback is rendered
+    expect(screen.getByText('Fallback is rendered!')).toBeDefined();
+
+    // check if TestComponent is rendered after initialization of injector
+    await waitFor(() => {
+      expect(screen.getByText('Service injected!')).toBeDefined();
+      expect(screen.getByText('Deep Service injected!')).toBeDefined();
+    });
   });
 });

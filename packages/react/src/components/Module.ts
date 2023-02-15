@@ -7,10 +7,7 @@ import { InjectorContext, createProvider } from "../context";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 import type { InjectorOptions } from "@adi/core";
 
-type InternalState = {
-  injector: Injector | Promise<Injector>;
-  isAsync: boolean;
-}
+type InternalState = [Injector | Promise<Injector>, boolean];
 
 export interface ModuleProps {
   module: InjectorInput | Injector;
@@ -21,27 +18,26 @@ export interface ModuleProps {
 
 export const Module: FunctionComponent<PropsWithChildren<ModuleProps>> = (props) => {
   const ctx = useContext(InjectorContext);
-  const [state, setState] = useState<InternalState>(() => {
+  const [[injector, isAsync], setState] = useState(() => {
     return createInjector(props, ctx?.injector);
   });
 
   useEffect(() => {
-    if (state.isAsync) {
-      wait(state.injector, inj => setState({ injector: inj, isAsync: false }));
+    if (isAsync) {
+      wait(injector, inj => setState([inj, false]));
     }
 
     if (props.cacheId === undefined) {
-      return () => destroyInjector(state.injector);
+      return () => destroyInjector(injector);
     }
   }, []);
 
-  if (state.isAsync) {
-    return props.fallback
-      ? props.fallback as any
-      : null;
+  if (isAsync) {
+    const fallback = props.fallback;
+    return fallback ? fallback : null as any;
   }
 
-  return createProvider(state.injector as Injector, props.children);
+  return createProvider(injector as Injector, props.children);
 }
 
 const cache: Map<string | symbol, Injector> = new Map();
@@ -57,7 +53,7 @@ function createInjector(props: ModuleProps, parentInjector: Injector | undefined
   const cacheId = props.cacheId;
   if (!injector) {
     if (cache.has(cacheId)) {
-      return { injector: cache.get(cacheId), isAsync };
+      return [cache.get(cacheId), isAsync];
     }
 
     const options = props.options || {};
@@ -79,7 +75,7 @@ function createInjector(props: ModuleProps, parentInjector: Injector | undefined
     }
   }
 
-  return { injector, isAsync };
+  return [injector, isAsync];
 }
 
 function destroyInjector(injector: Injector | Promise<Injector>) {
