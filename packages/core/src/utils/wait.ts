@@ -1,4 +1,4 @@
-function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
+export function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
   return maybePromise && typeof maybePromise.then === 'function';
 }
 

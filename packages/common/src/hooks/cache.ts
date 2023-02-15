@@ -8,17 +8,19 @@ export interface CacheHookOptions {
 
 const cache: WeakMap<Injector, WeakMap<InjectionMetadata, any>> = new WeakMap();
 
-function createSubCache(injector: Injector) {
+export function createSubCache(injector: Injector) {
   const subCache = new WeakMap<InjectionMetadata, any>();
   cache.set(injector, subCache);
   return subCache;
 }
 
+export function destroySubCache(injector: Injector) {
+  cache.delete(injector);
+}
+
 function hook(force: boolean = false) {
   return (session: Session, next: NextInjectionHook) => {
-    const injector = session.context.injector;
-    const subCache = cache.get(injector) || createSubCache(injector);
-  
+    const subCache = cache.get(session.context.injector);
     const value = subCache.get(session.iMetadata);
     if (value) {
       return value;
