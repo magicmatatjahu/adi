@@ -15,4 +15,5 @@ export * from './self';
 export * from './skip-self';
 export * from './skip';
 export * from './transform';
+export * from './tuple';
 export * from './value';

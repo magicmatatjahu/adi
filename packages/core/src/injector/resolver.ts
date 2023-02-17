@@ -155,7 +155,12 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
         () => {
           instance.status |= InstanceStatus.RESOLVED;
           // resolve pararell injections
-          instance.meta[promiseResolveMetaKey]?.(instance.value); // fix place for that - it should be called at the end in some first hook
+          if (instance.status & InstanceStatus.PARALLEL) {
+            const meta = instance.meta;
+            meta[promiseResolveMetaKey](instance.value);
+            delete meta[promiseResolveMetaKey];
+            delete meta[promiseDoneMetaKey]
+          }
           return instance.value;
         }
       );
@@ -187,6 +192,11 @@ function resolveParallelInjection(session: Session, instance: ProviderInstance) 
 
   // otherwise parallel injection detected (in async resolution)
   const meta = instance.meta;
+  if (instance.status & InstanceStatus.PARALLEL) {
+    return instance.meta[promiseDoneMetaKey];
+  }
+
+  instance.status |= InstanceStatus.PARALLEL;
   return meta[promiseDoneMetaKey] || (meta[promiseDoneMetaKey] = new Promise(resolve => {
     meta[promiseResolveMetaKey] = resolve;
   }));
@@ -217,10 +227,10 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
       const currentSession = tempSession;
       
       tempSession = tempSession.parent;
-      if (tempSession?.hasFlag('circular')) {
+      if (tempSession?.hasFlag('circular')) { // maybe circular injection is deeper
         while (tempSession) {
           const parent = tempSession.parent;
-          if (!parent || !parent.hasFlag('circular')) {
+          if (!parent || !parent.hasFlag('circular')) { // reassign the circular references to the deeper context
             const sessions = tempSession.annotations[circularSessionsMetaKey];
             const index = (sessions).indexOf(currentSession);
             sessions.splice(index, 0, ...circularSessions);
@@ -242,39 +252,6 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
     circularSessions.push(tempSession);
   }
 
-  // const circularSessions: Array<Session> = [];
-
-
-  // let doBreak = false, tempSession = session;
-  // while (tempSession) {
-  //   if (instance === (tempSession = tempSession.parent)?.ctx.instance) { // found circular references
-  //     doBreak = true;
-  //   }
-
-  //   tempSession.setFlag(SessionFlag.CIRCULAR);
-  //   circularSessions.push(tempSession);
-
-  //   if (doBreak === true) {
-  //     let deeper = false;
-  //     let deeperSession = tempSession;
-  //     while (deeperSession?.parent?.hasFlag(SessionFlag.CIRCULAR)) { // case when circular references are deeper
-  //       deeper = true;
-  //       deeperSession = deeperSession.parent;
-  //     }
-  //     if (deeper) {
-  //       const index = (deeperSession.meta[circularSessionsMetaKey] as any[]).indexOf(tempSession);
-  //       deeperSession.meta[circularSessionsMetaKey].splice(index, 1, ...circularSessions);
-  //     } else {
-  //       tempSession.meta[circularSessionsMetaKey] = circularSessions;
-  //     }
-  //     break;
-  //   } else if (tempSession.meta[circularSessionsMetaKey]) {
-  //     tempSession.meta[circularSessionsMetaKey].pop(); // remove duplication of the last session - it is inside 'circularSessions'
-  //     circularSessions.unshift(...tempSession.meta[circularSessionsMetaKey]);
-  //     delete tempSession.meta[circularSessionsMetaKey];
-  //   }
-  // }
-
   return instance.value = Object.create(proto); // create object from prototype (only classes)
 }
 
@@ -291,38 +268,39 @@ export function injectArray(injector: Injector, dependencies: Array<InjectionArg
   return waitAll(injections);
 }
 
-function injectProperties<T>(injector: Injector, obj: T, properties: Record<string | symbol, InjectionArgument>, session?: Session): Array<void> | Promise<Array<void>> {
+function injectProperties<T>(injector: Injector, instance: T, properties: Record<string | symbol, InjectionArgument>, session?: Session): Array<void> | Promise<Array<void>> {
   const injections = [];
   getAllKeys(properties).forEach(prop => {
     injections.push(wait(
       inject(injector, properties[prop], session),
-      value => obj[prop] = value,
+      value => instance[prop] = value,
     ));
   })
   return waitAll(injections);
 }
 
-function injectMethods<T>(injector: Injector, obj: T, methods: Record<string | symbol, Array<InjectionArgument>>, session: Session): any {
+function injectMethods<T>(injector: Injector, instance: T, methods: Record<string | symbol, Array<InjectionArgument>>, session: Session): any {
   getAllKeys(methods).forEach(methodName => {
     const deps = methods[methodName];
     if (deps.length) {
-      obj[methodName] = injectMethod(injector, obj[methodName], deps, session);
+      instance[methodName] = injectMethod(injector, instance, instance[methodName], deps, session);
     }
   })
 }
 
 // TODO: optimize it by saving non side-effects dependencies
 const sessionHook = SessionHook();
-function injectMethod<T>(injector: Injector, originalMethod: Function, injections: Array<InjectionArgument>, session: Session): Function {
+function injectMethod<T>(injector: Injector, instance: T, originalMethod: Function, injections: Array<InjectionArgument>, session: Session): Function {
   injections = injections.map(injection => ({ ...injection, hooks: [sessionHook, ...injection.hooks] }));
+  const injectionsLength = injections.length;
 
   const cache: any[] = [];
-  return function(this: T, ...args: any[]) {
+  return function(...args: any[]) {
     let dependency: InjectionArgument = undefined;
     const actions: any[] = [];
     const instances: ProviderInstance[] = [];
 
-    for (let i = 0, l = injections.length; i < l; i++) {
+    for (let i = 0; i < injectionsLength; i++) {
       if (args[i] === undefined && (dependency = injections[i])) {
         if (cache[i]) {
           args[i] = cache[i];
@@ -345,7 +323,7 @@ function injectMethod<T>(injector: Injector, originalMethod: Function, injection
     return waitAll(
       actions,
       () => wait(
-        originalMethod.apply(this, args), 
+        originalMethod.apply(instance, args), 
         result => {
           destroy(instances);
           return result;

@@ -123,4 +123,33 @@ describe('async injection', function() {
     expect(service.testService.deepTestService).toBeInstanceOf(DeepTestService);
     expect(service.testService.deepTestService.asyncProvider).toEqual('test value');
   });
+
+  test('should return this same value', async function() {
+    class Service {}
+
+    const injector = Injector.create([
+      {
+        provide: Service,
+        useFactory: async () => {
+          return new Service();
+        },
+      },
+    ]).init() as Injector;
+  
+    const service1 = injector.get(Service);
+    const service2 = injector.get(Service);
+    const service3 = injector.get(Service);
+    const service4 = injector.get(Service);
+    const service5 = injector.get(Service);
+
+    expect(await service1 === await service2).toEqual(true);
+    expect(await service2 === await service3).toEqual(true);
+    expect(await service3 === await service4).toEqual(true);
+    expect(await service4 === await service5).toEqual(true);
+    expect(await service1).toBeInstanceOf(Service);
+    expect(await service2).toBeInstanceOf(Service);
+    expect(await service3).toBeInstanceOf(Service);
+    expect(await service4).toBeInstanceOf(Service);
+    expect(await service5).toBeInstanceOf(Service);
+  });
 });

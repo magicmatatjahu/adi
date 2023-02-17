@@ -15,7 +15,7 @@ export function useInject<T = any>(token: ProviderToken<T>, hooks?: Array<Inject
     const injectArg = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations);
     return inject<T>(injector, injectArg);
   }, [token, hooks, annotations]);
-  useDestroy(instance, has);
   
+  useDestroy(instance, has);
   return result;
 }

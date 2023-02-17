@@ -12,7 +12,8 @@ export enum InstanceStatus {
   RESOLVED = 8,
   DESTROYED = 16,
   DEFINITION_DESTROYED = 32,
-  CIRCULAR = 64,
+  PARALLEL = 64,
+  CIRCULAR = 128,
 }
 
 export enum InjectionKind {
@@ -31,6 +32,7 @@ export enum InjectorStatus {
   PENDING = 1,
   INITIALIZED = 2,
   DESTROYED = 4,
+  PROXY = 8,
 }
 
 export enum SessionFlag {

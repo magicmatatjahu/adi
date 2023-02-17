@@ -123,13 +123,15 @@ function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledMo
 
   const compiled = createCompiledModule(extracted, parent);
   const proxy = compiled.proxy = findModuleInTree(input, parent);
-  if (!proxy) {
-    parent.imports.set(input, compiled);
-  }
   parent.compiled.push(compiled);
 
   const parentInjector = proxy ? proxy.injector : parent.injector;
-  compiled.injector = Injector.create(input, undefined, parentInjector);
+  const injector = compiled.injector = Injector.create(input, undefined, parentInjector);
+  if (proxy) {
+    injector.status |= InjectorStatus.PROXY;
+  } else {
+    parent.imports.set(input, compiled);
+  }
 
   return processExports(compiled);
 }

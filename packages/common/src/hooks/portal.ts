@@ -1,17 +1,6 @@
 import { createHook, wait } from '@adi/core';
 
-import { OVERRIDE_KEY } from './override';
-
-// function override(injector: Injector, deep: boolean) {
-//   return function override(arg: InjectionArgument): InjectionItem {
-//     const basicWrappers = [WithInjector(injector)];
-//     if (arg.wrapper) {
-//       Array.isArray(arg.wrapper) ? basicWrappers.push(...arg.wrapper) : basicWrappers.push(arg.wrapper);
-//     }
-//     deep === true && basicWrappers.unshift(Portal({ deep: true, injector } as any));
-//     return { token: arg.token, wrapper: basicWrappers as Wrapper[] };
-//   }
-// }
+export const PORTAL_KEY = 'adi:key:portal';
 
 export const Portal = createHook(() => {
   return (session, next) => {
@@ -19,9 +8,11 @@ export const Portal = createHook(() => {
       return next(session);
     }
 
-    // set dry-run to retrieve updated session
-    session.hasFlag('dry-run');
-    // session.annotations[OVERRIDE_KEY] = override;
+    // set portal injector and options
+    session.annotations[PORTAL_KEY] = {
+      injector: session.context.injector,
+    }
+
     return wait(
       next(session),
       () => {
