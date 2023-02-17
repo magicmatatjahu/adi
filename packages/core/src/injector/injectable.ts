@@ -75,9 +75,9 @@ function inheritance(target: ClassType | AbstractClassType, definition: Injectab
   return inherited;
 }
 
-function mergeParameters(target: Function, injectionParameters: InjectionArguments['parameters'], parameters: Array<ClassType | AbstractClassType>): void {
-  parameters.forEach((parameter, index) => {
-    injectionParameters[index] = injectionParameters[index] || createInjectionArgument(parameter, undefined, { kind: InjectionKind.PARAMETER, target, index, key: undefined, descriptor: undefined, annotations: {} });
+function mergeParameters(target: Function, injectionParameters: InjectionArguments['parameters'], reflectedParameters: Array<ClassType | AbstractClassType>): void {
+  reflectedParameters.forEach((reflectedParameter, index) => {
+    injectionParameters[index] = injectionParameters[index] || createInjectionArgument(reflectedParameter, undefined, { kind: InjectionKind.PARAMETER, target, index, annotations: {} });
   });
 }
 

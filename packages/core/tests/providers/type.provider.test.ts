@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, injectableMixin, TransientScope, SingletonScope } from "../../src";
+import { Injector, Injectable, Inject, injectableMixin, TransientScope, SingletonScope, Optional, Hook } from "../../src";
 
 describe('ClassType provider (injectable provider)', function() {
   test('should work with class without constructor', function() {
@@ -194,6 +194,85 @@ describe('ClassType provider (injectable provider)', function() {
     const service = injector.get(Service) as Service;
     expect(service.method()).toBeInstanceOf(TestService);
     expect(service.method('passed argument' as any)).toEqual('passed argument');
+  });
+
+  test('should work with method injection - decorator on method', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      @Inject()
+      method(service?: TestService) {
+        return service;
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    expect(service.method()).toBeInstanceOf(TestService);
+    expect(service.method('passed argument' as any)).toEqual('passed argument');
+  });
+
+  test('should work with method injection - decorator on method, reuse hooks case', function() {
+    @Injectable()
+    class TestService1 {}
+
+    @Injectable()
+    class TestService2 {}
+
+    @Injectable()
+    class Service {
+      @Inject(Optional())
+      method(service1?: TestService1, service2?: TestService2) {
+        return [service1, service2];
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService1,
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    const result = service.method();
+    expect(result[0]).toBeInstanceOf(TestService1);
+    expect(result[1]).toEqual(undefined);
+    expect(service.method('passed argument 1' as any, 'passed argument 2' as any)).toEqual(['passed argument 1', 'passed argument 2']);
+  });
+
+  test('should work with method injection - decorator on method, concatenate hooks case', function() {
+    let call = false;
+
+    @Injectable()
+    class TestService1 {}
+
+    @Injectable()
+    class TestService2 {}
+
+    @Injectable()
+    class Service {
+      @Inject(Optional())
+      method(service1?: TestService1, @Inject(Hook((session, next) => { call = true; return next(session); })) service2?: TestService2) {
+        return [service1, service2];
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService1,
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    const result = service.method();
+    expect(result[0]).toBeInstanceOf(TestService1);
+    expect(result[1]).toEqual(undefined);
+    expect(service.method('passed argument 1' as any, 'passed argument 2' as any)).toEqual(['passed argument 1', 'passed argument 2']);
+    expect(call).toEqual(true);
   });
 
   // TODO: wait for promiseDone in pararell injections

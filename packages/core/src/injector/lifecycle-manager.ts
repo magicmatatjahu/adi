@@ -15,9 +15,6 @@ function hasOnDestroyLifecycle(instance: unknown): instance is OnDestroy {
 }
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
-  const injector = session.context.injector;
-  ADI.emit('instance:create', { injector, instance });
-
   const value = instance.value;
   const hooks: undefined | Array<Function> = session.annotations[initHooksMetaKey];
   if (!hooks) {
@@ -26,12 +23,18 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
     }
     return;
   }
-
+  
   delete session.annotations[initHooksMetaKey];
   if (hasOnInitLifecycle(value)) {
     hooks.push(() => value.onInit());
   }
-  return waitSequence(hooks.reverse(), hook => hook(session, [value]));
+
+  const injector = session.context.injector;
+  ADI.emit('instance:create', { injector, instance })
+  return waitSequence(
+    hooks.reverse(), 
+    hook => hook(session, [value]),
+  );
 }
 
 export function processOnInitLifecycle(instance: ProviderInstance) {
@@ -51,9 +54,6 @@ export function processOnInitLifecycle(instance: ProviderInstance) {
 
 export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   const session = instance.session;
-  const injector = session.context.injector;
-  ADI.emit('instance:destroy', { injector, instance });
-
   const value = instance.value;
   if (hasOnDestroyLifecycle(value)) {
     await value.onDestroy();
@@ -65,6 +65,10 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   }
 
   delete instance.meta[destroyHooksMetaKey];
+
+  const injector = session.context.injector;
+  ADI.emit('instance:destroy', { injector, instance });
+
   for (let i = 0, l = hooks.length; i < l; i++) {
     await hooks[i](session, [value]);
   }
@@ -151,22 +155,16 @@ export async function destroyInjector(injector: Injector) {
   const providers = Array.from(injector.providers.values())
     .map(r => r.self).filter(Boolean);
 
-  try {
-    injector.providers.clear();
-    await waitSequence(providers, provider => destroyRecord(provider, { event: 'injector' }));
-  } catch {}
+  injector.providers.clear();
+  await waitSequence(providers, provider => destroyRecord(provider, { event: 'injector' }));
 
   // remove injector from parent imports
   if (injector.parent !== null) {
     injector.parent.imports.delete(injector.input);
-    // const importInParent = injector.parent.imports.get(injector.input);
-    // importInParent && importInParent.delete(injector.options.id);
   }
 
-  try {
-    // then destroy and clean all imported modules
-    const injectors = Array.from(injector.imports.values());
-    injector.imports.clear();
-    return waitSequence(injectors, destroyInjector);
-  } catch {}
+  // then destroy and clean all imported modules
+  const injectors = Array.from(injector.imports.values());
+  injector.imports.clear();
+  return waitSequence(injectors, destroyInjector);
 }
