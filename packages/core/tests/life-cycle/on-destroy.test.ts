@@ -330,7 +330,7 @@ describe('onDestroy', function() {
     expect(order).toEqual(["class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
   });
 
-  test.skip('should works with circular injections - simple dependency graph', async function() {
+  test('should works with circular injections - simple dependency graph', async function() {
     let onDestroyOrder: string[] = [];
 
     @Injectable()
@@ -375,7 +375,7 @@ describe('onDestroy', function() {
     expect(onDestroyOrder).toEqual(['ServiceA', 'ServiceB']);
   });
 
-  test.skip('should work with circular injections - complex dependency graph', async function() {
+  test('should work with circular injections - complex dependency graph', async function() {
     let onDestroyOrder: string[] = [];
 
     @Injectable()

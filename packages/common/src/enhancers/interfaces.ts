@@ -70,8 +70,9 @@ export type PipeTransformType =
   | InjectionItem;
 
 export interface ArgumentMetadata<Data = unknown> {
-  index: number;
+  type: string;
   data: Data;
+  index: number;
   reflectedType: any;
 }
 

@@ -1,4 +1,4 @@
-import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named, ModuleMetadata } from "../../src";
+import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named } from "../../src";
 
 describe('Module', function() {
   test('should be able to create injector from module and instances of the corresponding providers', async function() {

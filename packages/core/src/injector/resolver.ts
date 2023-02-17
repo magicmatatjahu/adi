@@ -5,7 +5,7 @@ import { Session } from './session';
 import { InjectionKind, InstanceStatus } from '../enums';
 import { runHooks, SessionHook } from '../hooks';
 import { circularSessionsMetaKey, promiseResolveMetaKey, promiseDoneMetaKey } from '../private';
-import { NoProviderError } from "../problem";
+import { NoProviderError, CircularReferenceError } from "../problem";
 import { getAllKeys, wait, waitAll } from '../utils';
 
 import type { Injector } from './injector'
@@ -200,12 +200,51 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
 
   const proto = getPrototype(instance);
   if (!proto) {
-    throw new Error("Circular Dependency");
+    throw new CircularReferenceError();
+  }
+  instance.status |= InstanceStatus.CIRCULAR;
+
+  // save sessions to perform initialization of dependencies in proper order
+  const circularSessions: Array<Session> = [];
+  session.setFlag('circular');
+  let tempSession = session;
+  while (tempSession) { 
+    tempSession = tempSession.parent;
+    tempSession.setFlag('circular');
+    const annotations = tempSession.annotations;
+
+    if (instance === tempSession.context.instance) { // found circular references
+      const currentSession = tempSession;
+      
+      tempSession = tempSession.parent;
+      if (tempSession?.hasFlag('circular')) {
+        while (tempSession) {
+          const parent = tempSession.parent;
+          if (!parent || !parent.hasFlag('circular')) {
+            const sessions = tempSession.annotations[circularSessionsMetaKey];
+            const index = (sessions).indexOf(currentSession);
+            sessions.splice(index, 0, ...circularSessions);
+            break;
+          }
+          tempSession = parent;
+        }
+      } else {
+        annotations[circularSessionsMetaKey] = circularSessions;
+      }
+      break;
+    }
+
+    const sessions = annotations[circularSessionsMetaKey];
+    if (sessions) {
+      circularSessions.unshift(...sessions);
+      delete annotations[circularSessionsMetaKey];
+    }
+    circularSessions.push(tempSession);
   }
 
-  instance.status |= InstanceStatus.CIRCULAR;
-  return instance.value = Object.create(proto);
   // const circularSessions: Array<Session> = [];
+
+
   // let doBreak = false, tempSession = session;
   // while (tempSession) {
   //   if (instance === (tempSession = tempSession.parent)?.ctx.instance) { // found circular references
@@ -236,12 +275,12 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
   //   }
   // }
 
-  // return instance.value = Object.create(proto); // create object from prototype (only classes)
+  return instance.value = Object.create(proto); // create object from prototype (only classes)
 }
 
 function getPrototype<T>(instance: ProviderInstance<T>): Object {
   const provider = instance.definition.original;
-  return typeof provider === 'function' ? provider.prototype : provider.useClass;
+  return typeof provider === 'function' ? provider.prototype : provider.useClass.prototype;
 }
 
 export function injectArray(injector: Injector, dependencies: Array<InjectionArgument>, session?: Session): Array<any> | Promise<Array<any>> {

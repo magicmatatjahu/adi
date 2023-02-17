@@ -28,12 +28,13 @@ export function UsePipes(...pipes: Array<PipeTransformType>) {
 
 export function createExtractorDecorator<Data = unknown, Result = unknown>(
   factory: ExtractorFactory<Data, Result>,
+  type: string,
   options?: ExtractorOptions,
   // decorators: ParameterDecorator[] = [], // think about it
 ): PipeDecorator {
   return function(data: Data, ...pipes: Array<PipeTransformType>) {
     return function(target: Object, key: string | symbol, index: number) {
-      applyPipes(pipes, target, key, index, factory, data);
+      applyPipes(pipes, target, key, index, factory, type, data);
     }
   }
 }

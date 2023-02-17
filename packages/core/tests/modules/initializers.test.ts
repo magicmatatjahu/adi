@@ -114,7 +114,7 @@ describe('MODULE_INITIALIZERS provider', function() {
     expect(eagerService === injector.get(Service)).toEqual(true);
   });
 
-  test('should provisions the provider with the `adi:eager=true` annotation', async function() {
+  test('should provisions the provider with the "eager=true" annotation', async function() {
     let foobar: string | undefined;
     let calledTimes: number = 0;
     let eagerService: Service | undefined;

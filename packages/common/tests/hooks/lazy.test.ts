@@ -1,5 +1,5 @@
 import { Injector, Injectable, Inject, Ref } from "@adi/core";
-import { Lazy } from "../../src/hooks";
+import { Decorate, Lazy } from "../../src/hooks";
 
 describe('Lazy injection hook', function () {
   test('should create lazy injection - normal injection.get(...) invocation', function () {
@@ -40,7 +40,7 @@ describe('Lazy injection hook', function () {
     expect(service.lazyService()).toBeInstanceOf(LazyService);
   });
 
-  test.skip('should handle circular reference using additional hooks - using Decorate injection hook', function () {
+  test('should handle circular reference using additional hooks - using Decorate injection hook', function () {
     const onInitOrder: string[] = [];
     let serviceA: ServiceA | undefined;
 
@@ -52,14 +52,14 @@ describe('Lazy injection hook', function () {
         @Inject([
           Ref(() => ServiceB),
           Lazy(),
-          // Decorate({
-          //   decorate(value: ServiceB) {
-          //     if (value.serviceA === serviceA) {
-          //       value.calledFromServiceA = true;
-          //     }
-          //     return value;
-          //   },
-          // }),
+          Decorate({
+            decorate(value: ServiceB) {
+              if (value.serviceA === serviceA) {
+                value.calledFromServiceA = true;
+              }
+              return value;
+            },
+          }),
         ])
         readonly lazyServiceB: () => ServiceB,
       ) {

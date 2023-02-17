@@ -41,8 +41,8 @@ describe('Factory injection hook', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject([Delegation('0')]) readonly stringValue: string,
-        @Inject([Delegation('1')]) readonly numberValue: number,
+        @Inject([Delegation(0)]) readonly stringValue: string,
+        @Inject([Delegation(1)]) readonly numberValue: number,
       ) {}
     }
 
@@ -162,6 +162,135 @@ describe('Factory injection hook', function () {
     expect(await testService1 === await testService2).toEqual(false);
     expect(await testService1 === await testService3).toEqual(false);
     expect(await testService2 === await testService3).toEqual(false);
+  });
+
+  test('should work with custom delegation keys', function () {
+    @Injectable()
+    class TestService {
+      constructor(
+        @Inject('injected') public readonly injected: string, 
+        @Inject([Delegation('foo')]) readonly stringValue: string,
+        @Inject([Delegation('bar')]) readonly numberValue: number,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(TestService, [
+          Factory({ delegations: ['foo', 'bar'] }),
+          New(),
+        ]) 
+        readonly factory: (str: string, nr: number) => TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'injected',
+        useValue: 'injected value',
+      }
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    const testService1 = service.factory("foo", 1);
+    const testService2 = service.factory("bar", 2);
+    expect(testService1 === testService2).toEqual(false);
+    expect(testService1.injected).toEqual('injected value');
+    expect(testService1.stringValue).toEqual('foo');
+    expect(testService1.numberValue).toEqual(1);
+    expect(testService2.injected).toEqual('injected value');
+    expect(testService2.stringValue).toEqual('bar');
+    expect(testService2.numberValue).toEqual(2);
+  });
+
+  test('should work as assisted injection - with Delegate hook and based on reflection types', function () {
+    @Injectable()
+    class TestService {
+      constructor(
+        @Inject('injected') public readonly injected: string, 
+        @Inject([Delegation()]) readonly stringValue: string,
+        @Inject([Delegation()]) readonly numberValue: number,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(TestService, [
+          Factory(),
+          New(),
+        ]) 
+        readonly factory: (str: string, nr: number) => TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'injected',
+        useValue: 'injected value',
+      }
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    const testService1 = service.factory("foo", 1);
+    const testService2 = service.factory("bar", 2);
+    expect(testService1 === testService2).toEqual(false);
+    expect(testService1.injected).toEqual('injected value');
+    expect(testService1.stringValue).toEqual('foo');
+    expect(testService1.numberValue).toEqual(1);
+    expect(testService2.injected).toEqual('injected value');
+    expect(testService2.stringValue).toEqual('bar');
+    expect(testService2.numberValue).toEqual(2);
+  });
+
+  test('should work as assisted injection - with Delegate hook and based on reflection types (mix of custom delegation keys and reflection types)', function () {
+    @Injectable()
+    class TestService {
+      constructor(
+        @Inject('injected') public readonly injected: string, 
+        @Inject([Delegation('second-string')]) readonly stringValue2: string,
+        @Inject([Delegation('first-string')]) readonly stringValue1: string,
+        @Inject([Delegation()]) readonly numberValue: number,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(TestService, [
+          Factory({ delegations: ['first-string', undefined, 'second-string'] }),
+          New(),
+        ]) 
+        readonly factory: (stringValue1: string, nr: number, stringValue2: string, ) => TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'injected',
+        useValue: 'injected value',
+      }
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    const testService1 = service.factory("foo", 1, "bar");
+    const testService2 = service.factory("bar", 2, "foo");
+    expect(testService1 === testService2).toEqual(false);
+    expect(testService1.injected).toEqual('injected value');
+    expect(testService1.stringValue1).toEqual('foo');
+    expect(testService1.stringValue2).toEqual('bar');
+    expect(testService1.numberValue).toEqual(1);
+    expect(testService2.injected).toEqual('injected value');
+    expect(testService2.stringValue1).toEqual('bar');
+    expect(testService2.stringValue2).toEqual('foo');
+    expect(testService2.numberValue).toEqual(2);
   });
 
   test.todo('should destroy instances with Destroyable hook');

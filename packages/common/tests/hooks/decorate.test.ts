@@ -728,4 +728,46 @@ describe('Decorate injection hook', function () {
 
     expect(service.testService1.calledTimes).toEqual(1);
   });
+
+  test('should work with reflected type', async function() {
+    @Injectable()
+    class TestService {
+      method() {
+        return 'foo';
+      }
+    }
+
+    @Injectable()
+    class DecoratorService implements TestService {
+      constructor(
+        @Inject('exclamation') readonly exclamation: string,
+        @Inject(Delegation()) public decorated: TestService, // use type to inject by reflection type
+      ) {}
+
+      method() {
+        return this.decorated.method() + 'bar' + this.exclamation;
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject([Decorate(DecoratorService)]) readonly service: TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'exclamation',
+        useValue: '!',
+      }
+    ]).init() as Injector;
+
+    const service = injector.get(Service) as Service;
+    expect(service.service).toBeInstanceOf(DecoratorService);
+    expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
+    expect(service.service.method()).toEqual('foobar!');
+  });
 });

@@ -3,7 +3,7 @@ import { InstanceScope, LocalScope, Scoped } from "../../src"
 
 import { wait } from "../helpers";
 
-describe.skip('Local scope', function () {
+describe('Local scope', function () {
   test('should inject shared service in the given scope (using toScope option) - nearest case', function () {
     @Injectable({
       scope: LocalScope({ toScope: 'test' }),
@@ -23,7 +23,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween2 {
@@ -37,7 +37,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween1 {
@@ -51,7 +51,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service {
@@ -124,7 +124,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween2 {
@@ -138,7 +138,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween1 {
@@ -152,7 +152,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service {
@@ -225,7 +225,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween2 {
@@ -239,7 +239,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween1 {
@@ -253,7 +253,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service {
@@ -365,7 +365,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class ServiceBetween {
@@ -557,7 +557,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service implements OnDestroy {
@@ -603,7 +603,7 @@ describe.skip('Local scope', function () {
 
     @Injectable({
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service {
@@ -671,7 +671,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service implements OnDestroy {
@@ -715,7 +715,7 @@ describe.skip('Local scope', function () {
 
     @Injectable({
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service {
@@ -756,7 +756,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: TransientScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class TransientService implements OnDestroy {
@@ -828,7 +828,7 @@ describe.skip('Local scope', function () {
     @Injectable({
       scope: SingletonScope,
       annotations: {
-        'adi:local-scope': 'test'
+        localScope: 'test'
       }
     })
     class Service implements OnDestroy {
@@ -840,7 +840,7 @@ describe.skip('Local scope', function () {
     }
 
     const injector = Injector.create([
-      // Service should be destroyed before LocalService - this order is very important, don't change it!
+      // Service should be destroyed before LocalService
       Service,
       TransientService,
       LocalService,

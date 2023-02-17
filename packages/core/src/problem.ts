@@ -20,12 +20,12 @@ export class NoProviderError extends Error {
 
 export class CircularReferenceError extends Error {
   constructor() {
-    super(`Component provider cannot be injected to another provider!`);
+    super(`Circular references detected which cannot be resolved`);
   }
 }
 
 export class ComponentProviderError extends Error {
   constructor() {
-    super(`Compp!`);
+    super(`Component provider cannot be injected to another provider!`);
   }
 }

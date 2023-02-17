@@ -42,8 +42,8 @@ export function processOnInitLifecycle(instance: ProviderInstance) {
       return;
     }
 
-    const circularSessions = session.annotations[circularSessionsMetaKey];  
-    delete session.annotations[circularSessionsMetaKey];
+    const circularSessions = session.annotations[circularSessionsMetaKey] as Array<Session>;
+    circularSessions.push(session);
     return waitSequence(circularSessions, (s: Session) => handleOnInitLifecycle(s, s.context.instance));
   }
   return handleOnInitLifecycle(session, instance);
@@ -100,7 +100,7 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) 
 
 async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: DestroyContext) {
   if (!instances.length) return;
-  return waitSequence(instances, instance => destroy(instance, ctx));
+  return waitSequence(instances, instance => destroyInstance(instance, ctx));
 }
 
 export function destroyRecord(record: Provider, ctx?: DestroyContext) {

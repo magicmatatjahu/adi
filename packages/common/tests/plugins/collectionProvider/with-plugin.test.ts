@@ -224,6 +224,55 @@ describe('Collection provider plugin', function () {
       expect(service.testService1).toBeInstanceOf(TestService1);
       expect(service.testService2).toBeInstanceOf(TestService2);
     });
+
+    test('should reflect types in factories', function () {
+      class TestService1 {}
+      class TestService2 {}
+
+      @Injectable()
+      class Service1 {}
+
+      @Injectable()
+      class Service2 {}
+  
+      class CollectionService {
+        @Provides({ provide: TestService1 })
+        static factory1(service: Service1, @Inject(Service1) service2: Service2) {
+          return [service, service2];
+        }
+
+        @Provides({ provide: TestService2 })
+        static factory2(service: Service1, service2: Service2) {
+          return [service, service2];
+        }
+      }
+  
+      @Injectable()
+      class Service {
+        constructor(
+          public testService1: TestService1,
+          public testService2: TestService2,
+        ) {}
+      }
+  
+      const injector = Injector.create([
+        Service,
+        Service1,
+        Service2,
+        {
+          useCollection: CollectionService,
+        },
+      ]).init() as Injector;
+      
+      const service = injector.get(Service) as Service;
+      expect(service).toBeInstanceOf(Service);
+      expect(service.testService1).toBeInstanceOf(Array);
+      expect(service.testService1[0]).toBeInstanceOf(Service1);
+      expect(service.testService1[1]).toBeInstanceOf(Service1);
+      expect(service.testService2).toBeInstanceOf(Array);
+      expect(service.testService2[0]).toBeInstanceOf(Service1);
+      expect(service.testService2[1]).toBeInstanceOf(Service2);
+    });
   });
 
   describe('should work with prototype factories', function() {
@@ -607,5 +656,55 @@ describe('Collection provider plugin', function () {
     expect(service.testService1.service === CollectionService).toEqual(true);
     expect(service.testService2).toBeInstanceOf(TestService2);
     expect(service.testService2.service).toBeInstanceOf(CollectionService);
+  });
+
+  test('should reflect types in factories', function () {
+    class TestService1 {}
+    class TestService2 {}
+
+    @Injectable()
+    class Service1 {}
+
+    @Injectable()
+    class Service2 {}
+
+    @Injectable()
+    class CollectionService {
+      @Provides({ provide: TestService1 })
+      factory1(service: Service1, @Inject(Service1) service2: Service2) {
+        return [service, service2];
+      }
+
+      @Provides({ provide: TestService2 })
+      factory2(service: Service1, service2: Service2) {
+        return [service, service2];
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        public testService1: TestService1,
+        public testService2: TestService2,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      Service1,
+      Service2,
+      {
+        useCollection: CollectionService,
+      },
+    ]).init() as Injector;
+    
+    const service = injector.get(Service) as Service;
+    expect(service).toBeInstanceOf(Service);
+    expect(service.testService1).toBeInstanceOf(Array);
+    expect(service.testService1[0]).toBeInstanceOf(Service1);
+    expect(service.testService1[1]).toBeInstanceOf(Service1);
+    expect(service.testService2).toBeInstanceOf(Array);
+    expect(service.testService2[0]).toBeInstanceOf(Service1);
+    expect(service.testService2[1]).toBeInstanceOf(Service2);
   });
 });

@@ -37,7 +37,7 @@ describe('Delegation injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Delegation()]) 
+        @Inject([Delegation('default')]) 
         readonly service: TestService,
       ) {}
     }

@@ -1,8 +1,8 @@
-import { Injector, Injectable, Module, ref, when, Inject } from "../../src";
+import { Injector, Injectable, Module, ref, when, Inject, Optional } from "../../src";
 
 import type { ExtendedModule } from '../../src';
 
-describe.skip('Module hierarchy', function() {
+describe('Module hierarchy', function() {
   test('should be able to imports another modules', async function() {
     /*
      *  B C
@@ -52,8 +52,8 @@ describe.skip('Module hierarchy', function() {
     expect(injector).toBeInstanceOf(Injector);
     expect(_service).toBeInstanceOf(Service);
     expect(order).toEqual([
-      'ModuleC',
       'ModuleB',
+      'ModuleC',
       'ModuleA',
     ]);
   });
@@ -101,8 +101,8 @@ describe.skip('Module hierarchy', function() {
     expect(injector).toBeInstanceOf(Injector);
     expect(order).toEqual([
       'ModuleD',
-      'ModuleC',
       'ModuleB',
+      'ModuleC',
       'ModuleA',
     ]);
   });
@@ -122,6 +122,7 @@ describe.skip('Module hierarchy', function() {
 
     @Module({ imports: [ref(() => ModuleB)] })
     class ModuleD {
+      static lol = 'lol';
       constructor() {
         order.push('ModuleD')
       }
@@ -152,8 +153,8 @@ describe.skip('Module hierarchy', function() {
     expect(injector).toBeInstanceOf(Injector);
     expect(order).toEqual([
       'ModuleD',
-      'ModuleC',
       'ModuleB',
+      'ModuleC',
       'ModuleA',
     ]);
   });
@@ -241,7 +242,9 @@ describe.skip('Module hierarchy', function() {
       providers: [ServiceD],
       exports: [ServiceD],
     })
-    class ModuleD {}
+    class ModuleD {
+      static test = 'test';
+    }
 
     @Module({
       providers: [ServiceC],
@@ -276,7 +279,7 @@ describe.skip('Module hierarchy', function() {
      *    A
      */
 
-    let _service: Service | undefined;
+    let service: Service | undefined;
 
     @Injectable()
     class Service {}
@@ -295,15 +298,15 @@ describe.skip('Module hierarchy', function() {
     })
     class ModuleA {
       constructor(
-        readonly service: Service,
+        readonly _service: Service,
       ) {
-        _service = service
+        service = _service
       }
     }
 
     const injector = Injector.create(ModuleA).init();
     expect(injector).toBeInstanceOf(Injector);
-    expect(_service).toBeInstanceOf(Service);
+    expect(service).toBeInstanceOf(Service);
   });
 
   test('should resolve graph with extended module', function() {
@@ -446,7 +449,7 @@ describe.skip('Module hierarchy', function() {
     @Module()
     class ModuleC {
       constructor(
-        @Inject({ 'adi:named': 'foobar' }) 
+        @Inject({ named: 'foobar' }) 
         readonly service: SharedService,
       ) {
         serviceC = service;
@@ -569,6 +572,7 @@ describe.skip('Module hierarchy', function() {
 
     Injector.create(ModuleA).init();
     expect(serviceA).toEqual(SharedService);
+    expect(serviceB).toEqual(SharedService);
   });
 
   test('should export all providers of imported module', function() {
@@ -639,7 +643,7 @@ describe.skip('Module hierarchy', function() {
           extends: ModuleC,
           providers: [ServiceC],
           exports: [ServiceC],
-        } as any
+        }
       ],
       exports: [
         {
@@ -749,7 +753,7 @@ describe.skip('Module hierarchy', function() {
           extends: ModuleC,
           providers: [ServiceC, ServiceNotExported],
           exports: [ServiceC, ServiceNotExported],
-        } as any
+        }
       ],
       exports: [
         {
@@ -806,7 +810,7 @@ describe.skip('Module hierarchy', function() {
           extends: ModuleC,
           providers: [ServiceC],
           exports: [ServiceC],
-        } as any
+        }
       }
     }
 
@@ -870,7 +874,7 @@ describe.skip('Module hierarchy', function() {
             exports: [ServiceC2],
           },
           exports: [ServiceC1],
-        } as any
+        }
       ],
       exports: [
         {
@@ -968,7 +972,7 @@ describe.skip('Module hierarchy', function() {
           exports: [
             Service1
           ]
-        } as any
+        }
       }
 
       static register2(): ExtendedModule {
@@ -980,7 +984,7 @@ describe.skip('Module hierarchy', function() {
           exports: [
             Service2
           ]
-        } as any
+        }
       }
     }
 
@@ -1003,5 +1007,127 @@ describe.skip('Module hierarchy', function() {
     Injector.create(ModuleA).init();
     expect(service1).toBeInstanceOf(Service1);
     expect(service2).toBeInstanceOf(Service2);
+  });
+
+  test('proxy modules should see providers from "original" module', function() {
+    /*
+     *  C
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
+    let fromC: string | undefined; 
+    let fromB: string | undefined; 
+
+    @Module({
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'foobar',
+        }
+      ]
+    })
+    class ModuleC {}
+
+    @Module({
+      imports: [
+        {
+          extends: ModuleC,
+          providers: [
+            {
+              provide: 'exported',
+              useFactory(foobar: string) {
+                return foobar;
+              },
+              inject: ['token'],
+            }
+          ],
+          exports: [
+            'exported',
+          ]
+        }
+      ]
+    })
+    class ModuleB {
+      constructor(
+        @Inject('exported') readonly foobar: string,
+        @Inject('token', Optional()) readonly token: string | undefined,
+      ) {
+        fromB = foobar;
+        fromC = token;
+      }
+    }
+
+    @Module({ 
+      imports: [ModuleB, ModuleC] 
+    })
+    class ModuleA {}
+
+    Injector.create(ModuleA).init();
+    expect(fromB).toEqual('foobar');
+    expect(fromC).toEqual(undefined);
+  });
+
+  // TODO
+  test.skip('proxy modules should see providers from parent module', function() {
+    /*
+     *  C
+     *  |
+     *  B C
+     *   \|
+     *    A
+     */
+
+    let fromB: string | undefined; 
+    let fromBItself: string | undefined; 
+
+    @Module()
+    class ModuleC {}
+
+    @Module({
+      imports: [
+        {
+          extends: ModuleC,
+          providers: [
+            {
+              provide: 'exported',
+              useFactory(foobar: string) {
+                return foobar;
+              },
+              inject: ['token'],
+            }
+          ],
+          exports: [
+            'exported',
+          ]
+        }
+      ],
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'barfoo',
+        }
+      ]
+    })
+    class ModuleB {
+      constructor(
+        @Inject('token') readonly token: string,
+        @Inject('exported') readonly foobar: string,
+      ) {
+        fromBItself = token;
+        fromB = foobar;
+      }
+    }
+
+    @Module({ 
+      imports: [ModuleB, ModuleC] 
+    })
+    class ModuleA {}
+
+    Injector.create(ModuleA).init();
+    expect(fromBItself).toEqual('barfoo');
+    // expect(fromB).toEqual('barfoo');
   });
 });

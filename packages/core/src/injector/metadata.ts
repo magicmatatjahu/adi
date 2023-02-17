@@ -8,7 +8,7 @@ import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { ComponentProviderError } from '../problem';
 import { DefaultScope } from '../scopes';
-import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
+import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken, isPromiseLike } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';

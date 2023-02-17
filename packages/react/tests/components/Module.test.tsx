@@ -112,7 +112,7 @@ describe('Module component', function() {
     expect(screen.getByText('Deep Service injected!')).toBeDefined();
   });
 
-  test.skip('should work with proxy modules', async function() {
+  test('should work with proxy modules', async function() {
     @Injectable()
     class RootService {
       prop: string = "Root Service injected";

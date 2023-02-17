@@ -63,27 +63,31 @@ function extendEnhancers(enhancers: EnhancerType[], enhancerKind: EnhancerKind, 
   method[pluralKind] = [...converted, ...method[pluralKind]];
 }
 
-export function applyPipes(enhancers: PipeTransformType[], target: Object, key?: string | symbol, descriptorOrIndex?: TypedPropertyDescriptor<any> | number, factory?: ExtractorFactory, data?: unknown) {
+export function applyPipes(enhancers: PipeTransformType[], target: Object, key?: string | symbol, descriptorOrIndex?: TypedPropertyDescriptor<any> | number, factory?: ExtractorFactory, type?: string, data?: unknown) {
   const decoratorInfo = getDecoratorInfo(target, key, descriptorOrIndex);
   const definition = enhancersDefinitions.ensure(decoratorInfo.class);
   const decoratorKind = decoratorInfo.kind;
 
   if (decoratorKind === 'parameter') {
     const index = descriptorOrIndex as number;
-    const enhancerKind = 'pipe';
 
     const method = ensureEnhancersMethod(definition, key, decoratorInfo);
     const pipe = ensurePipe(method, decoratorInfo, key, index);
+
     if (factory) {
       (pipe as { extractor: ExtractorFactory }).extractor = factory;
     }
-    pipe.metadata.data = data || pipe.metadata.data;
+    const pipeMetadata = pipe.metadata;
+    pipeMetadata.data = data || pipeMetadata.data;
+    pipeMetadata.type = type || pipeMetadata.type;
     
-    const metadata = method.injMetadata;
-    const newMetadata = { ...metadata, annotations: { ...metadata.annotations, enhancerKind, enhancerLocation: 'parameter' } };
+    const enhancerKind = 'pipe';
+    const injMetadata = method.injMetadata;
+    const newInjMetadata = { ...injMetadata, annotations: { ...injMetadata.annotations, enhancerKind, enhancerLocation: 'parameter' } };
+
     const converted: EnhancerItem[] = [];
     enhancers.forEach(enhancer => {
-      converted.push(convertEnhancers(enhancer, enhancerKind, { ...newMetadata, index }));
+      converted.push(convertEnhancers(enhancer, enhancerKind, { ...newInjMetadata, index }));
     });
     (pipe as { enhancers: EnhancerItem[] }).enhancers = [...converted, ...pipe.enhancers];
   } else if (decoratorKind === 'method') {
@@ -169,8 +173,9 @@ function ensurePipe(method: EnhancersDefinitionMethod, decoratorInfo: Decorator,
 
   const reflectedType = Reflection.getOwnMetadata("design:paramtypes", decoratorInfo.class.prototype, key)[index];
   const metadata: ArgumentMetadata = {
-    index,
+    type: undefined,
     data: undefined,
+    index,
     reflectedType,
   };
 

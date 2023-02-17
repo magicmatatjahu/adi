@@ -80,8 +80,8 @@ export class LocalScope extends Scope<LocalScopeOptions> {
       // Link instances and local instances with references
       // This is the case when a local instance was created dynamically (e.g. by Factory hook with instance with Transient scope in subgraph), 
       // but is not attached to the parent in any way.
+      // TODO: Base such a thing on the ADI hooks - not on links
       (localInstance.links || (localInstance.links = new Set())).add(instance);
-      (instance.parents || (instance.parents = new Set())).add(localInstance);
     }
     return false;
   };
@@ -104,7 +104,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
   private retrieveInstance(session: Session, toToken?: ProviderToken, toScope?: string | symbol): ProviderInstance | undefined {
     const context = session.context;
     const isProviderToken = context.provider.token === toToken;
-    const annotation = context.definition.annotations['local-scope'];
+    const annotation = context.definition.annotations.localScope;
     const instance = context.instance;
 
     // if annotations exists but scope hasn't any options

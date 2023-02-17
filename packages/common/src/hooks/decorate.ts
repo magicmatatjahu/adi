@@ -1,7 +1,7 @@
 import { createHook, wait, InjectionItem, createFunctionResolver } from '@adi/core';
 import { injectableDefinitions } from '@adi/core/lib/injector';
 import { resolverClass } from '@adi/core/lib/injector/resolver';
-import { DELEGATE_KEY } from './delegate';
+import { DELEGATE_KEY, DELEGATE_VALUE } from './delegate';
 
 import type { Session, ClassType, ProviderInstance } from '@adi/core';
 
@@ -89,8 +89,9 @@ export const Decorate = createHook((options: DecorateHookOptions) => {
           return decorated;
         }
 
+        const annotations = forked.annotations;
+        (annotations[DELEGATE_VALUE] = []).push(decorated);
         if (delegationKey) { // classType based decorator
-          const annotations = forked.annotations;
           if (annotations[DELEGATE_KEY]) {
             annotations[DELEGATE_KEY][delegationKey] = decorated;
           } else {
@@ -98,7 +99,7 @@ export const Decorate = createHook((options: DecorateHookOptions) => {
               [delegationKey]: decorated,
             }
           }
-        };
+        }
 
         const parent = forked.parent;
         if (parent) {

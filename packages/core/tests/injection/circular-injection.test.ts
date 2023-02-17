@@ -1,7 +1,7 @@
 import { Injector, Injectable, Inject, Ref, OnInit } from "../../src";
 
 describe('circular injection', function() {
-  test.skip('should handle simple case, when one class needs second and vice versa - with onInit hooks to assert proper order of initialization', function() {
+  test('should handle simple case, when one class needs second and vice versa - with onInit hooks to assert proper order of initialization', function() {
     const onInitOrder: string[] = [];
 
     @Injectable()
@@ -51,7 +51,7 @@ describe('circular injection', function() {
     expect(onInitOrder).toEqual(['ServiceB', 'ServiceA']);
   });
 
-  test.skip('should handle more complex case, A -> B -> C -> D -> A - with onInit hooks to assert proper order of initialization', function() {
+  test('should handle more complex case, A -> B -> C -> D -> A - with onInit hooks to assert proper order of initialization', function() {
     const onInitOrder: string[] = [];
 
     @Injectable()
@@ -136,7 +136,7 @@ describe('circular injection', function() {
     expect(onInitOrder).toEqual(['ServiceD', 'ServiceC', 'ServiceB', 'ServiceA']);
   });
 
-  test.skip('should handle deep circular references, A -> B -> C -> D -> A, and also C -> E -> F -> G -> C (case one) - with onInit hooks to assert proper order of initialization', function() {
+  test('should handle deep circular references, A -> B -> C -> D -> A, and also C -> E -> F -> G -> C (case one) - with onInit hooks to assert proper order of initialization', function() {
     const onInitOrder: string[] = [];
 
     @Injectable()
@@ -288,7 +288,7 @@ describe('circular injection', function() {
   });
 
   // this case is different from case one that ServiceE is on the first argument of the ServiceC's constructor
-  test.skip('should handle deep circular references, A -> B -> C -> D -> A, and also C -> E -> F -> G -> C (case two) - with onInit hooks to assert proper order of initialization', function() {
+  test('should handle deep circular references, A -> B -> C -> D -> A, and also C -> E -> F -> G -> C (case two) - with onInit hooks to assert proper order of initialization', function() {
     const onInitOrder: string[] = [];
 
     @Injectable()
@@ -434,7 +434,7 @@ describe('circular injection', function() {
     expect(service.serviceB.serviceC === service.serviceB.serviceC.serviceE.serviceF.serviceG.serviceC).toEqual(true);
     expect(service.serviceB.serviceC.serviceD.serviceA).toBeInstanceOf(ServiceA);
     expect(service === service.serviceB.serviceC.serviceD.serviceA).toEqual(true);
-    // ServiceD first exec `onInit` function because it is the last provider in the chain of resolution
+    // ServiceG first exec `onInit` function because it is placed at first argument of ServiceC 
     // ServiceC first go to Services E -> F -> G -> C and then to ServiceD
     expect(onInitOrder).toEqual(['ServiceG', 'ServiceF', 'ServiceE', 'ServiceD', 'ServiceC', 'ServiceB', 'ServiceA']);
   });

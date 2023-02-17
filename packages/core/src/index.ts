@@ -47,7 +47,7 @@ export { createHook, All, Ctx, Destroyable, Hook, SessionHook, Named, OnDestroyH
 export { Context, Injector, Session, injectableMixin, moduleMixin, createFunctionResolver } from './injector';
 export { Scope, DefaultScope, SingletonScope, TransientScope, createScope } from './scopes';
 export { InjectionToken, ModuleToken } from './tokens';
-export { ref, resolveRef, wait, waitCallback, waitSequence } from './utils';
+export { ref, resolveRef, wait, waitCallback, waitSequence, waitAll } from './utils';
 export { ADI } from './adi';
 export { MODULE_REF, INITIALIZERS, INJECTOR_CONFIG, STATIC_CONTEXT } from './constants';
 export { when } from './constraints';

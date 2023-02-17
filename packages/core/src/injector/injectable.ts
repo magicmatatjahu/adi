@@ -1,7 +1,7 @@
 import { createInjectionArgument, overrideInjections } from './metadata';
 import { InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
-import { createArray, createDefinition, getAllKeys, Reflection } from '../utils';
+import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
 import type { ClassType, AbstractClassType, InjectableDefinition, Injections, InjectionArguments, InjectionItem } from "../interfaces";
 
@@ -26,7 +26,10 @@ export function injectableMixin(token: InjectableDefinition['token'], options?: 
     const reflectedTypes = Reflection.getOwnMetadata("design:paramtypes", token) || [];
     mergeParameters(token, definition.injections.parameters, reflectedTypes);
 
-    inheritance(token, definition, reflectedTypes);
+    if (isExtended(token)) {
+      inheritance(token, definition, reflectedTypes);
+    }
+    
     if (injections) {
       definition.injections = overrideInjections(definition.injections, injections, token);
     }
@@ -57,11 +60,6 @@ function injectableFactory(): InjectableDefinition {
 }
 
 function inheritance(target: ClassType | AbstractClassType, definition: InjectableDefinition, reflectedTypes: Array<ClassType | AbstractClassType>): InjectableDefinition {
-  // when class is not extended, skip klogic
-  if (target.prototype.__proto__ === Object.prototype) {
-    return;
-  }
-
   const injections = definition.injections;
   const inherited = injectableMixin(Object.getPrototypeOf(target));
   const inheritedInjections = inherited.injections;
