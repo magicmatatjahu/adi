@@ -41,7 +41,21 @@
   "dependencies": {
     "@adi/core": "0.1.0"
   },
+  "peerDependencies": {
+    "@deepkit/type": "^1.0.1-alpha.85",
+    "@deepkit/type-compiler": "^1.0.1-alpha.83"
+  },
+  "peerDependenciesMeta": {
+    "@deepkit/type": {
+      "optional": true
+    },
+    "@deepkit/type-compiler": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@deepkit/type": "^1.0.1-alpha.85",
+    "@deepkit/type-compiler": "^1.0.1-alpha.83",
     "@types/jest": "^29.2.5",
     "@types/node": "^18.11.18",
     "lerna": "^6.4.0",

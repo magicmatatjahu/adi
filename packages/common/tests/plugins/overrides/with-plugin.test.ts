@@ -226,7 +226,7 @@ describe('Overrides plugin with Override injection hook', function () {
     });
   });
 
-  describe.only('Portal injection hook', function() {
+  describe('Portal injection hook', function() {
     test('should work with simple graph - dependency in this same injector', function () {
       @Injectable({
         scope: TransientScope,

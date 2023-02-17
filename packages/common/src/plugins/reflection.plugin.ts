@@ -2,9 +2,9 @@ import { setCurrentInjector } from '../inject';
 
 import type { ADIPlugin } from '@adi/core';
 
-export function injectPlugin(): ADIPlugin {
+export function reflectionPlugin(): ADIPlugin {
   return {
-    name: 'adi:plugin:inject',
+    name: 'adi:plugin:reflection',
     install(adi, { unsubscribers }) {
       unsubscribers.push(
         adi.on('provider:create', ({ definition }) => {
