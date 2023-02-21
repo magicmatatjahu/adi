@@ -40,6 +40,6 @@ export enum SessionFlag {
   RESOLVED = 1,
   SIDE_EFFECTS = 2,
   DRY_RUN = 4,
-  DYNAMIC = 8,
+  DYNAMIC_SCOPE = 8,
   CIRCULAR = 16,
 }

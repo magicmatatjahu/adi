@@ -6,7 +6,7 @@ const hook = Cache();
 
 export function cachePlugin(): ADIPlugin {
   return {
-    name: 'adi:plugin:cache',
+    name: 'adi:plugin:dynamic-scopes',
     install(adi, { unsubscribers }) {
       adi.injectors.forEach(createSubCache);
 

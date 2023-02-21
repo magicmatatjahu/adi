@@ -24,7 +24,6 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
   override getContext(session: Session, options: LocalScopeOptions): Context {
     const parent = session.parent;
-
     if (options.reuseContext === true && session.iOptions.context) {
       return TransientScope.kind.getContext(session, options);
     } else if (!session.parent) {

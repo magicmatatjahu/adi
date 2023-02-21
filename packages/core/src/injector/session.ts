@@ -7,7 +7,7 @@ const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
   'side-effect': SessionFlag.SIDE_EFFECTS,
   'dry-run': SessionFlag.DRY_RUN,
-  'dynamic': SessionFlag.DYNAMIC,
+  'dynamic-scope': SessionFlag.DYNAMIC_SCOPE,
   'circular': SessionFlag.CIRCULAR,
 }
 

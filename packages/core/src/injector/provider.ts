@@ -63,6 +63,11 @@ export function getOrCreateProviderInstance<T>(session: Session): ProviderInstan
   return instance;
 }
 
+export function resolveProviderInstance(instance: ProviderInstance, session: Session) {
+  const scope = instance.scope;
+  return scope.kind.create(session, scope.options);
+}
+
 function filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
   let defaultDefinition: ProviderDefinition;
   for (let i = definitions.length - 1; i > -1; i--) {

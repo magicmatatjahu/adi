@@ -1,60 +1,97 @@
-import { Context, createScope, Scope, SingletonScope, TransientScope } from '@adi/core';
+import { Context, createScope, Scope } from '@adi/core';
 
-import type { Session, ProviderInstance, DestroyContext } from '@adi/core';
+import type { Session, ProviderDefinition, ProviderInstance } from '@adi/core';
+
+type PoolContext = {
+  capacity: number;
+  created: number;
+  free: Array<Context>;
+}
+
+export interface OnPool {
+  onGetFromPool?(): void | Promise<void>;
+  onReturnToPool?(): void | Promise<void>;
+}
 
 export interface PooledScopeOptions {
-  reuseContext?: boolean;
+  capacity?: number;
   canBeOverrided?: boolean;
 }
 
+const poolMetaKey = 'adi:key:pool';
+
+function hasOnGetFromPool(instance: unknown): instance is OnPool {
+  return instance && typeof (instance as OnPool).onGetFromPool === 'function';
+}
+
+function hasOnReturnToPool(instance: unknown): instance is OnPool {
+  return instance && typeof (instance as OnPool).onReturnToPool === 'function';
+}
+
 export class PooledScope extends Scope<PooledScopeOptions> {
-  private contexts = new WeakMap<Context | ProviderInstance, Context | ProviderInstance>();
+  protected pools = new WeakMap<ProviderDefinition, PoolContext>();
 
   override get name(): string {
     return "adi:scope:pooled";
   }
 
   override getContext(session: Session, options: PooledScopeOptions): Context {
-    const parent = session.parent;
-    if (options.reuseContext === true && session.iOptions.context) {
-      return TransientScope.kind.getContext(session, options);
-    } else if (!parent) {
-      return SingletonScope.kind.getContext(session, SingletonScope.options);
+    const definition = session.context.definition;
+    const pool = this.getPool(definition, options);
+    
+    // get context from the beginning - pool should behaves as fifo queue, first in first out
+    let context = pool.free.shift();
+    if (!context) {
+      if (pool.capacity === pool.created) {
+        context = new Context(undefined, undefined, { [poolMetaKey]: 'redundant' });
+      } else {
+        pool.created++;
+        context = new Context(undefined, undefined, { [poolMetaKey]: 'default' });
+      }
+    } else {
+      const value = definition.values.get(context)?.value;
+      if (hasOnGetFromPool(value)) {
+        value.onGetFromPool();
+      }
     }
     
     session.setFlag('side-effect');
-    const parentInstance = parent.context.instance;
-    let context = this.contexts.get(parentInstance) as Context;
-    if (context === undefined) {
-      context = new Context();
-      this.contexts.set(parentInstance, context);
-      this.contexts.set(context, parentInstance);
-    }
     return context;
   }
 
-  override shouldDestroy(instance: ProviderInstance, options: PooledScopeOptions, destroyCtx: DestroyContext): boolean {
-    const context = instance.context;
-    
-    // passed custom context - treat scope as Transient
-    if (!this.contexts.has(context)) {
-      return TransientScope.kind.shouldDestroy(instance, options, destroyCtx);
+  override shouldDestroy(instance: ProviderInstance): boolean {
+    const { context, definition, value } = instance;
+    const pool = this.pools.get(definition);
+
+    let shouldDestroy: boolean = false;
+    if (context.meta[poolMetaKey] === 'redundant') {
+      shouldDestroy = true;
+    } else {
+      pool.free.push(context);
     }
 
-    // when no parent
-    if (instance.parents === undefined || instance.parents.size === 0) {
-      const parentInstance = this.contexts.get(context);
-      this.contexts.delete(parentInstance);
-      this.contexts.delete(context);
-      return true;
+    if (hasOnReturnToPool(value)) {
+      value.onReturnToPool();
     }
-
-    return false;
+    return shouldDestroy;
   };
 
-  override canBeOverrided(session: Session<any>, options: PooledScopeOptions): boolean {
+  override canBeOverrided(_: Session<any>, options: PooledScopeOptions): boolean {
     return options.canBeOverrided;
+  }
+
+  protected getPool(definition: ProviderDefinition, options: PooledScopeOptions): PoolContext {
+    let pool = this.pools.get(definition);
+    if (!pool) {
+      pool = {
+        capacity: options.capacity || 10,
+        created: 0,
+        free: [],
+      }
+      this.pools.set(definition, pool);
+    }
+    return pool;
   }
 }
 
-export default createScope<PooledScopeOptions>(new PooledScope(), { reuseContext: true, canBeOverrided: true });
+export default createScope<PooledScopeOptions>(new PooledScope(), { canBeOverrided: true, capacity: 10 });

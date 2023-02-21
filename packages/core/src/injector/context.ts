@@ -6,6 +6,7 @@ export class Context<D extends Record<string | symbol, unknown> = Record<string 
   constructor(
     private readonly data: D = {} as D,
     public readonly name?: string,
+    public readonly meta?: any,
   ) {}
 
   get(): D;

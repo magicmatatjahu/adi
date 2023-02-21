@@ -1,6 +1,6 @@
 import { processOnInitLifecycle, destroy } from './lifecycle-manager';
 import { convertInjections, filterHooks, getTreeshakableProvider } from './metadata';
-import { getOrCreateProviderInstance } from './provider';
+import { getOrCreateProviderInstance, resolveProviderInstance } from './provider';
 import { Session } from './session';
 import { InjectionKind, InstanceStatus } from '../enums';
 import { runHooks, SessionHook } from '../hooks';
@@ -141,29 +141,33 @@ export function resolveInstance<T>(session: Session): T | Promise<T> {
   }
 
   instance.status |= InstanceStatus.PENDING;
-  const { definition: { factory }, injector } = context;
+  const { injector, definition: { factory } } = session.context;
+
   return wait(
     factory.resolver(injector, session, factory.data),
-    value => {
-      if (instance.status & InstanceStatus.CIRCULAR) {
-        value = Object.assign(instance.value, value);
-      }
+    //resolveProviderInstance(instance, session),
+    value => handleInstance(value, instance),
+  );
+}
 
-      instance.value = value;
-      return wait(
-        processOnInitLifecycle(instance),
-        () => {
-          instance.status |= InstanceStatus.RESOLVED;
-          // resolve pararell injections
-          if (instance.status & InstanceStatus.PARALLEL) {
-            const meta = instance.meta;
-            meta[promiseResolveMetaKey](instance.value);
-            delete meta[promiseResolveMetaKey];
-            delete meta[promiseDoneMetaKey]
-          }
-          return instance.value;
-        }
-      );
+function handleInstance(value: any, instance: ProviderInstance) {
+  if (instance.status & InstanceStatus.CIRCULAR) {
+    value = Object.assign(instance.value, value);
+  }
+
+  instance.value = value;
+  return wait(
+    processOnInitLifecycle(instance),
+    () => {
+      instance.status |= InstanceStatus.RESOLVED;
+      // resolve pararell injections
+      if (instance.status & InstanceStatus.PARALLEL) {
+        const meta = instance.meta;
+        meta[promiseResolveMetaKey](instance.value);
+        delete meta[promiseResolveMetaKey];
+        delete meta[promiseDoneMetaKey]
+      }
+      return instance.value;
     }
   );
 }

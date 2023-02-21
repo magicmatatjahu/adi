@@ -8,7 +8,7 @@ export interface InstanceScopeOptions {
 }
 
 export class InstanceScope extends Scope<InstanceScopeOptions> {
-  private contexts = new WeakMap<Context | ProviderInstance, Context | ProviderInstance>();
+  protected contexts = new WeakMap<Context | ProviderInstance, Context | ProviderInstance>();
 
   override get name(): string {
     return "adi:scope:instance";
