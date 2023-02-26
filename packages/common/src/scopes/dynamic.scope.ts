@@ -1,59 +1,119 @@
-import { Scope } from "@adi/core";
+import { wait, Scope, createHook } from "@adi/core";
+import { InstanceStatus } from '@adi/core/lib/enums';
+import { DYNAMIC_CONTEXT } from '../constants';
+import { DeepProxy } from '../utils';
 
-import type { Context, Session } from '@adi/core';
+import type { Session, Context, ProviderDefinition, ProviderInstance, DestroyContext } from '@adi/core';
 
-export function applyDynamicScope(session: Session) {
-  let parent = session.parent;
-  if (parent.hasFlag('dynamic-scope')) {
-    return;
-  }
-
-  while (parent) {
-    parent.setFlag('dynamic-scope');
-    parent = parent.parent;
-  }
-}
-
-// export function createDynamicScopeProxy(){
-//   return new Proxy(() => null, {
-//     apply(_, thisArg, argArray) {
-//         return getProvider().apply(thisArg, argArray);
-//     },
-//     get(_, prop) {
-//         return getProvider()[prop];
-//     },
-//     set(_, prop, value) {
-//         return (getProvider()[prop] = value);
-//     },
-//     ownKeys() {
-//         return Reflect.ownKeys(getProvider());
-//     },
-//     getPrototypeOf() {
-//         return Reflect.getPrototypeOf(getProvider());
-//     },
-//     getOwnPropertyDescriptor(_, prop) {
-//         return Reflect.getOwnPropertyDescriptor(getProvider(), prop);
-//     },
-//     has(_, prop) {
-//         return Reflect.has(getProvider(), prop);
-//     },
-//   });
-// }
-
-export abstract class DynamicScope<O> extends Scope<O> {
-  override create(session: Session<any>, options: O) {
+export abstract class DynamicScope<O = any> extends Scope<O> {
+  // override getContext(session: Session<any>, options: O): Context {
     
+  // }
+
+  protected getDynamicContext(session: Session) {
   }
 
-  protected assignAnnotations(session: Session) {
+  override shouldDestroy(_: ProviderInstance<any>, __: O, context: DestroyContext): boolean {
+    return context.event === 'manually';
+  }
+
+  protected applyDynamicContext(session: Session) {
     let parent = session.parent;
-    if (parent.hasFlag('dynamic-scope')) {
+    if (!parent || parent.hasFlag('dynamic-scope')) {
       return;
     }
 
+    const proxy = {};
+    const scopeData = { scope: this, proxy, session };
+    setDynamicInstance(session.context.definition, proxy);
     while (parent) {
       parent.setFlag('dynamic-scope');
+      const meta = parent.meta;
+      const scopes = meta[dynamicScopeMetaKey] = meta[dynamicScopeMetaKey] || (meta[dynamicScopeMetaKey] = new Map());
+      scopes.set(proxy, scopeData);
       parent = parent.parent;
     }
+    return DYNAMIC_CONTEXT;
   }
+}
+
+const dynamicScopeMetaKey = 'adi:key:dynamic-scope';
+const dynamicScopeValue = {};
+
+export function setDynamicInstance(definition: ProviderDefinition, value: any): void {
+  const values = definition.values;
+  if (values.has(DYNAMIC_CONTEXT)) {
+    return;
+  }
+
+  values.set(DYNAMIC_CONTEXT, {
+    definition,
+    context: DYNAMIC_CONTEXT,
+    value,
+    status: InstanceStatus.RESOLVED,
+    scope: definition.scope,
+    session: null,
+    parents: undefined,
+    links: undefined,
+    meta: dynamicScopeValue,
+  });
+}
+
+export const DynamicScopeHook = createHook(() => {
+  return (session, next) => {
+    return wait(
+      next(session),
+      value => {
+        if (session.hasFlag('dynamic-scope')) {
+          // if (!pa)
+          return createDynamicScopeProxy(value, session);
+        }
+        return value;
+      }
+    )
+  }
+}, { name: 'adi:hook:dynamic-scope' });
+
+export function runInDynamicContext() {
+
+}
+
+export function createDynamicScopeProxy(value: any, session: Session) {
+  console.log(session);
+  return new DeepProxy(value, {
+    // apply(_, thisArg, argArray) {
+    //     return getProvider().apply(thisArg, argArray);
+    // },
+    get(_, prop) {
+      const v = value[prop];
+      console.log(v);
+      if (v === dynamicScopeValue) {
+        console.log(v);
+      }
+      return v;
+    },
+    set(_, prop, value) {
+      return (value[prop] = value);
+    },
+    ownKeys() {
+      return Reflect.ownKeys(value);
+    },
+    getPrototypeOf() {
+      return Reflect.getPrototypeOf(value);
+    },
+    getOwnPropertyDescriptor(_, prop) {
+      return Reflect.getOwnPropertyDescriptor(value, prop);
+    },
+    has(_, prop) {
+      return Reflect.has(value, prop);
+    },
+  });
+}
+
+function createDynamicInstances() {
+
+}
+
+function createDynamicInstance() {
+
 }

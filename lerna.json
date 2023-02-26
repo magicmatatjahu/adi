@@ -2,7 +2,7 @@
   "lerna": "3.15.0",
   "version": "0.2.0",
   "npmClient": "npm",
-  "packages": ["packages/core", "packages/common", "packages/react", "packages/angular"],
+  "packages": ["packages/core", "packages/common", "packages/react", "packages/adapters"],
   "command": {
     "publish": {
       "message": "Bump version to %s"

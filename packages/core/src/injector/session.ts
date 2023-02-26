@@ -25,6 +25,7 @@ export class Session<T = any> {
 
   private flags: SessionFlag = SessionFlag.NONE;
   public result: any;
+  public readonly meta: Record<string, any> = {};
   public readonly children: Array<Session> = [];
 
   constructor(
