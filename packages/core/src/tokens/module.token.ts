@@ -7,6 +7,6 @@ export class ModuleToken {
     metadata?: ModuleMetadata,
     public readonly name?: string,
   ) {
-    this[ADI_MODULE_DEF] = metadata;
+    this[ADI_MODULE_DEF] = metadata || {};
   }
 };

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common/constants';
 
 import type { ClassType, InjectionItem, Injections, PlainInjectionItem, InjectionHook, ProviderToken } from "@adi/core";
-import type { ScopeOptions, InjectionToken, OptionalFactoryDependency } from '@nestjs/common';
+import type { ScopeOptions, InjectionToken, OptionalFactoryDependency, DynamicModule } from '@nestjs/common';
 
 export function reflectClassInjections(type: ClassType): Injections {
   return {
@@ -31,8 +31,11 @@ export function reflectModule(type: ClassType) {
   }
 }
 
-export function isGlobalModule(type: ClassType): boolean {
-  return Reflection.getMetadata(SCOPE_OPTIONS_METADATA, type);
+export function isGlobalModule(type: ClassType, dynamicMetadata?: Partial<DynamicModule>): boolean {
+  if (dynamicMetadata && dynamicMetadata.global) {
+    return true;
+  }
+  return Boolean(Reflection.getMetadata(SCOPE_OPTIONS_METADATA, type));
 }
 
 export function convertFactoryDependencies(dependencies: Array<InjectionToken | OptionalFactoryDependency>): Array<PlainInjectionItem> {

@@ -1,4 +1,4 @@
-import { setCurrentInjector } from '../inject';
+import { setCurrentContext } from '../inject';
 
 import type { ADIPlugin } from '@adi/core';
 
@@ -20,11 +20,11 @@ export function injectPlugin(): ADIPlugin {
     
           const resolver = factory.resolver;
           factory.resolver = (injector, session, data) => {
-            const previousInjector = setCurrentInjector(injector);
+            const previosuContext = setCurrentContext({ injector, session });
             try {
               return resolver(injector, session, data);
             } finally {
-              setCurrentInjector(previousInjector);
+              setCurrentContext(previosuContext);
             }
           }
         })

@@ -25,6 +25,7 @@ export class Injector {
   public readonly imports = new Map<InjectorInput, Injector>();
   public readonly providers = new Map<ProviderToken, { self: Provider, imported?: Array<Provider> }>();
   public readonly hooks: Array<HookRecord> = [];
+  public readonly meta: Record<string | symbol, any> = {};
 
   constructor(
     public readonly input: InjectorInput = [],

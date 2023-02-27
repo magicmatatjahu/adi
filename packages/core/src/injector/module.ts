@@ -118,7 +118,7 @@ function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledMo
   // doesn't have input - no module type (class, module token or extended module)
   const input = extracted.input;
   if (!input) {
-    return
+    return;
   }
 
   const compiled = createCompiledModule(extracted, parent);

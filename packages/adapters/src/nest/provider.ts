@@ -49,6 +49,7 @@ export function processProvider(provider: Provider): ProviderType {
       useValue: provider.useValue,
       annotations: {
         nestAdapter: true,
+        eager: true,
       },
     }
   } else if ('useExisting' in provider) {
@@ -57,6 +58,7 @@ export function processProvider(provider: Provider): ProviderType {
       useExisting: provider.useExisting,
       annotations: {
         nestAdapter: true,
+        eager: true,
       },
     }
   }

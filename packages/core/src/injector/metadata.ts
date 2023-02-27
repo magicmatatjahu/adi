@@ -8,7 +8,7 @@ import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { ComponentProviderError } from '../problem';
 import { DefaultScope } from '../scopes';
-import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken, isPromiseLike } from '../utils';
+import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
@@ -84,7 +84,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
           annotations = { ...options.annotations, ...annotations };
         }
   
-        const inject = overrideInjections(definition?.injections, original.inject, clazz);
+        const inject = overrideInjections(definition?.injections || createClassInjections(), original.inject, clazz);
         factory = { resolver: resolveClassProvider, data: { class: clazz, inject } } as FactoryDefinitionClass;
       } else {
         kind = ProviderKind.FACTORY;
@@ -105,7 +105,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
         annotations = { ...options.annotations, ...annotations };
       }
 
-      const inject = overrideInjections(definition?.injections, original.inject, clazz);
+      const inject = overrideInjections(definition?.injections || createClassInjections(), original.inject, clazz);
       factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
     } else if (isExistingProvider(original)) {
       kind = ProviderKind.ALIAS;
@@ -417,6 +417,14 @@ export function getHostInjector(session: Session): Injector | undefined {
   if (session.parent) return session.parent.context.provider.host;
   if (session.iMetadata.kind === InjectionKind.STANDALONE) return session.iMetadata.target as Injector;
   return;
+}
+
+function createClassInjections(): InjectionArguments {
+  return {
+    parameters: [],
+    properties: {},
+    methods: {},
+  }
 }
 
 const useExistingHook = createHook((token: ProviderToken) => {
