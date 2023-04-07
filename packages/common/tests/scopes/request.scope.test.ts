@@ -30,7 +30,6 @@ describe('Request scope', function () {
       Service,
     ]).init() as Injector;
 
-    const service = injector.get(Service) as Service;
-    console.log(service.requestService);
+    // const service = injector.get(Service) as Service;
   });
 });

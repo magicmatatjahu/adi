@@ -7,7 +7,7 @@ import { createDefinition, wait, waitSequence, resolveRef, isModuleToken } from 
 import { ADI_MODULE_DEF } from '../private';
 
 import type { Provider } from './provider';
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument } from "../interfaces";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument, ExportedProvider } from "../interfaces";
 import type { ModuleToken } from '../tokens';
 
 export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
@@ -178,12 +178,17 @@ function processInjector(compiled: CompiledModule) {
   exports.forEach(exportItem => processNormalExport(exportItem, injector, parentInjector));
 }
 
-function processNormalExport(exportItem: ProviderToken | ProviderType | ExportedModule, from: Injector, to: Injector): void {
+function processNormalExport(exportItem: ProviderToken | ProviderType | ExportedModule | ExportedProvider, from: Injector, to: Injector): void {
   // exported module or provider
   if (typeof exportItem === 'object') {
     // from module exports case
     if ((exportItem as ExportedModule).from) {
       return processModuleExports(exportItem as ExportedModule, from, to);
+    }
+
+    // reexport case
+    if ((exportItem as ExportedProvider).export) {
+      return processReExports(exportItem as ExportedProvider, from, to);
     }
 
     // object provider case
@@ -209,8 +214,9 @@ function processNormalExport(exportItem: ProviderToken | ProviderType | Exported
   };
 }
 
+// TODO: Handle named definition exports
 function processModuleExports(exportedModule: Exclude<ExportedModule, ForwardReference>, from: Injector, to: Injector) {
-  const { from: fromExported, providers } = exportedModule;
+  const { from: fromExported, exports: providers } = exportedModule;
   const fromInjector = from.imports.get(resolveRef(fromExported));
   if (!fromInjector) {
     throw Error(`Cannot export from ${module} module`);
@@ -231,17 +237,29 @@ function processModuleExports(exportedModule: Exclude<ExportedModule, ForwardRef
   });
 }
 
-function shouldExportProvider(provider: Provider, fromInjector: Injector, token: ProviderToken, providers: Array<ProviderToken> | undefined) {
+function processReExports(exportedProvider: ExportedProvider, from: Injector, to: Injector) {
+  // TODO: Handle named definition exports
+}
+
+function shouldExportProvider(provider: Provider, fromInjector: Injector, token: ProviderToken, providers: ExportedModule['exports'] | undefined) {
   return (provider.host === fromInjector) && (!providers || providers.includes(token));
 }
 
-function importProvider(injector: Injector, token: ProviderToken, provider: Provider) {
+function importProvider(injector: Injector, token: ProviderToken, provider: Provider, defName?: string | symbol | object) {
+  const hostProvider = getProvider(injector, token);
+  hostProvider.imported.push(provider);
+}
+
+function getProvider(injector: Injector, token: ProviderToken) {
   let hostProvider = injector.providers.get(token);
   if (!hostProvider) {
     hostProvider = { self: undefined, imported: [] };
     injector.providers.set(token, hostProvider);
   }
-  (hostProvider.imported || (hostProvider.imported = [])).push(provider);
+  if (!hostProvider.imported) {
+    hostProvider.imported = [];
+  }
+  return hostProvider;
 }
 
 function retrieveMetadata(maybeModule: ModuleImportType) {

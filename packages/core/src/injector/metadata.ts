@@ -26,18 +26,20 @@ export function processProviders<T>(host: Injector, providers: Array<ProviderTyp
   const processed: Array<ProcessProviderResult> = [];
   providers.forEach(provider => {
     const result = processProvider(host, provider);
-    result && processed.push(result);
+    if (result !== undefined) {
+      processed.push(result);
+    }
   });
 
   ADI.emitAll('provider:create', processed);
   return processed;
 }
 
-// TODO: Return add definition from hook provider and return ProcessProviderResult from standalone hooks
-export function processProvider<T>(injector: Injector, original: ProviderType<T>): ProcessProviderResult {
+export function processProvider<T>(injector: Injector, original: ProviderType<T>): ProcessProviderResult | undefined {
   let provider: Provider;
   let definition: ProviderDefinition;
-  let annotations: ProviderAnnotations
+  let definitionName: string | symbol | object;
+  let annotations: ProviderAnnotations;
 
   // handle provider defined as class
   if (typeof original === "function") {
@@ -50,19 +52,22 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     const { options, injections } = injectableDefinition;
     provider = getOrCreateProvider(injector, original);
     annotations = options.annotations || {};
+    definitionName = options.name;
 
     const hooks = createArray(options.hooks);
     const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
-    definition = { provider, original, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), meta: {} };
+    definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), meta: {} };
   } else {
-    annotations = (original as ClassProvider).annotations || {};
+    annotations = original.annotations || {};
+    definitionName = original.name;
+
     let token = original.provide,
       factory: FactoryDefinition,
       kind: ProviderKind,
       scope = (original as ClassProvider).scope,
-      hooks = createArray((original as ClassProvider).hooks),
-      when = (original as ClassProvider).when;
+      hooks = createArray(original.hooks),
+      when = original.when;
 
     if (!token) {
       // standalone hooks - injector hooks
@@ -119,12 +124,18 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       return { injector, original, provider };
     }
 
-    definition = { provider, original, kind, factory, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), meta: {} };
+    definition = { provider, original, name: definitionName, kind, factory, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), meta: {} };
+  }
+
+  const defs = provider.defs;
+  // if given definition, pointed by name, exists, then don't save definition
+  if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
+    return;
   }
 
   handleProviderAnnotations(provider, definition, annotations);
-  provider.defs.push(definition);
-  provider.defs.sort(compareOrder);
+  defs.push(definition);
+  defs.sort(compareOrder);
   return { injector, original, provider, definition };
 }
 

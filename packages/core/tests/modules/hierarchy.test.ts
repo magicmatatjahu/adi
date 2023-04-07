@@ -696,7 +696,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
-          providers: [ServiceC]
+          exports: [ServiceC]
         }
       ],
     })
@@ -758,7 +758,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
-          providers: [ServiceC]
+          exports: [ServiceC]
         }
       ],
     })

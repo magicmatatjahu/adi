@@ -36,6 +36,7 @@ export type ModuleImportType<T = any> =
 export type ModuleExportType = 
   | ProviderToken
   | ProviderType
+  | ExportedProvider
   | ExportedModule
   | ClassType
   | ModuleToken
@@ -55,9 +56,14 @@ export interface ExtendedModule<T = any> extends ModuleMetadata {
   extends: ModuleImportType<T>;
 }
 
+export interface ExportedProvider {
+  export: ProviderToken;
+  name: string | symbol | object;
+}
+
 export interface ExportedModule {
   from: ClassType | ForwardReference<ClassType>;
-  providers?: Array<ProviderToken>;
+  exports?: Array<ProviderToken | ExportedProvider>;
 }
 
 export type ProviderType<T = any> = 
@@ -83,6 +89,7 @@ export interface ClassTypeProvider<T = any> extends ClassType<T> {}
 export interface ClassProvider<T = any> {
   provide: ProviderToken<T>;
   useClass: ClassType<T>;
+  name?: string | symbol | object;
   inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
@@ -97,6 +104,7 @@ export interface ClassProvider<T = any> {
 export interface FactoryProvider<T = any> {
   provide: ProviderToken<T>;
   useFactory: (...args: any[]) => T | Promise<T>;
+  name?: string | symbol | object;
   inject?: Array<InjectionItem>;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
@@ -111,6 +119,7 @@ export interface FactoryProvider<T = any> {
 export interface ClassFactoryProvider<T = any> {
   provide: ProviderToken<T>;
   useFactory: ClassType<Provider>;
+  name?: string | symbol | object;
   inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
@@ -125,6 +134,7 @@ export interface ClassFactoryProvider<T = any> {
 export interface ValueProvider<T = any> {
   provide: ProviderToken<T>;
   useValue: T;
+  name?: string | symbol | object;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
   annotations?: ProviderAnnotations;
@@ -139,6 +149,7 @@ export interface ValueProvider<T = any> {
 export interface ExistingProvider<T = any> {
   provide: ProviderToken<T>;
   useExisting: ProviderToken<any>;
+  name?: string | symbol | object;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
   annotations?: ProviderAnnotations;
@@ -153,18 +164,21 @@ export interface ExistingProvider<T = any> {
 export interface HookProvider<T = any> {
   provide?: ProviderToken<T>;
   hooks: InjectionHook | Array<InjectionHook>;
+  name?: string | symbol | object;
   when?: ConstraintDefinition;
   annotations?: ProviderAnnotations;
 
   useClass?: never;
   useFactory?: never;
   useValue?: never;
+  useExisting?: never;
   inject?: never;
   scope?: never;
 }
 
 export interface CustomProvider<T = any> {
   provide?: ProviderToken<T>;
+  name?: string | symbol | object;
   annotations?: ProviderAnnotations;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
@@ -194,6 +208,7 @@ export interface ProviderAnnotations {
 export interface ProviderDefinition<T = any> {
   provider: ProviderItem<T>;
   original: ProviderType,
+  name: string | symbol | object;
   kind: ProviderKind;
   factory: FactoryDefinition,
   scope: ScopeType;
@@ -337,8 +352,9 @@ export type FactoryDefinitionFunction<T = any> = FactoryDefinition<T, { function
 
 export interface InjectableOptions<T = any> {
   provide?: SimplifiedProvider<T>;
-  scope?: ScopeType;
+  name?: string | symbol | object;
   hooks?: InjectionHook | Array<InjectionHook>;
+  scope?: ScopeType;
   provideIn?: InjectorScope | Array<InjectorScope>;
   annotations?: ProviderAnnotations;
 }
