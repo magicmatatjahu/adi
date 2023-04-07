@@ -1,7 +1,7 @@
 import { Injector, Injectable, Inject, Optional, Module, Token, Ref } from "@adi/core"
 import { SkipSelf } from "../../src/hooks";
 
-describe.skip('SkipSelf injection hook', function () {
+describe('SkipSelf injection hook', function () {
   test('should inject service from parent injector', function () {
     @Injectable()
     class Service {
@@ -22,13 +22,13 @@ describe.skip('SkipSelf injection hook', function () {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector).init() as Injector;;
+    ], undefined, parentInjector).init() as Injector;
 
     const service = childInjector.get(Service) as Service;
     expect(service.useValue).toEqual('foobar');
   });
 
-  test('should inject service from parent injector - not found case (use Optional wrapper to handle error from NilInjector)', function () {
+  test('should inject service from parent injector - not found case (use Optional hook to handle error from NilInjector)', function () {
     @Injectable()
     class Service {
       constructor(
@@ -47,7 +47,7 @@ describe.skip('SkipSelf injection hook', function () {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector);
+    ], undefined, parentInjector).init() as Injector;
 
     const service = childInjector.get(Service) as Service;
     expect(service.useValue).toEqual(undefined);

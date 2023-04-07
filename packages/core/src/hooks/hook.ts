@@ -1,21 +1,10 @@
 import { ADI_HOOK_DEF } from "../private";
+import { InjectionHookKind } from "../enums";
 
 import type { Session } from "../injector";
-import type { InjectionHook, InjectionHookOptions, InjectionHookFn, NextInjectionHook } from "../interfaces";
+import type { InjectionHook, InjectionHookOptions, InjectionHookFn, NextInjectionHook, InjectionHookContext } from "../interfaces";
 
 type ReturnHookFnType<F> = F extends (...args: any) => InjectionHookFn<infer T> ? T : unknown; 
-type ReturnHookType<F> = F extends InjectionHook<infer T> ? T : unknown;
-
-// type GenericReturnType<T extends (result: any) => unknown> = T;
-// type LOL = GenericReturnType<<T>(arg: T) => Destroyable<T>>;
-// type InferGenericType<T> = T extends GenericReturnType<infer F> ? ReturnType<F> : unknown;
-
-// type Test = InferGenericType<GenericReturnType<<T>(arg: T) => Destroyable<T>>>;
-
-// type Destroyable<T> = {
-//   value: T;
-//   destroy: () => void;
-// }
 
 export function createHook<F extends (...args: any) => InjectionHookFn>(hook: F, options?: InjectionHookOptions): (...args: Parameters<F>) => InjectionHook<ReturnHookFnType<F>> {
   hook[ADI_HOOK_DEF] = options || true;
@@ -35,11 +24,12 @@ export function isHook(hooks: unknown): hooks is InjectionHook | Array<Injection
   return Array.isArray(hooks) ? hooks[0]?.[ADI_HOOK_DEF] : hooks[ADI_HOOK_DEF];
 }
 
-export function runHooks(hooks: Array<InjectionHook>, session: Session, lastHook: NextInjectionHook) {
+export function runHooks(hooks: Array<InjectionHook>, session: Session, kind: InjectionHookKind, lastHook: NextInjectionHook) {
   if (hooks.length === 0) return lastHook(session);
-  return internalRunHooks([...hooks, lastHook as unknown as InjectionHook], session, -1);
+  const ctx: Omit<InjectionHookContext, 'index'> = { kind, hooks, lastHook };
+  return internalRunHooks([...hooks, lastHook as unknown as InjectionHook], session, -1, ctx);
 }
 
-function internalRunHooks(hooks: Array<InjectionHook>, session: Session, index: number) {
-  return hooks[++index](session, (s: Session) => internalRunHooks(hooks, s, index));
+function internalRunHooks(hooks: Array<InjectionHook>, session: Session, index: number, ctx: Omit<InjectionHookContext, 'index'>) {
+  return hooks[++index](session, (s: Session) => internalRunHooks(hooks, s, index, ctx), { ...ctx, index });
 }

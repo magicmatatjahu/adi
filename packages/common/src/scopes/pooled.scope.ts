@@ -1,4 +1,4 @@
-import { Context, createScope, Scope } from '@adi/core';
+import { Context, createScope, Scope, wait } from '@adi/core';
 
 import type { Session, ProviderDefinition, ProviderInstance } from '@adi/core';
 
@@ -35,11 +35,12 @@ export class PooledScope extends Scope<PooledScopeOptions> {
     return "adi:scope:pooled";
   }
 
-  override getContext(session: Session, options: PooledScopeOptions): Context {
+  override getContext(session: Session, options: PooledScopeOptions): Context | Promise<Context> {
     const definition = session.context.definition;
     const pool = this.getPool(definition, options);
     
     // get context from the beginning - pool should behaves as fifo queue, first in first out
+    let maybePromise: Promise<void> | void;
     let context = pool.free.shift();
     if (!context) {
       if (pool.capacity === pool.created) {
@@ -51,15 +52,21 @@ export class PooledScope extends Scope<PooledScopeOptions> {
     } else {
       const value = definition.values.get(context)?.value;
       if (hasOnGetFromPool(value)) {
-        value.onGetFromPool();
+        maybePromise = value.onGetFromPool();
       }
     }
-    
+
     session.setFlag('side-effect');
+    if (maybePromise) {
+      return wait(
+        maybePromise,
+        () => context,
+      );
+    }
     return context;
   }
 
-  override shouldDestroy(instance: ProviderInstance): boolean {
+  override async shouldDestroy(instance: ProviderInstance): Promise<boolean> {
     const { context, definition, value } = instance;
     const pool = this.pools.get(definition);
 
@@ -71,7 +78,7 @@ export class PooledScope extends Scope<PooledScopeOptions> {
     }
 
     if (hasOnReturnToPool(value)) {
-      value.onReturnToPool();
+      await value.onReturnToPool();
     }
     return shouldDestroy;
   };

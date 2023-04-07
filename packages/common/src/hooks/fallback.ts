@@ -1,4 +1,5 @@
-import { createHook, waitCallback } from "@adi/core";
+import { InjectionHookKind } from "@adi/core/lib/enums";
+import { createHook, wait, waitCallback } from "@adi/core";
 import { resolve } from "@adi/core/lib/injector/resolver";
 import { NoProviderError } from "@adi/core/lib/problem";
 import { createArray } from "@adi/core/lib/utils";

@@ -90,7 +90,7 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) 
   }
 
   const { kind, options } = instance.scope;
-  const shouldDestroy = kind.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
+  const shouldDestroy = await kind.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
 
   if (!shouldDestroy) {
     return;

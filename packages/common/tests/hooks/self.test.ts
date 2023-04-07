@@ -28,7 +28,7 @@ describe('Self injection hook', function () {
     expect(service.useValue).toEqual('barfoo');
   });
 
-  test('should inject service from self injector - not found case (use Optional wrapper to handle error from NilInjector)', function () {
+  test('should inject service from self injector - not found case (use Optional hook to handle error from NilInjector)', function () {
     @Injectable()
     class Service {
       constructor(

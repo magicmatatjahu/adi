@@ -1,4 +1,4 @@
-import { Context, createScope, TransientScope } from '@adi/core';
+import { Context, createScope } from '@adi/core';
 import { DynamicScope } from './dynamic.scope';
 
 import type { Session, ProviderInstance, DestroyContext } from '@adi/core';

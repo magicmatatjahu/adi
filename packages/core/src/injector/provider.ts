@@ -1,8 +1,10 @@
 import { STATIC_CONTEXT } from '../constants';
+import { wait } from '../utils';
 
+import type { Context } from './context';
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ProviderDefinition, ProviderInstance, HookRecord } from '../interfaces';
+import type { ProviderToken, ProviderDefinition, ProviderInstance, HookRecord, ScopeType } from '../interfaces';
 
 export class Provider<T = any> {
   public defs: Array<ProviderDefinition> = [];
@@ -32,14 +34,21 @@ export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>):
   return (provider.self || (provider.self = new Provider(token, host)));
 }
 
-export function getOrCreateProviderInstance<T>(session: Session): ProviderInstance {
+export function getOrCreateProviderInstance(session: Session) {
   const definition = session.context.definition;
   let scope = definition.scope;
   if (session.iOptions.scope && scope.kind.canBeOverrided(session, scope.options)) {
     scope = session.iOptions.scope;
   }
 
-  const context = scope.kind.getContext(session, scope.options) || STATIC_CONTEXT;
+  return wait(
+    scope.kind.getContext(session, scope.options),
+    ctx => getProviderInstance(session, ctx || STATIC_CONTEXT, scope)
+  )
+}
+
+function getProviderInstance(session: Session, context: Context, scope: ScopeType): Session {
+  const definition = session.context.definition;
   let instance = definition.values.get(context);
   if (!instance) {
     instance = {
@@ -47,7 +56,7 @@ export function getOrCreateProviderInstance<T>(session: Session): ProviderInstan
       context,
       session,
       value: undefined,
-      status: 0,
+      status: 1,
       scope,
       meta: {},
       parents: undefined,
@@ -60,12 +69,8 @@ export function getOrCreateProviderInstance<T>(session: Session): ProviderInstan
     (instance.parents || (instance.parents = new Set())).add(parentInstance);
   }
 
-  return instance;
-}
-
-export function resolveProviderInstance(instance: ProviderInstance, session: Session) {
-  const scope = instance.scope;
-  return scope.kind.create(session, scope.options);
+  session.context.instance = instance;
+  return session;
 }
 
 function filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
@@ -81,7 +86,7 @@ function filterDefinition(definitions: Array<ProviderDefinition>, session: Sessi
   return defaultDefinition;
 }
 
-export function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, filter: 'all' | 'satisfies' = 'satisfies'): Array<ProviderDefinition> {
+export function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, mode: 'all' | 'satisfies' = 'satisfies'): Array<ProviderDefinition> {
   const constraints: Array<ProviderDefinition> = [];
   const defaults: Array<ProviderDefinition> = [];
   const all: Array<ProviderDefinition> = [];
@@ -97,7 +102,7 @@ export function filterProviderDefinitions(definitions: Array<ProviderDefinition>
     }
   });
 
-  if (filter === 'satisfies') {
+  if (mode === 'satisfies') {
     return constraints.length ? constraints : defaults;
   }
   return all;

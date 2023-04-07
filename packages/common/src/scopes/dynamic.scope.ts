@@ -14,7 +14,7 @@ export abstract class DynamicScope<O = any> extends Scope<O> {
   }
 
   override shouldDestroy(_: ProviderInstance<any>, __: O, context: DestroyContext): boolean {
-    return context.event === 'manually';
+    return context.event === 'manually' || context.event === 'injector';
   }
 
   protected applyDynamicContext(session: Session) {
@@ -65,7 +65,6 @@ export const DynamicScopeHook = createHook(() => {
       next(session),
       value => {
         if (session.hasFlag('dynamic-scope')) {
-          // if (!pa)
           return createDynamicScopeProxy(value, session);
         }
         return value;
@@ -74,12 +73,11 @@ export const DynamicScopeHook = createHook(() => {
   }
 }, { name: 'adi:hook:dynamic-scope' });
 
-export function runInDynamicContext() {
+export function runInDynamicScope() {
 
 }
 
 export function createDynamicScopeProxy(value: any, session: Session) {
-  console.log(session);
   return new DeepProxy(value, {
     // apply(_, thisArg, argArray) {
     //     return getProvider().apply(thisArg, argArray);

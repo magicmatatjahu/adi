@@ -3,18 +3,12 @@ import { NoProviderError } from '@adi/core/lib/problem';
 
 import type { Session, NextInjectionHook } from '@adi/core';
 
-function hook(session: Session, next: NextInjectionHook) {
-  let forked = session;
-  if (!session.hasFlag('dry-run')) {
-    forked = session.fork();
-    forked.setFlag('dry-run');
-  }
-  
+function hook(session: Session, next: NextInjectionHook) {  
   const currentInjector = session.context.injector;
   return wait(
-    next(forked),
+    next(session),
     () => {
-      if (currentInjector !== forked.context.injector) {
+      if (currentInjector !== session.context.injector) {
         throw new NoProviderError(session);
       }
       return next(session);

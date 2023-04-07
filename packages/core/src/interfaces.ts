@@ -1,6 +1,6 @@
 import type { ADI } from './adi';
 import type { Context, Injector, Provider as ProviderItem, Session } from './injector';
-import type { InjectionKind, ProviderKind, InstanceStatus } from './enums';
+import type { InjectionKind, ProviderKind, InstanceStatus, InjectionHookKind } from './enums';
 import type { ScopeInstance } from './scopes';
 import type { ADI_HOOK_DEF } from './private';
 import type { InjectionToken, ModuleToken } from './tokens';
@@ -238,16 +238,22 @@ export interface HookRecord {
 }
 
 export interface InjectionHook<T = any> {
-  (session: Session, next: NextInjectionHook): T | Promise<T>;
-  options?: InjectionHookOptions;
-  [ADI_HOOK_DEF]: true;
+  (session: Session, next: NextInjectionHook, ctx: InjectionHookContext): T | Promise<T>;
+  [ADI_HOOK_DEF]: InjectionHookOptions;
+}
+
+export interface InjectionHookContext {
+  kind: InjectionHookKind;
+  index: number;
+  hooks: InjectionHook[];
+  lastHook: NextInjectionHook;
 }
 
 export interface InjectionHookOptions {
   name: string;
 }
 
-export type InjectionHookFn<T = any> = (session: Session, next: NextInjectionHook) => T | Promise<T>;
+export type InjectionHookFn<T = any> = (session: Session, next: NextInjectionHook, ctx: InjectionHookContext) => T | Promise<T>;
 
 export type NextInjectionHook<T = any> = (session: Session) => T | Promise<T>;
 

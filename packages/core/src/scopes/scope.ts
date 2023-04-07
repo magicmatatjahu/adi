@@ -13,7 +13,7 @@ export abstract class Scope<O = any> {
   public abstract getContext(
     session: Session,
     options: O,
-  ): Context;
+  ): Context | Promise<Context>;
 
   public create(
     session: Session,
@@ -27,17 +27,14 @@ export abstract class Scope<O = any> {
     instance: ProviderInstance,
     options: O,
     context: DestroyContext,
-  ): boolean;
+  ): boolean | Promise<boolean>;
 
-  // TODO: think about it
   public canBeOverrided(
     session: Session,
     options: O,
   ): boolean {
     return true;
   }
-
-  // public abstract getOptions(): O;
 }
 
 export function createScope<O = any>(scope: Scope<O>, defaultOptions: O): ScopeInstance<O> {

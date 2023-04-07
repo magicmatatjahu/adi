@@ -1,5 +1,12 @@
+const ADI_PROMISE_DEF = 'adi:definition:promise';
+const ADI_PROMISE_REF = {};
+
+export function patchPromise(promise: any = Promise): void {
+  promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_REF; 
+}
+
 export function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
-  return maybePromise && typeof maybePromise.then === 'function';
+  return maybePromise && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_REF;
 }
 
 export const noopThen = (value: any) => value;

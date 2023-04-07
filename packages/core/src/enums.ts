@@ -43,3 +43,10 @@ export enum SessionFlag {
   DYNAMIC_SCOPE = 8,
   CIRCULAR = 16,
 }
+
+export enum InjectionHookKind {
+  INJECTOR = 'injector',
+  INJECT = 'inject',
+  PROVIDER = 'provider',
+  DEFINITION = 'definition',
+}

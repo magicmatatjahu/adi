@@ -4,7 +4,7 @@ import { Provider as ProviderRecord, getOrCreateProvider, Provider } from './pro
 import { resolveProvider, resolverClass, resolverFactory, resolveClassProvider, resolverValue } from './resolver';
 import { INITIALIZERS } from '../constants';
 import { when } from '../constraints';
-import { ProviderKind, InjectionKind } from '../enums';
+import { ProviderKind, InjectionKind, InjectorStatus } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { ComponentProviderError } from '../problem';
 import { DefaultScope } from '../scopes';

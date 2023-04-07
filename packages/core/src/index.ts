@@ -1,6 +1,7 @@
 import { ADI, installADI } from './adi';
 import { Context, Injector, Session, injectableMixin } from './injector';
 import { Hook } from './hooks';
+import { patchPromise } from './utils/wait';
 
 function patchCircularRefs() {
   injectableMixin(Context, { 
@@ -39,6 +40,7 @@ function initADI() {
   installADI(coreInjector);
 }
 
+patchPromise();
 patchCircularRefs();
 initADI();
 
