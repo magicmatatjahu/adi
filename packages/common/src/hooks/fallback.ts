@@ -1,5 +1,4 @@
-import { InjectionHookKind } from "@adi/core/lib/enums";
-import { createHook, wait, waitCallback } from "@adi/core";
+import { createHook, waitCallback } from "@adi/core";
 import { resolve } from "@adi/core/lib/injector/resolver";
 import { NoProviderError } from "@adi/core/lib/problem";
 import { createArray } from "@adi/core/lib/utils";
@@ -23,7 +22,6 @@ export const Fallback = createHook((options: ProviderToken | FallbackHookOptions
 
   return (session, next) => {
     const forked = session.fork();
-
     return waitCallback(
       () => next(session),
       undefined,

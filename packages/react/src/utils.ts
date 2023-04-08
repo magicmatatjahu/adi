@@ -5,7 +5,7 @@ import { getAllKeys, isPromiseLike, wait } from "@adi/core/lib/utils";
 
 import type { Injector, ProviderInstance, InjectionItem, PlainInjectionItem, InjectionArgument } from "@adi/core";
 
-export type InjectionResult<T = any> = { result: T, instance: ProviderInstance<T>, has: boolean };
+export type InjectionResult<T = any> = { result: T, instance: ProviderInstance<T>, sideEffects: boolean };
 
 const hasSideEffectHook = HasSideEffect();
 
@@ -19,7 +19,7 @@ export function injectMap(injector: Injector, injections: Record<string | symbol
   const results = {};
   const instances = [];
   let asyncOps: Array<Promise<any> | any> | undefined;
-  let hasSideEffect = false;
+  let sideEffects = false;
 
   getAllKeys(injections).forEach(key => {
     const injected = coreInject<InjectionResult>(injector, injections[key]);
@@ -29,17 +29,17 @@ export function injectMap(injector: Injector, injections: Record<string | symbol
         wait(injected, result => {
           results[key] = result.result;
           instances.push(result.instance);
-          hasSideEffect = hasSideEffect || result.has;
+          sideEffects = sideEffects || result.sideEffects;
         }),
       );
     }
 
     results[key] = injected.result;
     instances.push(injected.instance);
-    hasSideEffect = hasSideEffect || injected.has;
+    sideEffects = sideEffects || injected.sideEffects;
   });
 
-  return [results, instances, hasSideEffect, asyncOps];
+  return [results, instances, sideEffects, asyncOps];
 }
 
 export function convertMapInjections(injections: Record<string | symbol, InjectionItem>): Record<string | symbol, InjectionArgument> {

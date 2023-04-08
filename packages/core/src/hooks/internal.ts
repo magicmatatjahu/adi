@@ -6,5 +6,5 @@ export const SessionHook = createHook(() => {
 }, { name: 'adi:hook:session' });
 
 export const HasSideEffect = createHook(() => {
-  return (session, next) => wait(next(session), result => ({ has: session.hasFlag('side-effect'), result, instance: session.context.instance }));
+  return (session, next) => wait(next(session), result => ({ sideEffects: session.hasFlag('side-effect'), result, instance: session.context.instance }));
 }, { name: 'adi:hook:has-side-effect' });

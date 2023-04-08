@@ -11,11 +11,11 @@ export function useInject<T = any>(token: ProviderToken<T>, annotations?: Inject
 export function useInject<T = any>(token: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T;
 export function useInject<T = any>(token: ProviderToken<T>, hooks?: Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T {
   const injector = useInjector();
-  const { result, instance, has } = useMemo(() => {
+  const { result, instance, sideEffects } = useMemo(() => {
     const injectArg = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations);
     return inject<T>(injector, injectArg);
   }, [token, hooks, annotations]);
   
-  useDestroy(instance, has);
+  useDestroy(instance, sideEffects);
   return result;
 }

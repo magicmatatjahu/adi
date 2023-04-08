@@ -1,7 +1,4 @@
-import { destroy } from '@adi/core/lib/injector';
-import { useEffect } from 'react';
-
-import type { ProviderInstance } from '@adi/core';
+import { computed, unref, onScopeDispose, ref, watch } from 'vue-demi'
 
 export function useDestroy(instance: ProviderInstance, hasSideEffect: boolean): void;
 export function useDestroy(instances: Array<ProviderInstance>, hasSideEffect: boolean): void;

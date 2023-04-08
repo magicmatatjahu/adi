@@ -65,7 +65,6 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   }
 
   delete instance.meta[destroyHooksMetaKey];
-
   const injector = session.context.injector;
   ADI.emit('instance:destroy', { injector, instance });
 

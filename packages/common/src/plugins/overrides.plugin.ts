@@ -47,6 +47,9 @@ export function overridesPlugin(options: OverridesPluginOptions = {}): ADIPlugin
                 let portalInjector = session.parent.annotations[PORTAL_KEY] as { injector: Injector | undefined, deep: boolean };
                 if (portalInjector !== undefined) {
                   injector = session.context.injector = portalInjector.injector;
+                  if (portalInjector.deep) {
+                    session.annotations[PORTAL_KEY] = portalInjector;
+                  }
                 }
               }
             }

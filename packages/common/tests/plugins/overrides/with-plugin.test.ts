@@ -304,5 +304,55 @@ describe('Overrides plugin with Override injection hook', function () {
       expect(service.service).toBeInstanceOf(TestService);
       expect(service.service.foobar).toEqual('child foobar');
     });
+
+    test('should work with complex graph - using deep option', function () {
+      @Injectable({
+        scope: TransientScope,
+      })
+      class DeepService {
+        constructor(
+          @Inject('foobar') readonly foobar: string,
+        ) {}
+      }
+
+      @Injectable({
+        scope: TransientScope,
+      })
+      class TestService {
+        constructor(
+          @Inject('foobar') readonly foobar: string,
+          readonly deepService: DeepService,
+        ) {}
+      }
+  
+      @Injectable()
+      class Service {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      const parentInjector = Injector.create([
+        DeepService,
+        TestService,
+        Service,
+        {
+          provide: 'foobar',
+          useValue: 'parent foobar',
+        }
+      ]).init() as Injector;
+      const childInjector = Injector.create([
+        {
+          provide: 'foobar',
+          useValue: 'child foobar',
+        }
+      ], undefined, parentInjector).init() as Injector;
+  
+      const service = childInjector.get(Service, Portal({ deep: true })) as Service;
+      expect(service.service).toBeInstanceOf(TestService);
+      expect(service.service.foobar).toEqual('child foobar');
+      expect(service.service.deepService).toBeInstanceOf(DeepService);
+      expect(service.service.deepService.foobar).toEqual('child foobar');
+    });
   });
 });

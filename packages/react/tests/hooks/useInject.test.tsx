@@ -201,6 +201,7 @@ describe('useInject hook', function() {
 
     // wait for all timeouts
     jest.runAllTimers();
+    await Promise.resolve();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(true);
