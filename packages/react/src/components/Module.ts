@@ -1,11 +1,11 @@
-import { wait, Injector, InjectorInput } from "@adi/core";
+import { wait, Injector } from "@adi/core";
 import { isPromiseLike } from "@adi/core/lib/utils/wait";
 import { useContext, useEffect, useState } from "react";
 
 import { InjectorContext, createProvider } from "../context";
 
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import type { InjectorOptions } from "@adi/core";
+import type { InjectorOptions, InjectorInput } from "@adi/core";
 
 type InternalState = [Injector | Promise<Injector>, boolean];
 

@@ -133,7 +133,15 @@ function corePlugin(): ADIPlugin {
 }
 
 export function installADI(coreInjector: Injector) {
+  const global = getGlobalThis();
+  if (global.ADI !== undefined) {
+    return;
+  }
   ADI.coreInjector = coreInjector;
   ADI.use(corePlugin());
-  getGlobalThis().ADI = ADI;
+  global.ADI = ADI;
+}
+
+export function getADI(): ADI {
+  return getGlobalThis().ADI;
 }

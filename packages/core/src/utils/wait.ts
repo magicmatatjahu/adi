@@ -1,4 +1,4 @@
-const ADI_PROMISE_DEF = 'adi:definition:promise';
+const ADI_PROMISE_DEF = Symbol('adi:definition:promise');
 const ADI_PROMISE_REF = {};
 
 export function patchPromise(promise: any = Promise): void {
