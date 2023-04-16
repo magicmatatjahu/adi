@@ -1,7 +1,7 @@
 import { ADI_HOOK_DEF } from "../private";
 import { InjectionHookKind } from "../enums";
 
-import type { Session } from "../injector";
+import type { Session, Provider } from "../injector";
 import type { InjectionHook, InjectionHookOptions, InjectionHookFn, NextInjectionHook, InjectionHookContext } from "../interfaces";
 
 type ReturnHookFnType<F> = F extends (...args: any) => InjectionHookFn<infer T> ? T : unknown; 
@@ -24,12 +24,22 @@ export function isHook(hooks: unknown): hooks is InjectionHook | Array<Injection
   return Array.isArray(hooks) ? hooks[0]?.[ADI_HOOK_DEF] : hooks[ADI_HOOK_DEF];
 }
 
-export function runHooks(hooks: Array<InjectionHook>, session: Session, kind: InjectionHookKind, lastHook: NextInjectionHook) {
+export function runHooks(hooks: Array<InjectionHook>, session: Session, ctx: Pick<InjectionHookContext, 'kind'>, lastHook: NextInjectionHook) {
   if (hooks.length === 0) return lastHook(session);
-  const ctx: Omit<InjectionHookContext, 'index'> = { kind, hooks, lastHook };
-  return internalRunHooks([...hooks, lastHook as unknown as InjectionHook], session, -1, ctx);
+  return __runHooks([...hooks, lastHook as unknown as InjectionHook], session, -1, ctx);
 }
 
-function internalRunHooks(hooks: Array<InjectionHook>, session: Session, index: number, ctx: Omit<InjectionHookContext, 'index'>) {
-  return hooks[++index](session, (s: Session) => internalRunHooks(hooks, s, index, ctx), { ...ctx, index });
+function __runHooks(hooks: Array<InjectionHook>, session: Session, index: number, ctx: Pick<InjectionHookContext, 'kind'>) {
+  return hooks[++index](session, (s: Session) => __runHooks(hooks, s, index, ctx), ctx);
+}
+
+export function runHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: Provider }>, session: Session, lastHook: NextInjectionHook) {
+  const ctx: Pick<InjectionHookContext, 'kind'> = { kind: InjectionHookKind.PROVIDER };
+  return __runHooksWithProviders([...hooks, { hook: lastHook as unknown as InjectionHook, provider: null }], session, -1, ctx);
+}
+
+function __runHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: Provider }>, session: Session, index: number, ctx: Pick<InjectionHookContext, 'kind'>) {
+  const { hook, provider } = hooks[++index];
+  session.context.injector = (session.context.provider = provider)?.host;
+  return hook(session, (s: Session) => __runHooksWithProviders(hooks, s, index, ctx), ctx);
 }

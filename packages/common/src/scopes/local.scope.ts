@@ -22,7 +22,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return "adi:scope:local";
   }
 
-  override getContext(session: Session, options: LocalScopeOptions): Context {
+  override getContext(session: Session, options: LocalScopeOptions): Context | Promise<Context> {
     const parent = session.parent;
     if (options.reuseContext === true && session.iOptions.context) {
       return TransientScope.kind.getContext(session, options);
@@ -59,7 +59,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return context;
   }
 
-  override shouldDestroy(instance: ProviderInstance, options: LocalScopeOptions, destroyCtx: DestroyContext): boolean {
+  override shouldDestroy(instance: ProviderInstance, options: LocalScopeOptions, destroyCtx: DestroyContext): boolean | Promise<boolean> {
     const context = instance.context;
 
     // if ctx doesn't exist in the Local scope treat scope as Transient

@@ -25,10 +25,12 @@ export function context(ctx: Context): ConstraintDefinition {
 
 export function visible(type: 'public' | 'private'): ConstraintDefinition {
   return (session) => {
-    if (type === 'private') {
-      return getHostInjector(session) === session.context.injector;
-    };
-    return true;
+    switch(type) {
+      case 'private': {
+        return getHostInjector(session) === session.context.injector;
+      }
+      default: return true;
+    }
   }
 }
 

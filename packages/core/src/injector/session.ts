@@ -1,7 +1,7 @@
 import { SessionFlag } from '../enums';
 
-import type { Injector } from '../injector'; 
-import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations, ScopeType } from '../interfaces';
+import type { Injector } from './injector'; 
+import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations } from '../interfaces';
 
 const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
@@ -25,7 +25,7 @@ export class Session<T = any> {
 
   public result: any;
   private flags: SessionFlag = SessionFlag.NONE;
-  public readonly meta: Record<string, any> = {};
+  public readonly meta: Record<string | symbol, any> = {};
   public readonly children: Array<Session> = [];
 
   constructor(

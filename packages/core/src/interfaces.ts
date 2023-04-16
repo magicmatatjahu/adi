@@ -58,7 +58,7 @@ export interface ExtendedModule<T = any> extends ModuleMetadata {
 
 export interface ExportedProvider {
   export: ProviderToken;
-  name: string | symbol | object;
+  name: string | symbol | object | Array<string | symbol | object>;
 }
 
 export interface ExportedModule {
@@ -67,6 +67,7 @@ export interface ExportedModule {
 }
 
 export type ProviderType<T = any> = 
+  | TokenProvider<T>
   | ClassTypeProvider<T>
   | ClassProvider<T>
   | FactoryProvider<T>
@@ -85,6 +86,21 @@ export type SimplifiedProvider<T = any> =
   | Omit<CustomProvider<T>, 'provide' | 'hooks' | 'annotations'>; 
 
 export interface ClassTypeProvider<T = any> extends ClassType<T> {}
+
+export interface TokenProvider<T = any> {
+  provide: ProviderToken<T>;
+  when?: ConstraintDefinition;
+  annotations?: ProviderAnnotations;
+
+  name?: never;
+  hooks?: never;
+  useClass?: never;
+  useFactory?: never;
+  useValue?: never;
+  useExisting?: never;
+  inject?: never;
+  scope?: never;
+}
 
 export interface ClassProvider<T = any> {
   provide: ProviderToken<T>;
@@ -244,9 +260,6 @@ export interface InjectionHook<T = any> {
 
 export interface InjectionHookContext {
   kind: InjectionHookKind;
-  index: number;
-  hooks: InjectionHook[];
-  lastHook: NextInjectionHook;
 }
 
 export interface InjectionHookOptions {

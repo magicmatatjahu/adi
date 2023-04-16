@@ -14,7 +14,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     return "adi:scope:instance";
   }
 
-  override getContext(session: Session, options: InstanceScopeOptions): Context {
+  override getContext(session: Session, options: InstanceScopeOptions): Context | Promise<Context> {
     const parent = session.parent;
     if (options.reuseContext === true && session.iOptions.context) {
       return TransientScope.kind.getContext(session, options);
@@ -33,7 +33,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     return context;
   }
 
-  override shouldDestroy(instance: ProviderInstance, options: InstanceScopeOptions, destroyCtx: DestroyContext): boolean {
+  override shouldDestroy(instance: ProviderInstance, options: InstanceScopeOptions, destroyCtx: DestroyContext): boolean | Promise<boolean> {
     const context = instance.context;
     
     // passed custom context - treat scope as Transient

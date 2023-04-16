@@ -4,11 +4,13 @@ import { wait } from '../utils';
 import type { Context } from './context';
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ProviderDefinition, ProviderInstance, HookRecord, ScopeType } from '../interfaces';
+import type { ProviderToken, ProviderDefinition, ProviderInstance, HookRecord, ScopeType, ConstraintDefinition } from '../interfaces';
 
 export class Provider<T = any> {
   public defs: Array<ProviderDefinition> = [];
   public hooks: Array<HookRecord> = [];
+  public meta: Record<string | symbol, any> = {};
+  public when: ConstraintDefinition | undefined;
 
   constructor(
     public readonly token: ProviderToken<T>,

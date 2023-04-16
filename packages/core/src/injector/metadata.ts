@@ -203,7 +203,7 @@ export function addHook(
   obj.hooks.sort(compareOrder);
 }
 
-function concatConstraints(definition: ProviderDefinition, constraint: ConstraintDefinition) {
+export function concatConstraints(definition: ProviderDefinition, constraint: ConstraintDefinition) {
   definition.when = definition.when ? when.and(constraint, definition.when) : constraint;
 }
 

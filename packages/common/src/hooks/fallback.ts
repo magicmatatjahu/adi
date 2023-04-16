@@ -28,10 +28,11 @@ export const Fallback = createHook((options: ProviderToken | FallbackHookOptions
       err => {
         if (err instanceof NoProviderError) {
           // preserve all information about session
-          ((session as any).injection = forked.injection).options.token = token;
-          const context = (session as any).context = forked.context;
+          session.apply(forked);
+          session.iOptions.token = token;
+          const context = session.context;
           context.provider = context.definition = context.instance = undefined;
-          return resolve(context.injector, session, hooks);
+          return resolve(session.context.injector, session, hooks);
         }
         throw err;
       }

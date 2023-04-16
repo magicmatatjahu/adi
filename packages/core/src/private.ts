@@ -10,3 +10,6 @@ export const destroyHooksMetaKey = 'adi:lifecycle:on-destroy';
 export const circularSessionsMetaKey = 'adi:circular-sessions';
 export const promiseResolveMetaKey = 'adi:promise-resolve';
 export const promiseDoneMetaKey = 'adi:promise-done';
+
+export const treeInjectorMetaKey = 'adi:tree-injector';
+export const definitionExportedToInjectorsMetaKey = 'adi:definition-exported-to-injectors';

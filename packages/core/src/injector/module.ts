@@ -1,14 +1,16 @@
 import { ADI } from '../adi';
 import { Injector } from './injector';
+import { concatConstraints } from './metadata';
 import { inject } from './resolver';
 import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from '../constants';
 import { InjectorStatus, InjectionKind } from '../enums';
 import { createDefinition, wait, waitSequence, resolveRef, isModuleToken } from '../utils';
-import { ADI_MODULE_DEF } from '../private';
+import { ADI_MODULE_DEF, treeInjectorMetaKey, definitionExportedToInjectorsMetaKey } from '../private';
 
 import type { Provider } from './provider';
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument, ExportedProvider } from "../interfaces";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument, ExportedProvider, ConstraintDefinition, ProviderDefinition } from "../interfaces";
 import type { ModuleToken } from '../tokens';
+import type { Session } from './session';
 
 export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
 
@@ -238,16 +240,52 @@ function processModuleExports(exportedModule: Exclude<ExportedModule, ForwardRef
 }
 
 function processReExports(exportedProvider: ExportedProvider, from: Injector, to: Injector) {
-  // TODO: Handle named definition exports
+  const token = exportedProvider.export;
+  const provider = from.providers.get(token);
+  const providerToExport = provider?.self;
+
+  if (!providerToExport) {
+    throw new Error(`cannot export given token ${token as any}`)
+  }
+  importProvider(to, token, providerToExport);
 }
 
 function shouldExportProvider(provider: Provider, fromInjector: Injector, token: ProviderToken, providers: ExportedModule['exports'] | undefined) {
   return (provider.host === fromInjector) && (!providers || providers.includes(token));
 }
 
-function importProvider(injector: Injector, token: ProviderToken, provider: Provider, defName?: string | symbol | object) {
-  const hostProvider = getProvider(injector, token);
-  hostProvider.imported.push(provider);
+function importProvider(to: Injector, token: ProviderToken, provider: Provider, name?: ExportedProvider['name']) {
+  const hostProvider = getProvider(to, token);
+  const imported = hostProvider.imported;
+  if (!imported.includes(provider)) {
+    imported.push(provider);
+  }
+
+  if (name !== undefined) {
+    const names = Array.isArray(name) ? name : [name];
+    provider.defs.forEach(def => {
+      if (names.includes(def.name)) {
+        defReExport(def, to);
+      }
+    });
+  }
+}
+
+function whenExported(session: Session): boolean {
+  const exportedToInjectors = session.context.definition.meta[definitionExportedToInjectorsMetaKey];
+  return exportedToInjectors.has(session.meta[treeInjectorMetaKey])
+} 
+
+function defReExport(def: ProviderDefinition, toInjector: Injector) {
+  const exportedToInjectors = def.meta[definitionExportedToInjectorsMetaKey] as WeakSet<Injector>;
+  if (exportedToInjectors) {
+    exportedToInjectors.add(toInjector);
+    return;
+  }
+
+  const toInjectors: WeakSet<Injector> = new WeakSet([toInjector]);
+  def.meta[definitionExportedToInjectorsMetaKey] = toInjectors;
+  concatConstraints(def, whenExported);
 }
 
 function getProvider(injector: Injector, token: ProviderToken) {
