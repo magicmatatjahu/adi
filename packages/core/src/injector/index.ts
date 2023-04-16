@@ -1,4 +1,5 @@
 export * from './context';
+export { inject, injectMethod, runInInjectionContext } from './inject';
 export { injectableMixin, injectableDefinitions } from './injectable';
 export * from './injector';
 export { destroy } from './lifecycle-manager';

@@ -1,6 +1,7 @@
 import { getHostInjector } from "./injector/metadata";
+import { treeInjectorMetaKey, exportedToInjectorsMetaKey } from './private';
 
-import type { Context } from "./injector";
+import type { Context, Injector, Session } from "./injector";
 import type { InjectionAnnotations, ConstraintDefinition } from "./interfaces";
 
 export function named(name: InjectionAnnotations['named']): ConstraintDefinition {
@@ -46,12 +47,32 @@ export function not(constraint: ConstraintDefinition): ConstraintDefinition {
   return (session) => !constraint(session);
 }
 
-export function always() {
+export function always(): boolean {
   return true;
 }
 
-export function never() {
+export function never(): boolean {
   return false;
+}
+
+/**
+ * private constraints
+ **/
+export function whenExported(session: Session): boolean {
+  const { provider, definition } = session.context;
+  const exportedTo = provider.meta[exportedToInjectorsMetaKey] as WeakMap<Injector, any[] | true>;
+  if (exportedTo) {
+    const treeInjector = session.meta[treeInjectorMetaKey];
+    const names = exportedTo.get(treeInjector);
+    if (Array.isArray(names)) {
+      return names.includes(definition.name);
+    }
+  }
+  return true;
+}
+
+export function whenComponent(session: Session): boolean {
+  return Boolean(session.parent || getHostInjector(session) !== session.context.injector) === false;
 }
 
 export const when = {

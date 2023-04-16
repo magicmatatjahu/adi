@@ -1,5 +1,5 @@
 import type { Context, Session } from '../injector';
-import type { ProviderInstance, DestroyContext, ProviderDefinition, FactoryDefinition } from '../interfaces';
+import type { ProviderInstance, DestroyContext } from '../interfaces';
 
 export interface ScopeInstance<O = any> {
   (options: O): ScopeInstance<O>;
@@ -14,14 +14,6 @@ export abstract class Scope<O = any> {
     session: Session,
     options: O,
   ): Context | Promise<Context>;
-
-  public create(
-    session: Session,
-    options: O,
-  ) {
-    const { injector, definition: { factory } } = session.context;
-    return factory.resolver(injector, session, factory.data);
-  }
 
   public abstract shouldDestroy(
     instance: ProviderInstance,

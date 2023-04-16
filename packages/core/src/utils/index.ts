@@ -7,6 +7,5 @@ export * from './get-deep-property';
 export * from './get-global-this';
 export * from './guards';
 export * from './is-extended';
-export * from './is-method-injection';
 export * from './reflection';
 export * from './wait';

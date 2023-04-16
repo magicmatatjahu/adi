@@ -1,5 +1,5 @@
 import type { ADI } from './adi';
-import type { Context, Injector, Provider as ProviderItem, Session } from './injector';
+import type { Context, Injector, Session } from './injector';
 import type { InjectionKind, ProviderKind, InstanceStatus, InjectionHookKind } from './enums';
 import type { ScopeInstance } from './scopes';
 import type { ADI_HOOK_DEF } from './private';
@@ -58,7 +58,7 @@ export interface ExtendedModule<T = any> extends ModuleMetadata {
 
 export interface ExportedProvider {
   export: ProviderToken;
-  name: string | symbol | object | Array<string | symbol | object>;
+  names: Array<string | symbol | object>;
 }
 
 export interface ExportedModule {
@@ -109,7 +109,7 @@ export interface ClassProvider<T = any> {
   inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
+  annotations?: DefinitionAnnotations;
   scope?: ScopeType;
 
   useFactory?: never;
@@ -124,7 +124,7 @@ export interface FactoryProvider<T = any> {
   inject?: Array<InjectionItem>;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
+  annotations?: DefinitionAnnotations;
   scope?: ScopeType;
 
   useClass?: never;
@@ -139,7 +139,7 @@ export interface ClassFactoryProvider<T = any> {
   inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
+  annotations?: DefinitionAnnotations;
   scope?: ScopeType;
 
   useClass?: never;
@@ -153,7 +153,7 @@ export interface ValueProvider<T = any> {
   name?: string | symbol | object;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
+  annotations?: DefinitionAnnotations;
 
   useClass?: never;
   useFactory?: never;
@@ -168,26 +168,11 @@ export interface ExistingProvider<T = any> {
   name?: string | symbol | object;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
+  annotations?: DefinitionAnnotations;
 
   useClass?: never;
   useFactory?: never;
   useValue?: never;
-  inject?: never;
-  scope?: never;
-}
-
-export interface HookProvider<T = any> {
-  provide?: ProviderToken<T>;
-  hooks: InjectionHook | Array<InjectionHook>;
-  name?: string | symbol | object;
-  when?: ConstraintDefinition;
-  annotations?: ProviderAnnotations;
-
-  useClass?: never;
-  useFactory?: never;
-  useValue?: never;
-  useExisting?: never;
   inject?: never;
   scope?: never;
 }
@@ -195,9 +180,9 @@ export interface HookProvider<T = any> {
 export interface CustomProvider<T = any> {
   provide?: ProviderToken<T>;
   name?: string | symbol | object;
-  annotations?: ProviderAnnotations;
   hooks?: InjectionHook | Array<InjectionHook>;
   when?: ConstraintDefinition;
+  annotations?: DefinitionAnnotations;
 
   useClass?: never;
   useFactory?: never;
@@ -205,11 +190,35 @@ export interface CustomProvider<T = any> {
   useExisting?: never;
 }
 
+export interface HookProvider<T = any> {
+  provide?: ProviderToken<T>;
+  hooks: InjectionHook | Array<InjectionHook>;
+  name?: string | symbol | object;
+  when?: ConstraintDefinition;
+  annotations?: HookAnnotations;
+
+  useClass?: never;
+  useFactory?: never;
+  useValue?: never;
+  useExisting?: never;
+  inject?: never;
+  scope?: never;
+}
+
 export interface Provider<T = any> {
   provide(...args: []): T | Promise<T>;
 }
 
 export interface ProviderAnnotations {
+  tags?: Array<string | symbol | object>;
+  visible?: 'public' | 'private';
+  eager?: boolean;
+  aliases?: Array<ProviderToken>;
+  component?: boolean;
+  [key: string | symbol]: any;
+}
+
+export interface DefinitionAnnotations {
   name?: string | symbol | object;
   tags?: Array<string | symbol | object>;
   order?: number;
@@ -221,8 +230,25 @@ export interface ProviderAnnotations {
   [key: string | symbol]: any;
 }
 
+export interface HookAnnotations {
+  name?: string | symbol | object;
+  order?: number;
+  visible?: 'public' | 'private';
+  [key: string | symbol]: any;
+}
+
+export interface ProviderRecord<T = any> {
+  token: ProviderToken<T>;
+  host: Injector;
+  when: ConstraintDefinition | undefined;
+  hooks: Array<HookRecord>;
+  defs: ProviderDefinition[];
+  annotations: ProviderAnnotations;
+  meta: Metadata;
+}
+
 export interface ProviderDefinition<T = any> {
-  provider: ProviderItem<T>;
+  provider: ProviderRecord<T>;
   original: ProviderType,
   name: string | symbol | object;
   kind: ProviderKind;
@@ -230,8 +256,9 @@ export interface ProviderDefinition<T = any> {
   scope: ScopeType;
   when: ConstraintDefinition | undefined;
   hooks: Array<InjectionHook>;
-  annotations: ProviderAnnotations;
+  annotations: DefinitionAnnotations;
   values: Map<Context, ProviderInstance<T>>;
+  default: boolean;
   meta: Metadata;
 }
 
@@ -248,9 +275,10 @@ export interface ProviderInstance<T = any> {
 }
 
 export interface HookRecord {
+  kind: 'injector' | 'provider';
   hook: InjectionHook;
   when: ConstraintDefinition | undefined;
-  annotations: ProviderAnnotations;
+  annotations: HookAnnotations;
 }
 
 export interface InjectionHook<T = any> {
@@ -348,7 +376,7 @@ export interface SessionInjection<T = any> {
 
 export interface SessionContext<T = any> {
   injector: Injector;
-  provider?: ProviderItem;
+  provider?: ProviderRecord;
   definition?: ProviderDefinition<T>;
   instance?: ProviderInstance<T>;
 }
@@ -367,7 +395,6 @@ export type FactoryResolver<R = any, D = any> = (injector: Injector, session: Se
 export type FactoryDefinitionClass<T = any> = FactoryDefinition<T, { class: ClassType<T>, inject: InjectionArguments }>;
 export type FactoryDefinitionFactory<T = any> = FactoryDefinition<T, { factory: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }>;
 export type FactoryDefinitionValue<T = any> = FactoryDefinition<T, { value: T }>;
-export type FactoryDefinitionFunction<T = any> = FactoryDefinition<T, { function: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument>, arguments: Array<any> }>;
 
 export interface InjectableOptions<T = any> {
   provide?: SimplifiedProvider<T>;
@@ -422,7 +449,7 @@ export interface ADIPlugin {
 export interface OnProviderCreateEvent { 
   injector: Injector;
   original: ProviderType;
-  provider?: ProviderItem;
+  provider?: ProviderRecord;
   definition?: ProviderDefinition;
 }
 

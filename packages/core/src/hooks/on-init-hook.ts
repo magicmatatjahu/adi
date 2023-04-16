@@ -1,5 +1,5 @@
 import { createHook } from './hook';
-import { createFunctionResolver } from '../injector';
+import { createFunction } from '../injector';
 import { initHooksMetaKey } from "../private";
 
 import type { InjectionItem } from '../interfaces';
@@ -14,9 +14,9 @@ function hasOnInitFunction(onInit: unknown): onInit is OnInitHookOptions {
 }
 
 export const OnInitHook = createHook((hook: ((value: any) => void | Promise<void>) | OnInitHookOptions) => {
-  let resolver: ReturnType<typeof createFunctionResolver>;
+  let resolver: ReturnType<typeof createFunction>;
   if (hasOnInitFunction(hook)) {
-    resolver = createFunctionResolver(hook.onInit, hook.inject);
+    resolver = createFunction(hook.onInit, hook.inject);
   } else {
     resolver = (_, [value]) => hook(value);
   }

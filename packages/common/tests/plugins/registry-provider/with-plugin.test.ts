@@ -1,8 +1,8 @@
 import { ADI, Injector, Injectable, Inject, Hook, TransientScope } from "@adi/core";
-import { Provides, collectionProviderPlugin } from "../../../src";
+import { Provides, registryProviderPlugin } from "../../../src";
 
-describe('Collection provider plugin', function () {
-  const plugin = collectionProviderPlugin();
+describe('Registry provider plugin', function () {
+  const plugin = registryProviderPlugin();
 
   beforeAll(() => {
     ADI.use(plugin);
@@ -16,7 +16,7 @@ describe('Collection provider plugin', function () {
     test('simple case', function () {
       class TestService {}
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         static factory() {
           return new TestService();
@@ -33,7 +33,7 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -49,7 +49,7 @@ describe('Collection provider plugin', function () {
         ) {}
       }
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         static factory(@Inject('foobar') foobar: string) {
           return new TestService(foobar);
@@ -70,7 +70,7 @@ describe('Collection provider plugin', function () {
           useValue: 'foobar',
         },
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -89,7 +89,7 @@ describe('Collection provider plugin', function () {
         ) {}
       }
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService, hooks: [Hook((session, next) => { hookCalled = true; return next(session); })] })
         static factory(@Inject('foobar') foobar: string) {
           return new TestService(foobar);
@@ -110,7 +110,7 @@ describe('Collection provider plugin', function () {
           useValue: 'foobar',
         },
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -128,7 +128,7 @@ describe('Collection provider plugin', function () {
         ) {}
       }
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides()
         static factory(@Inject('foobar') foobar: string): TestService {
           return new TestService(foobar);
@@ -149,7 +149,7 @@ describe('Collection provider plugin', function () {
           useValue: 'foobar',
         },
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -162,7 +162,7 @@ describe('Collection provider plugin', function () {
     test('should persist "this" context of collection class', function () {
       class TestService {}
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         static factory() {
           return this;
@@ -179,20 +179,20 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
       const service = injector.get(Service) as Service;
       expect(service).toBeInstanceOf(Service);
-      expect(service.testService === CollectionService).toEqual(true);
+      expect(service.testService === RegistryProvider).toEqual(true);
     });
 
     test('multiple factories', function () {
       class TestService1 {}
       class TestService2 {}
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService1 })
         static factory1() {
           return new TestService1();
@@ -215,7 +215,7 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -235,7 +235,7 @@ describe('Collection provider plugin', function () {
       @Injectable()
       class Service2 {}
   
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService1 })
         static factory1(service: Service1, @Inject(Service1) service2: Service2) {
           return [service, service2];
@@ -260,7 +260,7 @@ describe('Collection provider plugin', function () {
         Service1,
         Service2,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
       
@@ -280,7 +280,7 @@ describe('Collection provider plugin', function () {
       class TestService {}
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         factory() {
           return new TestService();
@@ -297,7 +297,7 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -314,7 +314,7 @@ describe('Collection provider plugin', function () {
       }
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         static factory(@Inject('foobar') foobar: string) {
           return new TestService(foobar);
@@ -335,7 +335,7 @@ describe('Collection provider plugin', function () {
           useValue: 'foobar',
         },
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -355,7 +355,7 @@ describe('Collection provider plugin', function () {
       }
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService, hooks: [Hook((session, next) => { hookCalled = true; return next(session); })] })
         factory(@Inject('foobar') foobar: string) {
           return new TestService(foobar);
@@ -376,7 +376,7 @@ describe('Collection provider plugin', function () {
           useValue: 'foobar',
         },
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -395,7 +395,7 @@ describe('Collection provider plugin', function () {
       }
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides()
         factory(@Inject('foobar') foobar: string): TestService {
           return new TestService(foobar);
@@ -416,7 +416,7 @@ describe('Collection provider plugin', function () {
           useValue: 'foobar',
         },
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -430,7 +430,7 @@ describe('Collection provider plugin', function () {
       class TestService {}
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         factory() {
           return this;
@@ -447,20 +447,20 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
       const service = injector.get(Service) as Service;
       expect(service).toBeInstanceOf(Service);
-      expect(service.testService).toBeInstanceOf(CollectionService);
+      expect(service.testService).toBeInstanceOf(RegistryProvider);
     });
 
     test('should persist instance of collection class (default scope case)', function () {
       class TestService {}
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService })
         factory() {
           return this;
@@ -477,16 +477,16 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
       const service1 = injector.get(Service) as Service;
       expect(service1).toBeInstanceOf(Service);
-      expect(service1.testService).toBeInstanceOf(CollectionService);
+      expect(service1.testService).toBeInstanceOf(RegistryProvider);
       const service2 = injector.get(Service) as Service;
       expect(service2).toBeInstanceOf(Service);
-      expect(service2.testService).toBeInstanceOf(CollectionService);
+      expect(service2.testService).toBeInstanceOf(RegistryProvider);
       expect(service1 === service2).toEqual(true);
       expect(service1.testService === service2.testService).toEqual(true);
     });
@@ -499,7 +499,7 @@ describe('Collection provider plugin', function () {
       }
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService, scope: TransientScope })
         factory() {
           return new TestService(this);
@@ -516,16 +516,16 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
       const service1 = injector.get(TestService) as TestService;
       expect(service1).toBeInstanceOf(TestService);
-      expect(service1.service).toBeInstanceOf(CollectionService);
+      expect(service1.service).toBeInstanceOf(RegistryProvider);
       const service2 = injector.get(TestService) as TestService;
       expect(service2).toBeInstanceOf(TestService);
-      expect(service2.service).toBeInstanceOf(CollectionService);
+      expect(service2.service).toBeInstanceOf(RegistryProvider);
       expect(service1 === service2).toEqual(false);
       expect(service1.service === service2.service).toEqual(true);
     });
@@ -540,7 +540,7 @@ describe('Collection provider plugin', function () {
       @Injectable({
         scope: TransientScope,
       })
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService, scope: TransientScope })
         factory() {
           return new TestService(this);
@@ -557,16 +557,16 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
       const service1 = injector.get(TestService) as TestService;
       expect(service1).toBeInstanceOf(TestService);
-      expect(service1.service).toBeInstanceOf(CollectionService);
+      expect(service1.service).toBeInstanceOf(RegistryProvider);
       const service2 = injector.get(TestService) as TestService;
       expect(service2).toBeInstanceOf(TestService);
-      expect(service2.service).toBeInstanceOf(CollectionService);
+      expect(service2.service).toBeInstanceOf(RegistryProvider);
       expect(service1 === service2).toEqual(false);
       expect(service1.service === service2.service).toEqual(false);
     });
@@ -576,7 +576,7 @@ describe('Collection provider plugin', function () {
       class TestService2 {}
   
       @Injectable()
-      class CollectionService {
+      class RegistryProvider {
         @Provides({ provide: TestService1 })
         factory1() {
           return new TestService1();
@@ -599,7 +599,7 @@ describe('Collection provider plugin', function () {
       const injector = Injector.create([
         Service,
         {
-          useCollection: CollectionService,
+          useRegistry: RegistryProvider,
         },
       ]).init() as Injector;
   
@@ -623,7 +623,7 @@ describe('Collection provider plugin', function () {
     }
 
     @Injectable()
-    class CollectionService {
+    class RegistryProvider {
       @Provides({ provide: TestService1 })
       static factory1() {
         return new TestService1(this);
@@ -646,16 +646,16 @@ describe('Collection provider plugin', function () {
     const injector = Injector.create([
       Service,
       {
-        useCollection: CollectionService,
+        useRegistry: RegistryProvider,
       },
     ]).init() as Injector;
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1).toBeInstanceOf(TestService1);
-    expect(service.testService1.service === CollectionService).toEqual(true);
+    expect(service.testService1.service === RegistryProvider).toEqual(true);
     expect(service.testService2).toBeInstanceOf(TestService2);
-    expect(service.testService2.service).toBeInstanceOf(CollectionService);
+    expect(service.testService2.service).toBeInstanceOf(RegistryProvider);
   });
 
   test('should reflect types in factories', function () {
@@ -669,7 +669,7 @@ describe('Collection provider plugin', function () {
     class Service2 {}
 
     @Injectable()
-    class CollectionService {
+    class RegistryProvider {
       @Provides({ provide: TestService1 })
       factory1(service: Service1, @Inject(Service1) service2: Service2) {
         return [service, service2];
@@ -694,7 +694,7 @@ describe('Collection provider plugin', function () {
       Service1,
       Service2,
       {
-        useCollection: CollectionService,
+        useRegistry: RegistryProvider,
       },
     ]).init() as Injector;
     

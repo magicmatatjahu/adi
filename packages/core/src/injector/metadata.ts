@@ -1,19 +1,20 @@
 import { ADI } from '../adi';
 import { injectableDefinitions, injectableMixin } from './injectable';
-import { Provider as ProviderRecord, getOrCreateProvider, Provider } from './provider';
-import { resolveProvider, resolverClass, resolverFactory, resolveClassProvider, resolverValue } from './resolver';
+import { getOrCreateProvider } from './provider';
+import { resolveProvider, resolverClass, resolverFactory, resolveClassicProvider, resolverValue } from './resolver';
 import { INITIALIZERS } from '../constants';
-import { when } from '../constraints';
-import { ProviderKind, InjectionKind, InjectorStatus } from '../enums';
+import { when, whenExported, whenComponent } from '../constraints';
+import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { ComponentProviderError } from '../problem';
 import { DefaultScope } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
+import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
 import type { 
-  ProviderToken, ProviderType, ProviderDefinition, ProviderAnnotations, 
+  ProviderToken, ProviderType, ProviderRecord, ProviderDefinition, ProviderAnnotations, DefinitionAnnotations, HookAnnotations,
   InjectionHook, HookRecord, ConstraintDefinition, 
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType, ClassProvider,
@@ -26,7 +27,7 @@ export function processProviders<T>(host: Injector, providers: Array<ProviderTyp
   const processed: Array<ProcessProviderResult> = [];
   providers.forEach(provider => {
     const result = processProvider(host, provider);
-    if (result !== undefined) {
+    if (result) {
       processed.push(result);
     }
   });
@@ -36,9 +37,10 @@ export function processProviders<T>(host: Injector, providers: Array<ProviderTyp
 }
 
 export function processProvider<T>(injector: Injector, original: ProviderType<T>): ProcessProviderResult | undefined {
-  let provider: Provider;
+  let provider: ProviderRecord;
   let definition: ProviderDefinition;
   let definitionName: string | symbol | object;
+  let injectionMetadata: InjectionMetadata | undefined;
   let annotations: ProviderAnnotations;
 
   // handle provider defined as class
@@ -54,10 +56,11 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     annotations = options.annotations || {};
     definitionName = options.name;
 
+    injectionMetadata = { kind: InjectionKind.UNKNOWN, target: original };
     const hooks = createArray(options.hooks);
     const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
-    definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), meta: {} };
+    definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
   } else {
     annotations = original.annotations || {};
     definitionName = original.name;
@@ -69,10 +72,10 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       hooks = createArray(original.hooks),
       when = original.when;
 
-    if (!token) {
+    if (token === undefined) {
       // standalone hooks - injector hooks
       if (isHook(hooks)) {
-        addHook(injector, hooks, when, annotations);
+        addHook(injector, hooks, 'injector', when, annotations);
       }
       return { injector, original };
     }
@@ -89,15 +92,18 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
           annotations = { ...options.annotations, ...annotations };
         }
   
+        injectionMetadata = { kind: InjectionKind.PARAMETER, target: clazz };
         const inject = overrideInjections(definition?.injections || createClassInjections(), original.inject, clazz);
-        factory = { resolver: resolveClassProvider, data: { class: clazz, inject } } as FactoryDefinitionClass;
+        factory = { resolver: resolveClassicProvider, data: { class: clazz, inject } } as FactoryDefinitionClass;
       } else {
         kind = ProviderKind.FACTORY;
-        const inject = convertInjections(original.inject || [], { kind: InjectionKind.FACTORY, function: original.useFactory });
+        injectionMetadata = { kind: InjectionKind.FACTORY, function: original.useFactory };
+        const inject = convertInjections(original.inject || [], injectionMetadata);
         factory = { resolver: resolverFactory, data: { factory: original.useFactory, inject } } as FactoryDefinitionFactory;
       }
     } else if (isValueProvider(original)) {
       kind = ProviderKind.VALUE;
+      // TODO: Create separate scope for value provider
       // scope = SingletonScope;
       factory = { resolver: resolverValue, data: { value: original.useValue } } as FactoryDefinitionValue;
     } else if (isClassProvider(original)) {
@@ -110,6 +116,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
         annotations = { ...options.annotations, ...annotations };
       }
 
+      injectionMetadata = { kind: InjectionKind.PARAMETER, target: clazz };
       const inject = overrideInjections(definition?.injections || createClassInjections(), original.inject, clazz);
       factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
     } else if (isExistingProvider(original)) {
@@ -118,60 +125,81 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       hooks.push(useExistingHook(original.useExisting));
     } else if (isHook(hooks)) {
       // standalone hooks on provider level
-      addHook(provider, hooks, when, annotations);
+      addHook(provider, hooks, 'provider', when, annotations);
       return { injector, original, provider, definition: undefined };
-    } else {
+    } else { // case with token provider - without definition - or custom provider
+      if (token !== undefined) {
+        const providerKeys = getAllKeys(original).length;
+        if ( // without definition - token provider case
+          (providerKeys === 2 && (original.when || original.annotations)) ||
+          (providerKeys === 3 && original.when && original.annotations)
+        ) {
+          concatConstraints(provider, original.when);
+          handleAnnotations(provider, undefined, original.annotations);
+        }
+      }
       return { injector, original, provider };
     }
 
-    definition = { provider, original, name: definitionName, kind, factory, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), meta: {} };
+    definition = { provider, original, name: definitionName, kind, factory, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), default: when === undefined, meta: {} };
   }
 
   const defs = provider.defs;
-  // if given definition, pointed by name, exists, then don't save definition
+  // if given definition pointed by name exists, then don't save definition and skip processing by plugins
   if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
     return;
   }
 
-  handleProviderAnnotations(provider, definition, annotations);
+  if (injectionMetadata) {
+    definition.meta[definitionInjectionMetadataMetaKey] = injectionMetadata;
+  }
+
+  const providerIsExported = provider.meta[exportedToInjectorsMetaKey];
+  if (providerIsExported !== undefined) {
+    concatConstraints(definition, whenExported);
+  }
+
+  handleAnnotations(provider, definition, annotations);
   defs.push(definition);
   defs.sort(compareOrder);
   return { injector, original, provider, definition };
 }
 
-function handleProviderAnnotations(provider: ProviderRecord, definition: ProviderDefinition, annotations: ProviderAnnotations) {
-  if (typeof annotations.order !== 'number') {
-    annotations.order = 0;
-  }
-  if (getAllKeys(annotations).length === 1) {
+function handleAnnotations(provider: ProviderRecord, definition: ProviderDefinition | undefined, annotations: ProviderAnnotations) {
+  if (getAllKeys(annotations).length === 0) {
     return;
   }
 
-  if (annotations.eager) {
-    processProvider(provider.host, {
-      provide: INITIALIZERS, 
-      useExisting: provider.token,
-      hooks: [useExistingDefinitionHook(definition)],
-    });
-  }
+  if (definition) {
+    if (typeof annotations.order !== 'number') {
+      annotations.order = 0;
+    }
 
-  if (annotations.component) {
-    definition.hooks.push(useComponentHook);
-    concatConstraints(definition, when.visible('private'));
-  }
-
-  if (annotations.visible) {
-    concatConstraints(definition, when.visible(annotations.visible));
-  }
-
-  if (annotations.aliases) {
-    annotations.aliases.forEach(alias => {
+    if (annotations.eager) {
       processProvider(provider.host, {
-        provide: alias, 
+        provide: INITIALIZERS, 
         useExisting: provider.token,
         hooks: [useExistingDefinitionHook(definition)],
       });
-    })
+    }
+
+    if (annotations.component) {
+      concatConstraints(definition, whenComponent);
+    }
+  
+    if (annotations.visible) {
+      concatConstraints(definition, when.visible(annotations.visible));
+    }
+
+    if (annotations.aliases) {
+      annotations.aliases.forEach(alias => {
+        processProvider(provider.host, {
+          provide: alias, 
+          useExisting: provider.token,
+          hooks: [useExistingDefinitionHook(definition)],
+        });
+      })
+    }
   }
 }
 
@@ -186,24 +214,28 @@ export function filterHooks(hooks: Array<HookRecord>, session: Session): Array<I
 }
 
 export function addHook(
-  obj: { hooks: Array<HookRecord> },
+  entry: { hooks: Array<HookRecord> },
   hooks: Array<InjectionHook>,
-  constraint: ConstraintDefinition = when.always,
-  annotations: ProviderAnnotations = {},
+  kind: HookRecord['kind'],
+  constraint: HookRecord['when'] = when.always,
+  annotations: HookRecord['annotations'] = {},
 ): void {
   if (typeof annotations.order !== 'number') {
     annotations.order = 0;
   }
 
-  hooks.forEach(hook => obj.hooks.push({
+  const entryHooks = entry.hooks;
+  hooks.forEach(hook => entryHooks.push({
+    kind,
     hook,
     when: constraint,
     annotations,
   }));
-  obj.hooks.sort(compareOrder);
+  entryHooks.sort(compareOrder);
 }
 
-export function concatConstraints(definition: ProviderDefinition, constraint: ConstraintDefinition) {
+export function concatConstraints(definition: { when: ConstraintDefinition | undefined; }, constraint: ConstraintDefinition) {
+  if (constraint === undefined) return;
   definition.when = definition.when ? when.and(constraint, definition.when) : constraint;
 }
 

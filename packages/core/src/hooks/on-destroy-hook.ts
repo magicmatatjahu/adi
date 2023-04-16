@@ -1,5 +1,5 @@
 import { createHook } from "./hook";
-import { createFunctionResolver } from '../injector';
+import { createFunction } from '../injector';
 import { destroyHooksMetaKey } from "../private";
 import { wait } from "../utils";
 
@@ -15,9 +15,9 @@ function hasOnDestroyFunction(onDestroy: unknown): onDestroy is OnDestroyHookOpt
 }
 
 export const OnDestroyHook = createHook((hook: ((value: any) => void | Promise<void>) | OnDestroyHookOptions) => {
-  let resolver: ReturnType<typeof createFunctionResolver>;
+  let resolver: ReturnType<typeof createFunction>;
   if (hasOnDestroyFunction(hook)) {
-    resolver = createFunctionResolver(hook.onDestroy, hook.inject);
+    resolver = createFunction(hook.onDestroy, hook.inject);
   } else {
     resolver = (_, [value]) => hook(value);
   }

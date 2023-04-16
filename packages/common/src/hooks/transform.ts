@@ -1,4 +1,4 @@
-import { createHook, wait, createFunctionResolver } from '@adi/core';;
+import { createHook, wait, createFunction } from '@adi/core';;
 
 import type { InjectionItem } from '@adi/core';
 
@@ -12,9 +12,9 @@ function hasTransformFunction(transform: unknown): transform is TransformHookOpt
 }
 
 export const Transform = createHook((transformOrOptions: ((toTransform: any) => any) | TransformHookOptions) => {
-  let resolver: ReturnType<typeof createFunctionResolver>;
+  let resolver: ReturnType<typeof createFunction>;
   if (hasTransformFunction(transformOrOptions)) {
-    resolver = createFunctionResolver(transformOrOptions.transform, transformOrOptions.inject || []);
+    resolver = createFunction(transformOrOptions.transform, transformOrOptions.inject || []);
   } else {
     resolver = (_, [value]) => transformOrOptions(value);
   }

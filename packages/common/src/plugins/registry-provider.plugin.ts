@@ -5,15 +5,15 @@ import { providesDefinitions } from '../decorators/provides';
 
 import type { ADIPlugin, Injector, ClassType, AbstractClassType, InjectionArgument } from '@adi/core';
 
-function createProviders(injector: Injector, useCollection: ClassType | AbstractClassType) {
-  const definition = providesDefinitions.get(useCollection);
+function createProviders(injector: Injector, useRegistry: ClassType | AbstractClassType) {
+  const definition = providesDefinitions.get(useRegistry);
   if (!definition) {
     return;
   }
 
   let injections: Record<string | symbol, InjectionArgument[]>;
   let staticInjections: Record<string | symbol, InjectionArgument[]>;
-  const injectableInjections = injectableDefinitions.get(useCollection)?.injections;
+  const injectableInjections = injectableDefinitions.get(useRegistry)?.injections;
   if (injectableInjections) {
     injections = injectableInjections.methods;
     staticInjections = injectableInjections.static?.methods || {};
@@ -24,7 +24,7 @@ function createProviders(injector: Injector, useCollection: ClassType | Abstract
   const prototypeProvides = definition.prototype;
   const keys = getAllKeys(prototypeProvides);
   if (keys.length) {
-    injector.provide(useCollection as ClassType);
+    injector.provide(useRegistry as ClassType);
 
     keys.forEach(methodName => {
       const provide = prototypeProvides[methodName];
@@ -37,7 +37,7 @@ function createProviders(injector: Injector, useCollection: ClassType | Abstract
             deps => instance[methodName].apply(instance, deps),
           );
         },
-        inject: [useCollection, Session],
+        inject: [useRegistry, Session],
         ...provide as any,
       });
     });
@@ -52,7 +52,7 @@ function createProviders(injector: Injector, useCollection: ClassType | Abstract
       useFactory(session: Session) {
         return wait(
           injectArray(injector, inject, session),
-          deps => useCollection[methodName].apply(useCollection, deps),
+          deps => useRegistry[methodName].apply(useRegistry, deps),
         );
       },
       inject: [Session],
@@ -61,16 +61,16 @@ function createProviders(injector: Injector, useCollection: ClassType | Abstract
   });
 }
 
-export function collectionProviderPlugin(): ADIPlugin {
+export function registryProviderPlugin(): ADIPlugin {
   return {
-    name: 'adi:plugin:collectionProvider',
+    name: 'adi:plugin:registry-provider',
     install(adi, { unsubscribers }) {
       unsubscribers.push(
         adi.on('provider:create', ({ injector, original }) => {
-          if (typeof original !== 'object' || !original.useCollection) {
+          if (typeof original !== 'object' || !original.useRegistry) {
             return;
           }
-          createProviders(injector, original.useCollection);
+          createProviders(injector, original.useRegistry);
         })
       );
     }

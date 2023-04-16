@@ -1,39 +1,34 @@
 import { STATIC_CONTEXT } from '../constants';
+import { when } from '../constraints';
 import { wait } from '../utils';
 
 import type { Context } from './context';
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ProviderDefinition, ProviderInstance, HookRecord, ScopeType, ConstraintDefinition } from '../interfaces';
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeType } from '../interfaces';
 
-export class Provider<T = any> {
-  public defs: Array<ProviderDefinition> = [];
-  public hooks: Array<HookRecord> = [];
-  public meta: Record<string | symbol, any> = {};
-  public when: ConstraintDefinition | undefined;
-
-  constructor(
-    public readonly token: ProviderToken<T>,
-    public readonly host: Injector,
-  ) {}
-
-  filter(session: Session): ProviderDefinition | undefined;
-  filter(session: Session, filter: 'all' | 'satisfies'): Array<ProviderDefinition>;
-  filter(session: Session, filter?: 'all' | 'satisfies'): ProviderDefinition | Array<ProviderDefinition> | undefined {
-    if (filter) {
-      return filterProviderDefinitions(this.defs, session, filter);
-    }
-    return filterDefinition(this.defs, session);
-  }
-}
-
-export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>): Provider {
+export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
   let provider = host.providers.get(token);
   if (!provider) {
-    provider = { self: new Provider(token, host), imported: undefined };
+    provider = { 
+      self: createProvider(host, token),
+      imported: undefined
+    };
     host.providers.set(token, provider);
   }
-  return (provider.self || (provider.self = new Provider(token, host)));
+  return (provider.self || (provider.self = createProvider(host, token)));
+}
+
+function createProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
+  return {
+    token,
+    host,
+    hooks: [],
+    defs: [],
+    when: when.always,
+    meta: {},
+    annotations: {},
+  }
 }
 
 export function getOrCreateProviderInstance(session: Session) {
@@ -75,34 +70,58 @@ function getProviderInstance(session: Session, context: Context, scope: ScopeTyp
   return session;
 }
 
+export function filterDefinitions(provider: ProviderRecord, session: Session): ProviderDefinition | undefined;
+export function filterDefinitions(provider: ProviderRecord, session: Session, filter: 'all' | 'satisfies'): Array<ProviderDefinition>;
+export function filterDefinitions(provider: ProviderRecord, session: Session, filter?: 'all' | 'satisfies'): ProviderDefinition | Array<ProviderDefinition> | undefined {
+  if (filter) {
+    return filterProviderDefinitions(provider.defs, session, filter);
+  }
+  return filterDefinition(provider.defs, session);
+}
+
 function filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
+  const context = session.context;
   let defaultDefinition: ProviderDefinition;
   for (let i = definitions.length - 1; i > -1; i--) {
-    const definition = definitions[i];
+    const definition = context.definition = definitions[i];
+
     if (!definition.when) {
       defaultDefinition = defaultDefinition || definition;
-    } else if (definition.when(session)) {
+      continue;
+    }
+    
+    if (definition.when(session)) {
+      if (definition.default) {
+        defaultDefinition = defaultDefinition || definition;
+        continue;
+      }
       return definition;
     }
   }
-  return defaultDefinition;
+  return context.definition = defaultDefinition;
 }
 
-export function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, mode: 'all' | 'satisfies' = 'satisfies'): Array<ProviderDefinition> {
+function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, mode: 'all' | 'satisfies' = 'satisfies'): Array<ProviderDefinition> {
   const constraints: Array<ProviderDefinition> = [];
   const defaults: Array<ProviderDefinition> = [];
   const all: Array<ProviderDefinition> = [];
-
+  
+  const context = session.context;
   definitions.forEach(definition => {
-    const when = definition.when;
-    if (!when) {
+    context.definition = definition;
+    if (!definition.when) {
       defaults.push(definition);
       all.push(definition);
-    } else if (when(session)) {
-      constraints.push(definition);
+    } else if (definition.when(session)) {
+      if (definition.default) {
+        defaults.push(definition);
+      } else {
+        constraints.push(definition);
+      }
       all.push(definition);
     }
   });
+  context.definition = undefined;
 
   if (mode === 'satisfies') {
     return constraints.length ? constraints : defaults;

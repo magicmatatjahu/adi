@@ -1,6 +1,6 @@
 import { Scope, createScope } from "./scope";
 import { Context } from "../injector";
-import { isMethodInjection } from "../utils";
+import { InjectionKind } from "../enums";
 
 import type { Session } from "../injector";
 import type { ProviderInstance, InjectionMetadata, DestroyContext } from "../interfaces";
@@ -39,7 +39,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     }
 
     // with no parents
-    if (noParents || isMethodInjection(instance.session.iMetadata)) {
+    if (noParents || instance.session.iMetadata.kind === InjectionKind.METHOD) {
       this.contexts.delete(context);
       return true;
     }

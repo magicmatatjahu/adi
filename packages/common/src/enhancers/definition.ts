@@ -1,6 +1,7 @@
 import { All, Optional, wait } from '@adi/core';
 import { InjectionKind } from '@adi/core/lib/enums';
-import { convertInjection, convertInjections, inject, injectArray } from '@adi/core/lib/injector';
+import { convertInjection, convertInjections } from '@adi/core/lib/injector/metadata';
+import { inject, injectArray } from '@adi/core/lib/injector/resolver';
 import { createDefinition, getAllKeys, getDecoratorInfo, Reflection } from '@adi/core/lib/utils';
 import { ADI_ENHANCERS_DEF } from '../constants';
 import { hasInjections } from '../utils';

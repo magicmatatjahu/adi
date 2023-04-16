@@ -1,8 +1,8 @@
 import { ADI_HOOK_DEF } from "../private";
 import { InjectionHookKind } from "../enums";
 
-import type { Session, Provider } from "../injector";
-import type { InjectionHook, InjectionHookOptions, InjectionHookFn, NextInjectionHook, InjectionHookContext } from "../interfaces";
+import type { Session } from "../injector";
+import type { ProviderRecord, InjectionHook, InjectionHookOptions, InjectionHookFn, NextInjectionHook, InjectionHookContext } from "../interfaces";
 
 type ReturnHookFnType<F> = F extends (...args: any) => InjectionHookFn<infer T> ? T : unknown; 
 
@@ -33,12 +33,12 @@ function __runHooks(hooks: Array<InjectionHook>, session: Session, index: number
   return hooks[++index](session, (s: Session) => __runHooks(hooks, s, index, ctx), ctx);
 }
 
-export function runHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: Provider }>, session: Session, lastHook: NextInjectionHook) {
+export function runHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord }>, session: Session, lastHook: NextInjectionHook) {
   const ctx: Pick<InjectionHookContext, 'kind'> = { kind: InjectionHookKind.PROVIDER };
   return __runHooksWithProviders([...hooks, { hook: lastHook as unknown as InjectionHook, provider: null }], session, -1, ctx);
 }
 
-function __runHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: Provider }>, session: Session, index: number, ctx: Pick<InjectionHookContext, 'kind'>) {
+function __runHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord }>, session: Session, index: number, ctx: Pick<InjectionHookContext, 'kind'>) {
   const { hook, provider } = hooks[++index];
   session.context.injector = (session.context.provider = provider)?.host;
   return hook(session, (s: Session) => __runHooksWithProviders(hooks, s, index, ctx), ctx);

@@ -45,10 +45,10 @@ export function applyInject(decoratorInfo: Decorator, { token, hooks, annotation
 
   switch (decoratorInfo.kind) {
     case 'parameter': {
-      argument.metadata.kind = InjectionKind.PARAMETER;
       const index = decoratorInfo.index;
 
       if (decoratorInfo.descriptor) { // method injection
+        argument.metadata.kind = InjectionKind.METHOD
         if (typeof argument.token === 'undefined') {
           argument.token = (Reflection.getOwnMetadata("design:paramtypes", targetObject, key) || [])[index];
         }
@@ -56,6 +56,7 @@ export function applyInject(decoratorInfo: Decorator, { token, hooks, annotation
         const parameters = properInjections.methods[key] || (properInjections.methods[key] = []);
         parameters[index] = argument; 
       } else { // constructor injection
+        argument.metadata.kind = InjectionKind.PARAMETER;
         if (typeof argument.token === 'undefined') {
           argument.token = (Reflection.getOwnMetadata("design:paramtypes", target) || [])[index];
         }

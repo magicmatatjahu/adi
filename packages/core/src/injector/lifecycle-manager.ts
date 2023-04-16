@@ -3,8 +3,8 @@ import { InjectorStatus, InstanceStatus } from '../enums';
 import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey } from '../private';
 import { waitSequence } from '../utils';
 
-import type { Injector, Provider, Session } from '../injector';
-import type { ProviderDefinition, ProviderInstance, OnInit, OnDestroy, DestroyContext } from '../interfaces';
+import type { Injector, Session } from '../injector';
+import type { ProviderRecord, ProviderDefinition, ProviderInstance, OnInit, OnDestroy, DestroyContext } from '../interfaces';
 
 function hasOnInitLifecycle(instance: unknown): instance is OnInit {
   return instance && typeof (instance as OnInit).onInit === 'function';
@@ -106,10 +106,10 @@ async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: D
   return waitSequence(instances, instance => destroyInstance(instance, ctx));
 }
 
-export function destroyRecord(record: Provider, ctx?: DestroyContext) {
-  const injector = record.host;
-  const defs = record.defs;
-  record.defs = [];
+export function destroyProvider(provider: ProviderRecord, ctx?: DestroyContext) {
+  const injector = provider.host;
+  const defs = provider.defs;
+  provider.defs = [];
   return waitSequence(defs, def => destroyDefinition(injector, def, ctx))
 }
 
@@ -155,7 +155,7 @@ export async function destroyInjector(injector: Injector) {
     .map(r => r.self).filter(Boolean);
 
   injector.providers.clear();
-  await waitSequence(providers, provider => destroyRecord(provider, { event: 'injector' }));
+  await waitSequence(providers, provider => destroyProvider(provider, { event: 'injector' }));
 
   // remove injector from parent imports
   if (injector.parent !== null) {

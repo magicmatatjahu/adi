@@ -382,4 +382,54 @@ describe('Module', function() {
     const service = await injector.get(Service);
     expect(service.foobar).toEqual('named provider');
   });
+
+  test('should resolve definition from imported records only when given definition is exported', async function() {
+    @Module({ 
+      providers: [
+        {
+          provide: 'token',
+          useValue: 'not exported definition 1',
+          name: 'token-1'
+        },
+        {
+          provide: 'token',
+          name: 'token-2',
+          useValue: 'exported definition',
+        },
+        {
+          provide: 'token',
+          useValue: 'not exported definition 2',
+          name: 'token-3'
+        }
+      ],
+      exports: [
+        {
+          export: 'token',
+          names: ['token-2']
+        },
+      ]
+    })
+    class ChildModule1 {}
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject('token') public foobar: string,
+      ) {}
+    }
+
+    @Module({ 
+      imports: [
+        ChildModule1,
+      ],
+      providers: [
+        Service,
+      ]
+    })
+    class MainModule {}
+
+    const injector = await Injector.create(MainModule).init();
+    const service = await injector.get(Service);
+    expect(service.foobar).toEqual('exported definition');
+  });
 });

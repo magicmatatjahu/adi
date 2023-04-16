@@ -1,6 +1,6 @@
 import { Injector, Injectable } from "@adi/core";
 
-describe('Without extended provider plugin', function () {
+describe('Injector extended provider plugin', function () {
   test('should not work', function () {
     @Injectable()
     class TestService {}

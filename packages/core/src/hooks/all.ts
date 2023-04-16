@@ -1,9 +1,10 @@
 import { createHook } from "./hook";
 import { compareOrder } from "../injector/metadata";
+import { filterDefinitions } from "../injector/provider";
 import { wait, waitAll } from "../utils";
 
-import type { Session, Provider } from '../injector';
-import type { NextInjectionHook, ProviderDefinition } from '../interfaces';
+import type { Session } from '../injector';
+import type { NextInjectionHook, ProviderRecord, ProviderDefinition } from '../interfaces';
 
 export interface AllHookOptions {
   filter?: 'all' | 'satisfies';
@@ -15,14 +16,14 @@ const defaultOptions: AllHookOptions = {
   imported: true,
 }
 
-function filterDefinitions(provider: { self: Provider, imported?: Array<Provider> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
+function customFilterDefinitions(provider: { self: ProviderRecord, imported?: Array<ProviderRecord> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
   if (options.imported && provider.imported) {
     const definitions: Array<ProviderDefinition> = [];
-    [provider.self, ...provider.imported].forEach(provider => definitions.push(...provider.filter(session, options.filter)));
+    [provider.self, ...provider.imported].forEach(provider => definitions.push(...filterDefinitions(provider, session, options.filter)));
     return definitions.sort(compareOrder);
   }
 
-  return provider.self.filter(session, options.filter);
+  return filterDefinitions(provider.self, session, options.filter);
 }
 
 function allHook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
@@ -46,7 +47,7 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
 
       // TODO: Fix retrieved provider from injector, we should operate on providers from imported injector, not from host injector
       const provider = forkedSession.context.injector.providers.get(forkedSession.iOptions.token);
-      const definitions = filterDefinitions(provider, forkedSession, options);
+      const definitions = customFilterDefinitions(provider, forkedSession, options);
 
       const values: Array<any> = [];
       definitions.forEach(definition => {

@@ -9,8 +9,7 @@ import { InjectorStatus, InjectionKind } from '../enums';
 import { Optional, All } from '../hooks';
 import { isExtendedModule, isModuleToken } from '../utils';
 
-import type { Provider } from './provider';
-import type { ClassType, ProviderToken, ProviderType, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, ModuleImportType } from '../interfaces';
+import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, ModuleImportType } from '../interfaces';
 
 export class Injector {
   static create(
@@ -23,7 +22,7 @@ export class Injector {
 
   public status: InjectorStatus = InjectorStatus.NONE;
   public readonly imports = new Map<InjectorInput, Injector>();
-  public readonly providers = new Map<ProviderToken, { self: Provider, imported?: Array<Provider> }>();
+  public readonly providers = new Map<ProviderToken, { self: ProviderRecord, imported?: Array<ProviderRecord> }>();
   public readonly hooks: Array<HookRecord> = [];
   public readonly meta: Record<string | symbol, any> = {};
 
@@ -71,23 +70,23 @@ export class Injector {
     return destroyInjector(this);
   }
 
-  get<T = any>(token?: ProviderToken<T>, session?: Session): T | Promise<T>;
-  get<T = any>(hook?: InjectionHook, session?: Session): T | Promise<T>;
-  get<T = any>(hooks?: Array<InjectionHook>, session?: Session): T | Promise<T>;
-  get<T = any>(annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>): T | Promise<T>;
+  get<T = any>(hook?: InjectionHook): T | Promise<T>;
+  get<T = any>(hooks?: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(hook?: InjectionHook, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations, session?: Session): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations, session?: Session): T | Promise<T> {
+  get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
     if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return; 
     ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
     const argument = createInjectionArgument(token as ProviderToken<T>, hooks as InjectionHook | Array<InjectionHook>, { target: Injector, kind: InjectionKind.STANDALONE, annotations });
-    return inject(this, argument, session);
+    return inject(this, argument);
   }
 
   import(module: ModuleImportType): Injector | Promise<Injector> {

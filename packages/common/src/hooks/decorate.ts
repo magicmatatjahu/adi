@@ -1,4 +1,4 @@
-import { createHook, wait, InjectionItem, createFunctionResolver } from '@adi/core';
+import { createHook, wait, InjectionItem, createFunction } from '@adi/core';
 import { injectableDefinitions } from '@adi/core/lib/injector';
 import { resolverClass } from '@adi/core/lib/injector/resolver';
 import { DELEGATE_KEY, DELEGATE_VALUE } from './delegate';
@@ -49,7 +49,7 @@ export const DECORATE_KEY = 'adi:key:decorate';
 export const Decorate = createHook((options: DecorateHookOptions) => {
   // decoratorID is added to the every instances with `true` value to avoid redecorate the given instance
   const decorateKey = `adi:key:decorator-${uniqueID++}`;
-  let resolver: ReturnType<typeof createFunctionResolver>;
+  let resolver: ReturnType<typeof createFunction>;
   let delegationKey: string | symbol | undefined;
   let isClass: boolean = false;
 
@@ -62,7 +62,7 @@ export const Decorate = createHook((options: DecorateHookOptions) => {
       isClass = true;
     }
   } else if (hasDecorateFunction(options)) { // function based decorator
-    resolver = createFunctionResolver(options.decorate, options.inject || []);
+    resolver = createFunction(options.decorate, options.inject || []);
   } else if (hasDecorateClass(options)) {
     const clazz = options.class;
     const definition = injectableDefinitions.ensure(clazz);

@@ -2,15 +2,14 @@ import { ADI } from '../adi';
 import { Injector } from './injector';
 import { concatConstraints } from './metadata';
 import { inject } from './resolver';
+import { whenExported } from '../constraints';
 import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from '../constants';
 import { InjectorStatus, InjectionKind } from '../enums';
 import { createDefinition, wait, waitSequence, resolveRef, isModuleToken } from '../utils';
-import { ADI_MODULE_DEF, treeInjectorMetaKey, definitionExportedToInjectorsMetaKey } from '../private';
+import { ADI_MODULE_DEF, exportedToInjectorsMetaKey } from '../private';
 
-import type { Provider } from './provider';
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument, ExportedProvider, ConstraintDefinition, ProviderDefinition } from "../interfaces";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument, ExportedProvider, ConstraintDefinition, ProviderDefinition, ProviderRecord } from "../interfaces";
 import type { ModuleToken } from '../tokens';
-import type { Session } from './session';
 
 export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
 
@@ -247,45 +246,38 @@ function processReExports(exportedProvider: ExportedProvider, from: Injector, to
   if (!providerToExport) {
     throw new Error(`cannot export given token ${token as any}`)
   }
-  importProvider(to, token, providerToExport);
+  importProvider(to, token, providerToExport, exportedProvider.names);
 }
 
-function shouldExportProvider(provider: Provider, fromInjector: Injector, token: ProviderToken, providers: ExportedModule['exports'] | undefined) {
+function shouldExportProvider(provider: ProviderRecord, fromInjector: Injector, token: ProviderToken, providers: ExportedModule['exports'] | undefined) {
   return (provider.host === fromInjector) && (!providers || providers.includes(token));
 }
 
-function importProvider(to: Injector, token: ProviderToken, provider: Provider, name?: ExportedProvider['name']) {
+function importProvider(to: Injector, token: ProviderToken, provider: ProviderRecord, names?: ExportedProvider['names']) {
   const hostProvider = getProvider(to, token);
   const imported = hostProvider.imported;
   if (!imported.includes(provider)) {
     imported.push(provider);
   }
-
-  if (name !== undefined) {
-    const names = Array.isArray(name) ? name : [name];
-    provider.defs.forEach(def => {
-      if (names.includes(def.name)) {
-        defReExport(def, to);
-      }
-    });
-  }
+  exportProvider(provider, to, names);
 }
 
-function whenExported(session: Session): boolean {
-  const exportedToInjectors = session.context.definition.meta[definitionExportedToInjectorsMetaKey];
-  return exportedToInjectors.has(session.meta[treeInjectorMetaKey])
-} 
-
-function defReExport(def: ProviderDefinition, toInjector: Injector) {
-  const exportedToInjectors = def.meta[definitionExportedToInjectorsMetaKey] as WeakSet<Injector>;
-  if (exportedToInjectors) {
-    exportedToInjectors.add(toInjector);
-    return;
+function exportProvider(provider: ProviderRecord, toInjector: Injector, names?: any[]) {
+  let exportedToInjectors: WeakMap<Injector, any[] | true> = provider.meta[exportedToInjectorsMetaKey]
+  if (!exportedToInjectors) {
+    exportedToInjectors = provider.meta[exportedToInjectorsMetaKey] = new WeakMap();
   }
 
-  const toInjectors: WeakSet<Injector> = new WeakSet([toInjector]);
-  def.meta[definitionExportedToInjectorsMetaKey] = toInjectors;
-  concatConstraints(def, whenExported);
+  const givenInjector = exportedToInjectors.get(toInjector);
+  if (givenInjector) {
+    // TODO: Add error if someone try to export definition when first export all definitions
+    if (givenInjector !== true) {
+      givenInjector.push(...names);
+    }
+  } else {
+    exportedToInjectors.set(toInjector, names || true);
+    provider.defs.forEach(def => concatConstraints(def, whenExported))
+  }
 }
 
 function getProvider(injector: Injector, token: ProviderToken) {

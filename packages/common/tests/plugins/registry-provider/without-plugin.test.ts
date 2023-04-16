@@ -1,7 +1,7 @@
 import { Injector, Injectable } from "@adi/core";
 import { Provides } from "../../../src";
 
-describe('Without collection provider plugin', function () {
+describe('Without registry provider plugin', function () {
   test('should not work', function () {
     class TestService1 {
       constructor(
@@ -15,7 +15,7 @@ describe('Without collection provider plugin', function () {
     }
 
     @Injectable()
-    class CollectionService {
+    class RegistryProvider {
       @Provides({ provide: TestService1 })
       static factory1() {
         return new TestService1(this);
@@ -38,7 +38,7 @@ describe('Without collection provider plugin', function () {
     const injector = Injector.create([
       Service,
       {
-        useCollection: CollectionService,
+        useRegistry: RegistryProvider,
       },
     ]).init() as Injector;
 

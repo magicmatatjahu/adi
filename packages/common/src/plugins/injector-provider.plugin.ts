@@ -57,9 +57,9 @@ function onProviderCreate({ definition, original }: OnProviderCreateEvent) {
   }
 }
 
-export function extendedProviderPlugin(): ADIPlugin {
+export function injectorProviderPlugin(): ADIPlugin {
   return {
-    name: 'adi:plugin:extendedProvider',
+    name: 'adi:plugin:injector-provider',
     install(adi, { unsubscribers }) {
       unsubscribers.push(
         adi.on('provider:create', onProviderCreate),

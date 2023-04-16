@@ -1,8 +1,8 @@
 import { ADI, Injector, Injectable } from "@adi/core";
-import { extendedProviderPlugin } from "../../../src";
+import { injectorProviderPlugin } from "../../../src";
 
-describe('Extended provider plugin', function () {
-  const plugin = extendedProviderPlugin();
+describe('Injector provider plugin', function () {
+  const plugin = injectorProviderPlugin();
 
   beforeAll(() => {
     ADI.use(plugin);

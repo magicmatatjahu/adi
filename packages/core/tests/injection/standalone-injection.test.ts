@@ -1,17 +1,6 @@
-import { ADI, Injector, Injectable, Optional } from "@adi/core";
-import { inject, injectPlugin } from "../../../src";
+import { Injector, Injectable, Optional, inject, injectMethod } from "../../src";
 
-describe('Inject plugin', function () {
-  const plugin = injectPlugin();
-
-  beforeAll(() => {
-    ADI.use(plugin);
-  });
-
-  beforeAll(() => {
-    ADI.destroy(plugin);
-  });
-
+describe('standalone injection', function () {
   test('should work in constructor', function () {
     @Injectable()
     class TestService {}
@@ -106,5 +95,36 @@ describe('Inject plugin', function () {
     expect(service).toBeInstanceOf(Service);
     expect(service.testServiceExist).toBeInstanceOf(TestServiceExist);
     expect(service.testServiceNotExist).toEqual('fallback');
+  });
+
+  test('should work inside method', function () {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor() {
+        this.method = injectMethod(this, this.method);
+      }
+
+      method() {
+        return inject(TestService);
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'useFactory',
+        useFactory() {
+          return inject(Service);
+        }
+      },
+    ]).init() as Injector;
+
+    const service = injector.get('useFactory') as Service;
+    expect(service).toBeInstanceOf(Service);
+    expect(service.method()).toBeInstanceOf(TestService);
   });
 });

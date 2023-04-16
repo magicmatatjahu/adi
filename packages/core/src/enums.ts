@@ -22,6 +22,7 @@ export enum InjectionKind {
   STANDALONE = 'standalone',
   PARAMETER = 'parameter',
   PROPERTY = 'property',
+  METHOD = 'method',
   ACCESSOR = 'accessor',
   FACTORY = 'factory',
   FUNCTION = 'function',

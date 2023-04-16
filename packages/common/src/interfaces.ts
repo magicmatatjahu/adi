@@ -15,44 +15,50 @@ export interface ProvideDefinition {
 }
 
 export interface CollectionProvider {
-  useCollection: ClassType | AbstractClassType;
+  useRegistry: ClassType | AbstractClassType;
 }
 
 declare module '@adi/core' {
+  export interface TokenProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+    useRegistry?: never;
+  }
+
   export interface ClassProvider {
     imports?: Array<ModuleImportType>;
     providers?: Array<ProviderType>;
-    useCollection?: never;
+    useRegistry?: never;
   }
 
   export interface FactoryProvider {
     imports?: Array<ModuleImportType>;
     providers?: Array<ProviderType>;
-    useCollection?: never;
+    useRegistry?: never;
   }
 
   export interface ClassFactoryProvider {
     imports?: Array<ModuleImportType>;
     providers?: Array<ProviderType>;
-    useCollection?: never;
+    useRegistry?: never;
   }
 
   export interface ValueProvider {
     imports?: never;
     providers?: never;
-    useCollection?: never;
+    useRegistry?: never;
   }
 
   export interface ExistingProvider {
     imports?: never;
     providers?: never;
-    useCollection?: never;
+    useRegistry?: never;
   }
 
   export interface HookProvider {
     imports?: never;
     providers?: never;
-    useCollection?: never;
+    useRegistry?: never;
   }
 
   export interface CustomProvider extends CollectionProvider {
@@ -65,7 +71,7 @@ declare module '@adi/core' {
     providers?: Array<ProviderType>;
   }
 
-  export interface ProviderAnnotations {
+  export interface DefinitionAnnotations {
     enhancers?: {
       guardCallback?: (ctx: ExecutionContext) => unknown,
       tokens?: {

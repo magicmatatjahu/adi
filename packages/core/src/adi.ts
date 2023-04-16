@@ -84,10 +84,11 @@ export class ADI {
   }
 
   static emitAll<K extends ADIEventKind>(event: K, collection: Array<ADIEvents[K]>): void {
-    if (this.canEmit(event)) {
-      const actions = this.getActions(event);
-      collection.forEach(item => actions.forEach(action => action(item)));
+    if (this.canEmit(event) === false || collection.length === 0) {
+      return;
     }
+    const actions = this.getActions(event);
+    collection.forEach(item => actions.forEach(action => action(item)));
   }
 
   protected static canEmit(flag: ADIEventKind) {

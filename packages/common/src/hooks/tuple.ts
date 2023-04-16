@@ -9,7 +9,7 @@ function injectItem(argument: InjectionArgument, injector: Injector, parentSessi
   if (parentSession) {
     parentSession.children.push(session);
   }
-  return runHooks(argument.hooks, session, ctx.kind, next);
+  return runHooks(argument.hooks, session, { kind: ctx.kind }, next);
 }
 
 export const Tuple = createHook((collection: Array<InjectionItem>) => {
