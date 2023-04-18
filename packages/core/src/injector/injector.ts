@@ -1,5 +1,4 @@
 import { destroyInjector } from './lifecycle-manager';
-import { Session } from './session';
 import { inject } from './resolver';
 import { processProviders, serializeInjectArguments, createInjectionArgument } from './metadata';
 import { initModule, importModule, retrieveExtendedModule } from './module';

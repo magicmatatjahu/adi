@@ -30,7 +30,7 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   }
 
   const injector = session.context.injector;
-  ADI.emit('instance:create', { injector, instance })
+  ADI.emit('instance:create', { injector, session, instance })
   return waitSequence(
     hooks.reverse(), 
     hook => hook(session, [value]),
@@ -66,7 +66,7 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
 
   delete instance.meta[destroyHooksMetaKey];
   const injector = session.context.injector;
-  ADI.emit('instance:destroy', { injector, instance });
+  ADI.emit('instance:destroy', { injector, session, instance });
 
   for (let i = 0, l = hooks.length; i < l; i++) {
     await hooks[i](session, [value]);

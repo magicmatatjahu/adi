@@ -334,23 +334,10 @@ function injectMethods<T>(injector: Injector, instance: T, methods: Record<strin
   })
 }
 
-// TODO: Improve method injection - try to destroy instances injected by standalone inject function
 const sessionHook = SessionHook();
 export function injectMethod<T>(injector: Injector, instance: T, originalMethod: Function, injections: Array<InjectionArgument>, session: Session): Function {
   injections = injections.map(injection => injection && ({ ...injection, hooks: [sessionHook, ...injection.hooks] }));
   const injectionsLength = injections.length;
-
-  const target = (instance as any).constructor;
-  const descriptor = Object.getOwnPropertyDescriptor((target as any).prototype, originalMethod.name);
-  const methodCtx = { 
-    injector,
-    session,
-    metadata: {
-      kind: InjectionKind.METHOD,
-      target,
-      descriptor,
-    }
-  };
 
   const cache: any[] = [];
   return function(...args: any[]) {
@@ -377,24 +364,13 @@ export function injectMethod<T>(injector: Injector, instance: T, originalMethod:
       }
     }
 
-    // TODO: Destroy instances when function will throw error;
-    const ctxInstances = [];
     return waitAll(
       actions,
       () => waitCallback(
-        () => {
-          const ctx = { ...methodCtx, [instancesToDestroyMetaKey]: ctxInstances }
-          const previosuContext = setCurrentInjectionContext(ctx);
-          try {
-            return originalMethod.apply(instance, args)
-          } finally {
-            setCurrentInjectionContext(previosuContext);
-          }
-        }, 
-        result => {
-          destroy([...instances, ...ctxInstances]);
-          return result;
-        },
+        () => originalMethod.apply(instance, args), 
+        undefined,
+        undefined,
+        () => destroy(instances)
       ),
     );
   }
@@ -433,8 +409,8 @@ export function resolverValue<T>(_: Injector, __: Session, data: FactoryDefiniti
   return data.value;
 }
 
-export function createFunction<T>(factory: (...args: any[]) => T | Promise<T>, injections: Array<InjectionItem> = []) {
-  const metadata: InjectionMetadata = { kind: InjectionKind.FUNCTION, function: factory }
+export function createFunction<T>(fn: (...args: any[]) => T | Promise<T>, injections: Array<InjectionItem> = []) {
+  const metadata: InjectionMetadata = { kind: InjectionKind.FUNCTION, function: fn }
   const converted = convertInjections(injections, metadata);
   return (session: Session, args: any[] = []) => {
     const injector = session.context.injector;
@@ -442,7 +418,7 @@ export function createFunction<T>(factory: (...args: any[]) => T | Promise<T>, i
     try {
       return wait(
         injectArray(injector, converted, session),
-        deps => factory(...args, ...deps),
+        deps => fn(...args, ...deps),
       );
     } finally {
       setCurrentInjectionContext(previosuContext);

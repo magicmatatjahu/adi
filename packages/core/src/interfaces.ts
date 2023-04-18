@@ -460,11 +460,13 @@ export interface OnProviderDestroyEvent {
 
 export interface OnInstanceCreateEvent { 
   injector: Injector;
+  session: Session;
   instance: ProviderInstance;
 }
 
 export interface OnInstanceDestroyEvent { 
   injector: Injector;
+  session: Session;
   instance: ProviderInstance;
 }
 

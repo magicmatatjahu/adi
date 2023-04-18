@@ -1,7 +1,10 @@
 import { serializeInjectArguments, createInjectionArgument } from './metadata';
-import { inject as coreInject, injectMethod as coreInjectMethod } from './resolver';
+import { destroy } from './lifecycle-manager';
+import { inject as coreInject } from './resolver';
 import { InjectionKind } from '../enums';
+import { SessionHook } from '../hooks';
 import { instancesToDestroyMetaKey } from '../private';
+import { wait, waitCallback } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
@@ -13,6 +16,10 @@ export interface CurrentInjectionContext {
   metadata?: InjectionMetadata;
 }
 
+export interface InjectionData {
+  inject: typeof inject,
+}
+
 let currentContext: CurrentInjectionContext | undefined = undefined;
 export function setCurrentInjectionContext(ctx: CurrentInjectionContext | undefined): CurrentInjectionContext | undefined {
   const previous = currentContext;
@@ -20,6 +27,7 @@ export function setCurrentInjectionContext(ctx: CurrentInjectionContext | undefi
   return previous;
 }
 
+const sessionHook = SessionHook();
 const defaultInjectionMetadata: InjectionMetadata = {
   kind: InjectionKind.UNKNOWN,
   target: undefined,
@@ -29,6 +37,29 @@ const defaultInjectionMetadata: InjectionMetadata = {
   function: undefined,
   static: false,
   annotations: undefined,
+}
+
+function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
+  ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
+  const { injector, session, metadata = {} } = ctx;
+  const injectMetadata = { ...defaultInjectionMetadata, ...metadata, annotations }
+
+  const instancesToDestroy = currentContext[instancesToDestroyMetaKey];
+  if (instancesToDestroy === undefined) {
+    const argument = createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, injectMetadata);
+    return coreInject(injector, argument, session) as T;
+  }
+
+  const argument = createInjectionArgument(token as ProviderToken<T>, [sessionHook, ...hooks as Array<InjectionHook>], injectMetadata);
+  return wait(
+    coreInject(injector, argument, session),
+    ({ result, session: s }: { result: any, session: Session }) => {
+      if (s.hasFlag('side-effect')) {
+        instancesToDestroy.push(s.context.instance);
+      }
+      return result;
+    }
+  ) as T;
 }
 
 export function inject<T = any>(token?: ProviderToken<T>): T;
@@ -47,11 +78,7 @@ export function inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array
   if (currentContext === undefined) {
     throw new Error('inject() must be called from an injection context such as a constructor, a factory function or field initializer.');
   }
-  ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
-
-  const { injector, session: parent, metadata = {} } = currentContext;
-  const argument = createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, { ...defaultInjectionMetadata, ...metadata, annotations });
-  return coreInject(injector, argument, parent) as T;
+  return baseInject(currentContext, token, hooks, annotations) as T;
 }
 
 export function injectMethod<T, F extends (...args: any) => any>(instance: T, method: F): F {
@@ -60,13 +87,43 @@ export function injectMethod<T, F extends (...args: any) => any>(instance: T, me
   }
 
   const { injector, session } = currentContext;
-  return coreInjectMethod(injector, instance, method, [], session) as F;
+  const target = (instance as any).constructor;
+  const descriptor = Object.getOwnPropertyDescriptor((target as any).prototype, method.name);
+  const methodCtx = { 
+    injector,
+    session,
+    metadata: {
+      kind: InjectionKind.METHOD,
+      target,
+      descriptor,
+    }
+  };
+
+  return function(...args: any[]) {
+    const ctxInstances: any[] = [];
+    const ctx = { ...methodCtx, [instancesToDestroyMetaKey]: ctxInstances }
+    const previosuContext = setCurrentInjectionContext(ctx);
+    try {
+      return waitCallback(
+        () => method.apply(instance, args),
+        undefined,
+        undefined,
+        () => destroy(ctxInstances),
+      )
+    } finally {
+      setCurrentInjectionContext(previosuContext)
+    }
+  } as F
 }
 
-export function runInInjectionContext<R>(fn: () => R, ctx: CurrentInjectionContext): R {
+export function runInInjectionContext<R>(fn: (data: InjectionData) => R, ctx: CurrentInjectionContext): R {
+  function ctxInject<T>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
+    return baseInject(ctx, token, annotations)
+  };
+
   const previosuContext = setCurrentInjectionContext(ctx);
   try {
-    return fn();
+    return fn({ inject: ctxInject });
   } finally {
     setCurrentInjectionContext(previosuContext);
   }

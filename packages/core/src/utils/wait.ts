@@ -5,12 +5,13 @@ export function patchPromise(promise: any = Promise): void {
   promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_REF; 
 }
 
-export function isPromiseLike<T>(maybePromise: any): maybePromise is PromiseLike<T> {
+export function isPromiseLike<T>(maybePromise: any): maybePromise is Promise<T> {
   return maybePromise && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_REF;
 }
 
 export const noopThen = (value: any) => value;
 export const noopCatch = (err: unknown) => { throw err; }
+export const noopFinally = () => void 0;
 
 export function wait<T, R>(
   result: T,
@@ -42,20 +43,35 @@ export function waitCallback<T, R, C>(
   catchAction: (err: unknown) => C | Promise<C> | never,
 ): R | Promise<R> | C | Promise<C> | never;
 export function waitCallback<T, R, C>(
+  result: () => T,
+  thenAction: (value: Awaited<T>) => R | Promise<R>,
+  catchAction: (err: unknown) => C | Promise<C> | never,
+  finallyAction: () => void,
+): R | Promise<R> | C | Promise<C> | never;
+export function waitCallback<T, R, C>(
   action: () => T,
   thenAction: (value: Awaited<T>) => R | Promise<R> = noopThen,
   catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
+  finallyAction: () => void = noopFinally,
 ): R | Promise<R> | C | Promise<C> | never {
   let result: T | never;
   try {
     result = action();
-  } catch(err) {
+  } catch(err: unknown) {
     result = catchAction(err) as any;
   }
+
   if (isPromiseLike(result)) {
-    return result.then(thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never;
+    return result.then(thenAction, catchAction).finally(finallyAction) as R | Promise<R> | C | Promise<C> | never;
   }
-  return thenAction(result as any) as R | Promise<R>;
+
+  try {
+    return thenAction(result as any) as R | Promise<R>;
+  } catch(err: unknown) {
+    return catchAction(err) as any
+  } finally {
+    finallyAction();
+  }
 }
 
 export function waitAll<T, R>(
@@ -79,7 +95,6 @@ export function waitAll<T, R, C>(
   return wait(result, thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never;
 }
 
-// TODO: return all performed data
 export function waitSequence<T, D, R>(
   data: T[],
   action: (data: T, index: number, array: T[]) => D | Promise<D>,
