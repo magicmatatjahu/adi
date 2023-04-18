@@ -12,11 +12,11 @@ import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetad
 
 export interface CurrentInjectionContext {
   injector: Injector;
-  session: Session;
+  session?: Session;
   metadata?: InjectionMetadata;
 }
 
-export interface InjectionData {
+export interface RunInContextArgument {
   inject: typeof inject,
 }
 
@@ -116,9 +116,9 @@ export function injectMethod<T, F extends (...args: any) => any>(instance: T, me
   } as F
 }
 
-export function runInInjectionContext<R>(fn: (data: InjectionData) => R, ctx: CurrentInjectionContext): R {
+export function runInInjectionContext<R>(fn: (arg: RunInContextArgument) => R, ctx: CurrentInjectionContext): R {
   function ctxInject<T>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
-    return baseInject(ctx, token, annotations)
+    return baseInject(ctx, token, hooks, annotations);
   };
 
   const previosuContext = setCurrentInjectionContext(ctx);

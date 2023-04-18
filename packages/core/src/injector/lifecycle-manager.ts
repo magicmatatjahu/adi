@@ -88,14 +88,14 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) 
     return;
   }
 
-  const { kind, options } = instance.scope;
+  const { scope: { kind, options }, definition, context } = instance;
   const shouldDestroy = await kind.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
 
   if (!shouldDestroy) {
     return;
   }
   instance.status |= InstanceStatus.DESTROYED;
-  instance.definition.values.delete(instance.context);
+  definition.values.delete(context);
   
   await processOnDestroyLifecycle(instance);
   return destroyChildren(instance, ctx);

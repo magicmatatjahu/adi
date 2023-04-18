@@ -41,7 +41,7 @@ export class Session<T = any> {
 
   get iMetadata(): SessionInjection<T>['metadata'] {
     return this.injection.metadata;
-  } 
+  }
 
   fork(): Session {
     const { options, metadata } = this.injection;

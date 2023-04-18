@@ -419,8 +419,9 @@ export type InjectorScope = 'any' | string | symbol | InjectorInput;
 export interface InjectorOptions {
   name?: string;
   scopes?: Array<InjectorScope>;
-  importing?: 'enabled' | 'disabled';
-  exporting?: 'enabled' | 'disabled';
+  importing?: boolean;
+  exporting?: boolean;
+  initialize?: boolean;
 }
 
 export interface OnInit {

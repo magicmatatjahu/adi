@@ -1,15 +1,36 @@
 import { ADI } from '../adi';
 import { Injector } from './injector';
 import { concatConstraints } from './metadata';
-import { inject } from './resolver';
 import { whenExported } from '../constraints';
 import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from '../constants';
-import { InjectorStatus, InjectionKind } from '../enums';
+import { InjectorStatus } from '../enums';
 import { createDefinition, wait, waitSequence, resolveRef, isModuleToken } from '../utils';
 import { ADI_MODULE_DEF, exportedToInjectorsMetaKey } from '../private';
 
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, InjectionArgument, ExportedProvider, ConstraintDefinition, ProviderDefinition, ProviderRecord } from "../interfaces";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput } from "../interfaces";
 import type { ModuleToken } from '../tokens';
+
+type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference | Promise<any>>;
+
+interface ExtractedMetadata {
+  input?: ClassType | ModuleToken;
+  core?: ModuleMetadata;
+  extended: Array<ModuleMetadata>;
+  all: Array<ModuleMetadata>;
+}
+
+interface CompiledModule {
+  input: ClassType | ModuleToken;
+  extracted: ExtractedMetadata;
+  proxy: CompiledModule | Injector | undefined;
+  imports: Map<ExtractedModuleImportType, CompiledModule>;
+  compiled: Array<CompiledModule>;
+  // normal exports (without exported modules)
+  exports: Array<ProviderToken | ProviderType | ExportedModule>;
+  injector: Injector;
+  parent: CompiledModule | Injector;
+  stack: Set<CompiledModule>;
+}
 
 export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
 
@@ -27,60 +48,72 @@ function moduleFactory(): ModuleMetadata {
   };
 }
 
-type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference | Promise<any>>;
-
-interface ExtractedMetadata {
-  input?: ClassType | ModuleToken;
-  core?: ModuleMetadata;
-  extended: Array<ModuleMetadata>;
-  all: Array<ModuleMetadata>;
+export function initModule(injector: Injector): Injector | Promise<Injector> {
+  return wait(__importModule(injector, injector.input as any), _ => injector);
 }
 
-interface CompiledModule {
-  input: ClassType | ModuleToken;
-  extracted: ExtractedMetadata;
-  proxy: CompiledModule | undefined;
-  imports: Map<ExtractedModuleImportType, CompiledModule>;
-  compiled: Array<CompiledModule>;
-  // normal exports (without exported modules)
-  exports: Array<ProviderToken | ProviderType | ExportedModule>;
-  injector: Injector;
-  parent: CompiledModule;
-  stack: Set<CompiledModule>;
-}
-
-export function initModule(injector: Injector) {
-  return wait(importModule(injector, injector.input as any), _ => injector);
-}
-
-export function importModule(injector: Injector, input: ModuleImportType): Injector | Promise<Injector> {
+export function __importModule(injector: Injector, input: ModuleImportType): Injector | Promise<Injector> {
   if (injector.status & InjectorStatus.PENDING) {
     return injector;
   }
   injector.status |= InjectorStatus.PENDING;
 
   if (Array.isArray(input)) {
-    return wait(initInjector({ injector: injector, input } as any), () => injector);
+    if (injector.parent) {
+      injector.parent.imports.set(input, injector);
+    }
+    return wait(initInjector({ injector, input } as any), () => injector);
   }
 
   return wait(
     retrieveMetadata(input),
+    extracted => processModule(injector, createCompiledModule(extracted, undefined, injector)),
+  );
+}
+
+export function importModule(to: Injector, input: InjectorInput | Promise<InjectorInput>): Injector | Promise<Injector> {
+  return wait(input, result => processImportModule(to, result));
+}
+
+function processImportModule(to: Injector, input: InjectorInput) {
+  const alreadyImported = to.imports.get(input);
+  if (Array.isArray(input)) {
+    if (alreadyImported) {
+      return alreadyImported;
+    }
+
+    const injector = Injector.create(input, undefined, to);
+    to.imports.set(input, injector);
+    return wait(initInjector({ injector, input } as any), () => injector);
+  }
+
+  return wait(
+    retrieveMetadata(input as any),
     extracted => {
-      const compiled = createCompiledModule(extracted, undefined, injector);
-      return wait(
-        processImports(compiled),
+      const injector = Injector.create(extracted.input, undefined, to);
+      const compiled = createCompiledModule(extracted, to, injector);
+      compiled.proxy = findModuleInTree(input as any, to);
+      return processModule(injector, compiled)
+    }
+  )
+}
+
+function processModule(injector: Injector, compiled: CompiledModule) {
+  return wait(
+    processExports(compiled),
+    () => wait(
+      processImports(compiled),
+      () => wait(
+        processCompiled(compiled),
         () => wait(
-          processCompiled(compiled),
-          () => wait(
-            waitSequence(
-              Array.from(compiled.stack.values()), 
-              initInjector,
-            ),
-            () => injector,
+          waitSequence(
+            Array.from(compiled.stack.values()), 
+            initInjector,
           ),
+          () => injector,
         ),
-      )
-    },
+      ),
+    )
   );
 }
 
@@ -114,7 +147,7 @@ function processImport(importItem: ModuleImportType, parent: CompiledModule) {
   )
 }
 
-function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledModule) {
+function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledModule | Injector) {
   // TODO: test plain module metadata
   // doesn't have input - no module type (class, module token or extended module)
   const input = extracted.input;
@@ -124,13 +157,20 @@ function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledMo
 
   const compiled = createCompiledModule(extracted, parent);
   const proxy = compiled.proxy = findModuleInTree(input, parent);
-  parent.compiled.push(compiled);
 
-  const parentInjector = proxy ? proxy.injector : parent.injector;
+  const isInjector = parent instanceof Injector;
+  let parentInjector: Injector;
+  if (isInjector) {
+    parentInjector = proxy ? (proxy as CompiledModule).injector : parent;
+  } else {
+    parent.compiled.push(compiled);
+    parentInjector = proxy ? (proxy as CompiledModule).injector : parent.injector;
+  }
+
   const injector = compiled.injector = Injector.create(input, undefined, parentInjector);
   if (proxy) {
     injector.status |= InjectorStatus.PROXY;
-  } else {
+  } else if (!isInjector) {
     parent.imports.set(input, compiled);
   }
 
@@ -162,15 +202,20 @@ function processExport(exportItem: ModuleExportType, compiled: CompiledModule) {
 }
 
 function processInjector(compiled: CompiledModule) {
-  const { input, extracted: { extended, all }, proxy, exports } = compiled;
   const injector = compiled.injector;
   compiled.stack.add(compiled);
 
-  (proxy ? extended : all).forEach(item => {
+  getMetadatas(compiled).forEach(item => {
     injector.provide(...(item.providers || []));
   });
 
-  const parentInjector = compiled.parent?.injector;
+  const parent = compiled.parent;
+  if (!compiled.parent) {
+    return;
+  }
+
+  const { input, exports} = compiled;
+  const parentInjector: Injector | undefined = (parent as CompiledModule).injector || parent as Injector;
   if (!parentInjector) {
     return;
   }
@@ -349,18 +394,20 @@ function processExtendedModule(extendedModule: ExtendedModule, extracted: Extrac
   );
 }
 
-function getMetadatas(compiled: CompiledModule) {
-  const extracted = compiled.extracted;
-  return compiled.proxy ? extracted.extended : extracted.all;
+function getMetadatas({ proxy, extracted }: CompiledModule) {
+  return proxy ? extracted.extended : extracted.all;
 }
 
-function createCompiledModule(extracted: ExtractedMetadata, parent?: CompiledModule, injector?: Injector): CompiledModule {
-  const stack = parent?.stack || new Set();
+function createCompiledModule(extracted: ExtractedMetadata, parent?: CompiledModule | Injector, injector?: Injector): CompiledModule {
+  const stack: Set<CompiledModule> = parent instanceof Injector ? new Set() : parent?.stack || new Set();
   return { input: extracted.input, extracted, proxy: undefined, imports: new Map(), compiled: [], exports: [], injector, parent, stack };
 }
 
-function findModuleInTree(input: ClassType | ModuleToken, parent: CompiledModule): CompiledModule | undefined {
-  if (!input) {
+function findModuleInTree(input: ClassType | ModuleToken, parent: Injector): Injector | undefined;
+function findModuleInTree(input: ClassType | ModuleToken, parent: CompiledModule): CompiledModule | undefined;
+function findModuleInTree(input: ClassType | ModuleToken, parent: CompiledModule | Injector): CompiledModule | Injector | undefined;
+function findModuleInTree(input: ClassType | ModuleToken, parent: CompiledModule | Injector): CompiledModule | Injector | undefined {
+  if (!input || parent instanceof Injector) {
     return;
   }
 
@@ -402,7 +449,7 @@ function loadModuleConfig(injector: Injector) {
     options => {
       let scopes = injector.options.scopes;
       if (options.scopes) {
-        scopes = Array.from(new Set([...injector.options.scopes, ...options.scopes]));
+        scopes = Array.from(new Set([...scopes, ...options.scopes]));
       }
       Object.assign(injector.options, { ...options, scopes });
     }

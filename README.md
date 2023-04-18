@@ -10,4 +10,5 @@
 - links sessions in inline function resolver to some session (as children) to destroy created (maybe) instances in the resolver function to avoid stack overflow 
 - retrieve hooks from InjectionToken and InjectableDefinition and concat it with hooks from provider definition
 
-- how to destroy instances in standalone resolver function which should be destroyed, e.g. transient instances? Maybe by metadata label `destroy`
+- how to not destroy instances in standalone resolver function which should be destroyed, e.g. transient instances? Maybe by metadata label `destroy: false`
+- handle in proper way all ModuleMetadata input in injector import/export

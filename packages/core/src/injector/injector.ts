@@ -1,3 +1,4 @@
+import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
 import { inject } from './resolver';
 import { processProviders, serializeInjectArguments, createInjectionArgument } from './metadata';
@@ -6,8 +7,9 @@ import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectorStatus, InjectionKind } from '../enums';
 import { Optional, All } from '../hooks';
-import { isExtendedModule, isModuleToken } from '../utils';
+import { isExtendedModule, isModuleToken, waitCallback } from '../utils';
 
+import type { RunInContextArgument } from './inject'
 import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, ModuleImportType } from '../interfaces';
 
 export class Injector {
@@ -28,14 +30,11 @@ export class Injector {
   constructor(
     public readonly input: InjectorInput = [],
     public readonly options: InjectorOptions = {},
-    public readonly parent: Injector | null | undefined = null,
+    public readonly parent: Injector | null | undefined = ADI.coreInjector,
   ) {
-    if (!parent) {
-      parent = ADI.coreInjector;
-    }
-
-    options.importing = options.importing || 'enabled';
-    options.exporting = options.exporting || 'enabled';
+    if (options.importing === undefined) options.importing = true;
+    if (options.exporting === undefined) options.exporting = true;
+    if (options.initialize === undefined) options.initialize = true;
     options.scopes = ['any', input as ClassType, ...(options.scopes || [])];
   
     const providers: ProviderType[] = [];
@@ -53,6 +52,7 @@ export class Injector {
     } else {
       providers.push({ provide: MODULE_REF, useValue: input });
     }
+
     this.provide(
       { provide: Injector, useValue: this }, 
       { provide: INJECTOR_CONFIG, useValue: options }, 
@@ -88,13 +88,33 @@ export class Injector {
     return inject(this, argument);
   }
 
-  import(module: ModuleImportType): Injector | Promise<Injector> {
-    if (this.status & InjectorStatus.DESTROYED || this.options.importing !== 'enabled') return; 
-    return importModule(this, module);
+  import(input: InjectorInput): Injector | Promise<Injector> {
+    if (this.status & InjectorStatus.DESTROYED || !this.options.importing) return; 
+    return importModule(this, input);
   }
 
   provide(...providers: ProviderType[]): void {
     if (this.status & InjectorStatus.DESTROYED) return;
     processProviders(this, providers);
+  }
+
+  run<R>(fn: (arg: RunInContextArgument) => R): R {
+    return runInInjectionContext(fn, { injector: this });
+  }
+
+  of(): Injector;
+  of<R>(fn?: (data: { injector: Injector }) => R): R;
+  of<R>(fn?: (data: { injector: Injector }) => R): R | Injector {
+    const injector = new Injector([], { exporting: false }, this);
+    injector.init();
+    if (typeof fn === 'function') {
+      return waitCallback(
+        () => fn({ injector }),
+        undefined,
+        undefined,
+        () => injector.destroy(),
+      ) as R
+    }
+    return injector;
   }
 }
