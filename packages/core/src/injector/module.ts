@@ -49,7 +49,7 @@ function moduleFactory(): ModuleMetadata {
 }
 
 export function initModule(injector: Injector): Injector | Promise<Injector> {
-  return wait(__importModule(injector, injector.input as any), _ => injector);
+  return wait(__importModule(injector, injector.input as any), _ => (injector as any).$ = injector);
 }
 
 export function __importModule(injector: Injector, input: ModuleImportType): Injector | Promise<Injector> {
@@ -167,7 +167,7 @@ function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledMo
     parentInjector = proxy ? (proxy as CompiledModule).injector : parent.injector;
   }
 
-  const injector = compiled.injector = Injector.create(input, undefined, parentInjector);
+  const injector = compiled.injector = Injector.create(input, { initialize: false }, parentInjector);
   if (proxy) {
     injector.status |= InjectorStatus.PROXY;
   } else if (!isInjector) {
@@ -431,6 +431,7 @@ function findModuleInTree(input: ClassType | ModuleToken, parent: CompiledModule
 }
 
 function initInjector({ injector, input, proxy }: CompiledModule) {
+  if (injector.status & InjectorStatus.INITIALIZED) return;
   injector.status |= InjectorStatus.INITIALIZED;
   ADI.emit('module:create', { injector, original: input });
 

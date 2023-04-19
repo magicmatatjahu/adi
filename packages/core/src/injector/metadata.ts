@@ -42,6 +42,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
   let definitionName: string | symbol | object;
   let injectionMetadata: InjectionMetadata | undefined;
   let annotations: ProviderAnnotations;
+  let defs: ProviderDefinition[];
 
   // handle provider defined as class
   if (typeof original === "function") {
@@ -55,6 +56,11 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     provider = getOrCreateProvider(injector, original);
     annotations = options.annotations || {};
     definitionName = options.name;
+    
+    defs = provider.defs;
+    if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
+      return;
+    }
 
     injectionMetadata = { kind: InjectionKind.UNKNOWN, target: original };
     const hooks = createArray(options.hooks);
@@ -81,6 +87,12 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     provider = getOrCreateProvider(injector, token);
+
+    defs = provider.defs;
+    if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
+      return;
+    }
+
     if (isFactoryProvider(original)) {
       if (isClassFactoryProvider(original)) {
         kind = ProviderKind.PROVIDER;
@@ -103,8 +115,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       }
     } else if (isValueProvider(original)) {
       kind = ProviderKind.VALUE;
-      // TODO: Create separate scope for value provider
-      // scope = SingletonScope;
       factory = { resolver: resolverValue, data: { value: original.useValue } } as FactoryDefinitionValue;
     } else if (isClassProvider(original)) {
       kind = ProviderKind.CLASS;
@@ -126,7 +136,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     } else if (isHook(hooks)) {
       // standalone hooks on provider level
       addHook(provider, hooks, 'provider', when, annotations);
-      return { injector, original, provider, definition: undefined };
+      return { injector, original, provider };
     } else { // case with token provider - without definition - or custom provider
       if (token !== undefined) {
         const providerKeys = getAllKeys(original).length;
@@ -142,12 +152,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     definition = { provider, original, name: definitionName, kind, factory, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), default: when === undefined, meta: {} };
-  }
-
-  const defs = provider.defs;
-  // if given definition pointed by name exists, then don't save definition and skip processing by plugins
-  if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
-    return;
   }
 
   if (injectionMetadata) {

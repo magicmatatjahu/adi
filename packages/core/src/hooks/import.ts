@@ -4,11 +4,12 @@ import { wait } from "../utils";
 import type { ProviderToken } from "../interfaces";
 
 export const Import = createHook((imported: () => Promise<ProviderToken>) => {
+  let token: ProviderToken | undefined;
   return (session, next) => {
     return wait(
-      imported(),
-      token => {
-        session.iOptions.token = token;
+      token || imported(),
+      result => {
+        session.iOptions.token = token = result;
         return next(session);
       }
     );

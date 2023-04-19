@@ -21,6 +21,7 @@ export class Injector {
     return new Injector(input, options, parent);
   }
 
+  private $: Injector | Promise<Injector>;
   public status: InjectorStatus = InjectorStatus.NONE;
   public readonly imports = new Map<InjectorInput, Injector>();
   public readonly providers = new Map<ProviderToken, { self: ProviderRecord, imported?: Array<ProviderRecord> }>();
@@ -59,10 +60,14 @@ export class Injector {
       { provide: INITIALIZERS, hooks: [Optional(), All({ imported: false })] },
       ...providers
     );
+
+    if (options.initialize) {
+      this.$ = initModule(this);
+    }
   }
 
   init(): Injector | Promise<Injector> {
-    return initModule(this);
+    return this.$ || (this.$ = initModule(this));
   }
 
   destroy(): Promise<void> {
@@ -88,7 +93,7 @@ export class Injector {
     return inject(this, argument);
   }
 
-  import(input: InjectorInput): Injector | Promise<Injector> {
+  import(input: InjectorInput | Promise<InjectorInput>): Injector | Promise<Injector> {
     if (this.status & InjectorStatus.DESTROYED || !this.options.importing) return; 
     return importModule(this, input);
   }
