@@ -30,6 +30,7 @@ interface CompiledModule {
   injector: Injector;
   parent: CompiledModule | Injector;
   stack: Set<CompiledModule>;
+  shouldProcess: boolean;
 }
 
 export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
@@ -87,33 +88,35 @@ function processImportModule(to: Injector, input: InjectorInput) {
     return wait(initInjector({ injector, input } as any), () => injector);
   }
 
+  // TODO: Optimize it
+  const parentCompiled = createCompiledModule({
+    input: to.input as any,
+    core: undefined,
+    extended: [{
+      imports: [input as any]
+    }],
+    all: [],
+  }, to.parent, to, to, false);
   return wait(
-    retrieveMetadata(input as any),
-    extracted => {
-      const injector = Injector.create(extracted.input, undefined, to);
-      const compiled = createCompiledModule(extracted, to, injector);
-      compiled.proxy = findModuleInTree(input as any, to);
-      return processModule(injector, compiled)
-    }
+    processModule(to, parentCompiled),
+    // TODO: Optimize it
+    _ => Array.from(parentCompiled.stack).pop().injector,
   )
 }
 
 function processModule(injector: Injector, compiled: CompiledModule) {
   return wait(
-    processExports(compiled),
+    processImports(compiled),
     () => wait(
-      processImports(compiled),
+      processCompiled(compiled),
       () => wait(
-        processCompiled(compiled),
-        () => wait(
-          waitSequence(
-            Array.from(compiled.stack.values()), 
-            initInjector,
-          ),
-          () => injector,
+        waitSequence(
+          Array.from(compiled.stack.values()), 
+          initInjector,
         ),
+        () => injector,
       ),
-    )
+    ),
   );
 }
 
@@ -202,6 +205,10 @@ function processExport(exportItem: ModuleExportType, compiled: CompiledModule) {
 }
 
 function processInjector(compiled: CompiledModule) {
+  if (compiled.shouldProcess === false) {
+    return;
+  }
+
   const injector = compiled.injector;
   compiled.stack.add(compiled);
 
@@ -214,7 +221,7 @@ function processInjector(compiled: CompiledModule) {
     return;
   }
 
-  const { input, exports} = compiled;
+  const { input, exports } = compiled;
   const parentInjector: Injector | undefined = (parent as CompiledModule).injector || parent as Injector;
   if (!parentInjector) {
     return;
@@ -330,6 +337,7 @@ function getProvider(injector: Injector, token: ProviderToken) {
   if (!hostProvider) {
     hostProvider = { self: undefined, imported: [] };
     injector.providers.set(token, hostProvider);
+    return hostProvider;
   }
   if (!hostProvider.imported) {
     hostProvider.imported = [];
@@ -357,6 +365,7 @@ function extractModuleMetadata(ref: ExtractedModuleImportType): ExtractedMetadat
     extended: [],
     all: [],
   }
+
   return wait(
     processExtendedModule(ref as ExtendedModule, extracted),
     () => {
@@ -398,9 +407,9 @@ function getMetadatas({ proxy, extracted }: CompiledModule) {
   return proxy ? extracted.extended : extracted.all;
 }
 
-function createCompiledModule(extracted: ExtractedMetadata, parent?: CompiledModule | Injector, injector?: Injector): CompiledModule {
+function createCompiledModule(extracted: ExtractedMetadata, parent?: CompiledModule | Injector, injector?: Injector, proxy?: CompiledModule | Injector, shouldProcess: boolean = true): CompiledModule {
   const stack: Set<CompiledModule> = parent instanceof Injector ? new Set() : parent?.stack || new Set();
-  return { input: extracted.input, extracted, proxy: undefined, imports: new Map(), compiled: [], exports: [], injector, parent, stack };
+  return { input: extracted.input, extracted, proxy, imports: new Map(), compiled: [], exports: [], injector, parent, stack, shouldProcess };
 }
 
 function findModuleInTree(input: ClassType | ModuleToken, parent: Injector): Injector | undefined;

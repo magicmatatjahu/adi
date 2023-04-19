@@ -56,8 +56,7 @@ describe('Module dynamic import', function() {
     expect(imported.get(Service)).toBeInstanceOf(Service);
   });
 
-  // TODO: handle such a case
-  test.skip('should be able to import module in the runtime (exports module in imported module)', async function() {
+  test('should be able to import module in the runtime (exports module in imported module)', async function() {
     @Injectable()
     class Service {}
 
