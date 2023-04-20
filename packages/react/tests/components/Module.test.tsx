@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Injector, Injectable, Module as ADIModule } from "@adi/core";
 import { InjectorStatus } from '@adi/core/lib/enums';
 
 import { Module, useInject, useInjector } from "../../src";
 
-import type { PropsWithChildren } from 'react';
+import type { FunctionComponent, PropsWithChildren } from 'react';
 
 describe('Module component', function() {
   test('should work', async function() {
@@ -14,7 +14,7 @@ describe('Module component', function() {
       prop: string = "Module works";
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
 
       return (
@@ -44,7 +44,7 @@ describe('Module component', function() {
       prop: string = "Service injected";
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
       const deepService = useInject(DeepService);
 
@@ -85,7 +85,7 @@ describe('Module component', function() {
       prop: string = "Service injected";
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
       const deepService = useInject(DeepService);
 
@@ -140,7 +140,7 @@ describe('Module component', function() {
       prop: string = "Service injected";
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
       const proxyService = useInject(ProxyService);
 
@@ -193,7 +193,7 @@ describe('Module component', function() {
       }
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
 
       return (
@@ -232,7 +232,7 @@ describe('Module component', function() {
       }
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
 
       return (
@@ -276,7 +276,7 @@ describe('Module component', function() {
       prop: string = "Service injected";
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const service = useInject(Service);
       const deepService = useInject(DeepService);
 
@@ -324,7 +324,7 @@ describe('Module component', function() {
     }
 
     let injector: Injector | undefined;
-    const ChildComponent: React.FunctionComponent = () => {
+    const ChildComponent: FunctionComponent = () => {
       injector = useInjector();
 
       return (
@@ -334,7 +334,7 @@ describe('Module component', function() {
       );
     };
 
-    const TestComponent: React.FunctionComponent<PropsWithChildren> = ({ children }) => {
+    const TestComponent: FunctionComponent<PropsWithChildren> = ({ children }) => {
       const [renderModule, setRenderModule] = useState(false);
 
       return (
@@ -393,7 +393,7 @@ describe('Module component', function() {
     }
 
     let injector: Injector | undefined;
-    const ChildComponent: React.FunctionComponent = () => {
+    const ChildComponent: FunctionComponent = () => {
       injector = useInjector();
 
       return (
@@ -403,7 +403,7 @@ describe('Module component', function() {
       );
     };
 
-    const TestComponent: React.FunctionComponent<PropsWithChildren> = ({ children }) => {
+    const TestComponent: FunctionComponent<PropsWithChildren> = ({ children }) => {
       const [renderModule, setRenderModule] = useState(false);
 
       return (

@@ -9,21 +9,21 @@ import type { InjectorOptions, InjectorInput } from "@adi/core";
 
 type InternalState = [Injector | Promise<Injector>, boolean];
 
-export interface ModuleProps {
+export interface ModuleProps extends PropsWithChildren {
   module: InjectorInput | Injector;
   options?: InjectorOptions;
   cacheId?: string | symbol;
   fallback?: ReactNode;
 }
 
-export const Module: FunctionComponent<PropsWithChildren<ModuleProps>> = (props) => {
+export const Module: FunctionComponent<ModuleProps> = (props) => {
   const ctx = useContext(InjectorContext);
-  const [[injector, isAsync], setState] = useState(() => {
+  const [[injector, resolving], setState] = useState(() => {
     return createInjector(props, ctx?.injector);
   });
 
   useEffect(() => {
-    if (isAsync) {
+    if (resolving) {
       wait(injector, inj => setState([inj, false]));
     }
 
@@ -32,7 +32,7 @@ export const Module: FunctionComponent<PropsWithChildren<ModuleProps>> = (props)
     }
   }, []);
 
-  if (isAsync) {
+  if (resolving) {
     const fallback = props.fallback;
     return fallback ? fallback : null as any;
   }
@@ -57,7 +57,7 @@ function createInjector(props: ModuleProps, parentInjector: Injector | undefined
     }
 
     const options = props.options || {};
-    options.exporting = 'disabled';
+    options.exporting = false;
     injector = Injector.create(mod as InjectorInput, options, parentInjector || undefined).init();
   }
 
@@ -79,8 +79,5 @@ function createInjector(props: ModuleProps, parentInjector: Injector | undefined
 }
 
 function destroyInjector(injector: Injector | Promise<Injector>) {
-  // use setTimeout to add destruction to the end of event loop
-  setTimeout(() => {
-    wait(injector, inj => inj.destroy());
-  }, 0);
+  Promise.resolve(wait(injector, injector => injector.destroy()));
 }

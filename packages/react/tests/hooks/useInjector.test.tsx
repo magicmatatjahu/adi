@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import React, { render, screen } from '@testing-library/react';
 import { useContext } from "react";
 import { Injectable } from "@adi/core";
 
 import { InjectorContext, Module, useInjector } from "../../src";
 import { NotFoundInjectorError } from '../../src/problems';
+
+import { FunctionComponent } from 'react';
 
 describe('useInjector hook', function() {
   test('should work', async function() {
@@ -19,7 +21,7 @@ describe('useInjector hook', function() {
       ) {}
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const injector = useInjector();
       const service = injector.get(Service) as Service;
 
@@ -52,7 +54,7 @@ describe('useInjector hook', function() {
       ) {}
     }
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const ctx = useContext(InjectorContext);
       const service = ctx.injector.get(Service) as Service;
 
@@ -73,11 +75,7 @@ describe('useInjector hook', function() {
   });
 
   test('should return null without defined in the Node Tree the InjectorContext', async function() {
-    // override console.error native function to not see error in console
-    const nativeConsoleError = console.error;
-    console.error = () => {};
-
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const injector = useInjector();
 
       return (
@@ -87,8 +85,10 @@ describe('useInjector hook', function() {
       );
     }
 
+    // override console.error native function to not see error in console
+    const nativeConsoleError = console.error;
+    console.error = () => {};
     expect(() => render(<TestComponent />)).toThrow(NotFoundInjectorError);
-    
     console.error = nativeConsoleError;
   });
 });

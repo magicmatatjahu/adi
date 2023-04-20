@@ -4,13 +4,14 @@ import { compareOrder, convertInjections, filterHooks, getTreeshakableProvider }
 import { filterDefinitions, getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
 import { InjectionKind, InstanceStatus, InjectionHookKind } from '../enums';
-import { runHooks, runHooksWithProviders, SessionHook } from '../hooks';
-import { circularSessionsMetaKey, promiseResolveMetaKey, promiseDoneMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey, instancesToDestroyMetaKey } from '../private';
+import { runHooks, runHooksWithProviders, InstanceHook } from '../hooks';
+import { circularSessionsMetaKey, promiseResolveMetaKey, promiseDoneMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 import { NoProviderError, CircularReferenceError } from "../problem";
 import { getAllKeys, wait, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from './injector'
 import type { ProviderRecord, ProviderDefinition, ProviderInstance, Provider as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectionArgument, InjectableDefinition, InjectionItem, ProviderAnnotations, InjectionMetadata } from '../interfaces'
+import type { InjectionHookResult } from '../hooks'
 
 export function inject<T>(injector: Injector, argument: InjectionArgument, parentSession?: Session): T | Promise<T> {
   const session = Session.create(argument.token, argument.metadata, injector, parentSession);
@@ -334,9 +335,8 @@ function injectMethods<T>(injector: Injector, instance: T, methods: Record<strin
   })
 }
 
-const sessionHook = SessionHook();
 export function injectMethod<T>(injector: Injector, instance: T, originalMethod: Function, injections: Array<InjectionArgument>, session: Session): Function {
-  injections = injections.map(injection => injection && ({ ...injection, hooks: [sessionHook, ...injection.hooks] }));
+  injections = injections.map(injection => injection && ({ ...injection, hooks: [InstanceHook, ...injection.hooks] }));
   const injectionsLength = injections.length;
 
   const cache: any[] = [];
@@ -353,11 +353,11 @@ export function injectMethod<T>(injector: Injector, instance: T, originalMethod:
 
         actions.push(wait(
           inject(injector, dependency, session),
-          ({ result, session: s }: { result: any, session: Session }) => {
-            if (!s.hasFlag('side-effect')) {
+          ({ sideEffects, instance, result }: InjectionHookResult<typeof InstanceHook>) => {
+            if (!sideEffects) {
               cache[i] = result;
             }
-            instances.push(s.context.instance);
+            instances.push(instance);
             args[i] = result;
           }
         ));
@@ -406,7 +406,7 @@ export function resolveClassicProvider<T>(injector: Injector, session: Session, 
 }
 
 export function resolverValue<T>(_: Injector, __: Session, data: FactoryDefinitionValue<T>['data']): T {
-  return data.value;
+  return data;
 }
 
 export function createFunction<T>(fn: (...args: any[]) => T | Promise<T>, injections: Array<InjectionItem> = []) {

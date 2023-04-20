@@ -1,12 +1,5 @@
 import type { ForwardReference } from '../interfaces';
 
-export function dynamic<T>(fn: () => Promise<T>): ForwardReference<Promise<T>> {
-  return {
-    ref: fn,
-    _$ref: ref,
-  };
-}
-
 export function ref<T>(fn: () => T): ForwardReference<T> {
   return {
     ref: fn,

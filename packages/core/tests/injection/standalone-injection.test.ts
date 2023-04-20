@@ -1,4 +1,4 @@
-import { Injector, Injectable, Optional, inject, injectMethod } from "../../src";
+import { Injector, Injectable, Optional, InjectionToken, inject, injectMethod } from "../../src";
 
 describe('standalone injection', function () {
   test('should work in constructor', function () {
@@ -50,6 +50,40 @@ describe('standalone injection', function () {
     @Injectable()
     class Service {
       testService: TestService = inject(TestService);
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'useFactory',
+        useFactory() {
+          return inject(Service);
+        }
+      },
+    ]).init() as Injector;
+
+    const service = injector.get('useFactory') as Service;
+    expect(service).toBeInstanceOf(Service);
+    expect(service.testService).toBeInstanceOf(TestService);
+  });
+
+  test('should work in treeshakable InjectionToken', function () {
+    @Injectable()
+    class TestService {}
+
+    const token = new InjectionToken<TestService>({
+      provideIn: "any",
+      provide: {
+        useFactory() {
+          return inject(TestService);
+        },
+      }
+    });
+
+    @Injectable()
+    class Service {
+      testService: TestService = inject(token);
     }
 
     const injector = Injector.create([

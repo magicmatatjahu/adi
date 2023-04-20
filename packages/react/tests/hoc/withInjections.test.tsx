@@ -1,8 +1,10 @@
-import { useState, Component } from "react";
+import React, { useState, Component } from "react";
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Injectable, TransientScope } from "@adi/core";
 
 import { Module, withInjections } from "../../src";
+
+import type { FunctionComponent } from 'react';
 
 describe('withInjections HOC', function() {
   test('should work with Function Component', async function() {
@@ -23,7 +25,7 @@ describe('withInjections HOC', function() {
       customProp: string;
     }
 
-    const TestComponent: React.FunctionComponent<InjectionProps> = ({
+    const TestComponent: FunctionComponent<InjectionProps> = ({
       service,
       customProp,
     }) => {
@@ -113,7 +115,7 @@ describe('withInjections HOC', function() {
       service2: Service2;
     }
 
-    const ChildComponent: React.FunctionComponent<ComponentProps> = () => {
+    const ChildComponent: FunctionComponent<ComponentProps> = () => {
       return (
         <div>
           Child component is rendered!
@@ -126,7 +128,7 @@ describe('withInjections HOC', function() {
       service2: Service2,
     });
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const [renderComponent, setRenderComponent] = useState(false);
 
       return (
@@ -187,7 +189,7 @@ describe('withInjections HOC', function() {
       service2: Service2;
     }
 
-    const ChildComponent: React.FunctionComponent<ComponentProps> = () => {
+    const ChildComponent: FunctionComponent<ComponentProps> = () => {
       return (
         <div>
           Child component is rendered!
@@ -200,7 +202,7 @@ describe('withInjections HOC', function() {
       service2: Service2,
     });
 
-    const TestComponent: React.FunctionComponent = () => {
+    const TestComponent: FunctionComponent = () => {
       const [renderComponent, setRenderComponent] = useState(false);
 
       return (
@@ -253,7 +255,7 @@ describe('withInjections HOC', function() {
       deepService: DeepService,
     }
 
-    const TestComponent: React.FunctionComponent<ComponentProps> = ({ service, deepService }) => {
+    const TestComponent: FunctionComponent<ComponentProps> = ({ service, deepService }) => {
       return (
         <div>
           <span>{service.prop}!</span>

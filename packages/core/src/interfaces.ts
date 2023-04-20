@@ -25,10 +25,10 @@ export interface InjectionTokenOptions<T = any> {
 export type ProvidesOptions<T = any> = { provide: ProviderToken<T> } & SimplifiedProvider<T>;
 
 export type ModuleImportType<T = any> = 
-  | ClassType
+  | ClassType<T>
   | ModuleToken
   | ExtendedModule<T>
-  | Promise<ClassType>
+  | Promise<ClassType<T>>
   | Promise<ModuleToken>
   | Promise<ExtendedModule<T>>
   | ForwardReference<ModuleImportType<T>>;
@@ -394,7 +394,7 @@ export type FactoryResolver<R = any, D = any> = (injector: Injector, session: Se
 
 export type FactoryDefinitionClass<T = any> = FactoryDefinition<T, { class: ClassType<T>, inject: InjectionArguments }>;
 export type FactoryDefinitionFactory<T = any> = FactoryDefinition<T, { factory: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }>;
-export type FactoryDefinitionValue<T = any> = FactoryDefinition<T, { value: T }>;
+export type FactoryDefinitionValue<T = any> = FactoryDefinition<T, T>;
 
 export interface InjectableOptions<T = any> {
   provide?: SimplifiedProvider<T>;

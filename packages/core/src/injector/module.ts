@@ -49,6 +49,13 @@ function moduleFactory(): ModuleMetadata {
   };
 }
 
+export function extendsModule<T>(toExtend: ClassType<T> | ModuleToken | Promise<ClassType<T> | ModuleToken>, metadata: ModuleMetadata): ExtendedModule {
+  return {
+    extends: toExtend,
+    ...metadata
+  }
+}
+
 export function initModule(injector: Injector): Injector | Promise<Injector> {
   return wait(__importModule(injector, injector.input as any), _ => (injector as any).$ = injector);
 }
@@ -151,8 +158,6 @@ function processImport(importItem: ModuleImportType, parent: CompiledModule) {
 }
 
 function processExtractedImport(extracted: ExtractedMetadata, parent: CompiledModule | Injector) {
-  // TODO: test plain module metadata
-  // doesn't have input - no module type (class, module token or extended module)
   const input = extracted.input;
   if (!input) {
     return;

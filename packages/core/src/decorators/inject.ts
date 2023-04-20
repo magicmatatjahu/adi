@@ -90,7 +90,7 @@ function getProperInjections(isStatic: boolean, injections: InjectionArguments):
 }
 
 function mergeMethodParameters(injectionParameters: Array<InjectionArgument> = [], reflectedParameters: Array<ClassType | AbstractClassType>, hooks: Array<InjectionHook>, annotations: InjectionAnnotations, metadata: InjectionMetadata) {
-  const updateExisting = Boolean(hooks || annotations); 
+  const updateExisting = hooks || annotations; 
   reflectedParameters.forEach((reflectedParameter, index) => {
     if (!injectionParameters[index]) {
       injectionParameters[index] = createInjectionArgument(reflectedParameter, hooks, { ...metadata, kind: InjectionKind.PARAMETER, annotations: { ...annotations } });

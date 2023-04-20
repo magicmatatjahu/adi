@@ -48,4 +48,41 @@ describe('Ref injection hook', function() {
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
     expect(service === service.serviceB.serviceA).toEqual(true);
   });
+
+  test('should handle dynamic import', async function () {
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Ref(() => import('./ref.testdata').then(data => data.ChunkService))) readonly service: any
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+    ]).init() as Injector;
+
+    const service = await injector.get(Service);
+    expect(service.service.constructor.name).toEqual('ChunkService');
+  });
+
+  test('should wrap reference to async function and forward it', async function() {
+    @Injectable()
+    class ServiceA {
+      constructor(
+        @Inject([Ref(async () => ServiceB)]) readonly serviceB: any,
+      ) {}
+    }
+
+    @Injectable()
+    class ServiceB {}
+
+    const injector = Injector.create([
+      ServiceA,
+      ServiceB,
+    ]).init() as Injector;
+
+    const service = await injector.get(ServiceA);
+    expect(service).toBeInstanceOf(ServiceA);
+    expect(service.serviceB).toBeInstanceOf(ServiceB);
+  });
 });

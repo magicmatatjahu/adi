@@ -5,7 +5,7 @@ export function patchPromise(promise: any = Promise): void {
   promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_REF; 
 }
 
-export function isPromiseLike<T>(maybePromise: any): maybePromise is Promise<T> {
+export function isPromiseLike<T>(maybePromise: unknown): maybePromise is Promise<T> {
   return maybePromise && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_REF;
 }
 

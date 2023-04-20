@@ -17,7 +17,7 @@ import type {
   ProviderToken, ProviderType, ProviderRecord, ProviderDefinition, ProviderAnnotations, DefinitionAnnotations, HookAnnotations,
   InjectionHook, HookRecord, ConstraintDefinition, 
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
-  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType, ClassProvider,
+  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType, ClassProvider, ClassTypeProvider,
   OnProviderCreateEvent,
 } from '../interfaces';
 
@@ -37,6 +37,10 @@ export function processProviders<T>(host: Injector, providers: Array<ProviderTyp
 }
 
 export function processProvider<T>(injector: Injector, original: ProviderType<T>): ProcessProviderResult | undefined {
+  if (!original) {
+    return;
+  }
+
   let provider: ProviderRecord;
   let definition: ProviderDefinition;
   let definitionName: string | symbol | object;
@@ -44,26 +48,33 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
   let annotations: ProviderAnnotations;
   let defs: ProviderDefinition[];
 
-  // handle provider defined as class
   if (typeof original === "function") {
     const injectableDefinition = ensureInjectable(original);
     if (!injectableDefinition) {
       return;
     }
 
-    // TODO: Handle options.provide;
     const { options, injections } = injectableDefinition;
     provider = getOrCreateProvider(injector, original);
     annotations = options.annotations || {};
     definitionName = options.name;
     
     defs = provider.defs;
-    if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
+    if (checkExistingDefinition(defs, definitionName)) {
       return;
     }
 
-    injectionMetadata = { kind: InjectionKind.UNKNOWN, target: original };
     const hooks = createArray(options.hooks);
+    if (options.provide) {
+      return processProvider(injector, {
+        ...options.provide,
+        provide: original,
+        hooks,
+        annotations,
+      });
+    }
+
+    injectionMetadata = { kind: InjectionKind.UNKNOWN, target: original };
     const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
     definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
@@ -89,7 +100,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     provider = getOrCreateProvider(injector, token);
 
     defs = provider.defs;
-    if (definitionName !== undefined && defs.some(d => d.name === definitionName)) {
+    if (checkExistingDefinition(defs, definitionName)) {
       return;
     }
 
@@ -115,7 +126,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       }
     } else if (isValueProvider(original)) {
       kind = ProviderKind.VALUE;
-      factory = { resolver: resolverValue, data: { value: original.useValue } } as FactoryDefinitionValue;
+      factory = { resolver: resolverValue, data: original.useValue } as FactoryDefinitionValue;
     } else if (isClassProvider(original)) {
       kind = ProviderKind.CLASS;
       const clazz = original.useClass;
@@ -167,6 +178,10 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
   defs.push(definition);
   defs.sort(compareOrder);
   return { injector, original, provider, definition };
+}
+
+function checkExistingDefinition(defs: ProviderDefinition[], definitionName: string | symbol | object) {
+  return definitionName !== undefined && defs.some(d => d.name === definitionName);
 }
 
 function handleAnnotations(provider: ProviderRecord, definition: ProviderDefinition | undefined, annotations: ProviderAnnotations) {
@@ -261,7 +276,8 @@ export function getTreeshakableProvider(token: InjectableDefinition['token'], in
     return null;
   }
 
-  let provideIn = definition.options.provideIn;
+  const options = definition.options;
+  let provideIn = options.provideIn;
   if (!provideIn) {
     return null;
   }
@@ -271,18 +287,18 @@ export function getTreeshakableProvider(token: InjectableDefinition['token'], in
     return null;
   }
 
-  // if class
+  // case with class
   if (typeof token === 'function') {
-    return processProvider(injector, token as ClassType).provider;
+    return processProvider(injector, token).provider;
   }
 
-  const options = definition.options;
+  // case with injection token
   return processProvider(injector, {
     provide: token,
-    ...definition.options.provide || {},
     hooks: options.hooks,
     annotations: options.annotations,
-  } as any).provider;
+    ...options.provide || {},
+  }).provider;
 }
 
 function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Array<InjectorScope>): boolean {
@@ -486,19 +502,6 @@ const useExistingHook = createHook((token: ProviderToken) => {
     return resolveProvider(session);
   }
 }, { name: 'adi:hook:use-existing' });
-
-const useComponentHook = createHook(() => {
-  return (session, next) => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    if (session.parent || getHostInjector(session) !== session.context.injector) {
-      throw new ComponentProviderError();
-    }
-    return next(session);
-  }
-}, { name: 'adi:hook:use-component' })();
 
 const useExistingDefinitionHook = createHook((definition: ProviderDefinition) => {
   return (session, next) => {

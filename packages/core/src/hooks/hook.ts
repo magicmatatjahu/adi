@@ -4,6 +4,8 @@ import { InjectionHookKind } from "../enums";
 import type { Session } from "../injector";
 import type { ProviderRecord, InjectionHook, InjectionHookOptions, InjectionHookFn, NextInjectionHook, InjectionHookContext } from "../interfaces";
 
+export type InjectionHookResult<T> = T extends InjectionHook<infer R> ? R : unknown;
+
 type ReturnHookFnType<F> = F extends (...args: any) => InjectionHookFn<infer T> ? T : unknown; 
 
 export function createHook<F extends (...args: any) => InjectionHookFn>(hook: F, options?: InjectionHookOptions): (...args: Parameters<F>) => InjectionHook<ReturnHookFnType<F>> {

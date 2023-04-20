@@ -2,13 +2,14 @@ import { serializeInjectArguments, createInjectionArgument } from './metadata';
 import { destroy } from './lifecycle-manager';
 import { inject as coreInject } from './resolver';
 import { InjectionKind } from '../enums';
-import { SessionHook } from '../hooks';
+import { InstanceHook } from '../hooks';
 import { instancesToDestroyMetaKey } from '../private';
 import { wait, waitCallback } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
 import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata } from '../interfaces';
+import type { InjectionHookResult } from '../hooks';
 
 export interface CurrentInjectionContext {
   injector: Injector;
@@ -27,7 +28,6 @@ export function setCurrentInjectionContext(ctx: CurrentInjectionContext | undefi
   return previous;
 }
 
-const sessionHook = SessionHook();
 const defaultInjectionMetadata: InjectionMetadata = {
   kind: InjectionKind.UNKNOWN,
   target: undefined,
@@ -44,19 +44,17 @@ function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | 
   const { injector, session, metadata = {} } = ctx;
   const injectMetadata = { ...defaultInjectionMetadata, ...metadata, annotations }
 
+  const argument = createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, injectMetadata);;
   const instancesToDestroy = currentContext[instancesToDestroyMetaKey];
   if (instancesToDestroy === undefined) {
-    const argument = createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, injectMetadata);
     return coreInject(injector, argument, session) as T;
   }
 
-  const argument = createInjectionArgument(token as ProviderToken<T>, [sessionHook, ...hooks as Array<InjectionHook>], injectMetadata);
+  argument.hooks = [InstanceHook, ...argument.hooks];
   return wait(
     coreInject(injector, argument, session),
-    ({ result, session: s }: { result: any, session: Session }) => {
-      if (s.hasFlag('side-effect')) {
-        instancesToDestroy.push(s.context.instance);
-      }
+    ({ result, instance }: InjectionHookResult<typeof InstanceHook>) => {
+      instancesToDestroy.push(instance)
       return result;
     }
   ) as T;

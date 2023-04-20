@@ -45,7 +45,7 @@ patchCircularRefs();
 initADI();
 
 export * from './decorators';
-export { createHook, All, Ctx, Destroyable, Hook, Import, SessionHook, Named, OnDestroyHook, OnInitHook, Optional, Ref, Tagged, Token } from './hooks';
+export { createHook, All, Ctx, Destroyable, Hook, SessionHook, Named, OnDestroyHook, OnInitHook, Optional, Ref, Tagged, Token } from './hooks';
 export { Context, Injector, Session, injectableMixin, moduleMixin, inject, injectMethod, runInInjectionContext, createFunction } from './injector';
 export { Scope, DefaultScope, SingletonScope, TransientScope, createScope } from './scopes';
 export { InjectionToken, ModuleToken } from './tokens';

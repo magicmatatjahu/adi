@@ -3,10 +3,12 @@ import { injectableDefinitions } from '@adi/core/lib/injector';
 
 import type { ADIPlugin, ModuleImportType, ProviderType, OnProviderCreateEvent } from '@adi/core';
 
+const providerInjectorMetaKey = 'adi:key:provider-injector';
+
 const DestroyInjectorHook = OnDestroyHook({
   onDestroy(_: any, session: Session) {
-    const hostInjector: Injector = session.context.instance.meta.__injector;
-    return hostInjector.destroy();
+    const hostInjector: Injector = session.context.instance.meta[providerInjectorMetaKey];
+    return hostInjector && hostInjector.destroy();
   },
   inject: [Session]
 });
@@ -47,9 +49,9 @@ function onProviderCreate({ definition, original }: OnProviderCreateEvent) {
     const resolver = factory.resolver;
     factory.resolver = (injector, session, data) => {
       return wait(
-        Injector.create({ imports, providers }, { exporting: 'disabled' }, injector).init(),
+        Injector.create({ imports, providers }, { exporting: false }, injector).init(),
         newInjector => {
-          session.context.instance.meta.__injector = newInjector;
+          session.context.instance.meta[providerInjectorMetaKey] = newInjector;
           return resolver(newInjector, session, data);
         },
       );

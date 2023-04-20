@@ -398,4 +398,41 @@ describe('ClassType provider (injectable provider)', function() {
       expect(service.service).toBeInstanceOf(TestService);
     });
   });
+
+  describe('should works as plain provide with .provide option', function() {
+    test('with simple provide', function() {
+      @Injectable({
+        provide: {
+          useFactory() {
+            return 'provide works!';
+          },
+        }
+      })
+      class Service {}
+  
+      const injector = Injector.create({
+        providers: [Service]
+      }).init() as Injector;
+  
+      const service = injector.get(Service);
+      expect(service).toEqual('provide works!');
+    });
+
+    test('with defined provideIn', function() {
+      @Injectable({
+        provideIn: 'any',
+        provide: {
+          useFactory() {
+            return 'provide works!';
+          },
+        }
+      })
+      class Service {}
+  
+      const injector = Injector.create().init() as Injector;
+  
+      const service = injector.get(Service);
+      expect(service).toEqual('provide works!');
+    });
+  });
 });
