@@ -6,7 +6,7 @@ const hook = DynamicScopeHook();
 
 export function dynamicScopesPlugin(): ADIPlugin {
   return {
-    name: 'adi:plugin:cache',
+    name: 'adi:plugin:dynamic-scopes',
     install(adi, { unsubscribers }) {
       unsubscribers.push(
         adi.on('module:create', ({ injector }) => {

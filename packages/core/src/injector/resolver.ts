@@ -7,7 +7,7 @@ import { InjectionKind, InstanceStatus, InjectionHookKind } from '../enums';
 import { runHooks, runHooksWithProviders, InstanceHook } from '../hooks';
 import { circularSessionsMetaKey, promiseResolveMetaKey, promiseDoneMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 import { NoProviderError, CircularReferenceError } from "../problem";
-import { getAllKeys, wait, waitAll, waitCallback } from '../utils';
+import { getAllKeys, isClassProvider, wait, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from './injector'
 import type { ProviderRecord, ProviderDefinition, ProviderInstance, Provider as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectionArgument, InjectableDefinition, InjectionItem, ProviderAnnotations, InjectionMetadata } from '../interfaces'
@@ -299,7 +299,11 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
 
 function getPrototype<T>(instance: ProviderInstance<T>): Object {
   const provider = instance.definition.original;
-  return typeof provider === 'function' ? provider.prototype : provider.useClass.prototype;
+  if (typeof provider === 'function') {
+    return provider.prototype;
+  } else if (isClassProvider(provider)) {
+    return provider.useClass.prototype;;
+  }
 }
 
 export function injectArray(injector: Injector, dependencies: Array<InjectionArgument>, session?: Session): Array<any> | Promise<Array<any>> {

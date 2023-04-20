@@ -49,7 +49,7 @@ describe('Cache plugin', function () {
     expect(calls).toEqual(1);
   });
 
-  test('should not cache injection with side effects - case with New wrapper', function () {
+  test('should not cache injection with side effects - case with New injection hook', function () {
     let calls = 0;
 
     const TestWrapper = createHook(() => {

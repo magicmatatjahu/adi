@@ -67,8 +67,9 @@ export interface ExportedModule {
 }
 
 export type ProviderType<T = any> = 
-  | TokenProvider<T>
   | ClassTypeProvider<T>
+  | InjectionToken<T>
+  | TokenProvider<T>
   | ClassProvider<T>
   | FactoryProvider<T>
   | ClassFactoryProvider<T>

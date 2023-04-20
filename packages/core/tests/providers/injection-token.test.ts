@@ -71,6 +71,21 @@ describe('InjectionToken', function() {
       const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
     });
+
+    test('as standalone provider', function() {
+      const Token = new InjectionToken<string>({
+        provide: {
+          useValue: 'foobar',
+        }
+      });
+
+      const injector = new Injector([
+        Token,
+      ]);
+  
+      const resolvedToken = injector.get(Token);
+      expect(resolvedToken).toEqual('foobar');
+    });
   });
 
   describe('should works as tree shakable provider', function() {

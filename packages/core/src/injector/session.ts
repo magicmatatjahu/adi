@@ -6,6 +6,7 @@ import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext
 const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
   'side-effect': SessionFlag.SIDE_EFFECTS,
+  'dynamic': SessionFlag.DYNAMIC,
   'dry-run': SessionFlag.DRY_RUN,
   'dynamic-scope': SessionFlag.DYNAMIC_SCOPE,
   'circular': SessionFlag.CIRCULAR,

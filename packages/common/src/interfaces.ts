@@ -14,7 +14,7 @@ export interface ProvideDefinition {
   static: Record<string | symbol, ProvidesOptions>;
 }
 
-export interface CollectionProvider {
+export interface RegistryProvider {
   useRegistry: ClassType | AbstractClassType;
 }
 
@@ -61,7 +61,7 @@ declare module '@adi/core' {
     useRegistry?: never;
   }
 
-  export interface CustomProvider extends CollectionProvider {
+  export interface CustomProvider extends RegistryProvider {
     imports?: Array<ModuleImportType>;
     providers?: Array<ProviderType>;
   }

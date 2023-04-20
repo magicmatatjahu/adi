@@ -67,10 +67,10 @@ export function registryProviderPlugin(): ADIPlugin {
     install(adi, { unsubscribers }) {
       unsubscribers.push(
         adi.on('provider:create', ({ injector, original }) => {
-          if (typeof original !== 'object' || !original.useRegistry) {
+          if (typeof original !== 'object' || !(original as any).useRegistry) {
             return;
           }
-          createProviders(injector, original.useRegistry);
+          createProviders(injector, (original as any).useRegistry);
         })
       );
     }

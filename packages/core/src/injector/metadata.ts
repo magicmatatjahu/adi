@@ -6,7 +6,6 @@ import { INITIALIZERS } from '../constants';
 import { when, whenExported, whenComponent } from '../constraints';
 import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
-import { ComponentProviderError } from '../problem';
 import { DefaultScope } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey } from '../private';
@@ -78,6 +77,19 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
     definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
+  } else if (isInjectionToken(original)) {
+    const injectableDefinition = ensureInjectable(original);
+    if (!injectableDefinition) {
+      return;
+    }
+
+    const options = injectableDefinition.options;
+    return processProvider(injector, {
+      provide: original,
+      hooks: options.hooks,
+      annotations: options.annotations,
+      ...options.provide || {},
+    })
   } else {
     annotations = original.annotations || {};
     definitionName = original.name;

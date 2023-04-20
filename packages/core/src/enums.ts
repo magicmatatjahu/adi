@@ -40,9 +40,10 @@ export enum SessionFlag {
   NONE = 0,
   RESOLVED = 1,
   SIDE_EFFECTS = 2,
-  DRY_RUN = 4,
-  DYNAMIC_SCOPE = 8,
-  CIRCULAR = 16,
+  DYNAMIC = 4,
+  DRY_RUN = 8,
+  DYNAMIC_SCOPE = 16,
+  CIRCULAR = 32,
 }
 
 export enum InjectionHookKind {

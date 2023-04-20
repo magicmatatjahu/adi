@@ -4,11 +4,11 @@ import { concatConstraints } from './metadata';
 import { whenExported } from '../constraints';
 import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from '../constants';
 import { InjectorStatus } from '../enums';
-import { createDefinition, wait, waitSequence, resolveRef, isModuleToken } from '../utils';
+import { createDefinition, wait, waitSequence, resolveRef, isModuleToken, isInjectionToken } from '../utils';
 import { ADI_MODULE_DEF, exportedToInjectorsMetaKey } from '../private';
 
 import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput } from "../interfaces";
-import type { ModuleToken } from '../tokens';
+import type { InjectionToken, ModuleToken } from '../tokens';
 
 type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference | Promise<any>>;
 
@@ -250,7 +250,7 @@ function processNormalExport(exportItem: ProviderToken | ProviderType | Exported
     }
 
     // object provider case
-    if ((exportItem as Exclude<ProviderType, ClassType>).provide) {
+    if ((exportItem as Exclude<ProviderType, ClassType | InjectionToken>).provide) {
       return to.provide(exportItem as Exclude<ProviderType, ClassType>);
     }
   }
@@ -269,7 +269,9 @@ function processNormalExport(exportItem: ProviderToken | ProviderType | Exported
   // string, symbol or InjectionToken case
   if (selfProvider) {
     importProvider(to, exportItem as ProviderToken, selfProvider);
-  };
+  } else if (isInjectionToken(exportItem)) {
+    to.provide(exportItem);
+  }
 }
 
 // TODO: Handle named definition exports
