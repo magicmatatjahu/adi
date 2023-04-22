@@ -8,7 +8,7 @@
     "noLib": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "target": "ES2015",
+    "target": "ES2019",
     "sourceMap": true,
     "allowJs": true,
     "outDir": "lib",

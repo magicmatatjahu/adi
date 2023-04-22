@@ -354,7 +354,8 @@ export interface InjectionArguments {
   static?: {
     properties: Record<string | symbol, InjectionArgument>;
     methods: Record<string | symbol, Array<InjectionArgument>>;
-  }
+  };
+  status?: boolean;
 }
 
 export interface InjectionMetadata {

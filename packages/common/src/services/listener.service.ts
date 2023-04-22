@@ -8,4 +8,4 @@ export class ListenerService {
   }
 }
 
-injectableMixin(ListenerService, { provideIn: ADI });
+injectableMixin(ListenerService, undefined, { provideIn: ADI });

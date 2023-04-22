@@ -15,22 +15,23 @@ function hasOnDestroyLifecycle(instance: unknown): instance is OnDestroy {
 }
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
+  const { annotations, context } = session;
   const value = instance.value;
-  const hooks: undefined | Array<Function> = session.annotations[initHooksMetaKey];
+  const hooks: undefined | Array<Function> = annotations[initHooksMetaKey];
   if (!hooks) {
+    ADI.emit('instance:create', { injector: context.injector, session, instance })
     if (hasOnInitLifecycle(value)) {
       return value.onInit();
     }
     return;
   }
   
-  delete session.annotations[initHooksMetaKey];
+  delete annotations[initHooksMetaKey];
   if (hasOnInitLifecycle(value)) {
     hooks.push(() => value.onInit());
   }
 
-  const injector = session.context.injector;
-  ADI.emit('instance:create', { injector, session, instance })
+  ADI.emit('instance:create', { injector: context.injector, session, instance })
   return waitSequence(
     hooks.reverse(), 
     hook => hook(session, [value]),
@@ -53,20 +54,19 @@ export function processOnInitLifecycle(instance: ProviderInstance) {
 }
 
 export async function processOnDestroyLifecycle(instance: ProviderInstance) {
-  const session = instance.session;
-  const value = instance.value;
+  const { session, value } = instance;
   if (hasOnDestroyLifecycle(value)) {
     await value.onDestroy();
   }
   
-  const hooks: undefined | Array<Function> = instance.meta[destroyHooksMetaKey];
+  const meta = instance.meta;
+  const hooks: undefined | Array<Function> = meta[destroyHooksMetaKey];
   if (!hooks) {
     return;
   }
 
-  delete instance.meta[destroyHooksMetaKey];
-  const injector = session.context.injector;
-  ADI.emit('instance:destroy', { injector, session, instance });
+  delete meta[destroyHooksMetaKey];
+  ADI.emit('instance:destroy', { injector: session.context.injector, session, instance });
 
   for (let i = 0, l = hooks.length; i < l; i++) {
     await hooks[i](session, [value]);

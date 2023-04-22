@@ -4,7 +4,7 @@ import { Hook } from './hooks';
 import { patchPromise } from './utils/wait';
 
 function patchCircularRefs() {
-  injectableMixin(Context, { 
+  injectableMixin(Context, undefined, { 
     provideIn: 'any',
     hooks: [
       Hook(session => {
@@ -18,7 +18,7 @@ function patchCircularRefs() {
     ] 
   });
 
-  injectableMixin(Session, { 
+  injectableMixin(Session, undefined, { 
     provideIn: 'any',
     hooks: [
       Hook(session => {

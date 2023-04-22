@@ -7,7 +7,7 @@ import type { ClassType, AbstractClassType, InjectableDefinition, Injections, In
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 
-export function injectableMixin(token: InjectableDefinition['token'], options?: InjectableDefinition['options'], injections?: Injections | Array<InjectionItem>): InjectableDefinition {
+export function injectableMixin(token: InjectableDefinition['token'], injections?: Injections | Array<InjectionItem>, options?: InjectableDefinition['options']): InjectableDefinition {
   const definition = injectableDefinitions.ensure(token);
   if (definition.init) {
     return definition;
@@ -55,6 +55,8 @@ function injectableFactory(): InjectableDefinition {
       parameters: [],
       properties: {},
       methods: {},
+      static: undefined,
+      status: false,
     },
   };
 }
@@ -71,7 +73,7 @@ function inheritance(target: ClassType | AbstractClassType, definition: Injectab
     inheritanceProperties(target, injections.static.properties, inheritedInjections.static.properties);
     inheritanceMethods(target, target, injections.static.methods, inheritedInjections.static.methods);
   }
-
+  injections.status = injections.status || inheritedInjections.status;
   return inherited;
 }
 

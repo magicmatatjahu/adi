@@ -9,6 +9,6 @@ export function Injectable(options?: InjectableOptions): ClassDecorator {
     if (kind !== 'class') {
       throw new Error('@Injectable decorator can be only used on class level.');
     }
-    injectableMixin(target, options);
+    injectableMixin(target, undefined, options);
   }
 }

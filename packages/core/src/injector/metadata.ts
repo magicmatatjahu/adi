@@ -110,7 +110,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     provider = getOrCreateProvider(injector, token);
-
     defs = provider.defs;
     if (checkExistingDefinition(defs, definitionName)) {
       return;
@@ -411,7 +410,8 @@ export function overrideInjections(
 
   if (Array.isArray(original)) {
     if (Array.isArray(overriding)) {
-      const kind = original.find(inj => inj.metadata?.kind)?.metadata?.kind;
+      let kind: InjectionKind;
+      original.find(inj => kind = inj.metadata?.kind);
       return overrideArrayInjections(original, overriding, { kind: kind || InjectionKind.FACTORY, function: target as ((...args: any[]) => any) });
     }
     return original;
@@ -421,6 +421,7 @@ export function overrideInjections(
     parameters: [...original.parameters],
     properties: { ...original.properties },
     methods: { ...original.methods },
+    status: original.status || false,
   };
 
   if (Array.isArray(overriding)) {
@@ -433,7 +434,7 @@ export function overrideInjections(
     newInjections.parameters = overrideArrayInjections(newInjections.parameters, parameters, { kind: InjectionKind.PARAMETER, target });
   }
 
-  overridePropertiesAndMethodsInjections(newInjections, overriding, target, true);
+  overridePropertiesAndMethodsInjections(newInjections, overriding, target, false);
   if (_static) {
     overridePropertiesAndMethodsInjections(newInjections.static, _static, target, true);
   }
@@ -456,7 +457,7 @@ function overrideArrayInjections(
 }
 
 function overridePropertiesAndMethodsInjections(
-  injections: Pick<InjectionArguments, 'properties' | 'methods'>,
+  injections: Pick<InjectionArguments, 'properties' | 'methods' | 'status'>,
   overriding: Pick<Injections, 'properties' | 'methods'>,
   target: Function,
   isStatic: boolean = false,
@@ -465,6 +466,7 @@ function overridePropertiesAndMethodsInjections(
   const descriptorTarget = isStatic ? target : target.prototype;
 
   if (properties) {
+    injections.status = true;
     const metadata = createInjectionMetadata({
       kind: InjectionKind.PROPERTY,
       target,
@@ -476,6 +478,7 @@ function overridePropertiesAndMethodsInjections(
     });
   }
   if (methods) {
+    injections.status = true;
     const metadata = createInjectionMetadata({
       kind: InjectionKind.PARAMETER,
       target,
@@ -499,6 +502,7 @@ function createClassInjections(): InjectionArguments {
     parameters: [],
     properties: {},
     methods: {},
+    status: false,
   }
 }
 

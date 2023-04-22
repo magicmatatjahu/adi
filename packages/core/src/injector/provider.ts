@@ -9,7 +9,7 @@ import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstanc
 
 export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
   let provider = host.providers.get(token);
-  if (!provider) {
+  if (provider === undefined) {
     provider = { 
       self: createProvider(host, token),
       imported: undefined
@@ -26,8 +26,8 @@ function createProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRec
     hooks: [],
     defs: [],
     when: when.always,
-    meta: {},
     annotations: {},
+    meta: {},
   }
 }
 

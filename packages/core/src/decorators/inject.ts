@@ -48,6 +48,7 @@ export function applyInject(decoratorInfo: Decorator, { token, hooks, annotation
       const index = decoratorInfo.index;
 
       if (decoratorInfo.descriptor) { // method injection
+        injections.status = true;
         argument.metadata.kind = InjectionKind.METHOD
         if (typeof argument.token === 'undefined') {
           argument.token = (Reflection.getOwnMetadata("design:paramtypes", targetObject, key) || [])[index];
@@ -67,13 +68,14 @@ export function applyInject(decoratorInfo: Decorator, { token, hooks, annotation
     };
     case 'property':
     case 'accessor': {
+      injections.status = true;
       argument.token = argument.token || Reflection.getOwnMetadata("design:type", targetObject, key);
       argument.metadata.kind = decoratorInfo.kind === 'property' ? InjectionKind.PROPERTY : InjectionKind.ACCESSOR;
       getProperInjections(isStatic, injections).properties[key] = argument;
-
       break;
     };
     case 'method': {
+      injections.status = true;
       const reflectedParameters = Reflection.getOwnMetadata("design:paramtypes", targetObject, key) || [];
       const properInjections = getProperInjections(isStatic, injections);
       const parameters = properInjections.methods[key] || (properInjections.methods[key] = []);

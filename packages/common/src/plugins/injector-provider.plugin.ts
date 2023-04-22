@@ -1,7 +1,7 @@
 import { Injector, Session, wait, OnDestroyHook } from '@adi/core';
 import { injectableDefinitions } from '@adi/core/lib/injector';
 
-import type { ADIPlugin, ModuleImportType, ProviderType, OnProviderCreateEvent } from '@adi/core';
+import type { ADIPlugin, ModuleImportType, ProviderType, InjectionToken, OnProviderCreateEvent } from '@adi/core';
 
 const providerInjectorMetaKey = 'adi:key:provider-injector';
 
@@ -36,8 +36,8 @@ function onProviderCreate({ definition, original }: OnProviderCreateEvent) {
     imports = options.imports;
     providers = options.providers;
   } else {
-    imports = original.imports;
-    providers = original.providers;
+    imports = (original as Exclude<ProviderType, InjectionToken>).imports;
+    providers = (original as Exclude<ProviderType, InjectionToken>).providers;
   }
 
   if (imports || providers) {

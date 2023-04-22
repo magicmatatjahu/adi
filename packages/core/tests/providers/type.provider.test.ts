@@ -384,9 +384,7 @@ describe('ClassType provider (injectable provider)', function() {
           public service: TestService,
         ) {}
       }
-      injectableMixin(Service, undefined, {
-        parameters: [TestService],
-      });
+      injectableMixin(Service, [TestService]);
 
       const injector = Injector.create([
         Service,
