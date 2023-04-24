@@ -8,15 +8,15 @@ import { ProviderKind, InjectionKind } from '../enums';
 import { createHook, isHook } from '../hooks';
 import { DefaultScope } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
-import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey } from '../private';
+import { cacheMetaKey, exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
 import type { 
-  ProviderToken, ProviderType, ProviderRecord, ProviderDefinition, ProviderAnnotations, DefinitionAnnotations, HookAnnotations,
+  ProviderToken, ProviderType, ProviderRecord, ProviderDefinition, ProviderAnnotations,
   InjectionHook, HookRecord, ConstraintDefinition, 
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
-  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassType, ClassProvider, ClassTypeProvider,
+  FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
   OnProviderCreateEvent,
 } from '../interfaces';
 
@@ -40,6 +40,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     return;
   }
 
+  let token: ProviderToken;
   let provider: ProviderRecord;
   let definition: ProviderDefinition;
   let definitionName: string | symbol | object;
@@ -54,6 +55,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     const { options, injections } = injectableDefinition;
+    token = original;
     provider = getOrCreateProvider(injector, original);
     annotations = options.annotations || {};
     definitionName = options.name;
@@ -83,6 +85,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       return;
     }
 
+    token = original;
     const options = injectableDefinition.options;
     return processProvider(injector, {
       provide: original,
@@ -94,8 +97,8 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     annotations = original.annotations || {};
     definitionName = original.name;
 
-    let token = original.provide,
-      factory: FactoryDefinition,
+    token = original.provide;
+    let factory: FactoryDefinition,
       kind: ProviderKind,
       scope = (original as ClassProvider).scope,
       hooks = createArray(original.hooks),
@@ -185,6 +188,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     concatConstraints(definition, whenExported);
   }
 
+  injector.meta[cacheMetaKey].delete(token);
   handleAnnotations(provider, definition, annotations);
   defs.push(definition);
   defs.sort(compareOrder);
@@ -337,11 +341,37 @@ export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | Inj
     annotations = token as InjectionAnnotations;
     token = undefined;
   } else if (!isHook(hooks)) { // case with two arguments
-    annotations = hooks as InjectionAnnotations;
+    annotations = hooks || {} as InjectionAnnotations;
     hooks = [];
   }
   annotations = annotations || {};
   return { token: token as ProviderToken, hooks: createArray(hooks) as Array<InjectionHook>, annotations };
+}
+
+export function prepareInjectArgument<T = any>(token: ProviderToken<T>): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(hook: InjectionHook): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(hooks: Array<InjectionHook>): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hook?: InjectionHook): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hooks?: Array<InjectionHook>): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(token: ProviderToken<T>, annotations?: InjectionAnnotations): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(hook: InjectionHook, annotations?: InjectionAnnotations): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(hooks: Array<InjectionHook>, annotations?: InjectionAnnotations): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): InjectionArgument<T>;
+export function prepareInjectArgument<T = any>(token: ProviderToken<T> | InjectionHook | Array<InjectionHook>, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): InjectionArgument<T> {
+  let cacheKey: any;
+  if (isHook(token)) { // case with one argument
+    annotations = hooks as InjectionAnnotations;
+    hooks = token;
+    token = undefined;
+  } else if (!isHook(hooks)) { // case with two arguments
+    if (hooks === undefined) {
+      cacheKey = token;
+    }
+    annotations = hooks as InjectionAnnotations;
+    hooks = undefined;
+  }
+  return { token: token as ProviderToken, hooks: createArray(hooks) as Array<InjectionHook>, metadata: createInjectionMetadata({ kind: InjectionKind.STANDALONE }, annotations), [cacheMetaKey]: cacheKey };
 }
 
 export function convertInjection<T>(dependency: InjectionItem<T>, metadata: InjectionMetadata): InjectionArgument<T> {
@@ -363,11 +393,9 @@ export function convertInjections(dependencies: Array<InjectionItem>, metadata: 
   return converted;
 }
 
-export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: InjectionHook | Array<InjectionHook> = [], metadata?: InjectionMetadata, annotations?: InjectionAnnotations): InjectionArgument<T> {
-  if (!Array.isArray(hooks)) {
-    hooks = [hooks];
-  }
-  return { token, hooks, metadata: createInjectionMetadata(metadata, annotations) };
+export function createInjectionArgument<T>(token: ProviderToken<T>, hooks: InjectionHook | Array<InjectionHook> = [], metadata?: InjectionMetadata, annotations?: InjectionAnnotations, cache?: any): InjectionArgument<T> {
+  hooks = createArray(hooks)
+  return { token, hooks, metadata: createInjectionMetadata(metadata, annotations), [cacheMetaKey]: cache };
 }
 
 export function createInjectionMetadata<T>(metadata: InjectionMetadata = {} as any, annotations: InjectionAnnotations = {}): InjectionMetadata {

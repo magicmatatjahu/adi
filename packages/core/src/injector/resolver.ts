@@ -5,12 +5,12 @@ import { filterDefinitions, getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
 import { InjectionKind, InstanceStatus, InjectionHookKind } from '../enums';
 import { runHooks, runHooksWithProviders, InstanceHook } from '../hooks';
-import { circularSessionsMetaKey, parallelMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
+import { cacheMetaKey, circularSessionsMetaKey, parallelMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 import { NoProviderError, CircularReferenceError } from "../problem";
 import { getAllKeys, isClassProvider, wait, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from './injector'
-import type { ProviderRecord, ProviderDefinition, ProviderInstance, Provider as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectionArgument, InjectableDefinition, InjectionItem, ProviderAnnotations, InjectionMetadata, InjectionHookContext } from '../interfaces'
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, Provider as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectionArgument, InjectableDefinition, InjectionItem, ProviderAnnotations, InjectionMetadata, InjectionHookContext } from '../interfaces'
 import type { InjectionHookResult } from '../hooks'
 
 const injectorHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECTOR };
@@ -18,39 +18,51 @@ const injectHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECT };
 const providerHookCtx: InjectionHookContext = { kind: InjectionHookKind.PROVIDER };
 const definitionHookCtx: InjectionHookContext = { kind: InjectionHookKind.DEFINITION };
 
+export function getInstanceFromCache(injector: Injector, key: ProviderToken | InjectionArgument) {
+  return injector.meta[cacheMetaKey].get(key);
+}
+
+function saveInstanceToCache(injector: Injector, key: ProviderToken | InjectionArgument, value: any): void {
+  injector.meta[cacheMetaKey].set(key, value);
+}
+
 export function inject<T>(injector: Injector, argument: InjectionArgument, parentSession?: Session): T | Promise<T> {
+  const cached = getInstanceFromCache(injector, argument);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const { token, metadata, hooks } = argument;
   const session = Session.create(token, metadata, injector, parentSession);
   if (parentSession !== undefined) {
     parentSession.children.push(session);
   }
-  return resolve(injector, session, hooks);
-}
-
-export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | Promise<T> {
-  if (injector.hooks.length) {
-    const filteredHooks = filterHooks(injector.hooks, session);
-    return wait(
-      runHooks(filteredHooks, session, injectorHookCtx, (s) => runHooks(hooks, s, injectHookCtx, resolveProvider)),
-      result => returnResult(result, session)
-    );
-  }
-
-  if (hooks.length === 0) {
-    return wait(
-      resolveProvider<T>(session),
-      result => returnResult(result, session)
-    )
-  }
 
   return wait(
-    runHooks(hooks, session, injectHookCtx, resolveProvider),
-    result => returnResult(result, session)
+    resolve(injector, session, hooks),
+    result => returnResult(result, session, argument),
   )
 }
 
-function returnResult(result: any, session: Session) {
+export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | Promise<T> {
+  if (injector.hooks.length !== 0) {
+    const filteredHooks = filterHooks(injector.hooks, session);
+    return runHooks(filteredHooks, session, injectorHookCtx, (s) => runHooks(hooks, s, injectHookCtx, resolveProvider));
+  }
+  if (hooks.length === 0) {
+    return resolveProvider(session);
+  }
+  return runHooks(hooks, session, injectHookCtx, resolveProvider);
+}
+
+function returnResult(result: any, session: Session, argument: InjectionArgument) {
   session.setFlag('resolved');
+  if (session.hasFlag('side-effect') === false) {
+    const cacheKey = argument[cacheMetaKey];
+    if (cacheKey !== undefined) {
+      saveInstanceToCache(session.context.injector, cacheKey, result); 
+    }
+  }
   return session.result = result;
 }
 

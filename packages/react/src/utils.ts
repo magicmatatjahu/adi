@@ -1,22 +1,22 @@
 import { useEffect } from 'react';
 import { destroy } from "@adi/core/lib/injector";
 import { InjectionKind } from "@adi/core/lib/enums";
-import { createInjectionArgument, convertInjection } from "@adi/core/lib/injector";
+import { convertInjection } from "@adi/core/lib/injector";
 import { inject as coreInject } from "@adi/core/lib/injector/resolver";
 import { InstanceHook } from "@adi/core/lib/hooks/internal";
 import { getAllKeys, isPromiseLike, wait } from "@adi/core/lib/utils";
 
 import { UndefinedSuspenseIdError } from './problems';
 
-import type { Injector, ProviderInstance, InjectionItem, PlainInjectionItem, InjectionArgument } from "@adi/core";
+import type { Injector, ProviderInstance, InjectionItem, InjectionArgument, InjectionAnnotations } from "@adi/core";
 import type { InjectionHookResult } from "@adi/core/lib/hooks";
 
 type SuspensePromise = Promise<any> & { status?: 'fulfilled' | 'rejected' | 'pending', error: any, value: any };
 
 export type InjectionResult = InjectionHookResult<typeof InstanceHook>;
 
-export function inject(injector: Injector, injectionItem: PlainInjectionItem): InjectionResult {
-  const suspenseId = injectionItem.annotations.suspenseId;
+export function inject(injector: Injector, argument: InjectionArgument, annotations: InjectionAnnotations): InjectionResult {
+  const suspenseId = annotations.suspenseId;
   if (suspenseId !== undefined) {
     const cache = getSuspenseCache(injector);
     if (cache.has(suspenseId)) {
@@ -24,9 +24,8 @@ export function inject(injector: Injector, injectionItem: PlainInjectionItem): I
     }
   }
 
-  const arg = createInjectionArgument(injectionItem.token, injectionItem.hooks, { kind: InjectionKind.STANDALONE }, injectionItem.annotations);
-  arg.hooks = [InstanceHook, ...arg.hooks];
-  const injection = coreInject(injector, arg) as InjectionResult;
+  argument.hooks = [InstanceHook, ...argument.hooks];
+  const injection = coreInject(injector, argument) as InjectionResult;
   if (isPromiseLike<InjectionResult>(injection)) {
     if (suspenseId !== undefined) {
       const cache = getSuspenseCache(injector);

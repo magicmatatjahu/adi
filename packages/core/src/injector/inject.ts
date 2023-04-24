@@ -1,6 +1,6 @@
-import { serializeInjectArguments, createInjectionArgument } from './metadata';
+import { prepareInjectArgument } from './metadata';
 import { destroy } from './lifecycle-manager';
-import { inject as coreInject } from './resolver';
+import { inject as coreInject, getInstanceFromCache } from './resolver';
 import { InjectionKind } from '../enums';
 import { InstanceHook } from '../hooks';
 import { instancesToDestroyMetaKey } from '../private';
@@ -28,23 +28,20 @@ export function setCurrentInjectionContext(ctx: CurrentInjectionContext | undefi
   return previous;
 }
 
-const defaultInjectionMetadata: InjectionMetadata = {
-  kind: InjectionKind.UNKNOWN,
-  target: undefined,
-  key: undefined,
-  index: undefined,
-  descriptor: undefined,
-  function: undefined,
-  static: false,
-  annotations: undefined,
-}
-
 function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
-  ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
   const { injector, session, metadata = {} } = ctx;
-  const injectMetadata = { ...defaultInjectionMetadata, ...metadata, annotations }
 
-  const argument = createInjectionArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, injectMetadata);;
+  // only one argument
+  if (hooks === undefined) {
+    const cached = getInstanceFromCache(injector, token as ProviderToken);
+    if (cached !== undefined) {
+      return cached;
+    }
+  }
+  
+  const argument = prepareInjectArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations);
+  argument.metadata = { ...argument.metadata, ...metadata, annotations };
+
   const instancesToDestroy = currentContext[instancesToDestroyMetaKey];
   if (instancesToDestroy === undefined) {
     return coreInject(injector, argument, session) as T;
@@ -63,7 +60,6 @@ function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | 
 export function inject<T = any>(token?: ProviderToken<T>): T;
 export function inject<T = any>(hook?: InjectionHook): T;
 export function inject<T = any>(hooks?: Array<InjectionHook>): T;
-export function inject<T = any>(annotations?: InjectionAnnotations): T;
 export function inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): T;
 export function inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): T;
 export function inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T;
@@ -71,8 +67,7 @@ export function inject<T = any>(hook?: InjectionHook, annotations?: InjectionAnn
 export function inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T;
 export function inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): T;
 export function inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T {
+export function inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook>, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T {
   if (currentContext === undefined) {
     throw new Error('inject() must be called from an injection context such as a constructor, a factory function or field initializer.');
   }

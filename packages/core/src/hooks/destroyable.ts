@@ -11,10 +11,13 @@ export const Destroyable = createHook(() => {
   return (session, next) => {
     return wait(
       next(session),
-      value => ({
-        value,
-        destroy: () => destroy(session.context.instance, { event: 'manually' }),
-      }),
+      value => {
+        session.setFlag('side-effect');
+        return {
+          value,
+          destroy: () => destroy(session.context.instance, { event: 'manually' }),
+        }
+      }
     );
   }
 }, { name: 'adi:hook:destroyable' });

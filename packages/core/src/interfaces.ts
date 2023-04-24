@@ -2,7 +2,7 @@ import type { ADI } from './adi';
 import type { Context, Injector, Session } from './injector';
 import type { InjectionKind, ProviderKind, InstanceStatus, InjectionHookKind } from './enums';
 import type { ScopeInstance } from './scopes';
-import type { ADI_HOOK_DEF } from './private';
+import type { ADI_HOOK_DEF, cacheMetaKey } from './private';
 import type { InjectionToken, ModuleToken } from './tokens';
 
 export interface ClassType<T = any> extends Function {
@@ -345,6 +345,7 @@ export interface InjectionArgument<T = any> {
   token: ProviderToken<T>;
   hooks?: Array<InjectionHook>; 
   metadata?: InjectionMetadata;
+  [cacheMetaKey]?: any;
 };
 
 export interface InjectionArguments {

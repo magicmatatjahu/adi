@@ -1,16 +1,17 @@
 import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
-import { inject } from './resolver';
-import { processProviders, serializeInjectArguments, createInjectionArgument } from './metadata';
+import { inject, getInstanceFromCache } from './resolver';
+import { processProviders, prepareInjectArgument } from './metadata';
 import { initModule, importModule, retrieveExtendedModule } from './module';
 import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectorStatus, InjectionKind } from '../enums';
 import { Optional, All } from '../hooks';
 import { isExtendedModule, isModuleToken, waitCallback } from '../utils';
+import { cacheMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, ModuleImportType } from '../interfaces';
+import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, InjectionArgument } from '../interfaces';
 
 export class Injector {
   static create(
@@ -26,7 +27,9 @@ export class Injector {
   public readonly imports = new Map<InjectorInput, Injector>();
   public readonly providers = new Map<ProviderToken, { self: ProviderRecord, imported?: Array<ProviderRecord> }>();
   public readonly hooks: Array<HookRecord> = [];
-  public readonly meta: Record<string | symbol, any> = {};
+  public readonly meta: Record<string | symbol, any> = {
+    [cacheMetaKey]: new Map<any, any>(),
+  };
 
   constructor(
     public readonly input: InjectorInput = [],
@@ -77,7 +80,6 @@ export class Injector {
   get<T = any>(token?: ProviderToken<T>): T | Promise<T>;
   get<T = any>(hook?: InjectionHook): T | Promise<T>;
   get<T = any>(hooks?: Array<InjectionHook>): T | Promise<T>;
-  get<T = any>(annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T | Promise<T>;
@@ -85,12 +87,18 @@ export class Injector {
   get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): T | Promise<T>;
   get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return; 
-    ({ token, hooks, annotations } = serializeInjectArguments(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
-    const argument = createInjectionArgument(token as ProviderToken<T>, hooks as InjectionHook | Array<InjectionHook>, { target: Injector, kind: InjectionKind.STANDALONE, annotations });
-    return inject(this, argument);
+  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook>, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
+    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return;
+
+    // only one argument
+    if (hooks === undefined) {
+      const cached = getInstanceFromCache(this, token as ProviderToken);
+      if (cached !== undefined) {
+        return cached;
+      }
+    }
+
+    return inject(this, prepareInjectArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
   }
 
   import(input: InjectorInput | Promise<InjectorInput>): Injector | Promise<Injector> {

@@ -64,7 +64,7 @@ function createInjector(
   }
 
   if (!injector) {
-    moduleOptions.exporting = 'disabled';
+    moduleOptions.exporting = false;
     injector = Injector.create(mod as InjectorInput, moduleOptions, parentInjector || undefined).init();
   }
 

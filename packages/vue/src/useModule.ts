@@ -20,7 +20,7 @@ export function useModule(input: InjectorInput | Injector, options?: ModuleOptio
   if (options?.cacheId === undefined) {
     onScopeDispose(() => {
       provide(INJECTOR_KEY, null);
-      destroyInjector(injector);
+      Promise.resolve(destroyInjector(injector));
     });
   }
   provide(INJECTOR_KEY, injector);
@@ -43,7 +43,7 @@ function createInjector(input: InjectorInput | Injector, options: ModuleOptions,
     }
 
     const moduleOptions = options.options || {};
-    moduleOptions.exporting = 'disabled';
+    moduleOptions.exporting = false;
     injector = Injector.create(mod as InjectorInput, moduleOptions, parentInjector || undefined).init();
   }
 

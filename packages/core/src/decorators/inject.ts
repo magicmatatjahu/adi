@@ -17,7 +17,6 @@ export function Inject<T = any>(hook?: InjectionHook, annotations?: InjectionAnn
 export function Inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations);
-export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations);
 export function Inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): ParameterDecorator | PropertyDecorator {
   const injection = serializeInjectArguments(token, hooks, annotations);
   return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
