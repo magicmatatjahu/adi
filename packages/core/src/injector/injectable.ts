@@ -3,11 +3,11 @@ import { InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
 import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
-import type { ClassType, AbstractClassType, InjectableDefinition, Injections, InjectionArguments, InjectionItem } from "../interfaces";
+import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionItem } from "../interfaces";
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 
-export function injectableMixin(token: InjectableDefinition['token'], injections?: Injections | Array<InjectionItem>, options?: InjectableDefinition['options']): InjectableDefinition {
+export function injectableMixin(token: InjectableDefinition['token'], injections?: Injections | Array<InjectionItem>, options?: InjectableOptions): InjectableDefinition {
   const definition = injectableDefinitions.ensure(token);
   if (definition.init) {
     return definition;

@@ -10,7 +10,7 @@ import { NoProviderError, CircularReferenceError } from "../problem";
 import { getAllKeys, isClassProvider, wait, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from './injector'
-import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, Provider as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectionArgument, InjectableDefinition, InjectionItem, ProviderAnnotations, InjectionMetadata, InjectionHookContext } from '../interfaces'
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, Provide as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectionArgument, InjectableDefinition, InjectionItem, ProviderAnnotations, InjectionMetadata, InjectionHookContext } from '../interfaces'
 import type { InjectionHookResult } from '../hooks'
 
 const injectorHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECTOR };

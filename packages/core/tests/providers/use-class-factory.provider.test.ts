@@ -1,11 +1,11 @@
 import { Injector, Injectable, Inject, TransientScope } from "../../src";
 
-import type { Provider } from "../../src";
+import type { Provide } from "../../src";
 
 describe('useFactory (class case)', function() {
   test('should work with simple provider', function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       provide() {
         return 'foobar';
       }
@@ -24,7 +24,7 @@ describe('useFactory (class case)', function() {
 
   test('should work with injections', function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor(
         @Inject('useValue') readonly foobar: string,
       ) {}
@@ -51,7 +51,7 @@ describe('useFactory (class case)', function() {
 
   test('should work with injections (multiple params)', function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor(
         @Inject('useValue1') readonly foobar: string,
         @Inject('useValue2') readonly barfoo: string,
@@ -83,7 +83,7 @@ describe('useFactory (class case)', function() {
 
   test('should work in async resolution', async function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor(
         @Inject('useValue1') readonly foobar: string,
         @Inject('useValue2') readonly barfoo: string,
@@ -115,7 +115,7 @@ describe('useFactory (class case)', function() {
 
   test('should work with overrides', function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor(
         @Inject('useValue1') readonly foobar: string,
       ) {}
@@ -147,7 +147,7 @@ describe('useFactory (class case)', function() {
 
   test('should reuse on every creatiom this same instance (default scope case)', function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor() {}
 
       provide() {
@@ -171,7 +171,7 @@ describe('useFactory (class case)', function() {
 
   test('should create on every creatiom new factory instance (transient scope case)', function() {
     @Injectable()
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor() {}
 
       provide() {
@@ -198,7 +198,7 @@ describe('useFactory (class case)', function() {
     @Injectable({
       scope: TransientScope,
     })
-    class TestSevice implements Provider {
+    class TestSevice implements Provide {
       constructor() {}
 
       provide() {

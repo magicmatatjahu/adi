@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Scope, Token, Optional, Module, Named, when, InjectionToken, createHook, TransientScope, wait } from "../../src";
+import { Injector, Injectable, Inject, Token, Optional, Module, Named, when, InjectionToken, createHook, TransientScope, wait } from "../../src";
 
 describe('Injection hooks', function() {
   test('should can use hook in injectable as option', function() {

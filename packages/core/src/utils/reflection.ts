@@ -14,14 +14,22 @@ export const Reflection: ReflectAPI = ((Reflect as unknown as ReflectAPI).getOwn
   }
 }) as ReflectAPI;
 
-export function getReflectParameters(target: Object): any[];
-export function getReflectParameters(target: Object, key: string | symbol): any[] | any;
-export function getReflectParameters(target: Object, key: string | symbol | undefined, index: number): any;
-export function getReflectParameters(target: Object, key: string | symbol, index: number): any;
-export function getReflectParameters(target: Object, key?: string | symbol, index?: number): any {
-  const parameters = Reflection.getOwnMetadata("design:paramtypes", target, key);
+export function getReflectedParameters(target: Object): any[];
+export function getReflectedParameters(target: Object, methodName: string | symbol): any[];
+export function getReflectedParameters(target: Object, methodName: string | symbol | undefined, index: number): any;
+export function getReflectedParameters(target: Object, methodName: string | symbol, index: number): any;
+export function getReflectedParameters(target: Object, methodName?: string | symbol, index?: number): any {
+  const parameters = Reflection.getOwnMetadata("design:paramtypes", target, methodName) || [];
   if (typeof index === 'number') {
     return parameters[index];
   }
   return parameters;
+}
+
+export function getReflectedType(target: Object, key: string | symbol) {
+  return Reflection.getOwnMetadata("design:type", target, key);
+}
+
+export function getReflectedReturnType(target: Object, method: string | symbol) {
+  return Reflection.getOwnMetadata("design:returntype", target, method);
 }

@@ -1,6 +1,6 @@
 import { InjectionToken, ModuleToken } from '../tokens';
 
-import type { ProviderToken, ClassProvider, FactoryProvider, ClassFactoryProvider, ValueProvider, ExistingProvider, ExtendedModule, Provider, ClassType } from '../interfaces';
+import type { ProviderToken, ClassProvider, FactoryProvider, ClassFactoryProvider, ValueProvider, ExistingProvider, ExtendedModule, Provide, ClassType } from '../interfaces';
 
 export function isClassProvider(provider: unknown): provider is ClassProvider {
   return 'useClass' in (provider as ClassProvider);
@@ -19,7 +19,7 @@ export function isExistingProvider(provider: unknown): provider is ExistingProvi
 }
 
 export function isClassFactoryProvider(provider: unknown): provider is ClassFactoryProvider {
-  const factory = (provider as ClassFactoryProvider).useFactory as ClassType<Provider>;
+  const factory = (provider as ClassFactoryProvider).useFactory as ClassType<Provide>;
   return typeof factory?.prototype?.provide === 'function';
 }
 

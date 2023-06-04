@@ -1,5 +1,4 @@
-import { InjectionKind } from "@adi/core/lib/enums";
-import { inject as coreInject, createInjectionArgument } from "@adi/core/lib/injector";
+import { inject as coreInject } from "@adi/core/lib/injector/resolver";
 import { InstanceHook } from "@adi/core/lib/hooks/internal";
 import { getCurrentInstance } from 'vue-demi';
 
@@ -7,10 +6,9 @@ import type { Injector, ProviderInstance, PlainInjectionItem } from "@adi/core";
 
 export type InjectionResult<T = any> = { result: T, instance: ProviderInstance<T>, sideEffects: boolean };
 
-export function inject<T>(injector: Injector, injectionItem: PlainInjectionItem): InjectionResult<T> {
-  const arg = createInjectionArgument(injectionItem.token, injectionItem.hooks, { kind: InjectionKind.STANDALONE }, injectionItem.annotations);
-  arg.hooks = [InstanceHook, ...arg.hooks];
-  return coreInject(injector, arg) as InjectionResult<T>;
+export function inject<T>(injector: Injector, argument: PlainInjectionItem): InjectionResult<T> {
+  argument.hooks = [InstanceHook, ...argument.hooks];
+  return coreInject(injector, argument) as InjectionResult<T>;
 }
 
 export function assertEnv() {

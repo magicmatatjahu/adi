@@ -135,7 +135,7 @@ export interface FactoryProvider<T = any> {
 
 export interface ClassFactoryProvider<T = any> {
   provide: ProviderToken<T>;
-  useFactory: ClassType<Provider>;
+  useFactory: ClassType<Provide>;
   name?: string | symbol | object;
   inject?: Array<InjectionItem | undefined> | Injections;
   hooks?: InjectionHook | Array<InjectionHook>;
@@ -206,7 +206,7 @@ export interface HookProvider<T = any> {
   scope?: never;
 }
 
-export interface Provider<T = any> {
+export interface Provide<T = any> {
   provide(...args: []): T | Promise<T>;
 }
 
