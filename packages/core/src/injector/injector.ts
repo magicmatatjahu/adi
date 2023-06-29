@@ -5,13 +5,13 @@ import { processProviders, prepareInjectArgument } from './metadata';
 import { initModule, importModule, retrieveExtendedModule } from './module';
 import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
-import { InjectorStatus, InjectionKind } from '../enums';
+import { InjectorStatus } from '../enums';
 import { Optional, All } from '../hooks';
-import { isExtendedModule, isModuleToken, waitCallback } from '../utils';
+import { isExtendedModule, isModuleToken, wait, waitCallback } from '../utils';
 import { cacheMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, InjectionArgument } from '../interfaces';
+import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, ModuleMetadata } from '../interfaces';
 
 export class Injector {
   static create(
@@ -36,10 +36,18 @@ export class Injector {
     public readonly options: InjectorOptions = {},
     public readonly parent: Injector | null | undefined = ADI.coreInjector,
   ) {
+    if (typeof input === 'object' && typeof (input as ModuleMetadata).options === 'object') {
+      options = { ...(input as ModuleMetadata).options, ...options };
+    }
+
     if (options.importing === undefined) options.importing = true;
     if (options.exporting === undefined) options.exporting = true;
     if (options.initialize === undefined) options.initialize = true;
-    options.scopes = ['any', input as ClassType, ...(options.scopes || [])];
+    if (options.scopes) {
+      options.scopes = [...new Set(['any', input as ClassType, ...(options.scopes || [])])];
+    } else {
+      options.scopes = ['any', input as ClassType];
+    }
   
     const providers: ProviderType[] = [];
     if (typeof input === 'function') { // module class
@@ -112,21 +120,33 @@ export class Injector {
   }
 
   run<R>(fn: (arg: RunInContextArgument) => R): R {
+    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return;
     return runInInjectionContext(fn, { injector: this });
   }
 
   of(): Injector;
-  of<R>(fn?: (data: { injector: Injector }) => R): R;
-  of<R>(fn?: (data: { injector: Injector }) => R): R | Injector {
-    const injector = new Injector([], { exporting: false }, this);
-    injector.init();
+  of(input: ModuleMetadata | Array<ProviderType>): Injector;
+  of<R>(fn: (data: { injector: Injector }) => R): R;
+  of<R>(input: ModuleMetadata | Array<ProviderType>, fn: (data: { injector: Injector }) => R): R;
+  of<R>(inputOrFn?: ModuleMetadata | Array<ProviderType> | ((data: { injector: Injector }) => R), fn?: (data: { injector: Injector }) => R): R | Injector {
+    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return;
+
+    const isFunction = typeof inputOrFn === 'function';
+    const injector = new Injector(isFunction ? [] : inputOrFn, { exporting: false }, this);
+    if (isFunction) {
+      fn = inputOrFn;
+    }
+
     if (typeof fn === 'function') {
-      return waitCallback(
-        () => fn({ injector }),
-        undefined,
-        undefined,
-        () => injector.destroy(),
-      ) as R
+      return wait(
+        injector.init(),
+        inj => waitCallback(
+          () => fn({ injector: inj }),
+          undefined,
+          undefined,
+          () => inj.destroy(),
+        ),
+      ) as R;
     }
     return injector;
   }

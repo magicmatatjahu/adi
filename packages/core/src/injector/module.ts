@@ -35,10 +35,25 @@ interface CompiledModule {
 
 export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF, moduleFactory);
 
-export function moduleMixin(token: ClassType | ModuleToken, metadata?: ModuleMetadata): ModuleMetadata {
+export function moduleMixin(token: ClassType, metadata?: ModuleMetadata): ModuleMetadata {
   const definition = moduleDefinitions.ensure(token);
   Object.assign(definition, metadata || {});
   return definition;
+}
+
+export function ModuleMixin(metadata: ModuleMetadata): ClassType;
+export function ModuleMixin(token: ClassType, metadata: ModuleMetadata): ClassType;
+export function ModuleMixin(tokenOrMetadata: ClassType | ModuleMetadata, metadata?: ModuleMetadata): ClassType {
+  let clazz: ClassType;
+  if (typeof tokenOrMetadata === 'function') {
+    clazz = tokenOrMetadata;
+  } else {
+    clazz = class ModuleMixin {};
+    metadata = tokenOrMetadata;
+  }
+
+  moduleMixin(clazz, metadata);
+  return clazz;
 }
 
 function moduleFactory(): ModuleMetadata {

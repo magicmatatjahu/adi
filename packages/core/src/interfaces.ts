@@ -47,6 +47,7 @@ export type ModuleExportType =
   | ForwardReference<ModuleExportType>;
 
 export interface ModuleMetadata {
+  options?: InjectorOptions;
   imports?: Array<ModuleImportType>;
   providers?: Array<ProviderType>;
   exports?: Array<ModuleExportType>;

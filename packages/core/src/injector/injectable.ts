@@ -46,6 +46,14 @@ export function injectableMixin(token: InjectableDefinition['token'], injections
   return definition;
 }
 
+// export function InjectableMixin<TBase extends ClassType>(metadata: ModuleMetadata): ClassType;
+// export function InjectableMixin<TBase extends ClassType>(token: ClassType, metadata: ModuleMetadata): ClassType;
+export function InjectableMixin<TBase extends ClassType>(input: { injections?: Injections | Array<InjectionItem>, options?: InjectableOptions }, Base?: TBase): ClassType {
+  const clazz = Base ? class InjectableMixin extends Base {} : class InjectableMixin {};
+  injectableMixin(clazz, input.injections, input.options);
+  return clazz;
+}
+
 function injectableFactory(): InjectableDefinition {
   return {
     token: undefined,
