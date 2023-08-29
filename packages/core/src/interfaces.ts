@@ -17,6 +17,7 @@ export type ProviderToken<T = any> = ClassType<T> | AbstractClassType<T> | Injec
 
 export interface InjectionTokenOptions<T = any> {
   provide?: SimplifiedProvider<T>;
+  inject?: InjectionItem<T>;
   hooks?: InjectionHook | Array<InjectionHook>;
   provideIn?: InjectorScope | Array<InjectorScope>;
   annotations?: ProviderAnnotations;

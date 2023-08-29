@@ -1,7 +1,7 @@
 import { SessionFlag } from '../enums';
 
 import type { Injector } from './injector'; 
-import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations } from '../interfaces';
+import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations } from '../types';
 
 const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
@@ -15,19 +15,22 @@ const sessionFlags = {
 type FlagsType = keyof typeof sessionFlags;
 
 export class Session<T = any> {
-  static create(token: ProviderToken, metadata: InjectionMetadata, injector: Injector, parentSession?: Session): Session {
+  static create<T>(token: ProviderToken<T> | undefined, metadata: InjectionMetadata | undefined, injector: Injector, parentSession?: Session): Session {
     const injections: SessionInjection = {
-      options: { token, context: undefined, scope: undefined, annotations: {} },
+      inject: { token, context: undefined, scope: undefined, annotations: {} },
       metadata,
     };
     const session = new Session(injections, { injector, provider: undefined, definition: undefined, instance: undefined }, parentSession);
     return session;
   }
 
-  public result: any;
   private flags: SessionFlag = SessionFlag.NONE;
+  public result: any;
+  public deep: number = this.parent ? this.parent.deep + 1 : 0
   public readonly meta: Record<string | symbol, any> = {};
   public readonly children: Array<Session> = [];
+  public readonly inject = this.injection.inject;
+  public readonly metadata = this.injection.metadata;
 
   constructor(
     public readonly injection: SessionInjection<T>,
@@ -36,17 +39,9 @@ export class Session<T = any> {
     public readonly annotations: SessionAnnotations = {},
   ) {}
 
-  get iOptions(): SessionInjection<T>['options'] {
-    return this.injection.options;
-  }
-
-  get iMetadata(): SessionInjection<T>['metadata'] {
-    return this.injection.metadata;
-  }
-
   fork(): Session {
-    const { options, metadata } = this.injection;
-    const forked = new Session({ options: { ...options, annotations: { ...options.annotations } }, metadata }, { ...this.context }, this.parent, { ...this.annotations });
+    const { inject, metadata } = this.injection;
+    const forked = new Session({ inject: { ...inject, annotations: { ...inject.annotations } }, metadata }, { ...this.context }, this.parent, { ...this.annotations });
     (forked.children as any) = [...forked.children];
     return forked;
   }

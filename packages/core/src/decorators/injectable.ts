@@ -1,11 +1,11 @@
 import { injectableMixin } from '../injector';
-import { getDecoratorInfo } from '../utils';
+import { getDecoratorContext } from '../utils';
 
-import type { InjectableOptions } from '../interfaces';
+import type { InjectableOptions } from '../types';
 
-export function Injectable(options?: InjectableOptions): ClassDecorator {
+export function Injectable(options?: InjectableOptions) {
   return function(target: Object, ...rest: any[]) {
-    const { kind } = getDecoratorInfo(target, ...rest);
+    const { kind } = getDecoratorContext(target, ...rest);
     if (kind !== 'class') {
       throw new Error('@Injectable decorator can be only used on class level.');
     }

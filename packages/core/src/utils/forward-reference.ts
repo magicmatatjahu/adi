@@ -1,4 +1,4 @@
-import type { ForwardReference } from '../interfaces';
+import type { ForwardReference } from '../types/forward-reference';
 
 export function ref<T>(fn: () => T): ForwardReference<T> {
   return {
@@ -7,8 +7,8 @@ export function ref<T>(fn: () => T): ForwardReference<T> {
   };
 }
 
-export function isForwardRef(type: unknown): type is ForwardReference {
-  return type && (type as ForwardReference)._$ref === ref;
+export function isForwardRef<T = any>(type: unknown): type is ForwardReference<T> {
+  return type! && (type as ForwardReference<T>)._$ref === ref;
 }
 
 export function resolveRef<T>(type: T): Exclude<T, ForwardReference<T>> {

@@ -1,16 +1,17 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
 import { wait } from '../utils';
 
-import type { ProviderToken } from "../interfaces";
+import type { Session } from '../injector/session';
+import type { InjectionHookResult, NextInjectionHook, ProviderToken } from '../types';
 
-export const Ref = createHook((ref: () => ProviderToken | Promise<ProviderToken>) => {
-  let token: ProviderToken | undefined;
-  return (session, next) => {
+export const Ref = createHook(<RT>(ref: () => ProviderToken<RT> | Promise<ProviderToken<RT>>) => {
+  let token: ProviderToken<RT> | undefined;
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<RT> => {
     return wait(
       token === undefined ? ref() : token,
       result => {
-        session.iOptions.token = token = result;
-        return next(session);
+        session.inject.token = token = result;
+        return next(session) as RT;
       }
     );
   }

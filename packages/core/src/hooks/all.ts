@@ -1,10 +1,10 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
 import { compareOrder } from "../injector/metadata";
 import { filterDefinitions } from "../injector/provider";
 import { wait, waitAll } from "../utils";
 
-import type { Session } from '../injector';
-import type { NextInjectionHook, ProviderRecord, ProviderDefinition } from '../interfaces';
+import type { Session } from '../injector/session';
+import type { InjectionHookResult, NextInjectionHook, ProviderRecord, ProviderDefinition } from '../types';
 
 export interface AllHookOptions {
   filter?: 'all' | 'satisfies';
@@ -46,8 +46,9 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
       }
 
       // TODO: Fix retrieved provider from injector, we should operate on providers from imported injector, not from host injector
-      const provider = forkedSession.context.injector.providers.get(forkedSession.iOptions.token);
-      const definitions = customFilterDefinitions(provider, forkedSession, options);
+      const { context, inject } = forkedSession;
+      const provider = context.injector.providers.get(inject.token);
+      const definitions = customFilterDefinitions(provider!, forkedSession, options);
 
       const values: Array<any> = [];
       definitions.forEach(definition => {
@@ -62,5 +63,7 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
 
 export const All = createHook((options: AllHookOptions = {}) => {
   options = { ...defaultOptions, ...options };
-  return (session, next) => allHook(session, next, options);
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<Array<ResultType>> => {
+    return allHook(session, next, options);
+  }
 }, { name: 'adi:hook:all' });

@@ -1,12 +1,11 @@
 const ADI_PROMISE_DEF = Symbol('adi:definition:promise');
-const ADI_PROMISE_REF = {};
 
 export function patchPromise(promise: any = Promise): void {
-  promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_REF; 
+  promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_DEF; 
 }
 
 export function isPromiseLike<T>(maybePromise: unknown): maybePromise is Promise<T> {
-  return maybePromise && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_REF;
+  return maybePromise! && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_DEF;
 }
 
 export const noopThen = (value: any) => value;
@@ -14,23 +13,23 @@ export const noopCatch = (err: unknown) => { throw err; }
 export const noopFinally = () => void 0;
 
 export function wait<T, R>(
-  result: T,
+  maybePromise: T,
   thenAction: (value: Awaited<T>) => R | Promise<R>,
 ): R | Promise<R>;
 export function wait<T, R, C>(
-  result: T,
+  maybePromise: T,
   thenAction: (value: Awaited<T>) => R | Promise<R>,
   catchAction: (err: unknown) => C | Promise<C> | never,
 ): R | Promise<R> | C | Promise<C> | never;
 export function wait<T, R, C>(
-  result: T,
+  maybePromise: T,
   thenAction: (value: Awaited<T>) => R | Promise<R> = noopThen,
   catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
 ): R | Promise<R> | C | Promise<C> | never {
-  if (isPromiseLike(result)) {
-    return result.then(thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never
+  if (isPromiseLike(maybePromise)) {
+    return maybePromise.then(thenAction as (value: unknown) => R | Promise<R>, catchAction) as R | Promise<R> | C | Promise<C> | never
   }
-  return thenAction(result as any) as R | Promise<R>;
+  return thenAction(maybePromise as any) as R | Promise<R>;
 }
 
 export function waitCallback<T, R>(
@@ -62,7 +61,7 @@ export function waitCallback<T, R, C>(
   }
 
   if (isPromiseLike(result)) {
-    return result.then(thenAction, catchAction).finally(finallyAction) as R | Promise<R> | C | Promise<C> | never;
+    return result.then(thenAction as (value: unknown) => R | Promise<R>, catchAction).finally(finallyAction) as R | Promise<R> | C | Promise<C> | never;
   }
 
   try {
@@ -92,7 +91,7 @@ export function waitAll<T, R, C>(
   if (maybePromises.some(isPromiseLike)) {
     result = Promise.all(maybePromises);
   }
-  return wait(result, thenAction, catchAction) as R | Promise<R> | C | Promise<C> | never;
+  return wait(result, thenAction as (value: unknown) => R | Promise<R>, catchAction) as R | Promise<R> | C | Promise<C> | never;
 }
 
 export function waitSequence<T, D, R>(

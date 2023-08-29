@@ -1,8 +1,8 @@
 interface ReflectAPI {
   getMetadata(metadataKey: any, target: Object): any;
-  getMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
+  getMetadata(metadataKey: any, target: Object, targetKey: string | symbol | undefined): any;
   getOwnMetadata(metadataKey: any, target: Object): any;
-  getOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
+  getOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol | undefined): any;
 }
 
 export const Reflection: ReflectAPI = ((Reflect as unknown as ReflectAPI).getOwnMetadata ? Reflect : {

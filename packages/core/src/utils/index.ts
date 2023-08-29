@@ -2,10 +2,11 @@ export * from './create-array'
 export * from './definition';
 export * from './forward-reference';
 export * from './get-all-keys';
-export * from './get-decorator-info';
+export * from './get-decorator-context';
 export * from './get-deep-property';
 export * from './get-global-this';
 export * from './guards';
 export * from './is-extended';
+export * from './promises-hub';
 export * from './reflection';
 export * from './wait';

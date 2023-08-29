@@ -1,25 +1,18 @@
 import { ADI } from '../adi';
 import { InjectorStatus, InstanceStatus } from '../enums';
 import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey } from '../private';
-import { waitSequence } from '../utils';
+import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../utils';
 
 import type { Injector, Session } from '../injector';
-import type { ProviderRecord, ProviderDefinition, ProviderInstance, OnInit, OnDestroy, DestroyContext } from '../interfaces';
-
-function hasOnInitLifecycle(instance: unknown): instance is OnInit {
-  return instance && typeof (instance as OnInit).onInit === 'function';
-}
-
-function hasOnDestroyLifecycle(instance: unknown): instance is OnDestroy {
-  return instance && typeof (instance as OnDestroy).onDestroy === 'function';
-}
+import type { ProviderRecord, ProviderDefinition, ProviderInstance, DestroyContext } from '../types';
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   const { annotations, context } = session;
+  const injector = context.injector;
   const value = instance.value;
   const hooks: undefined | Array<Function> = annotations[initHooksMetaKey];
   if (!hooks) {
-    ADI.emit('instance:create', { injector: context.injector, session, instance })
+    ADI.emit('instance:create', { session, instance }, { injector })
     if (hasOnInitLifecycle(value)) {
       return value.onInit();
     }
@@ -31,7 +24,7 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
     hooks.push(() => value.onInit());
   }
 
-  ADI.emit('instance:create', { injector: context.injector, session, instance })
+  ADI.emit('instance:create', { session, instance }, { injector })
   return waitSequence(
     hooks.reverse(), 
     hook => hook(session, [value]),
@@ -48,7 +41,7 @@ export function processOnInitLifecycle(instance: ProviderInstance) {
 
     const circularSessions = session.annotations[circularSessionsMetaKey] as Array<Session>;
     circularSessions.push(session);
-    return waitSequence(circularSessions, (s: Session) => handleOnInitLifecycle(s, s.context.instance));
+    return waitSequence(circularSessions, (s: Session) => handleOnInitLifecycle(s, s.context.instance!));
   }
   return handleOnInitLifecycle(session, instance);
 }
@@ -66,7 +59,8 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   }
 
   delete meta[destroyHooksMetaKey];
-  ADI.emit('instance:destroy', { injector: session.context.injector, session, instance });
+  const injector = session.context.injector;
+  ADI.emit('instance:destroy', { session, instance }, { injector });
 
   for (let i = 0, l = hooks.length; i < l; i++) {
     await hooks[i](session, [value]);
@@ -106,15 +100,15 @@ async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: D
   return waitSequence(instances, instance => destroyInstance(instance, ctx));
 }
 
-export function destroyProvider(provider: ProviderRecord, ctx?: DestroyContext) {
+export function destroyProvider(provider: ProviderRecord, ctx: DestroyContext) {
   const injector = provider.host;
   const defs = provider.defs;
   provider.defs = [];
   return waitSequence(defs, def => destroyDefinition(injector, def, ctx))
 }
 
-export function destroyDefinition(injector: Injector, definition: ProviderDefinition, ctx?: DestroyContext) {
-  ADI.emit('provider:destroy', { injector, definition });
+export function destroyDefinition(injector: Injector, definition: ProviderDefinition, ctx: DestroyContext) {
+  ADI.emit('provider:destroy', { definition }, { injector });
 
   const instances = Array.from(definition.values.values());
   definition.values = new Map();
@@ -125,7 +119,7 @@ export function destroyDefinition(injector: Injector, definition: ProviderDefini
 }
 
 function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
-  const children = instance.session.children.map(s => s.context.instance);
+  const children = instance.session.children.map(s => s.context.instance!);
 
   children.forEach(child => child.parents?.delete(instance));
   if (instance.links) {
@@ -158,7 +152,7 @@ export async function destroyInjector(injector: Injector) {
   await waitSequence(providers, provider => destroyProvider(provider, { event: 'injector' }));
 
   // remove injector from parent imports
-  if (injector.parent !== null) {
+  if (injector.parent) {
     injector.parent.imports.delete(injector.input);
   }
 

@@ -1,6 +1,6 @@
 import { InjectionToken, ModuleToken } from '../tokens';
 
-import type { ProviderToken, ClassProvider, FactoryProvider, ClassFactoryProvider, ValueProvider, ExistingProvider, ExtendedModule, Provide, ClassType } from '../interfaces';
+import type { ProviderToken, ClassProvider, FactoryProvider, ClassFactoryProvider, ValueProvider, ExistingProvider, ExtendedModule, Provide, ClassType, OnInit, OnDestroy } from '../types';
 
 export function isClassProvider(provider: unknown): provider is ClassProvider {
   return 'useClass' in (provider as ClassProvider);
@@ -23,7 +23,7 @@ export function isClassFactoryProvider(provider: unknown): provider is ClassFact
   return typeof factory?.prototype?.provide === 'function';
 }
 
-export function isProviderToken(token: unknown): token is ProviderToken {
+export function isProviderToken<T = any>(token: unknown): token is ProviderToken<T> {
   const typeOf = typeof token;
   return typeOf === 'function' || isInjectionToken(token) || typeOf === 'string' || typeOf === 'symbol';
 }
@@ -38,4 +38,12 @@ export function isModuleToken(module: unknown): module is ModuleToken {
 
 export function isExtendedModule(module: unknown): module is ExtendedModule {
   return 'extends' in (module as ExtendedModule);
+}
+
+export function hasOnInitLifecycle(instance: unknown): instance is OnInit {
+  return !!instance && typeof (instance as OnInit).onInit === 'function';
+}
+
+export function hasOnDestroyLifecycle(instance: unknown): instance is OnDestroy {
+  return !!instance && typeof (instance as OnDestroy).onDestroy === 'function';
 }

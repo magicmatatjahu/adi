@@ -1,8 +1,11 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
+
+import type { Session } from '../injector/session';
+import type { InjectionHookResult, NextInjectionHook, ScopeType } from '../types';
 
 export const Tagged = createHook((tags: Array<string | symbol>) => {
-  return (session, next) => {
-    session.iOptions.annotations.tagged = tags;
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType> => {
+    session.inject.annotations.tagged = tags;
     return next(session);
   }
 }, { name: 'adi:hook:tagged' });

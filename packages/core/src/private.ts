@@ -1,6 +1,7 @@
 export const ADI_INJECTABLE_DEF = 'adi:definition:injectable';
 export const ADI_MODULE_DEF = 'adi:definition:module';
 export const ADI_HOOK_DEF = 'adi:definition:hook';
+export const ADI_INJECTION_ITEM = 'adi:definition:injection-item';
 
 export const OBJECT_REF = {};
 export const ARRAY_REF = {};

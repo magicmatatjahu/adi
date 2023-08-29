@@ -4,6 +4,7 @@ export enum ProviderKind {
   VALUE = 'value',
   PROVIDER = 'provider',
   ALIAS = 'alias',
+  CUSTOM = 'custom'
 }
 
 export enum InstanceStatus {
@@ -28,12 +29,19 @@ export enum InjectionKind {
   FUNCTION = 'function',
 }
 
+export enum InjectableStatus {
+  NONE = 0,
+  INITIALIZED = 1,
+  ONLY_CONSTRUCTOR_DEPS = 2,
+}
+
 export enum InjectorStatus {
   NONE = 0,
   PENDING = 1,
   INITIALIZED = 2,
   DESTROYED = 4,
-  PROXY = 8,
+  HAS_HOOKS = 8,
+  PROXY = 16,
 }
 
 export enum SessionFlag {

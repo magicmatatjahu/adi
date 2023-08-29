@@ -7,10 +7,10 @@ import { InjectorStatus } from '../enums';
 import { createDefinition, wait, waitSequence, resolveRef, isModuleToken, isInjectionToken } from '../utils';
 import { ADI_MODULE_DEF, exportedToInjectorsMetaKey } from '../private';
 
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput } from "../interfaces";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput } from "../types";
 import type { InjectionToken, ModuleToken } from '../tokens';
 
-type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference | Promise<any>>;
+type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference<any> | Promise<any>>;
 
 interface ExtractedMetadata {
   input?: ClassType | ModuleToken;
@@ -464,7 +464,7 @@ function findModuleInTree(input: ClassType | ModuleToken, parent: CompiledModule
 function initInjector({ injector, input, proxy }: CompiledModule) {
   if (injector.status & InjectorStatus.INITIALIZED) return;
   injector.status |= InjectorStatus.INITIALIZED;
-  ADI.emit('module:create', { injector, original: input });
+  ADI.emit('module:create', { original: input }, { injector });
 
   return wait(
     injector.get(INITIALIZERS),

@@ -7,34 +7,34 @@ import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectorStatus } from '../enums';
 import { Optional, All } from '../hooks';
-import { isExtendedModule, isModuleToken, wait, waitCallback } from '../utils';
+import { isExtendedModule, isModuleToken, wait, waitCallback, noopThen, noopCatch } from '../utils';
 import { cacheMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, HookRecord, ModuleMetadata } from '../interfaces';
+import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata } from '../types';
 
-export class Injector {
-  static create(
-    input?: InjectorInput,
+export class Injector<T = any> {
+  static create<T>(
+    input?: InjectorInput<T>,
     options?: InjectorOptions,
-    parent?: Injector | null,
-  ): Injector {
+    parent?: Injector<T> | null,
+  ): Injector<T> {
     return new Injector(input, options, parent);
   }
 
-  private $: Injector | Promise<Injector>;
+  private $: Injector<T> | Promise<Injector<T>> | undefined;
   public status: InjectorStatus = InjectorStatus.NONE;
-  public readonly imports = new Map<InjectorInput, Injector>();
-  public readonly providers = new Map<ProviderToken, { self: ProviderRecord, imported?: Array<ProviderRecord> }>();
-  public readonly hooks: Array<HookRecord> = [];
+  public readonly imports = new Map<InjectorInput<T>, Injector<T>>();
+  public readonly providers = new Map<ProviderToken<any>, { self: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
+  public readonly hooks: Array<InjectionHookRecord> = [];
   public readonly meta: Record<string | symbol, any> = {
     [cacheMetaKey]: new Map<any, any>(),
   };
 
   constructor(
-    public readonly input: InjectorInput = [],
+    public readonly input: InjectorInput<T> = [],
     public readonly options: InjectorOptions = {},
-    public readonly parent: Injector | null | undefined = ADI.coreInjector,
+    public readonly parent: Injector<T> | null | undefined = ADI.coreInjector,
   ) {
     if (typeof input === 'object' && typeof (input as ModuleMetadata).options === 'object') {
       options = { ...(input as ModuleMetadata).options, ...options };
@@ -77,7 +77,7 @@ export class Injector {
     }
   }
 
-  init(): Injector | Promise<Injector> {
+  init(): Injector<T> | Promise<Injector<T>> {
     return this.$ || (this.$ = initModule(this));
   }
 
@@ -142,8 +142,8 @@ export class Injector {
         injector.init(),
         inj => waitCallback(
           () => fn({ injector: inj }),
-          undefined,
-          undefined,
+          noopThen,
+          noopCatch,
           () => inj.destroy(),
         ),
       ) as R;

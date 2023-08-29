@@ -1,28 +1,25 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
 import { createFunction } from '../injector';
 import { destroyHooksMetaKey } from "../private";
-import { wait } from "../utils";
+import { wait, hasOnDestroyLifecycle } from "../utils";
 
-import type { InjectionItem } from '../interfaces';
+import type { Session } from '../injector';
+import type { InjectionItem, NextInjectionHook, InjectionHookResult } from '../types';
 
 export interface OnDestroyHookOptions<T = any> {
   onDestroy: (value: T, ...args: any[]) => any;
   inject?: Array<InjectionItem>;
 }
 
-function hasOnDestroyFunction(onDestroy: unknown): onDestroy is OnDestroyHookOptions {
-  return typeof (onDestroy as OnDestroyHookOptions).onDestroy === 'function';
-}
-
 export const OnDestroyHook = createHook((hook: ((value: any) => void | Promise<void>) | OnDestroyHookOptions) => {
   let resolver: ReturnType<typeof createFunction>;
-  if (hasOnDestroyFunction(hook)) {
-    resolver = createFunction(hook.onDestroy, hook.inject);
+  if (hasOnDestroyLifecycle(hook)) {
+    resolver = createFunction(hook.onDestroy, (hook as OnDestroyHookOptions).inject);
   } else {
     resolver = (_, [value]) => hook(value);
   }
 
-  return (session, next) => {
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType> => {
     if (session.hasFlag('dry-run')) {
       return next(session);
     }
@@ -30,7 +27,7 @@ export const OnDestroyHook = createHook((hook: ((value: any) => void | Promise<v
     return wait(
       next(session),
       value => {
-        const instance = session.context.instance;
+        const instance = session.context.instance!;
         const hooks = instance.meta[destroyHooksMetaKey] || (instance.meta[destroyHooksMetaKey] = []);
         hooks.push(resolver);
         return value;

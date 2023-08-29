@@ -5,7 +5,7 @@ import { wait } from '../utils';
 import type { Context } from './context';
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeType } from '../interfaces';
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeType } from '../types';
 
 export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
   let provider = host.providers.get(token);
@@ -32,9 +32,9 @@ function createProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRec
 }
 
 export function getOrCreateProviderInstance(session: Session) {
-  const definition = session.context.definition;
+  const definition = session.context.definition!;
   let scope = definition.scope;
-  if (session.iOptions.scope && scope.kind.canBeOverrided(session, scope.options)) {
+  if (session.inject.scope && scope.kind.canBeOverrided(session, scope.options)) {
     scope = session.iOptions.scope;
   }
 
@@ -71,8 +71,8 @@ function getProviderInstance(session: Session, context: Context, scope: ScopeTyp
 }
 
 export function filterDefinitions(provider: ProviderRecord, session: Session): ProviderDefinition | undefined;
-export function filterDefinitions(provider: ProviderRecord, session: Session, filter: 'all' | 'satisfies'): Array<ProviderDefinition>;
-export function filterDefinitions(provider: ProviderRecord, session: Session, filter?: 'all' | 'satisfies'): ProviderDefinition | Array<ProviderDefinition> | undefined {
+export function filterDefinitions(provider: ProviderRecord, session: Session, filter: 'all' | 'satisfies' | undefined): Array<ProviderDefinition>;
+export function filterDefinitions(provider: ProviderRecord, session: Session, filter?: 'all' | 'satisfies' | undefined): ProviderDefinition | Array<ProviderDefinition> | undefined {
   if (filter) {
     return filterProviderDefinitions(provider.defs, session, filter);
   }

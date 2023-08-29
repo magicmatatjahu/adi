@@ -1,5 +1,5 @@
 import { ADI, installADI } from './adi';
-import { Context, Injector, Session, injectableMixin } from './injector';
+import { Context, EventEmitter, Injector, Session, injectableMixin } from './injector';
 import { Hook } from './hooks';
 import { patchPromise } from './utils/wait';
 
@@ -26,6 +26,10 @@ function patchCircularRefs() {
         return session.parent || session;
       }),
     ] 
+  });
+
+  injectableMixin(EventEmitter, [Injector], { 
+    provideIn: 'any',
   });
 }
 

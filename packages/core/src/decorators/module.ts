@@ -1,11 +1,11 @@
 import { moduleMixin, injectableMixin } from '../injector';
-import { getDecoratorInfo } from '../utils';
+import { getDecoratorContext } from '../utils';
 
-import type { ClassType, ModuleMetadata } from '../interfaces';
+import type { ClassType, ModuleMetadata } from '../types';
 
-export function Module(metadata?: ModuleMetadata): ClassDecorator {
+export function Module(metadata?: ModuleMetadata) {
   return function(target: Object, ...rest: any[]) {
-    const { kind } = getDecoratorInfo(target, ...rest);
+    const { kind } = getDecoratorContext(target, ...rest);
     if (kind !== 'class') {
       throw new Error('Cannot use @Module on non-class level.');
     }

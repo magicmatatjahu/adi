@@ -1,6 +1,9 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
 import { destroy } from "../injector";
 import { wait } from "../utils";
+
+import type { Session } from '../injector/session';
+import type { InjectionHookResult, NextInjectionHook } from '../types';
 
 export type DestroyableType<T> = {
   value: T;
@@ -8,14 +11,14 @@ export type DestroyableType<T> = {
 }
 
 export const Destroyable = createHook(() => {
-  return (session, next) => {
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<DestroyableType<ResultType>> => {
     return wait(
       next(session),
       value => {
         session.setFlag('side-effect');
         return {
           value,
-          destroy: () => destroy(session.context.instance, { event: 'manually' }),
+          destroy: () => destroy(session.context.instance!, { event: 'manually' }),
         }
       }
     );

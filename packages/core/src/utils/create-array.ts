@@ -1,6 +1,6 @@
-export function createArray<T>(value: T | Array<T>): Array<T> {
+export function createArray<T>(value: T | Array<T>): Array<Exclude<T, undefined>> {
   if (Array.isArray(value)) {
-    return value;
+    return value as any;
   }
-  return value ? [value] : [];
+  return value ? [value] : [] as any;
 }

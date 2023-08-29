@@ -1,27 +1,25 @@
-import { createHook } from './hook';
+import { createHook } from './create-hook';
 import { createFunction } from '../injector';
 import { initHooksMetaKey } from "../private";
+import { hasOnInitLifecycle } from "../utils";
 
-import type { InjectionItem } from '../interfaces';
+import type { Session } from '../injector';
+import type { InjectionItem, NextInjectionHook, InjectionHookResult } from '../types';
 
 export interface OnInitHookOptions<T = any> {
   onInit: (value: T, ...args: any[]) => any;
   inject?: Array<InjectionItem>;
 }
 
-function hasOnInitFunction(onInit: unknown): onInit is OnInitHookOptions {
-  return typeof (onInit as OnInitHookOptions).onInit === 'function';
-}
-
 export const OnInitHook = createHook((hook: ((value: any) => void | Promise<void>) | OnInitHookOptions) => {
   let resolver: ReturnType<typeof createFunction>;
-  if (hasOnInitFunction(hook)) {
-    resolver = createFunction(hook.onInit, hook.inject);
+  if (hasOnInitLifecycle(hook)) {
+    resolver = createFunction(hook.onInit, (hook as OnInitHookOptions).inject);
   } else {
     resolver = (_, [value]) => hook(value);
   }
 
-  return (session, next) => {
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType> => {
     if (session.hasFlag('dry-run')) {
       return next(session);
     }

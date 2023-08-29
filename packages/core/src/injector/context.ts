@@ -1,6 +1,6 @@
 import { getDeepProperty } from '../utils';
 
-import type { Path, PathValue } from '../types';
+import type { Path, PathValue } from '../types/private';
 
 export class Context<D extends Record<string | symbol, unknown> = Record<string | symbol, unknown>> {
   constructor(

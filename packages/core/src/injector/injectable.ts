@@ -3,7 +3,7 @@ import { InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
 import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
-import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionItem } from "../interfaces";
+import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionArgument, InjectionItem } from "../types";
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 
@@ -33,21 +33,11 @@ export function injectableMixin(token: InjectableDefinition['token'], injections
     if (injections) {
       definition.injections = overrideInjections(definition.injections, injections, token);
     }
-
-    // if (inherited && inherited.init) {
-    //   const options = definition.options;
-    //   const inheritedOptions = inherited.options;
-    //   options.scope = options.scope || inheritedOptions.scope;
-    //   options.hooks = options.hooks || inheritedOptions.hooks;
-    //   options.annotations = options.annotations || inheritedOptions.annotations;
-    // }
   }
 
   return definition;
 }
 
-// export function InjectableMixin<TBase extends ClassType>(metadata: ModuleMetadata): ClassType;
-// export function InjectableMixin<TBase extends ClassType>(token: ClassType, metadata: ModuleMetadata): ClassType;
 export function InjectableMixin<TBase extends ClassType>(input: { injections?: Injections | Array<InjectionItem>, options?: InjectableOptions }, Base?: TBase): ClassType {
   const clazz = Base ? class InjectableMixin extends Base {} : class InjectableMixin {};
   injectableMixin(clazz, input.injections, input.options);
@@ -56,7 +46,7 @@ export function InjectableMixin<TBase extends ClassType>(input: { injections?: I
 
 function injectableFactory(): InjectableDefinition {
   return {
-    token: undefined,
+    token: undefined as any,
     init: false,
     options: {},
     injections: {
@@ -64,7 +54,6 @@ function injectableFactory(): InjectableDefinition {
       properties: {},
       methods: {},
       static: undefined,
-      status: false,
     },
   };
 }
@@ -81,13 +70,12 @@ function inheritance(target: ClassType | AbstractClassType, definition: Injectab
     inheritanceProperties(target, injections.static.properties, inheritedInjections.static.properties);
     inheritanceMethods(target, target, injections.static.methods, inheritedInjections.static.methods);
   }
-  injections.status = injections.status || inheritedInjections.status;
   return inherited;
 }
 
 function mergeParameters(target: Function, injectionParameters: InjectionArguments['parameters'], reflectedParameters: Array<ClassType | AbstractClassType>): void {
   reflectedParameters.forEach((reflectedParameter, index) => {
-    injectionParameters[index] = injectionParameters[index] || createInjectionArgument(reflectedParameter, undefined, { kind: InjectionKind.PARAMETER, target, index, annotations: {} });
+    injectionParameters[index] = injectionParameters[index] || createInjectionArgument(reflectedParameter, { kind: InjectionKind.PARAMETER, target, index, annotations: {} });
   });
 }
 
@@ -99,14 +87,16 @@ function inheritanceParemeters(target: ClassType | AbstractClassType, defParamet
 
   // definition parameters is an empty array - merging parent ctor arguments
   parameters.forEach((parameter, index) => {
-    defParameters[index] = createInjectionArgument(parameter.token, parameter.hooks, { ...parameter.metadata, target });
+    if (parameter) {
+      defParameters[index] = createInjectionArgument(parameter.token,  { ...parameter.metadata, target }, parameter.hooks);
+    }
   });
 }
 
 function inheritanceProperties(target: ClassType | AbstractClassType, defProperties: InjectionArguments['properties'], properties: InjectionArguments['properties']) {
   getAllKeys(properties).forEach(key => {
     const inheritedProp = properties[key];
-    defProperties[key] = defProperties[key] || createInjectionArgument(inheritedProp.token, inheritedProp.hooks, { ...inheritedProp.metadata, target });
+    defProperties[key] = defProperties[key] || createInjectionArgument(inheritedProp.token, { ...inheritedProp.metadata, target }, inheritedProp.hooks);
   });
 }
 
@@ -117,9 +107,11 @@ function inheritanceMethods(target: ClassType | AbstractClassType, toLook: Objec
     // if yes, user could make it injectable from scratch or override to pure (without injection) function in extended class.
     // if not, copy injections from parent class
     if (!targetMethods.includes(key)) {
-      const copiedMethod = defMethods[key] = [];
+      const copiedMethod: InjectionArgument<any>[] = defMethods[key] = [];
       methods[key].forEach((methodArg, index) => {
-        copiedMethod[index] = createInjectionArgument(methodArg.token, methodArg.hooks, { ...methodArg.metadata, target, descriptor: Object.getOwnPropertyDescriptor(toLook, key) });
+        if (methodArg) {
+          copiedMethod[index] = createInjectionArgument(methodArg.token, { ...methodArg.metadata, target, descriptor: Object.getOwnPropertyDescriptor(toLook, key) }, methodArg.hooks);
+        }
       });
     }
   });

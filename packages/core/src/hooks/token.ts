@@ -1,10 +1,11 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
 
-import type { ProviderToken } from "../interfaces";
+import type { Session } from '../injector/session';
+import type { InjectionHookResult, NextInjectionHook, ProviderToken } from '../types';
 
-export const Token = createHook((token: ProviderToken<any>) => {
-  return (session, next) => {
-    session.iOptions.token = token;
-    return next(session);
+export const Token = createHook(<RT>(token: ProviderToken<RT>) => {
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<RT> => {
+    session.inject.token = token;
+    return next(session) as RT;
   }
 }, { name: 'adi:hook:token' })

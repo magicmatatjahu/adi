@@ -6,8 +6,8 @@ import type { InjectionAnnotations, ConstraintDefinition } from "./interfaces";
 
 export function named(name: InjectionAnnotations['named']): ConstraintDefinition {
   return (session) => {
-    const { metadata, options } = session.injection;
-    return name === (options.annotations.named || metadata.annotations.named);
+    const { metadata, inject } = session.injection;
+    return name === (inject.annotations.named || metadata.annotations.named);
   }
 }
 

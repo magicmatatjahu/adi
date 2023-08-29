@@ -1,15 +1,14 @@
-import { prepareInjectArgument } from './metadata';
+import { parseInjectArguments } from './metadata';
 import { destroy } from './lifecycle-manager';
 import { inject as coreInject, getInstanceFromCache } from './resolver';
 import { InjectionKind } from '../enums';
 import { InstanceHook } from '../hooks';
 import { instancesToDestroyMetaKey } from '../private';
-import { wait, waitCallback } from '../utils';
+import { wait, waitCallback, noopThen, noopCatch } from '../utils';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata } from '../interfaces';
-import type { InjectionHookResult } from '../hooks';
+import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata, InjectionHookResult } from '../types';
 
 export interface CurrentInjectionContext {
   injector: Injector;
@@ -39,7 +38,7 @@ function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | 
     }
   }
   
-  const argument = prepareInjectArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations);
+  const argument = parseInjectArguments(token as ProviderToken<T>, annotations, hooks as Array<InjectionHook>);
   argument.metadata = { ...argument.metadata, ...metadata, annotations };
 
   const instancesToDestroy = currentContext[instancesToDestroyMetaKey];
@@ -57,21 +56,18 @@ function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | 
   ) as T;
 }
 
-export function inject<T = any>(token?: ProviderToken<T>): T;
-export function inject<T = any>(hook?: InjectionHook): T;
-export function inject<T = any>(hooks?: Array<InjectionHook>): T;
-export function inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): T;
-export function inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): T;
-export function inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(hook?: InjectionHook, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T;
-export function inject<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook>, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T {
+export function inject<T = any>(token: ProviderToken<T>): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(token: ProviderToken<T>, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>): T | Promise<T> {
   if (currentContext === undefined) {
     throw new Error('inject() must be called from an injection context such as a constructor, a factory function or field initializer.');
   }
-  return baseInject(currentContext, token, hooks, annotations) as T;
+  return baseInject(currentContext, token, annotations, hooks) as T;
 }
 
 export function injectMethod<T, F extends (...args: any) => any>(instance: T, method: F): F {
@@ -99,8 +95,8 @@ export function injectMethod<T, F extends (...args: any) => any>(instance: T, me
     try {
       return waitCallback(
         () => method.apply(instance, args),
-        undefined,
-        undefined,
+        noopThen,
+        noopCatch,
         () => destroy(ctxInstances),
       )
     } finally {

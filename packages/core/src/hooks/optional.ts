@@ -1,14 +1,15 @@
-import { createHook } from "./hook";
+import { createHook } from "./create-hook";
 import { NoProviderError } from "../problem";
-import { waitCallback } from "../utils";
+import { waitCallback, noopThen } from "../utils";
 
-export type OptionalType<T> = T | undefined; 
+import type { Session } from '../injector/session';
+import type { InjectionHookResult, NextInjectionHook } from '../types';
 
-export const Optional = createHook((value?: any) => {
-  return (session, next) => {
+export const Optional = createHook(<IT = undefined>(value?: IT) => {
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType | IT> => {
     return waitCallback(
       () => next(session),
-      undefined,
+      noopThen,
       err => {
         if (err instanceof NoProviderError) {
           return value;
