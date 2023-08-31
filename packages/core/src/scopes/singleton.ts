@@ -1,11 +1,12 @@
-import { Scope, createScope } from "./scope";
+import { createScope } from "./factory";
+import { Scope } from "./scope";
 import { STATIC_CONTEXT } from "../constants";
 import { InjectorStatus } from "../enums";
 import { Context } from "../injector";
 import { getHostInjector } from "../injector/metadata";
 
 import type { Injector, Session } from "../injector";
-import type { ProviderInstance, DestroyContext } from "../interfaces";
+import type { ProviderInstance, DestroyContext } from "../types";
 
 export interface SingletonScopeOptions {
   perInjector?: boolean;
@@ -20,7 +21,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
 
   override getContext(session: Session, options: SingletonScopeOptions): Context {
     if (options.perInjector) {
-      const hostInjector = getHostInjector(session);
+      const hostInjector = getHostInjector(session) as Injector;
       let context = this.perInjectors.get(hostInjector) as Context;
       if (context === undefined) {
         context = new Context(STATIC_CONTEXT.get());
@@ -30,7 +31,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
       return context;
     }
     
-    const context = session.iOptions.context;
+    const context = session.inject.context;
     if (context && context !== STATIC_CONTEXT) {
       throw new Error("Cannot recreate provider with singleton scope");
     }

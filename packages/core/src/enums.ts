@@ -19,14 +19,15 @@ export enum InstanceStatus {
 
 export enum InjectionKind {
   UNKNOWN = 'unknown',
-  CUSTOM = 'custom',
-  STANDALONE = 'standalone',
+  INJECTOR = 'injector',
   PARAMETER = 'parameter',
   PROPERTY = 'property',
   METHOD = 'method',
   ACCESSOR = 'accessor',
   FACTORY = 'factory',
   FUNCTION = 'function',
+  SCOPE = 'scope',
+  CUSTOM = 'custom',
 }
 
 export enum InjectableStatus {

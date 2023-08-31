@@ -1,8 +1,9 @@
-import { Scope, createScope } from "./scope";
+import { createScope } from "./factory";
+import { Scope } from "./scope";
 import { STATIC_CONTEXT } from "../constants";
 
 import type { Context, Session } from "../injector";
-import type { ProviderInstance, DestroyContext } from "../interfaces";
+import type { ProviderInstance, DestroyContext } from "../types";
 
 export interface DefaultScopeOptions {}
 
@@ -12,7 +13,7 @@ export class DefaultScope extends Scope<DefaultScopeOptions> {
   }
 
   override getContext(session: Session): Context {
-    return session.injection.options.context || STATIC_CONTEXT;
+    return session.inject.context || STATIC_CONTEXT;
   }
 
   override shouldDestroy(instance: ProviderInstance, _: DefaultScopeOptions, destroyCtx: DestroyContext): boolean {

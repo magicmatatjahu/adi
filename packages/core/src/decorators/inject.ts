@@ -3,7 +3,7 @@ import { parseInjectArguments, createInjectionArgument } from '../injector/metad
 import { InjectionKind } from '../enums';
 import { getDecoratorContext, Reflection } from '../utils';
 
-import type { ProviderToken, InjectionHook, InjectionAnnotations, PlainInjectionItem, InjectionArguments, InjectionArgument, ClassType, AbstractClassType, InjectionMetadata, DecoratorContext } from '../types';
+import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionArguments, InjectionArgument, ClassType, AbstractClassType, InjectionMetadata, DecoratorContext, ParsedInjectionItem } from '../types';
 
 export function Inject<T = any>(token: ProviderToken<T>): ParameterDecorator | PropertyDecorator;
 export function Inject<T = any>(annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
@@ -20,7 +20,7 @@ export function Inject<T = any>(token: ProviderToken<T> | InjectionAnnotations |
   }
 }
 
-export function applyInject(ctx: DecoratorContext, { token, annotations, hooks }: PlainInjectionItem) {
+export function applyInject(ctx: DecoratorContext, { token, annotations, hooks }: ParsedInjectionItem) {
   const target = ctx.class;
   const injections = injectableDefinitions.ensure(target).injections;
 
@@ -72,7 +72,7 @@ export function applyInject(ctx: DecoratorContext, { token, annotations, hooks }
       const reflectedParameters = Reflection.getOwnMetadata("design:paramtypes", targetObject, key) || [];
       const properInjections = getProperInjections(isStatic, injections);
       const parameters = properInjections.methods[key] || (properInjections.methods[key] = []);
-      mergeMethodParameters(parameters, reflectedParameters, hooks, annotations, argument.metadata);
+      mergeMethodParameters(parameters, reflectedParameters, annotations, hooks, argument.metadata);
       break;
     }
     default: throw new Error('@Inject decorator can be only used on parameter (constructor or method)/property/accessos/method level.');
@@ -83,15 +83,17 @@ function getProperInjections(isStatic: boolean, injections: InjectionArguments):
   return isStatic ? (injections.static || (injections.static = { properties: {}, methods: {} })) as InjectionArguments : injections;
 }
 
-function mergeMethodParameters(injectionParameters: Array<InjectionArgument | undefined> = [], reflectedParameters: Array<ClassType | AbstractClassType>, hooks: Array<InjectionHook>, annotations: InjectionAnnotations, metadata: InjectionMetadata) {
-  const updateExisting = hooks || annotations; 
+function mergeMethodParameters(injectionParameters: Array<InjectionArgument | undefined> = [], reflectedParameters: Array<ClassType | AbstractClassType>, annotations: InjectionAnnotations, hooks: Array<InjectionHook>, metadata: InjectionMetadata) {
+  const updateExisting = Boolean(hooks || annotations); 
   reflectedParameters.forEach((reflectedParameter, index) => {
     if (!injectionParameters[index]) {
-      injectionParameters[index] = createInjectionArgument(reflectedParameter, hooks, { ...metadata, kind: InjectionKind.PARAMETER, annotations: { ...annotations } });
+      injectionParameters[index] = createInjectionArgument(reflectedParameter, { ...metadata, kind: InjectionKind.PARAMETER, annotations: { ...annotations } }, hooks);
     } else if (updateExisting) {
       const parameter = injectionParameters[index];
-      parameter.hooks = [...hooks, ...parameter.hooks];
-      parameter.metadata.annotations = { ...annotations, ...parameter.metadata.annotations };
+      if (parameter) {
+        parameter.hooks = [...hooks, ...parameter.hooks];
+        parameter.metadata.annotations = { ...annotations, ...parameter.metadata.annotations };
+      }
     }
   });
 }

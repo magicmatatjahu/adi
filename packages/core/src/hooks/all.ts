@@ -16,7 +16,7 @@ const defaultOptions: AllHookOptions = {
   imported: true,
 }
 
-function customFilterDefinitions(provider: { self: ProviderRecord, imported?: Array<ProviderRecord> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
+function customFilterDefinitions(provider: { self: ProviderRecord | null, imported?: Array<ProviderRecord> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
   if (options.imported && provider.imported) {
     const definitions: Array<ProviderDefinition> = [];
     [provider.self, ...provider.imported].forEach(provider => definitions.push(...filterDefinitions(provider, session, options.filter)));
@@ -47,8 +47,8 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
 
       // TODO: Fix retrieved provider from injector, we should operate on providers from imported injector, not from host injector
       const { context, inject } = forkedSession;
-      const provider = context.injector.providers.get(inject.token);
-      const definitions = customFilterDefinitions(provider!, forkedSession, options);
+      const provider = context.injector.providers.get(inject.token!);
+      const definitions = customFilterDefinitions(provider, forkedSession, options);
 
       const values: Array<any> = [];
       definitions.forEach(definition => {

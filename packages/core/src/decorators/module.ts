@@ -9,6 +9,7 @@ export function Module(metadata?: ModuleMetadata) {
     if (kind !== 'class') {
       throw new Error('Cannot use @Module on non-class level.');
     }
+    
     moduleMixin(target as ClassType, metadata);
     injectableMixin(target);
   }

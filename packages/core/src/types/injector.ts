@@ -3,7 +3,7 @@ import type { ExtendedModule, ModuleMetadata } from './module';
 import type { ProviderType } from './provider';
 import type { ClassType } from './types';
 
-export type InjectorInput<T> = ClassType<T> | ModuleToken | ModuleMetadata | Array<ProviderType> | ExtendedModule<T>;
+export type InjectorInput<T = any> = ClassType<T> | ModuleToken | ModuleMetadata | Array<ProviderType> | ExtendedModule<T>;
 
 export type InjectorScope<T = any> = 'any' | string | symbol | InjectorInput<T>;
 

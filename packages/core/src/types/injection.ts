@@ -1,9 +1,11 @@
-import type { Context } from '../injector/context'
+import { instancesToDestroyMetaKey } from '../private';
+
+import type { Context, Injector, Session } from '../injector'
 import type { InjectionHook } from './hook'
 import type { ProviderToken, InferredProviderTokenType } from './provider-token'
-import type { ScopeType } from './scope'
+import type { ProviderInstance } from './provider-record'
+import type { ScopeDefinition } from './scope'
 import type { InjectionKind } from '../enums'
-import type { cacheMetaKey } from '../private';
 
 export type InjectFunctionResult<T> = T | Promise<T>;
 
@@ -51,6 +53,13 @@ export interface InjectFunction {
 
 // const result = get('lol')
 
+export interface InjectionContext {
+  injector: Injector;
+  metadata: InjectionMetadata
+  session?: Session;
+  [instancesToDestroyMetaKey]?: ProviderInstance[]
+}
+
 export type InjectionItem<T = any> = 
   | ProviderToken<T>
   | InjectionHook<any, any>
@@ -78,7 +87,7 @@ export type InjectionsOverride = (arg: InjectionItem) => InjectionItem | undefin
 export interface InjectionOptions<T = any> {
   token?: ProviderToken<T>;
   context?: Context;
-  scope?: ScopeType;
+  scope?: ScopeDefinition;
   annotations: InjectionAnnotations;
 }
 
@@ -94,7 +103,8 @@ export interface InjectionArguments {
 
 export interface InjectionArgument<T = any> { 
   token?: ProviderToken<T>;
-  hooks?: Array<InjectionHook<any, any>>; 
+  hooks: Array<InjectionHook<any, any>>; 
+  annotations: InjectionAnnotations;
   metadata: InjectionMetadata;
 };
 
@@ -114,3 +124,9 @@ export interface InjectionAnnotations {
   tagged?: Array<string | symbol | object>;
   [key: string | symbol]: any;
 }
+
+export interface ParsedInjectionItem<T = any> { 
+  token?: ProviderToken<T>;
+  hooks: Array<InjectionHook<unknown, unknown>>; 
+  annotations: InjectionAnnotations;
+};

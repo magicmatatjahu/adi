@@ -20,6 +20,6 @@ export function getOrCreatePromise(value: object) {
 export function resolvePromise(value: object, result: any) {
   const promise = hub.get(value);
   if (promise) {
-    return promise.resolve(result);
+    promise.resolve(result);
   }
 }

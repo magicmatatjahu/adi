@@ -1,28 +1,34 @@
 import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
-import { inject, getInstanceFromCache } from './resolver';
-import { processProviders, prepareInjectArgument } from './metadata';
+import { inject } from './resolver';
+import { createInjectionMetadata, processProviders } from './metadata';
 import { initModule, importModule, retrieveExtendedModule } from './module';
 import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
-import { InjectorStatus } from '../enums';
+import { InjectionKind, InjectorStatus } from '../enums';
 import { Optional, All } from '../hooks';
 import { isExtendedModule, isModuleToken, wait, waitCallback, noopThen, noopCatch } from '../utils';
 import { cacheMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata } from '../types';
+import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata, InjectionContext } from '../types';
 
 export class Injector<T = any> {
-  static create<T>(
+  static create<T, P>(
     input?: InjectorInput<T>,
     options?: InjectorOptions,
-    parent?: Injector<T> | null,
+    parent?: Injector<P> | null,
   ): Injector<T> {
     return new Injector(input, options, parent);
   }
 
   private $: Injector<T> | Promise<Injector<T>> | undefined;
+  private injectionCtx: InjectionContext = {
+    injector: this, 
+    metadata: createInjectionMetadata({ kind: InjectionKind.INJECTOR }), 
+    session: undefined,
+  }
+
   public status: InjectorStatus = InjectorStatus.NONE;
   public readonly imports = new Map<InjectorInput<T>, Injector<T>>();
   public readonly providers = new Map<ProviderToken<any>, { self: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
@@ -85,32 +91,24 @@ export class Injector<T = any> {
     return destroyInjector(this);
   }
 
-  get<T = any>(token?: ProviderToken<T>): T | Promise<T>;
-  get<T = any>(hook?: InjectionHook): T | Promise<T>;
-  get<T = any>(hooks?: Array<InjectionHook>): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(hook?: InjectionHook, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): T | Promise<T>;
-  get<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook>, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return;
-
-    // only one argument
-    if (hooks === undefined) {
-      const cached = getInstanceFromCache(this, token as ProviderToken);
-      if (cached !== undefined) {
-        return cached;
-      }
+  get<T = any>(token: ProviderToken<T>): T | Promise<T>;
+  get<T = any>(annotations: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(...hooks: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations): T | Promise<T>;
+  get<T = any>(token: ProviderToken<T>, ...hooks: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): T | Promise<T>;
+  get<T = any>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>): T | Promise<T> {
+    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
+      return undefined as T;
     }
-
-    return inject(this, prepareInjectArgument(token as ProviderToken<T>, hooks as Array<InjectionHook>, annotations));
+    return inject(this.injectionCtx, token as any, annotations as any, ...hooks)
   }
 
-  import(input: InjectorInput | Promise<InjectorInput>): Injector | Promise<Injector> {
-    if (this.status & InjectorStatus.DESTROYED || !this.options.importing) return; 
+  import<T>(input: InjectorInput<T> | Promise<InjectorInput<T>>): Injector<T> | Promise<Injector<T>> {
+    if (this.status & InjectorStatus.DESTROYED || !this.options.importing) {
+      return undefined as unknown as Injector<T> | Promise<Injector<T>>;
+    }
     return importModule(this, input);
   }
 
@@ -120,8 +118,10 @@ export class Injector<T = any> {
   }
 
   run<R>(fn: (arg: RunInContextArgument) => R): R {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return;
-    return runInInjectionContext(fn, { injector: this });
+    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
+      return undefined as R;
+    }
+    return runInInjectionContext(fn, this.injectionCtx);
   }
 
   of(): Injector;
@@ -129,7 +129,9 @@ export class Injector<T = any> {
   of<R>(fn: (data: { injector: Injector }) => R): R;
   of<R>(input: ModuleMetadata | Array<ProviderType>, fn: (data: { injector: Injector }) => R): R;
   of<R>(inputOrFn?: ModuleMetadata | Array<ProviderType> | ((data: { injector: Injector }) => R), fn?: (data: { injector: Injector }) => R): R | Injector {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) return;
+    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
+      return undefined as R | Injector;
+    }
 
     const isFunction = typeof inputOrFn === 'function';
     const injector = new Injector(isFunction ? [] : inputOrFn, { exporting: false }, this);
@@ -141,12 +143,12 @@ export class Injector<T = any> {
       return wait(
         injector.init(),
         inj => waitCallback(
-          () => fn({ injector: inj }),
+          () => fn!({ injector: inj }),
           noopThen,
           noopCatch,
           () => inj.destroy(),
         ),
-      ) as R;
+      );
     }
     return injector;
   }

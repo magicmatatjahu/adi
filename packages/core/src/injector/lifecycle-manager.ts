@@ -76,18 +76,18 @@ export async function destroy(instances: ProviderInstance | Array<ProviderInstan
   }
   return destroyInstance(instances, ctx);
 }
-
+ 
 async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) {
   if (!instance || (instance.status & InstanceStatus.DESTROYED)) {
     return;
   }
 
-  const { scope: { kind, options }, definition, context } = instance;
-  const shouldDestroy = await kind.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
-
+  const { scope: { scope, options }, definition, context } = instance;
+  const shouldDestroy = await scope!.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
   if (!shouldDestroy) {
     return;
   }
+
   instance.status |= InstanceStatus.DESTROYED;
   definition.values.delete(context);
   
@@ -146,14 +146,15 @@ export async function destroyInjector(injector: Injector) {
 
   // get only self providers
   const providers = Array.from(injector.providers.values())
-    .map(r => r.self).filter(Boolean);
+    .map(r => r.self).filter(Boolean) as ProviderRecord[];
 
   injector.providers.clear();
   await waitSequence(providers, provider => destroyProvider(provider, { event: 'injector' }));
 
   // remove injector from parent imports
-  if (injector.parent) {
-    injector.parent.imports.delete(injector.input);
+  const parent = injector.parent;
+  if (parent) {
+    parent.imports.delete(injector.input);
   }
 
   // then destroy and clean all imported modules

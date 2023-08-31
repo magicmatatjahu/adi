@@ -1,11 +1,12 @@
 import { STATIC_CONTEXT } from '../constants';
 import { when } from '../constraints';
 import { wait } from '../utils';
+import { resolveScope } from '../scopes';
 
 import type { Context } from './context';
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeType } from '../types';
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeDefinition } from '../types';
 
 export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
   let provider = host.providers.get(token);
@@ -33,20 +34,29 @@ function createProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRec
 
 export function getOrCreateProviderInstance(session: Session) {
   const definition = session.context.definition!;
-  let scope = definition.scope;
-  if (session.inject.scope && scope.kind.canBeOverrided(session, scope.options)) {
-    scope = session.iOptions.scope;
-  }
+
+  let scopeDefinition = definition.scope;
+  const scope = wait(
+    resolveScope(scopeDefinition, session),
+    result => {
+      const customScope = session.inject.scope;
+      if (customScope && result.scope.canBeOverrided(session, result.options)) {
+        scopeDefinition = customScope;
+        return resolveScope(customScope, session);
+      }
+      return result;
+    }
+  )
 
   return wait(
-    scope.kind.getContext(session, scope.options),
-    ctx => getProviderInstance(session, ctx || STATIC_CONTEXT, scope)
+    wait(scope, result => result.scope.getContext(session, result.options)),
+    ctx => getProviderInstance(session, ctx || STATIC_CONTEXT, scopeDefinition)
   )
 }
 
-function getProviderInstance(session: Session, context: Context, scope: ScopeType): Session {
-  const definition = session.context.definition;
-  let instance = definition.values.get(context);
+function getProviderInstance(session: Session, context: Context, scope: ScopeDefinition): Session {
+  const definition = session.context.definition!;
+  let instance: ProviderInstance | undefined = definition.values.get(context);
   if (!instance) {
     instance = {
       definition,
@@ -81,7 +91,8 @@ export function filterDefinitions(provider: ProviderRecord, session: Session, fi
 
 function filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
   const context = session.context;
-  let defaultDefinition: ProviderDefinition;
+  let defaultDefinition: ProviderDefinition | undefined;
+
   for (let i = definitions.length - 1; i > -1; i--) {
     const definition = context.definition = definitions[i];
 
@@ -98,6 +109,7 @@ function filterDefinition(definitions: Array<ProviderDefinition>, session: Sessi
       return definition;
     }
   }
+
   return context.definition = defaultDefinition;
 }
 

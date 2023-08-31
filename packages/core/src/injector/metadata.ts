@@ -6,7 +6,7 @@ import { INITIALIZERS } from '../constants';
 import { when, whenExported, whenComponent } from '../constraints';
 import { ProviderKind, InjectionKind, InjectorStatus } from '../enums';
 import { isInjectionHook, UseExistingHook, UseExistingDefinitionHook } from '../hooks/private';
-import { DefaultScope } from '../scopes';
+import { DefaultScope, getScopeDefinition } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 import { cacheMetaKey, exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ITEM } from '../private';
 
@@ -15,9 +15,9 @@ import type { Session } from './session';
 import type { 
   ProviderToken, ProviderType, ProviderRecord, ProviderDefinition, ProviderAnnotations, ProviderHookAnnotations,
   InjectionHook, InjectionHookRecord, ConstraintDefinition,
-  InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, InjectableDefinition,
+  InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, ParsedInjectionItem, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
-  OnProviderAddPayload,
+  OnProviderAddPayload, ScopeType,
 } from '../types';
 import { InjectionToken } from '../tokens';
 
@@ -77,7 +77,8 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     injectionMetadata = { kind: InjectionKind.UNKNOWN, target: original };
     const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
-    definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope: options.scope || DefaultScope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
+    const scope = getScopeDefinition(options.scope || DefaultScope)
+    definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
   } else if (isInjectionToken(original)) {
     const injectableDefinition = ensureInjectable(original);
     if (!injectableDefinition) {
@@ -100,7 +101,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     token = original.provide!;
     let factory: FactoryDefinition,
       kind: ProviderKind,
-      scope = (original as ClassProvider).scope,
+      scope: ScopeType | undefined = (original as ClassProvider).scope,
       hooks = createArray(original.hooks),
       when = original.when;
 
@@ -179,7 +180,8 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       return { original, provider };
     }
 
-    definition = { provider, original, name: definitionName, kind, factory: factory!, scope: scope || DefaultScope, when, hooks, annotations, values: new Map(), default: when === undefined, meta: {} };
+    const scopeDef = getScopeDefinition(scope || DefaultScope)
+    definition = { provider, original, name: definitionName, kind, factory: factory!, scope: scopeDef, when, hooks, annotations, values: new Map(), default: when === undefined, meta: {} };
   }
 
   if (injectionMetadata) {
@@ -325,7 +327,7 @@ function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Arra
   return provideIn.some(scope => scopes.includes(scope));
 }
 
-export function parseInjectArguments<T>(token?: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks: Array<InjectionHook> = []): PlainInjectionItem<T> {
+export function parseInjectArguments<T>(token?: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks: Array<InjectionHook> = []): ParsedInjectionItem {
   if ((token as InjectionToken)[ADI_INJECTION_ITEM]) {
     return (token as InjectionToken)[ADI_INJECTION_ITEM]
   } else if (isInjectionHook(token)) {
@@ -346,7 +348,7 @@ export function parseInjectArguments<T>(token?: ProviderToken<T> | InjectionAnno
 export function parseInjectionItem<T>(item?: InjectionItem): PlainInjectionItem<T> {
   // hooks case
   if (isInjectionHook(item) || Array.isArray(item)) {
-    return createPlainInjectionItem(undefined, undefined, createArray(item));
+    return createPlainInjectionItem(undefined, {}, createArray(item));
   }
   // provide token case
   if (typeof item !== 'object' || isInjectionToken(item)) {
@@ -421,12 +423,12 @@ export function convertInjections(dependencies: Array<InjectionItem>, metadata: 
   return converted;
 }
 
-export function createPlainInjectionItem<T>(token?: ProviderToken<T>, annotations?: InjectionAnnotations, hooks?: Array<InjectionHook<unknown, unknown>>): PlainInjectionItem<T> {
+export function createPlainInjectionItem<T>(token?: ProviderToken<T>, annotations: InjectionAnnotations = {}, hooks: Array<InjectionHook<unknown, unknown>> = []): ParsedInjectionItem {
   return { token, hooks, annotations };
 }
 
-export function createInjectionArgument<T>(token?: ProviderToken<T>, annotations?: InjectionAnnotations, hooks?: Array<InjectionHook<unknown, unknown>>, metadata?: Partial<InjectionMetadata>): InjectionArgument<T> {
-  return { token, hooks, metadata: createInjectionMetadata(metadata, annotations) };
+export function createInjectionArgument<T>(token?: ProviderToken<T>, annotations: InjectionAnnotations = {}, hooks: Array<InjectionHook<unknown, unknown>> = [], metadata?: Partial<InjectionMetadata>): InjectionArgument<T> {
+  return { token, hooks, annotations, metadata: createInjectionMetadata(metadata, annotations) };
 }
 
 export function createInjectionMetadata<T>(metadata?: Partial<InjectionMetadata>, annotations: InjectionAnnotations = {}): InjectionMetadata {
@@ -551,6 +553,7 @@ function overridePropertiesAndMethodsInjections(
       target,
       static: isStatic,
     });
+
     getAllKeys(methods).forEach(method => {
       const descriptor = Object.getOwnPropertyDescriptor(descriptorTarget, method);
       injections.methods[method] = overrideArrayInjections(injections.methods[method] || [], methods[method], { ...metadata, target, key: method, descriptor });
@@ -559,8 +562,12 @@ function overridePropertiesAndMethodsInjections(
 }
 
 export function getHostInjector(session: Session): Injector | undefined {
-  if (session.parent) return session.parent.context.provider?.host;
-  if (session.metadata.kind === InjectionKind.STANDALONE) return session.context.injector;
+  if (session.parent) {
+    return session.parent.context.provider?.host;
+  }
+  if (session.metadata.kind === InjectionKind.INJECTOR) {
+    return session.context.injector;
+  }
   return;
 }
 

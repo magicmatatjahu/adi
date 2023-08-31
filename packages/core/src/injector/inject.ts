@@ -1,73 +1,52 @@
-import { parseInjectArguments } from './metadata';
+import { createInjectionMetadata } from './metadata';
 import { destroy } from './lifecycle-manager';
-import { inject as coreInject, getInstanceFromCache } from './resolver';
+import { inject as coreInject } from './resolver';
 import { InjectionKind } from '../enums';
-import { InstanceHook } from '../hooks';
+import { UseInstanceHook } from '../hooks/private';
 import { instancesToDestroyMetaKey } from '../private';
 import { wait, waitCallback, noopThen, noopCatch } from '../utils';
 
-import type { Injector } from './injector';
-import type { Session } from './session';
-import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionMetadata, InjectionHookResult } from '../types';
-
-export interface CurrentInjectionContext {
-  injector: Injector;
-  session?: Session;
-  metadata?: InjectionMetadata;
-}
+import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionHookResult, InjectionContext, ProviderInstance } from '../types';
 
 export interface RunInContextArgument {
   inject: typeof inject,
 }
 
-let currentContext: CurrentInjectionContext | undefined = undefined;
-export function setCurrentInjectionContext(ctx: CurrentInjectionContext | undefined): CurrentInjectionContext | undefined {
+let currentContext: InjectionContext | undefined = undefined;
+export function setCurrentInjectionContext(ctx: InjectionContext | undefined): InjectionContext | undefined {
   const previous = currentContext;
   currentContext = ctx;
   return previous;
 }
 
-function baseInject<T>(ctx: CurrentInjectionContext, token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): T | Promise<T> {
-  const { injector, session, metadata = {} } = ctx;
-
-  // only one argument
-  if (hooks === undefined) {
-    const cached = getInstanceFromCache(injector, token as ProviderToken);
-    if (cached !== undefined) {
-      return cached;
-    }
-  }
-  
-  const argument = parseInjectArguments(token as ProviderToken<T>, annotations, hooks as Array<InjectionHook>);
-  argument.metadata = { ...argument.metadata, ...metadata, annotations };
-
-  const instancesToDestroy = currentContext[instancesToDestroyMetaKey];
-  if (instancesToDestroy === undefined) {
-    return coreInject(injector, argument, session) as T;
+function optimizedInject<T = any>(ctx: InjectionContext, token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>): T | Promise<T> {
+  const instancesToDestroy = ctx[instancesToDestroyMetaKey];
+  if (!instancesToDestroy) {
+    return coreInject(ctx, token as any, annotations as any, ...hooks)
   }
 
-  argument.hooks = [InstanceHook, ...argument.hooks];
+  hooks.push(UseInstanceHook)
   return wait(
-    coreInject(injector, argument, session),
-    ({ result, instance }: InjectionHookResult<typeof InstanceHook>) => {
+    coreInject(ctx, token as any, annotations as any, ...hooks),
+    ({ result, instance }: { result: any, instance: ProviderInstance }) => {
       instancesToDestroy.push(instance)
       return result;
     }
-  ) as T;
+  )
 }
 
-export function inject<T = any>(token: ProviderToken<T>): ParameterDecorator | PropertyDecorator;
-export function inject<T = any>(annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
-export function inject<T = any>(...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
-export function inject<T = any>(token: ProviderToken<T>, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function inject<T = any>(annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
+export function inject<T = any>(token: ProviderToken<T>): T | Promise<T>;
+export function inject<T = any>(annotations: InjectionAnnotations): T | Promise<T>;
+export function inject<T = any>(...hooks: Array<InjectionHook>): T | Promise<T>;
+export function inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations): T | Promise<T>;
+export function inject<T = any>(token: ProviderToken<T>, ...hooks: Array<InjectionHook>): T | Promise<T>;
+export function inject<T = any>(annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): T | Promise<T>;
+export function inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): T | Promise<T>;
 export function inject<T = any>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>): T | Promise<T> {
   if (currentContext === undefined) {
     throw new Error('inject() must be called from an injection context such as a constructor, a factory function or field initializer.');
   }
-  return baseInject(currentContext, token, annotations, hooks) as T;
+  return optimizedInject(currentContext, token, annotations, ...hooks);
 }
 
 export function injectMethod<T, F extends (...args: any) => any>(instance: T, method: F): F {
@@ -78,42 +57,46 @@ export function injectMethod<T, F extends (...args: any) => any>(instance: T, me
   const { injector, session } = currentContext;
   const target = (instance as any).constructor;
   const descriptor = Object.getOwnPropertyDescriptor((target as any).prototype, method.name);
-  const methodCtx = { 
+  const methodCtx: InjectionContext = { 
     injector,
     session,
-    metadata: {
+    metadata: createInjectionMetadata({
       kind: InjectionKind.METHOD,
       target,
       descriptor,
-    }
+    }),
   };
 
   return function(...args: any[]) {
-    const ctxInstances: any[] = [];
-    const ctx = { ...methodCtx, [instancesToDestroyMetaKey]: ctxInstances }
+    const toDestroy: any[] = [];
+    const ctx: InjectionContext = { ...methodCtx, [instancesToDestroyMetaKey]: toDestroy }
+    
     const previosuContext = setCurrentInjectionContext(ctx);
-    try {
-      return waitCallback(
-        () => method.apply(instance, args),
-        noopThen,
-        noopCatch,
-        () => destroy(ctxInstances),
-      )
-    } finally {
-      setCurrentInjectionContext(previosuContext)
-    }
+    return waitCallback(
+      () => method.apply(instance, args),
+      noopThen,
+      noopCatch,
+      () => finallyOperation(toDestroy, previosuContext),
+    );
   } as F
 }
 
-export function runInInjectionContext<R>(fn: (arg: RunInContextArgument) => R, ctx: CurrentInjectionContext): R {
-  function ctxInject<T>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations) {
-    return baseInject(ctx, token, hooks, annotations);
+export function runInInjectionContext<R>(fn: (arg: RunInContextArgument) => R, ctx: InjectionContext): R {
+  function ctxInject<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>) {
+    return optimizedInject(ctx, token, annotations, ...hooks);
   };
 
+  const toDestroy = ctx[instancesToDestroyMetaKey] = ctx[instancesToDestroyMetaKey] || []
   const previosuContext = setCurrentInjectionContext(ctx);
-  try {
-    return fn({ inject: ctxInject });
-  } finally {
-    setCurrentInjectionContext(previosuContext);
-  }
+  return waitCallback(
+    () => fn({ inject: ctxInject }),
+    noopThen,
+    noopCatch,
+    () => finallyOperation(toDestroy, previosuContext),
+  )
+}
+
+function finallyOperation(instances: ProviderInstance[], previosuContext: InjectionContext | undefined) {
+  destroy(instances);
+  setCurrentInjectionContext(previosuContext)
 }

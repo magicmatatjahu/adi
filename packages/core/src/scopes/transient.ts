@@ -1,9 +1,10 @@
-import { Scope, createScope } from "./scope";
+import { createScope } from "./factory";
+import { Scope } from "./scope";
 import { Context } from "../injector";
 import { InjectionKind } from "../enums";
 
 import type { Session } from "../injector";
-import type { ProviderInstance, InjectionMetadata, DestroyContext } from "../interfaces";
+import type { ProviderInstance, InjectionMetadata, DestroyContext } from "../types";
 
 export interface TransientScopeOptions {
   reuseContext?: boolean;
@@ -20,10 +21,10 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   override getContext(session: Session, options: TransientScopeOptions): Context {
     // TODO: Handle cicular references between providers with transient scope 
 
-    let context = options.reuseContext && session.iOptions.context;
+    let context = options.reuseContext && session.inject.context;
     if (!context) {
       context = new Context();
-      this.contexts.set(context, session.iMetadata);
+      this.contexts.set(context, session.metadata);
       session.setFlag('side-effect');
     }
     return context;
@@ -39,7 +40,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
     }
 
     // with no parents
-    if (noParents || instance.session.iMetadata.kind === InjectionKind.METHOD) {
+    if (noParents || instance.session.metadata.kind === InjectionKind.METHOD) {
       this.contexts.delete(context);
       return true;
     }
@@ -48,7 +49,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   };
 
   override canBeOverrided(_: Session, options: TransientScopeOptions): boolean {
-    return options.canBeOverrided;
+    return options.canBeOverrided as boolean;
   }
 }
 

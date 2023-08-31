@@ -1,11 +1,5 @@
 import type { Context, Session } from '../injector';
-import type { ProviderInstance, DestroyContext } from '../interfaces';
-
-export interface ScopeInstance<O> {
-  (options: O): ScopeInstance<O>;
-  kind: Scope<O>;
-  options: O;
-}
+import type { ScopeInstance, ProviderInstance, DestroyContext } from '../types';
 
 export abstract class Scope<O> {
   public abstract get name(): string;
@@ -27,13 +21,4 @@ export abstract class Scope<O> {
   ): boolean {
     return true;
   }
-}
-
-export function createScope<O>(scope: Scope<O>, defaultOptions: O): ScopeInstance<O> {
-  function scopeType(options: O): ScopeInstance<O> {
-    return createScope(scope, { ...defaultOptions, ...options, });
-  };
-  (scopeType as ScopeInstance<O>).kind = scope;
-  (scopeType as ScopeInstance<O>).options = defaultOptions;
-  return scopeType as ScopeInstance<O>;
 }

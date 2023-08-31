@@ -5,7 +5,7 @@ import { ADI_HOOK_DEF } from '../private';
 import { resolveProvider } from '../injector/resolver';
 
 import type { Session } from '../injector/session';
-import type { ProviderToken, ProviderRecord, ProviderDefinition, InjectionHook, InjectionHookContext, NextInjectionHook, InjectionHookResult } from '../types';
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, InjectionHook, InjectionHookContext, NextInjectionHook, InjectionHookResult } from '../types';
 
 export function isInjectionHook<T = any, R = any>(hooks: unknown): hooks is InjectionHook<T, R> {
   if (!hooks) return false;
@@ -58,11 +58,22 @@ export const UseExistingDefinitionHook = createHook((definition: ProviderDefinit
   }
 }, { name: 'adi:hook:use-existing-definition' });
 
-export const WithSessionHook = createHook(() => {
+export const UseSessionHook = createHook(() => {
   return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<{ session: Session, result: ResultType }> => {
     return wait(next(session), result => ({ 
       session, 
       result 
+    }));
+  }
+}, { name: 'adi:hook:session' })();
+
+export const UseInstanceHook = createHook(() => {
+  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<{ session: Session, instance: ProviderInstance, sideEffect: boolean, result: ResultType }> => {
+    return wait(next(session), result => ({ 
+      session,
+      instance: session.context.instance!,
+      sideEffect: session.hasFlag('side-effect'),
+      result,
     }));
   }
 }, { name: 'adi:hook:session' })();

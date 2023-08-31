@@ -5,7 +5,7 @@ import type { InjectionHook } from './hook';
 import type { InjectionArgument, InjectionArguments } from './injection';
 import type { ProviderToken } from './provider-token';
 import type { ProviderType, ConstraintDefinition, ProviderAnnotations, ProviderDefinitionAnnotations, ProviderHookAnnotations } from './provider';
-import type { ScopeType } from './scope';
+import type { ScopeDefinition, ScopeType } from './scope';
 import type { ClassType } from './types';
 import type { ProviderKind, InstanceStatus } from '../enums';
 
@@ -24,8 +24,8 @@ export interface ProviderDefinition<T = any> {
   original: ProviderType,
   name: string | symbol | object | undefined;
   kind: ProviderKind;
-  factory: FactoryDefinition,
-  scope: ScopeType;
+  factory: FactoryDefinition;
+  scope: ScopeDefinition;
   when: ConstraintDefinition | undefined;
   hooks: Array<InjectionHook<any, any>>;
   annotations: ProviderDefinitionAnnotations;
@@ -39,7 +39,7 @@ export interface ProviderInstance<T = any> {
   context: Context,
   value: T;
   status: InstanceStatus;
-  scope: ScopeType;
+  scope: ScopeDefinition;
   session: Session;
   parents?: Set<ProviderInstance>;
   links?: Set<ProviderInstance>;
