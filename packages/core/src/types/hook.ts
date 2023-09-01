@@ -5,6 +5,8 @@ import type { InjectionHookKind } from '../enums';
 
 export type InjectionHookResult<T> = T | Promise<T>
 
+export type InjectionHookReturnType<I> = I extends InjectionHook<infer T, infer R> ? R : never;
+
 export type NextInjectionHook<T = any> = (session: Session) => InjectionHookResult<T>;
 
 export interface InjectionHookContext {

@@ -11,6 +11,7 @@ export class InjectionToken<T = any> {
     if (options.inject) {
       this[ADI_INJECTION_ITEM] = parseInjectionItem(options.inject);
     }
+    
     this[ADI_INJECTABLE_DEF] = {
       token: this,
       init: true,

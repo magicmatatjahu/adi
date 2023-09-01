@@ -1,6 +1,6 @@
 import { ADI_MODULE_DEF } from '../private';
 
-import type { ModuleMetadata } from "../interfaces";
+import type { ModuleMetadata } from "../types";
 
 export class ModuleToken {
   constructor(

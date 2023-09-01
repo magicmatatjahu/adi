@@ -2,7 +2,6 @@ import type { InjectionToken } from '../tokens/injection.token'
 import type { ClassType, AbstractClassType } from './types'
 
 export interface ProviderTokenRegistry {
-  lol: string;
   [token: string | symbol]: any;
 }
 

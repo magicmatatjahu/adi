@@ -46,14 +46,14 @@ export interface ExtendedModule<T = any> extends ModuleMetadata {
 //   import?: Array<ProviderToken<any> | ExportedProvider<any>> | '*';
 // }
 
-export interface ExportedProvider<T> {
+export interface ExportedProvider<T = any> {
   export: ProviderToken<T>;
   names: Array<string | symbol | object>;
 }
 
 export interface ExportedModule {
   from: ClassType | ModuleToken | ForwardReference<ClassType>;
-  export?: Array<ProviderToken<any> | ExportedProvider<any>> | '*';
+  export: Array<ProviderToken<any> | ExportedProvider<any>> | '*';
 }
 
 export interface ModuleAnnotations {

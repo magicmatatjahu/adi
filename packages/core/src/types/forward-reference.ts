@@ -1,4 +1,4 @@
-export interface ForwardReference<T> {
+export interface ForwardReference<T = any> {
   ref: () => T;
   _$ref: Function;
 };

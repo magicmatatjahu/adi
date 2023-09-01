@@ -16,7 +16,7 @@ const defaultOptions: AllHookOptions = {
   imported: true,
 }
 
-function customFilterDefinitions(provider: { self: ProviderRecord | null, imported?: Array<ProviderRecord> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
+function customFilterDefinitions(provider: { self?: ProviderRecord | null, imported?: Array<ProviderRecord> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
   if (options.imported && provider.imported) {
     const definitions: Array<ProviderDefinition> = [];
     [provider.self, ...provider.imported].forEach(provider => definitions.push(...filterDefinitions(provider, session, options.filter)));
@@ -50,12 +50,13 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
       const provider = context.injector.providers.get(inject.token!);
       const definitions = customFilterDefinitions(provider, forkedSession, options);
 
-      const values: Array<any> = [];
+      const values: any[] = [];
       definitions.forEach(definition => {
         const instanceSession = session.fork();
         instanceSession.context.provider = (instanceSession.context.definition = definition).provider;
         values.push(next(instanceSession));
       })
+      
       return waitAll(values);
     },
   );

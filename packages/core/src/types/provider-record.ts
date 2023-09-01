@@ -12,7 +12,7 @@ import type { ProviderKind, InstanceStatus } from '../enums';
 export interface ProviderRecord<T = any> {
   token: ProviderToken<T>;
   host: Injector;
-  when?: ConstraintDefinition;
+  when: ConstraintDefinition;
   hooks: Array<InjectionHookRecord>;
   defs: ProviderDefinition[];
   annotations: ProviderAnnotations;

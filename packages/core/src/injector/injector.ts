@@ -2,7 +2,7 @@ import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
 import { inject } from './resolver';
 import { createInjectionMetadata, processProviders } from './metadata';
-import { initModule, importModule, retrieveExtendedModule } from './module';
+import { initModule, importModule, retrieveDeepExtendedModule } from './module';
 import { ADI } from '../adi';
 import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectionKind, InjectorStatus } from '../enums';
@@ -31,7 +31,7 @@ export class Injector<T = any> {
 
   public status: InjectorStatus = InjectorStatus.NONE;
   public readonly imports = new Map<InjectorInput<T>, Injector<T>>();
-  public readonly providers = new Map<ProviderToken<any>, { self: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
+  public readonly providers = new Map<ProviderToken<any>, { self?: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
   public readonly hooks: Array<InjectionHookRecord> = [];
   public readonly meta: Record<string | symbol, any> = {
     [cacheMetaKey]: new Map<any, any>(),
@@ -61,7 +61,7 @@ export class Injector<T = any> {
     } else if (Array.isArray(input)) { // array of providers
       providers.push({ provide: MODULE_REF, useValue: input }, ...input);
     } else if (isExtendedModule(input)) { // object module
-      const deepModule = retrieveExtendedModule(input);
+      const deepModule = retrieveDeepExtendedModule(input);
       if (typeof deepModule === 'function' && isModuleToken(deepModule)) {
         providers.push({ provide: MODULE_REF, useValue: deepModule });
       } else {

@@ -95,16 +95,16 @@ export function waitAll<T, R, C>(
 }
 
 export function waitSequence<T, D, R>(
-  data: T[],
+  data: T[] | undefined,
   action: (data: T, index: number, array: T[]) => D | Promise<D>,
 ): D | Promise<D>;
 export function waitSequence<T, D, R>(
-  data: T[],
+  data: T[] | undefined,
   action: (data: T, index: number, array: T[]) => D | Promise<D>,
   thenAction: (value: Array<D>) => R | Promise<R>,
 ): R | Promise<R>;
 export function waitSequence<T, D, R, C>(
-  data: T[],
+  data: T[] | undefined,
   action: (data: T, index: number, array: T[]) => D | Promise<D>,
   thenAction: (value: Array<D>) => R | Promise<R>,
   catchAction: (err: unknown) => C | Promise<C> | never,
@@ -116,10 +116,10 @@ export function waitSequence<T, D, R, C>(
   catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
 ): R | Promise<R> | C | Promise<C> | never {
   if (!data.length) return thenAction([]);
-  return _waitSequence(data, action, thenAction, catchAction, [], -1);
+  return __waitSequence(data, action, thenAction, catchAction, [], -1);
 }
 
-function _waitSequence<T, D, R, C>(
+function __waitSequence<T, D, R, C>(
   data: T[],
   action: (data: T, index: number, array: T[]) => D | Promise<D>,
   thenAction: (value: Array<D>) => R | Promise<R>,
@@ -130,7 +130,7 @@ function _waitSequence<T, D, R, C>(
   if (++idx === data.length) return thenAction(resolvedData);
   return wait(
     action(data[idx], idx, data),
-    result => (resolvedData.push(result), _waitSequence(data, action, thenAction, catchAction, resolvedData, idx)),
+    result => (resolvedData.push(result), __waitSequence(data, action, thenAction, catchAction, resolvedData, idx)),
     catchAction,
   )
 }

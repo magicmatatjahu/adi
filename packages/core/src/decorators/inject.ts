@@ -5,14 +5,14 @@ import { getDecoratorContext, Reflection } from '../utils';
 
 import type { ProviderToken, InjectionHook, InjectionAnnotations, InjectionArguments, InjectionArgument, ClassType, AbstractClassType, InjectionMetadata, DecoratorContext, ParsedInjectionItem } from '../types';
 
-export function Inject<T = any>(token: ProviderToken<T>): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(token: ProviderToken<T>, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(token: ProviderToken<T>, annotations: InjectionAnnotations, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator;
-export function Inject<T = any>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>): ParameterDecorator | PropertyDecorator {
+export function Inject<T = any>(token?: ProviderToken<T>);
+export function Inject<T = any>(annotations?: InjectionAnnotations);
+export function Inject<T = any>(...hooks: Array<InjectionHook>);
+export function Inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations);
+export function Inject<T = any>(token?: ProviderToken<T>, ...hooks: Array<InjectionHook>);
+export function Inject<T = any>(annotations?: InjectionAnnotations, ...hooks: Array<InjectionHook>);
+export function Inject<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations, ...hooks: Array<InjectionHook>);
+export function Inject<T = any>(token?: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>) {
   const injectArgument = parseInjectArguments(token, annotations, hooks);
   return function(target: Object, key: string | symbol, indexOrDescriptor?: number | PropertyDescriptor) {
     const ctx = getDecoratorContext(target, key, indexOrDescriptor);

@@ -4,7 +4,7 @@ import { compareOrder, convertInjection, convertInjections, filterHooks, getTree
 import { filterDefinitions, getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
 import { InjectionKind, InstanceStatus, InjectionHookKind, InjectorStatus } from '../enums';
-import { s, runInjectioHooksWithProviders, InstanceHook } from '../hooks/private';
+import { runInjectioHooks, runInjectioHooksWithProviders, UseInstanceHook } from '../hooks/private';
 import { cacheMetaKey, circularSessionsMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 import { NoProviderError, CircularReferenceError } from "../problem";
 import { getAllKeys, isClassProvider, wait, waitAll, waitCallback, noopThen, noopCatch, resolvePromise } from '../utils';
@@ -15,7 +15,7 @@ import type {
   ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, 
   Provide as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, 
   InjectionArgument, InjectableDefinition, InjectionItem, 
-  ProviderAnnotations, InjectionAnnotations, InjectionMetadata, InjectionHookContext, InjectionHookResult, InjectionContext,
+  ProviderAnnotations, InjectionAnnotations, InjectionMetadata, InjectionHookContext, InjectionHookReturnType, InjectionContext,
 } from '../types'
 
 const injectorHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECTOR };
@@ -79,12 +79,12 @@ export function optimizedInject<T>(injector: Injector, argument: InjectionArgume
 export function resolve<T>(injector: Injector, session: Session, hooks: Array<InjectionHook> = []): T | Promise<T> {
   if (injector.status & InjectorStatus.HAS_HOOKS) {
     const filteredHooks = filterHooks(injector.hooks, session);
-    return runHooks(filteredHooks, session, injectorHookCtx, (s) => runHooks(hooks, s, injectHookCtx, resolveProvider));
+    return runInjectioHooks(filteredHooks, session, injectorHookCtx, (s: Session) => runInjectioHooks(hooks, s, injectHookCtx, resolveProvider));
   }
   if (hooks.length === 0) {
     return resolveProvider(session);
   }
-  return runHooks(hooks, session, injectHookCtx, resolveProvider);
+  return runInjectioHooks(hooks, session, injectHookCtx, resolveProvider);
 }
 
 export function resolveProvider<T>(session: Session): T | Promise<T> {
@@ -92,10 +92,10 @@ export function resolveProvider<T>(session: Session): T | Promise<T> {
   if (context.provider !== undefined) {
     const provider = context.provider;
     context.injector = provider.host;
-    return runHooks(filterHooks(provider.hooks, session), session, providerHookCtx, resolveDefinition);
+    return runInjectioHooks(filterHooks(provider.hooks, session), session, providerHookCtx, resolveDefinition);
   }
 
-  const token = session.inject.token;
+  const token = session.inject.token as ProviderToken;
   const injector = context.injector;
   let maybeProviders = injector.providers.get(token);
   if (maybeProviders === undefined) {
@@ -117,7 +117,7 @@ export function resolveProvider<T>(session: Session): T | Promise<T> {
     if (self) {
       session.context.provider = self;
       if (self.when(session)) {
-        return runHooks(filterHooks(self.hooks, session), session, providerHookCtx, resolveDefinition);
+        return runInjectioHooks(filterHooks(self.hooks, session), session, providerHookCtx, resolveDefinition);
       }
     }
     return resolveFromParent(session);
@@ -145,7 +145,7 @@ function runProvidersHooks(session: Session, providers: Array<ProviderRecord>) {
   }
 
   hooks.sort(compareOrder);
-  return runHooksWithProviders(hooks, session, (s: Session) => findDefinition(s, providers));
+  return runInjectioHooksWithProviders(hooks, session, (s: Session) => findDefinition(s, providers));
 }
 
 function findDefinition(session: Session, providers: Array<ProviderRecord>) {
@@ -187,7 +187,7 @@ export function resolveDefinition<T>(session: Session): T | Promise<T> {
   let { definition } = context;
   if (definition) {
     context.injector = (context.provider = definition.provider).host;
-    return runHooks(definition.hooks, session, definitionHookCtx, resolveInstance);
+    return runInjectioHooks(definition.hooks, session, definitionHookCtx, resolveInstance);
   }
 
   definition = context.definition = filterDefinitions(context.provider!, session);
@@ -196,7 +196,7 @@ export function resolveDefinition<T>(session: Session): T | Promise<T> {
   }
 
   context.injector = (context.provider = definition.provider).host;
-  return runHooks(definition.hooks, session, definitionHookCtx, resolveInstance);
+  return runInjectioHooks(definition.hooks, session, definitionHookCtx, resolveInstance);
 }
 
 export function resolveInstance<T>(session: Session): T | Promise<T> | undefined {
@@ -406,7 +406,7 @@ function injectMethods<T>(injector: Injector, instance: T, methods: Record<strin
 }
 
 export function injectMethod<T>(injector: Injector, instance: T, originalMethod: Function, injections: Array<InjectionArgument | undefined>, session: Session): Function {
-  injections = injections.map(injection => injection && ({ ...injection, hooks: [InstanceHook, ...injection.hooks] }));
+  injections = injections.map(injection => injection && ({ ...injection, hooks: [...injection.hooks, UseInstanceHook] }));
   const injectionsLength = injections.length;
 
   const cache: any[] = [];
@@ -422,9 +422,9 @@ export function injectMethod<T>(injector: Injector, instance: T, originalMethod:
         }
 
         actions.push(wait(
-          optimizedInject(injector, dependency, session),
-          ({ sideEffects, instance, result }: InjectionHookResult<typeof InstanceHook>) => {
-            if (!sideEffects) {
+          optimizedInject<InjectionHookReturnType<typeof UseInstanceHook>>(injector, dependency, session),
+          ({ sideEffect, instance, result }) => {
+            if (sideEffect === false) {
               cache[i] = result;
             }
             instances.push(instance);
