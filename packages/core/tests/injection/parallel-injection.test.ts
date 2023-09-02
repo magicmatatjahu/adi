@@ -41,7 +41,8 @@ describe('parallel injection', function() {
         provide: 'useFactory',
         useFactory: async () => { return Object.create(TestService.prototype) },
       }
-    ]).init() as Injector;
+    ])
+    
     const service = await injector.get(Service);
 
     expect(service).toBeInstanceOf(Service);

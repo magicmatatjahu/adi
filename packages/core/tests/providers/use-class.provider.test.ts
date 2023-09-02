@@ -10,7 +10,7 @@ describe('useClass', function() {
         provide: 'useClass',
         useClass: Service,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = injector.get<Service>('useClass');
     expect(resolvedToken).toBeInstanceOf(Service);
@@ -36,7 +36,7 @@ describe('useClass', function() {
         provide: 'useClass',
         useClass: Service,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = injector.get<Service>('useClass') as Service;
     expect(resolvedToken.service).toBeInstanceOf(HelperService);
@@ -55,7 +55,7 @@ describe('useClass', function() {
         useClass: Service,
         scope: TransientScope,
       },
-    ]).init() as Injector;
+    ])
 
     const service1 = injector.get<Service>('useClass');
     const service2 = injector.get<Service>('useClass');

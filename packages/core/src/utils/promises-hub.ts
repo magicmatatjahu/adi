@@ -2,24 +2,29 @@ type PromisesHubItem = { promise: Promise<any>, resolve: (...args: any[]) => any
 
 const hub: WeakMap<object, PromisesHubItem> = new WeakMap();
 
-export function getOrCreatePromise(value: object) {
-  let item = hub.get(value);
-  if (item) {
-    return item;
-  }
+export const PromisesHub = {
+  get(key: any): Promise<any> | undefined {
+    return hub.get(key)?.promise;
+  },
+  create(key: any): Promise<any> {
+    const item = PromisesHub.get(key)
+    if (item) {
+      return item;
+    }
+
+    const promise = { promise: undefined, resolve: undefined } as unknown as PromisesHubItem;
+    promise.promise = new Promise(resolve => {
+      promise.resolve = resolve;
+    });
   
-  item = { promise: undefined, resolve: undefined } as unknown as PromisesHubItem;
-  item.promise = new Promise(resolve => {
-    item!.resolve = resolve;
-  });
-
-  hub.set(value, item);
-  return item.promise;
-}
-
-export function resolvePromise(value: object, result: any) {
-  const promise = hub.get(value);
-  if (promise) {
-    promise.resolve(result);
+    hub.set(key, promise);
+    return promise.promise;
+  },
+  resolve(key: any, result: any): void {
+    const promise = hub.get(key);
+    if (promise) {
+      hub.delete(key);
+      promise.resolve(result);
+    }
   }
 }

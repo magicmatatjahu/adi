@@ -17,9 +17,9 @@ describe('standalone injection', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
   });
@@ -36,9 +36,9 @@ describe('standalone injection', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
   });
@@ -61,9 +61,9 @@ describe('standalone injection', function () {
           return inject(Service);
         }
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get('useFactory') as Service;
+    const service = injector.getSync<Service>('useFactory');
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
   });
@@ -95,9 +95,9 @@ describe('standalone injection', function () {
           return inject(Service);
         }
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get('useFactory') as Service;
+    const service = injector.getSync<Service>('useFactory');
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
   });
@@ -110,7 +110,7 @@ describe('standalone injection', function () {
 
     @Injectable()
     class Service {
-      testServiceNotExist: TestService | string = inject(TestService, Optional()) || 'fallback';
+      testServiceNotExist: TestService | 'fallback' = inject(TestService, Optional()) || 'fallback';
       testServiceExist: TestServiceExist = inject(TestServiceExist);
     }
 
@@ -123,9 +123,9 @@ describe('standalone injection', function () {
           return inject(Service);
         }
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get('useFactory') as Service;
+    const service = injector.getSync<Service>('useFactory');
     expect(service).toBeInstanceOf(Service);
     expect(service.testServiceExist).toBeInstanceOf(TestServiceExist);
     expect(service.testServiceNotExist).toEqual('fallback');
@@ -155,9 +155,9 @@ describe('standalone injection', function () {
           return inject(Service);
         }
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get('useFactory') as Service;
+    const service = injector.getSync<Service>('useFactory');
     expect(service).toBeInstanceOf(Service);
     expect(service.method()).toBeInstanceOf(TestService);
   });

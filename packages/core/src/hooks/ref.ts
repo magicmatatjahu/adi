@@ -1,18 +1,21 @@
-import { createHook } from "./create-hook";
+import { Hook } from "./hook";
 import { wait } from '../utils';
 
 import type { Session } from '../injector/session';
 import type { InjectionHookResult, NextInjectionHook, ProviderToken } from '../types';
 
-export const Ref = createHook(<RT>(ref: () => ProviderToken<RT> | Promise<ProviderToken<RT>>) => {
-  let token: ProviderToken<RT> | undefined;
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<RT> => {
-    return wait(
-      token === undefined ? ref() : token,
-      result => {
-        session.inject.token = token = result;
-        return next(session) as RT;
-      }
-    );
-  }
-}, { name: 'adi:hook:ref' });
+export function Ref<NextValue, T>(ref: () => ProviderToken<T> | Promise<ProviderToken<T>>) {
+  let token: ProviderToken<T> | undefined;
+  return Hook(
+    function refHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<T> {
+      return wait(
+        token === undefined ? ref() : token,
+        result => {
+          session.inject.token = token = result;
+          return next(session) as T;
+        }
+      );
+    },
+    { name: 'adi:ref' }
+  )
+}

@@ -1,7 +1,8 @@
-import { createHook } from "./create-hook";
+import { ADI_HOOK_DEF } from "../private";
 
-import type { InjectionHookFunction } from '../types';
+import type { InjectionHook, InjectionHookFunction, InjectionHookOptions } from '../types';
 
-export const Hook = createHook(<T, R>(hook: InjectionHookFunction<T, R>) => {
-  return hook;
-}, { name: 'adi:hook:hook' });
+export function Hook<T, R>(hookFunction: InjectionHookFunction<T, R>, options?: InjectionHookOptions): InjectionHook<T, R> {
+  hookFunction[ADI_HOOK_DEF] = { options };
+  return hookFunction as InjectionHook<T, R>;
+}

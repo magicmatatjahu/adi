@@ -1,4 +1,4 @@
-import { createHook } from './create-hook';
+import { Hook } from './hook';
 import { InjectionHookKind } from '../enums';
 import { wait } from '../utils';
 import { ADI_HOOK_DEF } from '../private';
@@ -24,7 +24,7 @@ function __runInjectioHooks(hooks: Array<InjectionHook>, session: Session, index
 export function runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord | null }>, session: Session, lastHook: NextInjectionHook) {
   const ctx: InjectionHookContext = { kind: InjectionHookKind.PROVIDER };
   const last: { hook: InjectionHook, provider: ProviderRecord | null } = { hook: lastHook as unknown as InjectionHook, provider: null }
-  return __runInjectioHooksWithProviders([...hooks], session, -1, ctx);
+  return __runInjectioHooksWithProviders([...hooks, last], session, -1, ctx);
 }
 
 function __runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord | null }>, session: Session, index: number, ctx: InjectionHookContext) {
@@ -33,47 +33,61 @@ function __runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, pro
   return hook(session, (s: Session) => __runInjectioHooksWithProviders(hooks, s, index, ctx), ctx);
 }
 
-export const UseExistingHook = createHook((token: ProviderToken) => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType> => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
+export function ExistingHook<NextValue, T>(token: ProviderToken<T>) {
+  return Hook(
+    function existingHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<T> {
+      if (session.hasFlag('dry-run')) {
+        return next(session) as T;
+      }
+  
+      const { context, inject } = session;
+      context.provider = context.definition = undefined;
+      inject.token = token;
+      return resolveProvider(session);
+    },
+    { name: 'adi:hook:existing' }
+  )
+}
 
-    const { context, inject } = session;
-    context.provider = context.definition = undefined;
-    inject.token = token;
-    return resolveProvider(session);
+export function AliasHook<NextValue, T>(definition: ProviderDefinition<T>) {
+  return Hook(
+    function aliasHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<T> {
+      if (session.hasFlag('dry-run')) {
+        return next(session) as T;
+      }
+  
+      const { context, inject } = session;
+      inject.token = (context.provider = (context.definition = definition).provider).token;
+      return resolveProvider(session);
+    },
+    { name: 'adi:hook:alias' }
+  )
+}
+
+export type ResultHookType<T = any> = {
+  session: Session,
+  instance: ProviderInstance<T>,
+  sideEffect: boolean,
+  result: T,
+}
+
+let cachedResultHook: any | undefined;
+export function ResultHook<NextValue>(): InjectionHook<NextValue, ResultHookType<NextValue>> {
+  if (cachedResultHook) {
+    return cachedResultHook;
   }
-}, { name: 'adi:hook:use-existing' });
 
-export const UseExistingDefinitionHook = createHook((definition: ProviderDefinition) => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType> => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    const { context, inject } = session;
-    inject.token = (context.provider = (context.definition = definition).provider).token;
-    return resolveProvider(session);
-  }
-}, { name: 'adi:hook:use-existing-definition' });
-
-export const UseSessionHook = createHook(() => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<{ session: Session, result: ResultType }> => {
-    return wait(next(session), result => ({ 
-      session, 
-      result 
-    }));
-  }
-}, { name: 'adi:hook:session' })();
-
-export const UseInstanceHook = createHook(() => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<{ session: Session, instance: ProviderInstance, sideEffect: boolean, result: ResultType }> => {
-    return wait(next(session), result => ({ 
-      session,
-      instance: session.context.instance!,
-      sideEffect: session.hasFlag('side-effect'),
-      result,
-    }));
-  }
-}, { name: 'adi:hook:session' })();
+  return cachedResultHook = Hook(
+    function resultHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<ResultHookType<NextValue>> {
+      return wait(
+        next(session), result => ({ 
+          session,
+          instance: session.context.instance!,
+          sideEffect: session.hasFlag('side-effect'),
+          result,
+        })
+      );
+    },
+    { name: 'adi:hook:use-alias-definition' }
+  )
+}

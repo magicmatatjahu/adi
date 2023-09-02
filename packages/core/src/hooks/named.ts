@@ -1,11 +1,14 @@
-import { createHook } from "./create-hook";
+import { Hook } from "./hook";
 
 import type { Session } from '../injector/session';
 import type { InjectionHookResult, NextInjectionHook } from '../types';
 
-export const Named = createHook((name: string | symbol | object) => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<ResultType> => {
-    session.inject.annotations.named = name;
-    return next(session);
-  }
-}, { name: 'adi:hook:named' });
+export function Named<NextValue>(name: string | symbol | object) {
+  return Hook(
+    function namedHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
+      session.inject.annotations.named = name;
+      return next(session);
+    },
+    { name: 'adi:named' }
+  )
+}

@@ -15,7 +15,8 @@ const sessionFlags = {
 type FlagsType = keyof typeof sessionFlags;
 
 export class Session<T = any> {
-  static create<T>(token: ProviderToken<T> | undefined, metadata: InjectionMetadata | undefined, injector: Injector, parentSession?: Session): Session {
+  // TODO: Fix type for metadata argument
+  static create<T>(token: ProviderToken<T> | undefined, metadata: InjectionMetadata | undefined = {} as any, injector: Injector, parentSession?: Session): Session {
     const injections: SessionInjection = {
       inject: { token, context: undefined, scope: undefined, annotations: {} },
       metadata,

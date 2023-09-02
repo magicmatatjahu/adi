@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Module, All, Named, when, createHook } from "../../src";
+import { Injector, Injectable, Inject, Module, All, Named, when, Hook } from "../../src";
 
 describe('All injection hook', function () {
   test('should inject multi providers - provider based hook', function () {
@@ -16,7 +16,7 @@ describe('All injection hook', function () {
       Service,
       {
         provide: MultiProvider,
-        hooks: [All()],
+        hooks: All(),
       },
       {
         provide: MultiProvider,
@@ -30,9 +30,9 @@ describe('All injection hook', function () {
         provide: MultiProvider,
         useValue: 'multi-provider-3'
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -43,7 +43,7 @@ describe('All injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([All()]) readonly multi: MultiProvider,
+        @Inject(All()) readonly multi: MultiProvider,
       ) {}
     }
 
@@ -61,9 +61,9 @@ describe('All injection hook', function () {
         provide: MultiProvider,
         useValue: 'multi-provider-3'
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.multi).toEqual(['multi-provider-1', 'multi-provider-2', 'multi-provider-3']);
   });
 
@@ -74,7 +74,7 @@ describe('All injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Named('multi')]) readonly multi: MultiProvider,
+        @Inject(Named('multi')) readonly multi: MultiProvider,
       ) {}
     }
 
@@ -82,7 +82,7 @@ describe('All injection hook', function () {
       Service,
       {
         provide: MultiProvider,
-        hooks: [All()],
+        hooks: All(),
       },
       {
         provide: MultiProvider,
@@ -98,9 +98,9 @@ describe('All injection hook', function () {
         useValue: 'multi3',
         when: when.named('multi'),
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.multi).toEqual(['multi1', 'multi3']);
   });
 
@@ -108,10 +108,7 @@ describe('All injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [
-          All(),
-          Named('multi'),
-        ])
+        @Inject('token', All(), Named('multi'))
         readonly multi: Array<string>,
       ) {}
     }
@@ -136,9 +133,9 @@ describe('All injection hook', function () {
         provide: 'token',
         useValue: 'multi3',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.multi).toEqual(['multi1', 'multi2']);
   });
 
@@ -146,7 +143,7 @@ describe('All injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [All()]) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -180,9 +177,9 @@ describe('All injection hook', function () {
           order: 2,
         }
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.multi).toEqual(['multi3', 'multi4', 'multi1', 'multi2']);
   });
 
@@ -190,7 +187,7 @@ describe('All injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [All()]) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -214,7 +211,7 @@ describe('All injection hook', function () {
           return 'multi3';
         }
       }
-    ]).init() as Injector;
+    ])
 
     const service = await injector.get(Service);
     expect(service.multi).toEqual(['multi1', 'multi2', 'multi3']);
@@ -241,19 +238,19 @@ describe('All injection hook', function () {
       return (index && index == length) ? value : undefined;
     }
     
-    const Path = createHook((path: string) => {
+    function Path(path: string) {
       const props = path.split('.').filter(Boolean);
-      
-      return (session, next) => {    
+  
+      return Hook((session, next) => {    
         const value = next(session);
-        return getValue(value, props);
-      }
-    });
+        return getValue(value as any, props);
+      })
+    };
 
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [All()]) readonly multi: Array<string>,
+        @Inject('token', All()) readonly multi: Array<string>,
       ) {}
     }
 
@@ -266,7 +263,7 @@ describe('All injection hook', function () {
             b: 'multi1',
           },
         },
-        hooks: [Path('a.b')],
+        hooks: Path('a.b'),
       },
       {
         provide: 'token',
@@ -275,7 +272,7 @@ describe('All injection hook', function () {
             c: 'multi2',
           },
         },
-        hooks: [Path('b.c')],
+        hooks: Path('b.c'),
       },
       {
         provide: 'token',
@@ -284,11 +281,11 @@ describe('All injection hook', function () {
             d: 'multi3',
           },
         },
-        hooks: [Path('c.d')],
+        hooks: Path('c.d'),
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.multi.length).toEqual(3);
     expect(service.multi[0]).toEqual('multi1');
     expect(service.multi[1]).toEqual('multi2');
@@ -364,8 +361,8 @@ describe('All injection hook', function () {
     })
     class MainModule {}
 
-    const injector = Injector.create(MainModule).init() as Injector;
-    const service = injector.get(Service) as Service;
+    const injector = Injector.create(MainModule)
+    const service = injector.getSync(Service);
     expect(service.multi.length).toEqual(8);
     expect(service.multi).toEqual([
       'multi1',
@@ -383,10 +380,7 @@ describe('All injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [
-          All(),
-          Named('multi'),
-        ]) 
+        @Inject('token', All(), Named('multi')) 
         readonly multi: Array<string>,
       ) {}
     }
@@ -456,8 +450,8 @@ describe('All injection hook', function () {
     })
     class MainModule {}
 
-    const injector = Injector.create(MainModule).init() as Injector;
-    const service = injector.get(Service) as Service;
+    const injector = Injector.create(MainModule)
+    const service = injector.getSync(Service)
     expect(service.multi.length).toEqual(4);
     expect(service.multi).toEqual([
       'multi1',

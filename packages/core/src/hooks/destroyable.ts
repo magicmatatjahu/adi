@@ -1,4 +1,4 @@
-import { createHook } from "./create-hook";
+import { Hook } from "./hook";
 import { destroy } from "../injector";
 import { wait } from "../utils";
 
@@ -10,17 +10,20 @@ export type DestroyableType<T> = {
   destroy: () => Promise<void>;
 }
 
-export const Destroyable = createHook(() => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<DestroyableType<ResultType>> => {
-    return wait(
-      next(session),
-      value => {
-        session.setFlag('side-effect');
-        return {
-          value,
-          destroy: () => destroy(session.context.instance!, { event: 'manually' }),
+export function Destroyable<NextValue>() {
+  return Hook(
+    function destroyableHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<DestroyableType<NextValue>> {
+      return wait(
+        next(session),
+        value => {
+          session.setFlag('side-effect');
+          return {
+            value,
+            destroy: () => destroy(session.context.instance!, { event: 'manually' }),
+          }
         }
-      }
-    );
-  }
-}, { name: 'adi:hook:destroyable' });
+      );
+    },
+    { name: 'adi:destroyable' }
+  )
+}

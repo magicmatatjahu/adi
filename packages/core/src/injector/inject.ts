@@ -2,7 +2,7 @@ import { createInjectionMetadata } from './metadata';
 import { destroy } from './lifecycle-manager';
 import { inject as coreInject } from './resolver';
 import { InjectionKind } from '../enums';
-import { UseInstanceHook } from '../hooks/private';
+import { ResultHook } from '../hooks/private';
 import { instancesToDestroyMetaKey } from '../private';
 import { wait, waitCallback, noopThen, noopCatch } from '../utils';
 
@@ -25,10 +25,10 @@ function optimizedInject<T = any>(ctx: InjectionContext, token: ProviderToken<T>
     return coreInject(ctx, token as any, annotations as any, ...hooks)
   }
 
-  hooks.push(UseInstanceHook)
+  hooks.push(ResultHook())
   return wait(
     coreInject(ctx, token as any, annotations as any, ...hooks),
-    ({ result, instance }: { result: any, instance: ProviderInstance }) => {
+    ({ result, instance }) => {
       instancesToDestroy.push(instance)
       return result;
     }

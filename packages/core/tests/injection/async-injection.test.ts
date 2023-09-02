@@ -30,7 +30,7 @@ describe('async injection', function() {
         provide: 'value',
         useValue: 'test value',
       },
-    ]).init() as Injector;
+    ])
   
     const service = await injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -69,7 +69,7 @@ describe('async injection', function() {
         provide: 'value',
         useFactory: async () => 'test value',
       },
-    ]).init() as Injector;
+    ])
   
     const service = await injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -115,7 +115,7 @@ describe('async injection', function() {
         provide: 'value',
         useFactory: async () => 'test value',
       },
-    ]).init() as Injector;
+    ])
   
     const service = await injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -124,7 +124,7 @@ describe('async injection', function() {
     expect(service.testService.deepTestService.asyncProvider).toEqual('test value');
   });
 
-  test('should return this same value', async function() {
+  test('should always return this same value', async function() {
     class Service {}
 
     const injector = Injector.create([
@@ -134,7 +134,7 @@ describe('async injection', function() {
           return new Service();
         },
       },
-    ]).init() as Injector;
+    ])
   
     const service1 = injector.get(Service);
     const service2 = injector.get(Service);

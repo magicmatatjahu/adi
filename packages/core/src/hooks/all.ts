@@ -1,4 +1,4 @@
-import { createHook } from "./create-hook";
+import { Hook } from "./hook";
 import { compareOrder } from "../injector/metadata";
 import { filterDefinitions } from "../injector/provider";
 import { wait, waitAll } from "../utils";
@@ -19,14 +19,16 @@ const defaultOptions: AllHookOptions = {
 function customFilterDefinitions(provider: { self?: ProviderRecord | null, imported?: Array<ProviderRecord> }, session: Session, options: AllHookOptions): Array<ProviderDefinition> {
   if (options.imported && provider.imported) {
     const definitions: Array<ProviderDefinition> = [];
-    [provider.self, ...provider.imported].forEach(provider => definitions.push(...filterDefinitions(provider, session, options.filter)));
+    // TODO: Check typings provider in filterDefinitions function
+    [provider.self, ...provider.imported].forEach(provider => definitions.push(...filterDefinitions(provider as any, session, options.filter)));
     return definitions.sort(compareOrder);
   }
 
-  return filterDefinitions(provider.self, session, options.filter);
+  // TODO: Check typings for provider.self
+  return filterDefinitions(provider.self as any, session, options.filter);
 }
 
-function allHook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
+function hook(session: Session, next: NextInjectionHook, options: AllHookOptions) {
   if (session.hasFlag('dry-run')) {
     return next(session);
   }
@@ -48,7 +50,8 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
       // TODO: Fix retrieved provider from injector, we should operate on providers from imported injector, not from host injector
       const { context, inject } = forkedSession;
       const provider = context.injector.providers.get(inject.token!);
-      const definitions = customFilterDefinitions(provider, forkedSession, options);
+      // TODO: Check typing for provider
+      const definitions = customFilterDefinitions(provider as any, forkedSession, options);
 
       const values: any[] = [];
       definitions.forEach(definition => {
@@ -62,9 +65,12 @@ function allHook(session: Session, next: NextInjectionHook, options: AllHookOpti
   );
 }
 
-export const All = createHook((options: AllHookOptions = {}) => {
+export function All<NextValue>(options: AllHookOptions = {}) {
   options = { ...defaultOptions, ...options };
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<Array<ResultType>> => {
-    return allHook(session, next, options);
-  }
-}, { name: 'adi:hook:all' });
+  return Hook(
+    function allHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue[]> {
+      return hook(session, next, options);
+    },
+    { name: 'adi:all' }
+  )
+}

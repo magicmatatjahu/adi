@@ -5,7 +5,7 @@ describe('Ref injection hook', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject([Ref(() => ServiceB)]) readonly serviceB: any,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
     }
 
@@ -15,9 +15,9 @@ describe('Ref injection hook', function() {
     const injector = Injector.create([
       ServiceA,
       ServiceB,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
   });
@@ -26,30 +26,30 @@ describe('Ref injection hook', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject([Ref(() => ServiceB)]) readonly serviceB: any,
+        @Inject(Ref(() => ServiceB)) readonly serviceB: any,
       ) {}
     }
 
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject([Ref(() => ServiceA)]) readonly serviceA: any,
+        @Inject(Ref(() => ServiceA)) readonly serviceA: any,
       ) {}
     }
 
     const injector = Injector.create([
       ServiceA,
       ServiceB,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
     expect(service === service.serviceB.serviceA).toEqual(true);
   });
 
-  test('should handle dynamic import', async function () {
+  test('should handle dynamic import (chunks)', async function () {
     @Injectable()
     class Service {
       constructor(
@@ -59,7 +59,7 @@ describe('Ref injection hook', function() {
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = await injector.get(Service);
     expect(service.service.constructor.name).toEqual('ChunkService');
@@ -69,7 +69,7 @@ describe('Ref injection hook', function() {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject([Ref(async () => ServiceB)]) readonly serviceB: any,
+        @Inject(Ref(async () => ServiceB)) readonly serviceB: any,
       ) {}
     }
 
@@ -79,7 +79,7 @@ describe('Ref injection hook', function() {
     const injector = Injector.create([
       ServiceA,
       ServiceB,
-    ]).init() as Injector;
+    ])
 
     const service = await injector.get(ServiceA);
     expect(service).toBeInstanceOf(ServiceA);

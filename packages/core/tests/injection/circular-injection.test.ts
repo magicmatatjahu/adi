@@ -7,9 +7,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceB)
-        ])
+        @Inject(Ref(() => ServiceB))
         readonly serviceB: any,
       ) {}
 
@@ -24,9 +22,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceB implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceA)
-        ])
+        @Inject(Ref(() => ServiceA))
         readonly serviceA: any,
       ) {}
 
@@ -41,9 +37,9 @@ describe('circular injection', function() {
     const injector = Injector.create([
       ServiceA,
       ServiceB,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceA).toBeInstanceOf(ServiceA);
@@ -57,9 +53,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceB)
-        ])
+        @Inject(Ref(() => ServiceB))
         readonly serviceB: any,
       ) {}
 
@@ -74,9 +68,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject([
-          Ref(() => ServiceC)
-        ]) 
+        @Inject(Ref(() => ServiceC)) 
         readonly serviceC: any,
       ) {}
 
@@ -91,9 +83,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceC {
       constructor(
-        @Inject([
-          Ref(() => ServiceD)
-        ])
+        @Inject(Ref(() => ServiceD))
         readonly serviceD: any,
       ) {}
 
@@ -124,9 +114,9 @@ describe('circular injection', function() {
       ServiceB,
       ServiceC,
       ServiceD,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceC).toBeInstanceOf(ServiceC);
@@ -142,9 +132,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceB)
-        ])
+        @Inject(Ref(() => ServiceB))
         readonly serviceB: any,
       ) {}
 
@@ -159,9 +147,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceB implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceC)
-        ])
+        @Inject(Ref(() => ServiceC))
         readonly serviceC: any,
       ) {}
 
@@ -176,13 +162,9 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceC implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceD)
-        ])
+        @Inject(Ref(() => ServiceD))
         readonly serviceD: any,
-        @Inject([
-          Ref(() => ServiceE)
-        ])
+        @Inject(Ref(() => ServiceE))
         readonly serviceE: any,
       ) {}
 
@@ -212,9 +194,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceE implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceF)
-        ]) 
+        @Inject(Ref(() => ServiceF)) 
         readonly serviceF: any,
       ) {}
 
@@ -229,9 +209,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceF implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceG)
-        ]) 
+        @Inject(Ref(() => ServiceG)) 
         readonly serviceG: any,
       ) {}
 
@@ -269,9 +247,9 @@ describe('circular injection', function() {
       ServiceE,
       ServiceF,
       ServiceG,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceC).toBeInstanceOf(ServiceC);
@@ -294,9 +272,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceA implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceB)
-        ])
+        @Inject(Ref(() => ServiceB))
         readonly serviceB: any,
       ) {}
 
@@ -311,9 +287,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceB implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceC)
-        ])
+        @Inject(Ref(() => ServiceC))
         readonly serviceC: any,
       ) {}
 
@@ -328,13 +302,9 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceC implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceE)
-        ])
+        @Inject(Ref(() => ServiceE))
         readonly serviceE: any,
-        @Inject([
-          Ref(() => ServiceD)
-        ])
+        @Inject(Ref(() => ServiceD))
         readonly serviceD: any,
       ) {}
 
@@ -364,9 +334,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceE implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceF)
-        ]) 
+        @Inject(Ref(() => ServiceF)) 
         readonly serviceF: any,
       ) {}
 
@@ -381,9 +349,7 @@ describe('circular injection', function() {
     @Injectable()
     class ServiceF implements OnInit {
       constructor(
-        @Inject([
-          Ref(() => ServiceG)
-        ]) 
+        @Inject(Ref(() => ServiceG)) 
         readonly serviceG: any,
       ) {}
 
@@ -421,9 +387,9 @@ describe('circular injection', function() {
       ServiceE,
       ServiceF,
       ServiceG,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.serviceB).toBeInstanceOf(ServiceB);
     expect(service.serviceB.serviceC).toBeInstanceOf(ServiceC);

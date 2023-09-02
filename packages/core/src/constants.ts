@@ -1,7 +1,7 @@
 import { Context } from "./injector";
 import { InjectionToken } from "./tokens";
 
-import type { InjectorInput, InjectorOptions } from "./interfaces";
+import type { InjectorInput, InjectorOptions } from "./types";
 
 export const MODULE_REF = new InjectionToken<InjectorInput>(undefined, "adi:token:module-ref");
 export const INJECTOR_CONFIG = new InjectionToken<InjectorOptions>({}, "adi:token:injector-config");

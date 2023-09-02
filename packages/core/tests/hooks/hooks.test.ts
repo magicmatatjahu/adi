@@ -1,24 +1,22 @@
-import { Injector, Injectable, Inject, Token, Optional, Module, Named, when, InjectionToken, createHook, TransientScope, wait } from "../../src";
+import { Injector, Injectable, Inject, Hook, Token, Optional, Module, Named, when, InjectionToken, TransientScope, wait } from "../../src";
 
 describe('Injection hooks', function() {
   test('should can use hook in injectable as option', function() {
     let called: boolean = false;
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        called = true;
-        return value;
-      }
+    const TestHook = Hook((session, next) => {
+      const value = next(session);
+      called = true;
+       return value;
     });
 
     @Injectable({
-      hooks: [TestHook()],
+      hooks: TestHook,
     })
     class Service {}
 
     const injector = Injector.create([
       Service
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -27,16 +25,14 @@ describe('Injection hooks', function() {
 
   test('should can use hook in injectable as option and also should do not treat hook as global for token', function() {
     let calledTimes: number = 0;
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        calledTimes++;
-        return value;
-      }
+    const TestHook = Hook((session, next) => {
+      const value = next(session);
+      calledTimes++;
+      return value;
     });
 
     @Injectable({
-      hooks: [TestHook()],
+      hooks: TestHook,
     })
     class Service {}
 
@@ -47,10 +43,10 @@ describe('Injection hooks', function() {
         useValue: 'foobar',
         when: when.named('foobar'),
       }
-    ]).init() as Injector;
+    ])
 
     injector.get(Service);
-    injector.get(Service, [Named('foobar')]);
+    injector.get(Service, Named('foobar'));
     expect(calledTimes).toEqual(1);
   });
 
@@ -58,15 +54,14 @@ describe('Injection hooks', function() {
     let lastOptions: any = undefined;
     let numberOfThisSameOptions = 0;
 
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        if (lastOptions === session.iOptions) {
-          numberOfThisSameOptions++;
-        }
-        lastOptions = session.iOptions;
-        const value = next(session);
-        return value;
+    const TestHook = Hook((session, next) => {
+      if (lastOptions === session.inject) {
+        numberOfThisSameOptions++;
       }
+      
+      lastOptions = session.inject;
+      const value = next(session);
+      return value;
     });
 
     @Injectable({ scope: TransientScope })
@@ -76,14 +71,14 @@ describe('Injection hooks', function() {
     @Injectable({ scope: TransientScope })
     class Service {
       constructor(
-        @Inject([TestHook()]) readonly service: TestService,
+        @Inject(TestHook) readonly service: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     injector.get(Service);
     injector.get(Service);
@@ -106,21 +101,22 @@ describe('Injection hooks', function() {
         },
         inject: [[Token('useValue')], [Token(String), Optional()]],
       },
-    ]).init() as Injector;
+    ])
 
     const values = injector.get('useFactory');
     expect(values).toEqual(['foobar', undefined]);
   });
 
   test('should work with multiple hooks (provider based hooks)', function () {
-    let order: number[] = [];
-    const TestHook = createHook((nr: number) => {
-      return (session, next) => {
+    let order: number[] = []; 
+
+    function TestHook(nr: number) {
+      return Hook((session, next) => {
         const value = next(session);
         order.push(nr);
         return value;
-      }
-    });
+      })
+    }
 
     const injector = Injector.create([
       {
@@ -139,7 +135,7 @@ describe('Injection hooks', function() {
         provide: 'useValue',
         hooks: [TestHook(1)],
       },
-    ]).init() as Injector;
+    ])
 
     const values = injector.get('useValue');
     expect(values).toEqual('foobar');
@@ -148,14 +144,15 @@ describe('Injection hooks', function() {
 
   test('should work with order annotation', function () {
     let order: number[] = [];
-    const TestHook = createHook((nr: number) => {
-      return (session, next) => {
+
+    function TestHook(nr: number) {
+      return Hook((session, next) => {
         order.push(nr);
         const value = next(session);
         order.push(nr);
         return value;
-      }
-    });
+      })
+    }
 
     const injector = Injector.create([
       {
@@ -183,7 +180,7 @@ describe('Injection hooks', function() {
           order: 2
         }
       },
-    ]).init() as Injector;
+    ])
 
     const foobar = injector.get<string>('useValue');
     expect(foobar).toEqual('foobar');
@@ -191,10 +188,8 @@ describe('Injection hooks', function() {
   });
 
   test('should work with multiple "thenable" hooks - sync resolution', function () {
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        return wait(next(session), value => value);
-      }
+    const TestHook = Hook((session, next) => {
+      return wait(next(session), value => value);
     });
 
     @Injectable({
@@ -203,8 +198,8 @@ describe('Injection hooks', function() {
     class Service {
       constructor(
         @Inject('token', [
-          TestHook(),
-          TestHook(),
+          TestHook,
+          TestHook,
         ])
         readonly value: object,  
       ) {}
@@ -218,7 +213,7 @@ describe('Injection hooks', function() {
           return 'foobar';
         }
       }
-    ]).init() as Injector;
+    ])
 
     const service1 = injector.get(Service) as Service;
     const service2 = injector.get(Service) as Service;
@@ -227,10 +222,8 @@ describe('Injection hooks', function() {
   });
 
   test('should work with multiple "thenable" hooks - async resolution', async function () {
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        return wait(next(session), value => value);
-      }
+    const TestHook = Hook((session, next) => {
+      return wait(next(session), value => value);
     });
 
     @Injectable({
@@ -239,8 +232,8 @@ describe('Injection hooks', function() {
     class Service {
       constructor(
         @Inject('token', [
-          TestHook(),
-          TestHook(),
+          TestHook,
+          TestHook,
         ])
         readonly value: string,  
       ) {}
@@ -254,7 +247,7 @@ describe('Injection hooks', function() {
           return 'foobar';
         }
       }
-    ]).init() as Injector;
+    ])
 
     const service1 = await injector.get(Service);
     const service2 = await injector.get(Service);
@@ -264,22 +257,18 @@ describe('Injection hooks', function() {
 
   test('should work with imported hooks', function() {
     let childCalled: boolean = false;
-    const ChildHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        childCalled = true;
-        return value;
-      }
-    });
+    const ChildHook = Hook((session, next) => {
+      const value = next(session);
+      childCalled = true;
+      return value;
+    })
 
     let parentCalled: boolean = false;
-    const ParentHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        parentCalled = true;
-        return value;
-      }
-    });
+    const ParentHook = Hook((session, next) => {
+      const value = next(session);
+      parentCalled = true;
+      return value;
+    })
 
     @Injectable()
     class Service {}
@@ -288,7 +277,7 @@ describe('Injection hooks', function() {
       providers: [
         {
           provide: Service,
-          hooks: [ChildHook()],
+          hooks: ChildHook,
         }
       ],
       exports: [
@@ -305,15 +294,15 @@ describe('Injection hooks', function() {
         Service,
         {
           provide: Service,
-          hooks: [ParentHook()],
+          hooks: ParentHook,
         }
       ],
     })
     class ParentModule {}
 
-    const injector = Injector.create(ParentModule).init() as Injector;
+    const injector = Injector.create(ParentModule)
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(childCalled).toEqual(true);
     expect(parentCalled).toEqual(true);
@@ -323,13 +312,11 @@ describe('Injection hooks', function() {
     const token = new InjectionToken<string>();
 
     let childCalled: boolean = false;
-    const ChildHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        childCalled = true;
-        return value;
-      }
-    });
+    const ChildHook = Hook((session, next) => {
+      const value = next(session);
+      childCalled = true;
+      return value;
+    })
 
     @Module({
       providers: [
@@ -340,7 +327,7 @@ describe('Injection hooks', function() {
         },
         {
           provide: token,
-          hooks: [ChildHook()],
+          hooks: ChildHook,
         }
       ],
       exports: [
@@ -363,9 +350,9 @@ describe('Injection hooks', function() {
     })
     class ParentModule {}
 
-    const injector = Injector.create(ParentModule).init() as Injector;
+    const injector = Injector.create(ParentModule)
 
-    const value = injector.get(token, [Named('child')]);
+    const value = injector.get(token, Named('child'));
     expect(value).toEqual('child value');
     expect(childCalled).toEqual(true);
   });
@@ -374,13 +361,11 @@ describe('Injection hooks', function() {
     const token = new InjectionToken<string>();
 
     let childCalled: boolean = false;
-    const ChildHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        childCalled = true;
-        return value;
-      }
-    });
+    const ChildHook = Hook((session, next) => {
+      const value = next(session);
+      childCalled = true;
+      return value;
+    })
 
     @Module({
       providers: [
@@ -391,7 +376,7 @@ describe('Injection hooks', function() {
         },
         {
           provide: token,
-          hooks: ChildHook(),
+          hooks: ChildHook,
         }
       ],
       exports: [
@@ -414,9 +399,9 @@ describe('Injection hooks', function() {
     })
     class ParentModule {}
 
-    const injector = Injector.create(ParentModule).init() as Injector;
+    const injector = Injector.create(ParentModule)
 
-    const value = injector.get(token, [Named('child')]);
+    const value = injector.get(token, Named('child'));
     expect(value).toEqual('child value');
     expect(childCalled).toEqual(true);
   });

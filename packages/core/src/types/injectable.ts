@@ -1,12 +1,12 @@
 import type { InjectionToken } from '../tokens/injection.token'
 import type { InjectionArguments } from './injection'
 import type { InjectorScope } from './injector'
-import type { SimplifiedProvider, ProviderHooks, ProviderAnnotations } from './provider'
+import type { OverwriteProvider, ProviderHooks, ProviderAnnotations } from './provider'
 import type { ScopeType } from './scope'
 import type { ClassType, AbstractClassType } from './types'
 
 export interface InjectableOptions<T = any> {
-  provide?: SimplifiedProvider<T>;
+  provide?: OverwriteProvider<T>;
   name?: string | symbol | object;
   hooks?: ProviderHooks;
   scope?: ScopeType;

@@ -8,7 +8,7 @@ describe('ClassType provider (injectable provider)', function() {
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -33,7 +33,7 @@ describe('ClassType provider (injectable provider)', function() {
       HelperService1,
       HelperService2,
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
@@ -63,7 +63,7 @@ describe('ClassType provider (injectable provider)', function() {
       HelperService1,
       HelperService2,
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
@@ -99,7 +99,7 @@ describe('ClassType provider (injectable provider)', function() {
       HelperService1,
       HelperService2,
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
@@ -141,7 +141,7 @@ describe('ClassType provider (injectable provider)', function() {
       HelperService1,
       HelperService2,
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
@@ -169,7 +169,7 @@ describe('ClassType provider (injectable provider)', function() {
         provide: Number,
         useValue: 2137,
       }
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service.method()).toEqual(['stringArg', 'stringArg', 2137]);
@@ -189,7 +189,7 @@ describe('ClassType provider (injectable provider)', function() {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service.method()).toBeInstanceOf(TestService);
@@ -211,7 +211,7 @@ describe('ClassType provider (injectable provider)', function() {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service.method()).toBeInstanceOf(TestService);
@@ -236,7 +236,7 @@ describe('ClassType provider (injectable provider)', function() {
     const injector = Injector.create([
       Service,
       TestService1,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     const result = service.method();
@@ -265,7 +265,7 @@ describe('ClassType provider (injectable provider)', function() {
     const injector = Injector.create([
       Service,
       TestService1,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     const result = service.method();
@@ -311,7 +311,7 @@ describe('ClassType provider (injectable provider)', function() {
         },
         inject: ['asyncFunction']
       }
-    ]).init() as Injector;
+    ])
 
     const service = await injector.get(Service);
     const instances = await service.method();
@@ -342,7 +342,7 @@ describe('ClassType provider (injectable provider)', function() {
       Service,
       TestService1,
       TestService2,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service.method()).toBeInstanceOf(TestService1);
@@ -355,7 +355,7 @@ describe('ClassType provider (injectable provider)', function() {
       })
       class Service {}
   
-      const injector = Injector.create().init() as Injector;
+      const injector = Injector.create()
   
       const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
@@ -369,7 +369,7 @@ describe('ClassType provider (injectable provider)', function() {
 
       const injector = Injector.create([
         Service,
-      ]).init() as Injector;
+      ])
   
       const service = injector.get(Service);
       expect(service).toBeInstanceOf(Service);
@@ -389,7 +389,7 @@ describe('ClassType provider (injectable provider)', function() {
       const injector = Injector.create([
         Service,
         TestService,
-      ]).init() as Injector;
+      ])
   
       const service = injector.get(Service) as Service;
       expect(service).toBeInstanceOf(Service);
@@ -410,7 +410,7 @@ describe('ClassType provider (injectable provider)', function() {
   
       const injector = Injector.create({
         providers: [Service]
-      }).init() as Injector;
+      })
   
       const service = injector.get(Service);
       expect(service).toEqual('provide works!');
@@ -427,7 +427,7 @@ describe('ClassType provider (injectable provider)', function() {
       })
       class Service {}
   
-      const injector = Injector.create().init() as Injector;
+      const injector = Injector.create()
   
       const service = injector.get(Service);
       expect(service).toEqual('provide works!');

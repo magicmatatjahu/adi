@@ -3,6 +3,8 @@ import { Injector, Injectable, InjectionToken, Module, INJECTOR_CONFIG } from ".
 describe('InjectionToken', function() {
   describe('should works as normal provider in providers array', function() {
     test('with useValue', function() {
+      class A {}
+
       const Token = new InjectionToken<string>();
 
       const injector = new Injector([

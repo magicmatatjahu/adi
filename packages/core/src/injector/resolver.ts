@@ -1,14 +1,13 @@
 import { setCurrentInjectionContext } from './inject';
 import { processOnInitLifecycle, destroy } from './lifecycle-manager';
-import { compareOrder, convertInjection, convertInjections, filterHooks, getTreeshakableProvider, parseInjectArguments } from './metadata';
+import { compareOrder, convertInjection, convertInjections, createInjectionMetadata, filterHooks, getTreeshakableProvider, parseInjectArguments } from './metadata';
 import { filterDefinitions, getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
 import { InjectionKind, InstanceStatus, InjectionHookKind, InjectorStatus } from '../enums';
-import { runInjectioHooks, runInjectioHooksWithProviders, UseInstanceHook } from '../hooks/private';
+import { runInjectioHooks, runInjectioHooksWithProviders, ResultHook } from '../hooks/private';
 import { cacheMetaKey, circularSessionsMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
 import { NoProviderError, CircularReferenceError } from "../problem";
-import { getAllKeys, isClassProvider, wait, waitAll, waitCallback, noopThen, noopCatch, resolvePromise } from '../utils';
-import { getOrCreatePromise } from '../utils';
+import { getAllKeys, isClassProvider, wait, waitAll, waitCallback, noopThen, noopCatch, PromisesHub } from '../utils';
 
 import type { Injector } from './injector'
 import type { 
@@ -18,6 +17,7 @@ import type {
   ProviderAnnotations, InjectionAnnotations, InjectionMetadata, InjectionHookContext, InjectionHookReturnType, InjectionContext,
 } from '../types'
 
+const resultHook = ResultHook();
 const injectorHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECTOR };
 const injectHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECT };
 const providerHookCtx: InjectionHookContext = { kind: InjectionHookKind.PROVIDER };
@@ -31,7 +31,8 @@ function saveToCache(injector: Injector, key: InjectionArgument | ProviderToken,
   injector.meta[cacheMetaKey].set(key, value);
 }
 
-function removeCache(injector: Injector, key: InjectionArgument | ProviderToken): void {
+// TODO: Remove from cache also the injection arguments (use for that tokens) 
+export function removeCache(injector: Injector, key: InjectionArgument | ProviderToken): void {
   injector.meta[cacheMetaKey].delete(key);
 }
 
@@ -81,9 +82,11 @@ export function resolve<T>(injector: Injector, session: Session, hooks: Array<In
     const filteredHooks = filterHooks(injector.hooks, session);
     return runInjectioHooks(filteredHooks, session, injectorHookCtx, (s: Session) => runInjectioHooks(hooks, s, injectHookCtx, resolveProvider));
   }
+
   if (hooks.length === 0) {
     return resolveProvider(session);
   }
+
   return runInjectioHooks(hooks, session, injectHookCtx, resolveProvider);
 }
 
@@ -165,6 +168,7 @@ function findDefinition(session: Session, providers: Array<ProviderRecord>) {
         defaultDefinition = defaultDefinition || definition;
         continue;
       }
+
       session.meta[treeInjectorMetaKey] = undefined;
       context.definition = definition;
       return resolveDefinition(session);
@@ -252,7 +256,7 @@ function processInstance(value: any, instance: ProviderInstance) {
       instance.status |= InstanceStatus.RESOLVED;
       // resolve pararell injection - if defined
       if (instance.status & InstanceStatus.PARALLEL) {
-        resolvePromise(instance, value);
+        PromisesHub.resolve(instance, value);
       }
       return value;
     }
@@ -261,7 +265,8 @@ function processInstance(value: any, instance: ProviderInstance) {
 
 function processResult(result: any, session: Session, argument: InjectionArgument, cacheKey?: any) {
   if (session.hasFlag('side-effect') === false) {
-    if (argument.token !== cacheKey) {
+    const hasSingleArgument = cacheKey !== undefined && argument.token === cacheKey
+    if (hasSingleArgument === false) {
       cacheKey = argument;
     }
     saveToCache(session.context.injector, cacheKey, result); 
@@ -273,10 +278,11 @@ function processResult(result: any, session: Session, argument: InjectionArgumen
 
 function resolveFromParent<T>(session: Session): T | Promise<T> {
   const context = session.context;
-  const injector = context.injector = context.injector.parent!;
+  const injector = context.injector.parent;
   if (injector === null) {
     throw new NoProviderError(session);
   }
+  context.injector = injector!;
   context.provider = context.definition = context.instance = undefined;
   return resolveProvider(session);
 }
@@ -298,7 +304,7 @@ function resolveParallelInjection(session: Session, instance: ProviderInstance) 
 
   // otherwise parallel injection detected (in async resolution)
   instance.status |= InstanceStatus.PARALLEL;
-  return getOrCreatePromise(instance);
+  return PromisesHub.create(instance);
 }
 
 function handleCircularInjection<T>(session: Session, instance: ProviderInstance<T>): T {
@@ -406,7 +412,8 @@ function injectMethods<T>(injector: Injector, instance: T, methods: Record<strin
 }
 
 export function injectMethod<T>(injector: Injector, instance: T, originalMethod: Function, injections: Array<InjectionArgument | undefined>, session: Session): Function {
-  injections = injections.map(injection => injection && ({ ...injection, hooks: [...injection.hooks, UseInstanceHook] }));
+  // TODO: Change hooks order when order will be fixed from 1 to last (opposite order than current)
+  injections = injections.map(injection => injection && ({ ...injection, hooks: [resultHook, ...injection.hooks] }));
   const injectionsLength = injections.length;
 
   const cache: any[] = [];
@@ -422,7 +429,7 @@ export function injectMethod<T>(injector: Injector, instance: T, originalMethod:
         }
 
         actions.push(wait(
-          optimizedInject<InjectionHookReturnType<typeof UseInstanceHook>>(injector, dependency, session),
+          optimizedInject<InjectionHookReturnType<typeof resultHook>>(injector, dependency, session),
           ({ sideEffect, instance, result }) => {
             if (sideEffect === false) {
               cache[i] = result;
@@ -481,19 +488,21 @@ export function resolverValue<T>(_: Injector, __: Session, data: FactoryDefiniti
   return data;
 }
 
-export function createFunction<T>(fn: (...args: any[]) => T | Promise<T>, injections: Array<InjectionItem> = []) {
-  const metadata: InjectionMetadata = { kind: InjectionKind.FUNCTION, function: fn }
-  const converted = convertInjections(injections, metadata);
+export function createFunction<T>(fn: (...args: any[]) => T | Promise<T>, ctx?: { inject?: Array<InjectionItem> }) {
+  if (!ctx) {
+    return (_: Session, args: any[] = []) => fn(...args);
+  }
+
+  const metadata = createInjectionMetadata({ kind: InjectionKind.FUNCTION, function: fn })
+  const converted = convertInjections(ctx.inject, metadata);
   return (session: Session, args: any[] = []) => {
     const injector = session.context.injector;
     const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
-    try {
-      return wait(
-        injectArray(injector, converted, session),
-        deps => fn(...args, ...deps),
-      );
-    } finally {
-      setCurrentInjectionContext(previosuContext);
-    }
+    return wait(
+      injectArray(injector, converted, session),
+      deps => fn(...args, ...deps),
+      noopCatch,
+      () => setCurrentInjectionContext(previosuContext),
+    );
   }
 }

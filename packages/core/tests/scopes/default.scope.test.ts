@@ -16,9 +16,9 @@ describe('Default scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -34,17 +34,17 @@ describe('Default scope', function () {
     class Service {
       constructor(
         public readonly service: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService1: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService2: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService1: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService2: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.ctxService1).toBeInstanceOf(TestService);
     expect(service.ctxService2).toBeInstanceOf(TestService);
@@ -78,7 +78,7 @@ describe('Default scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     injector.get(Service);
     injector.get(Service);
@@ -113,13 +113,13 @@ describe('Default scope', function () {
     const injector = Injector.create([
       SingletonService,
       TransientService,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(TransientService, [Destroyable()]) as unknown as DestroyableType<TransientService>;
+    let service = injector.getSync(TransientService, Destroyable())
     expect(service.value).toBeInstanceOf(TransientService);
     await service.destroy();
 
-    service = injector.get(TransientService, [Destroyable()]) as unknown as DestroyableType<TransientService>;
+    service = injector.getSync(TransientService, Destroyable())
     expect(service.value).toBeInstanceOf(TransientService);
     await service.destroy();
 

@@ -15,17 +15,17 @@ describe('Ctx injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Ctx(firstCtx)]) readonly service1: TestService,
-        @Inject([Ctx(secondCtx)]) readonly service2: TestService,
+        @Inject(Ctx(firstCtx)) readonly service1: TestService,
+        @Inject(Ctx(secondCtx)) readonly service2: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service1.ctx).toEqual(firstCtx);
     expect(service.service2).toBeInstanceOf(TestService);

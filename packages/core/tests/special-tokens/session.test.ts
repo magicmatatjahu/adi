@@ -21,9 +21,9 @@ describe('Session token', function() {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.session).toBeInstanceOf(Session);
@@ -40,9 +40,9 @@ describe('Session token', function() {
         useFactory(session: Session) { return session },
         inject: [Session],
       },
-    ]).init() as Injector;
+    ])
 
-    const session = injector.get('test') as Session;
+    const session = injector.getSync<Session>('test')
     expect(session).toBeInstanceOf(Session);
     expect(session.context.instance?.value).toEqual(session);
   });

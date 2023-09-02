@@ -19,7 +19,7 @@ describe('Module dynamic import', function() {
     class MainModule {}
 
     const injector = await Injector.create(MainModule).init();
-    expect(() => injector.get(Service)).toThrow();
+    expect(() => injector.get(Service)).toThrowError();
     
     await injector.import(ChildModule);
     expect(injector.get(Service)).toBeInstanceOf(Service);
@@ -81,7 +81,7 @@ describe('Module dynamic import', function() {
     class MainModule {}
 
     const injector = await Injector.create(MainModule).init();
-    expect(() => injector.get(Service)).toThrow();
+    expect(() => injector.get(Service)).toThrowError();
     
     await injector.import(Child2Module);
     expect(injector.get(Service)).toBeInstanceOf(Service);
@@ -99,7 +99,7 @@ describe('Module dynamic import', function() {
     class MainModule {}
 
     const injector = await Injector.create(MainModule).init();
-    const service = injector.get('service');
+    const service = await injector.get<any>('service');
     expect(service.constructor.name).toEqual('DynamicService');
   });
 
@@ -115,7 +115,7 @@ describe('Module dynamic import', function() {
     class MainModule {}
 
     const injector = await Injector.create(MainModule).init();
-    const service = injector.get('service');
+    const service = injector.get<any>('service');
     expect(service.constructor.name).toEqual('DynamicService');
   });
 });

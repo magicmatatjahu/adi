@@ -3,7 +3,7 @@ import { Injector, Injectable, Module, ref, when, Inject, Optional } from "../..
 import type { ExtendedModule } from '../../src';
 
 describe('Module hierarchy', function() {
-  test('should be able to imports another modules', async function() {
+  test('should be able to imports another modules', function() {
     /*
      *  B C
      *   \|
@@ -48,7 +48,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    const injector = Injector.create(ModuleA).init();
+    const injector = Injector.create(ModuleA)
     expect(injector).toBeInstanceOf(Injector);
     expect(_service).toBeInstanceOf(Service);
     expect(order).toEqual([
@@ -97,7 +97,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    const injector = Injector.create(ModuleA).init();
+    const injector = Injector.create(ModuleA)
     expect(injector).toBeInstanceOf(Injector);
     expect(order).toEqual([
       'ModuleD',
@@ -149,7 +149,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    const injector = Injector.create(ModuleA).init();
+    const injector = Injector.create(ModuleA)
     expect(injector).toBeInstanceOf(Injector);
     expect(order).toEqual([
       'ModuleD',
@@ -209,7 +209,7 @@ describe('Module hierarchy', function() {
       ) {}
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(order).toEqual(['ServiceD', 'ServiceA']);
   });
 
@@ -268,7 +268,7 @@ describe('Module hierarchy', function() {
       ) {}
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(order).toEqual(['ServiceD', 'ServiceC']);
   });
 
@@ -304,7 +304,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    const injector = Injector.create(ModuleA).init();
+    const injector = Injector.create(ModuleA)
     expect(injector).toBeInstanceOf(Injector);
     expect(service).toBeInstanceOf(Service);
   });
@@ -348,7 +348,7 @@ describe('Module hierarchy', function() {
     })
     class ModuleA {}
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(service).toBeInstanceOf(SharedService);
   });
 
@@ -386,7 +386,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(serviceA).toEqual(serviceB);
   });
 
@@ -426,7 +426,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(serviceA).toEqual(serviceB);
   });
 
@@ -486,7 +486,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(serviceA).toBeInstanceOf(SharedService);
     expect(serviceA).toEqual(serviceB);
     expect(serviceA === serviceC).toEqual(false);
@@ -528,7 +528,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(serviceA).toEqual(serviceB);
   });
 
@@ -570,7 +570,7 @@ describe('Module hierarchy', function() {
       }
     }
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(serviceA).toEqual(SharedService);
     expect(serviceB).toEqual(SharedService);
   });
@@ -600,6 +600,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
+          export: '*'
         }
       ],
     })
@@ -648,6 +649,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
+          export: '*'
         }
       ],
     })
@@ -668,7 +670,7 @@ describe('Module hierarchy', function() {
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
-  test('should export only specific providers from imported module to the parent', async function() {
+  test('should export only specific providers from imported module to the parent', function() {
     /*
      *  C
      *  |
@@ -696,7 +698,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
-          exports: [ServiceC]
+          export: [ServiceC]
         }
       ],
     })
@@ -713,14 +715,14 @@ describe('Module hierarchy', function() {
     })
     class ModuleA {}
 
-    const injector = await Injector.create(ModuleA).init();
+    const injector = Injector.create(ModuleA)
     const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
 
-    let err: Error | undefined;
+    let err: unknown;
     try {
       injector.get(ServiceNotExported);
-    } catch(e) {
+    } catch(e: unknown) {
       err = e;
     }
     expect(serviceNotUsedFromB).toBeInstanceOf(ServiceNotExported);
@@ -758,7 +760,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
-          exports: [ServiceC]
+          export: [ServiceC]
         }
       ],
     })
@@ -775,11 +777,11 @@ describe('Module hierarchy', function() {
     })
     class ModuleA {}
 
-    const injector = Injector.create(ModuleA).init() as Injector;
+    const injector = Injector.create(ModuleA);
     const serviceC = injector.get(ServiceC);
     expect(serviceC).toBeInstanceOf(ServiceC);
 
-    let err: Error | undefined;
+    let err: unknown;
     try {
       injector.get(ServiceNotExported);
     } catch(e) {
@@ -821,6 +823,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
+          export: '*',
         }
       ],
     })
@@ -837,7 +840,7 @@ describe('Module hierarchy', function() {
     })
     class ModuleA {}
 
-    await Injector.create(ModuleA).init();
+    await Injector.create(ModuleA).init()
     expect(serviceC).toBeInstanceOf(ServiceC);
   });
 
@@ -879,6 +882,7 @@ describe('Module hierarchy', function() {
       exports: [
         {
           from: ModuleC,
+          export: '*'
         }
       ],
     })
@@ -897,7 +901,7 @@ describe('Module hierarchy', function() {
     })
     class ModuleA {}
 
-    await Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(serviceC1).toBeInstanceOf(ServiceC1);
     expect(serviceC2).toBeInstanceOf(ServiceC2);
   });
@@ -1065,7 +1069,7 @@ describe('Module hierarchy', function() {
     })
     class ModuleA {}
 
-    Injector.create(ModuleA).init();
+    Injector.create(ModuleA)
     expect(fromB).toEqual('foobar');
     expect(fromC).toEqual(undefined);
   });

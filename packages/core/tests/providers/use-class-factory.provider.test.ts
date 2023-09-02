@@ -16,7 +16,7 @@ describe('useFactory (class case)', function() {
         provide: 'useFactory',
         useFactory: TestSevice,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = injector.get<string>('useFactory');
     expect(resolvedToken).toEqual('foobar');
@@ -43,7 +43,7 @@ describe('useFactory (class case)', function() {
         provide: 'useFactory',
         useFactory: TestSevice,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = injector.get<string>('useFactory');
     expect(resolvedToken).toEqual('foobar');
@@ -75,7 +75,7 @@ describe('useFactory (class case)', function() {
         provide: 'useFactory',
         useFactory: TestSevice,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
@@ -107,7 +107,7 @@ describe('useFactory (class case)', function() {
         provide: 'useFactory',
         useFactory: TestSevice,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = await injector.get<string[]>('useFactory');
     expect(resolvedToken).toEqual(['foobar', 'barfoo']);
@@ -139,7 +139,7 @@ describe('useFactory (class case)', function() {
         useFactory: TestSevice,
         inject: ['useValue2']
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken = injector.get<TestSevice>('useFactory');
     expect(resolvedToken).toEqual('barfoo');
@@ -160,7 +160,7 @@ describe('useFactory (class case)', function() {
         provide: 'useFactory',
         useFactory: TestSevice,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken1 = injector.get<TestSevice>('useFactory');
     expect(resolvedToken1).toBeInstanceOf(TestSevice);
@@ -185,7 +185,7 @@ describe('useFactory (class case)', function() {
         useFactory: TestSevice,
         scope: TransientScope,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken1 = injector.get<TestSevice>('useFactory');
     expect(resolvedToken1).toBeInstanceOf(TestSevice);
@@ -211,7 +211,7 @@ describe('useFactory (class case)', function() {
         provide: 'useFactory',
         useFactory: TestSevice,
       },
-    ]).init() as Injector;
+    ])
 
     const resolvedToken1 = injector.get<TestSevice>('useFactory');
     expect(resolvedToken1).toBeInstanceOf(TestSevice);

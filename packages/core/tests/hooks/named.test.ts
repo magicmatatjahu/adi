@@ -9,8 +9,8 @@ describe('Named injection hook', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject([Named('namedService')]) readonly namedService: TestService,
-        @Inject([Named('anotherService')]) readonly anotherService: TestService,
+        @Inject(Named('namedService')) readonly namedService: TestService,
+        @Inject(Named('anotherService')) readonly anotherService: TestService,
       ) {}
     }
 
@@ -27,9 +27,9 @@ describe('Named injection hook', function () {
         useValue: 'barfoo',
         when: when.named('anotherService'),
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect((service.namedService) as any).toEqual('foobar');
     expect((service.anotherService) as any).toEqual('barfoo');

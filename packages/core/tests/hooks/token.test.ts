@@ -8,16 +8,16 @@ describe('Token injection hook', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Token(TestService)]) readonly service: any,
+        @Inject(Token(TestService)) readonly service: any,
       ) {}
     }
 
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
   });
@@ -29,17 +29,33 @@ describe('Token injection hook', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('nonExisting', [Token(TestService)]) readonly service: any,
+        @Inject('nonExisting', Token(TestService)) readonly service: any,
       ) {}
     }
 
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
+  });
+
+  test('should override token passed in .inject() function', function() {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {}
+
+    const injector = Injector.create([
+      TestService,
+      Service,
+    ])
+
+    const service = injector.getSync(Service, Token(TestService));
+    expect(service).toBeInstanceOf(TestService);
   });
 });

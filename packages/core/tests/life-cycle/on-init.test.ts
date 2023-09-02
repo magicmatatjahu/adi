@@ -15,7 +15,7 @@ describe('onInit', function() {
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -44,7 +44,7 @@ describe('onInit', function() {
     const injector =  Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -68,7 +68,7 @@ describe('onInit', function() {
           })
         ]
       }
-    ]).init() as Injector;
+    ])
 
     const foobar = injector.get('foobar');
     expect(foobar).toEqual('value from factory');
@@ -92,7 +92,7 @@ describe('onInit', function() {
           })
         ]
       }
-    ]).init() as Injector;
+    ])
 
     injector.get('foobar');
     injector.get('foobar');
@@ -132,7 +132,7 @@ describe('onInit', function() {
           OnInitHook(hook1),
         ],
       }
-    ]).init() as Injector;
+    ])
 
     injector.get('foobar');
     injector.get('foobar');
@@ -160,9 +160,7 @@ describe('onInit', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
-          OnInitHook(hook('injection onInit'))
-        ])
+        @Inject(OnInitHook(hook('injection onInit')))
         readonly testService1: TestService,
       ) {}
     }
@@ -170,7 +168,7 @@ describe('onInit', function() {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -200,9 +198,7 @@ describe('onInit', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
-          OnInitHook(hook('injection onInit'))
-        ])
+        @Inject(OnInitHook(hook('injection onInit')))
         readonly testService1: TestService,
       ) {}
     }
@@ -216,7 +212,7 @@ describe('onInit', function() {
           OnInitHook(hook('provider onInit')),
         ],
       }
-    ]).init() as Injector;
+    ])
 
     // retrieve several times the `TestService` provider from injector to check if hooks are called only once
     injector.get(Service);
@@ -256,7 +252,7 @@ describe('onInit', function() {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);
@@ -299,7 +295,7 @@ describe('onInit', function() {
           OnInitHook(hook1),
         ],
       }
-    ]).init() as Injector;
+    ])
 
     await injector.get('foobar');
     await injector.get('foobar');
@@ -331,7 +327,7 @@ describe('onInit', function() {
         provide: 'foobar',
         useValue: 'foobar',
       }
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service);
     expect(service).toBeInstanceOf(Service);

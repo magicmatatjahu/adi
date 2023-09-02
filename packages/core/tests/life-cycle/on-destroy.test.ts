@@ -24,7 +24,7 @@ describe('onDestroy', function() {
     const injector = new Injector([
       TransientService,
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
@@ -76,7 +76,7 @@ describe('onDestroy', function() {
       DeepTransientService,
       TransientService,
       Service,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(Service) as Service;
     expect(service).toBeInstanceOf(Service);
@@ -135,7 +135,7 @@ describe('onDestroy', function() {
         }),
         scope: TransientScope,
       }
-    ]).init() as Injector;
+    ])
 
     const foobar = injector.get<DestroyableType<string>>('foobar', Destroyable()) as DestroyableType<string>;
     expect(foobar.value).toEqual('value from factory');
@@ -163,7 +163,7 @@ describe('onDestroy', function() {
         }),
         scope: TransientScope,
       }
-    ]).init() as Injector;
+    ])
 
     const foobar = injector.get<DestroyableType<string>>('foobar', Destroyable()) as DestroyableType<string>;
     expect(foobar.value).toEqual('value from factory');
@@ -214,7 +214,7 @@ describe('onDestroy', function() {
         ],
         scope: TransientScope,
       }
-    ]).init() as Injector;
+    ])
 
     const foobar = injector.get<DestroyableType<string>>('foobar', Destroyable()) as DestroyableType<string>;
     expect(foobar.value).toEqual('value from factory');
@@ -263,7 +263,7 @@ describe('onDestroy', function() {
     const injector = new Injector([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
     expect(service.value).toBeInstanceOf(Service);
@@ -317,9 +317,9 @@ describe('onDestroy', function() {
           onDestroy: hook('provider onDestroy'),
         }),
       }
-    ]).init() as Injector;
+    ])
 
-    const service: DestroyableType<Service> = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    const service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(order).toEqual([]);
 
@@ -358,7 +358,7 @@ describe('onDestroy', function() {
     const injector = new Injector([
       ServiceA,
       ServiceB,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(ServiceA) as ServiceA;
     expect(service).toBeInstanceOf(ServiceA);
@@ -425,7 +425,7 @@ describe('onDestroy', function() {
       ServiceA,
       ServiceB,
       DeepService,
-    ]).init() as Injector;
+    ])
 
     const service = injector.get(ZeroService) as ZeroService;
     expect(service).toBeInstanceOf(ZeroService);

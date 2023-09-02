@@ -1,7 +1,7 @@
 import { Injector, Injectable, ModuleToken } from "../../src";
 
 describe('ModuleToken', function() {
-  test('should behave like normal class module', async function() {
+  test('should behave like normal class module', function() {
     @Injectable()
     class Service {}
 
@@ -10,9 +10,9 @@ describe('ModuleToken', function() {
         Service,
       ]
     });
-    const injector = await Injector.create(MainModule).init();
+    const injector = Injector.create(MainModule)
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -33,9 +33,9 @@ describe('ModuleToken', function() {
         ChildModule,
       ],
     });
-    const injector = await Injector.create(MainModule).init();
+    const injector = Injector.create(MainModule)
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
   });
 });

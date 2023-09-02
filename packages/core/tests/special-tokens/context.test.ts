@@ -1,11 +1,10 @@
-import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, Token, createHook, TransientScope } from "../../src";
+import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, Hook, Token, TransientScope } from "../../src";
+import { getScopeDefinition } from "../../src/scopes";
 
 describe('Context token', function() {
-  const New = createHook(() => {
-    return (session, next) => {
-      session.iOptions.scope = TransientScope;
-      return next(session);
-    }
+  const New = Hook((session, next) => {
+    session.inject.scope = getScopeDefinition(TransientScope);
+    return next(session);
   });
 
   test('should work in simple case', function() {
@@ -28,9 +27,9 @@ describe('Context token', function() {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.context).toBeInstanceOf(Context);
@@ -53,7 +52,7 @@ describe('Context token', function() {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject([New()]) readonly newService: TestService,
+        @Inject(New) readonly newService: TestService,
         readonly context: Context,
       ) {}
     }
@@ -61,9 +60,9 @@ describe('Context token', function() {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService).toBeInstanceOf(TestService);
@@ -88,11 +87,11 @@ describe('Context token', function() {
       {
         provide: 'test',
         useFactory(context1: Context, context2: Context) { return [context1, context2] },
-        inject: ['context', [Token('context'), New()]],
+        inject: ['context', [Token('context'), New]],
       },
-    ]).init() as Injector;
+    ])
 
-    const context = injector.get('test') as Context;
+    const context = injector.getSync<Context>('test')
     expect(context[0]).toBeInstanceOf(Context);
     expect(context[1]).toBeInstanceOf(Context);
     expect(context[0] === STATIC_CONTEXT).toEqual(true);
@@ -109,9 +108,9 @@ describe('Context token', function() {
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     const ctx = service.method();
 

@@ -1,7 +1,7 @@
 import { Injector, Injectable, Module, OnDestroy, OnInit, when, Inject, Named } from "../../src";
 
 describe('Module', function() {
-  test('should be able to create injector from module and instances of the corresponding providers', async function() {
+  test('should be able to create injector from module and instances of the corresponding providers', function() {
     @Injectable()
     class Service {}
 
@@ -12,9 +12,9 @@ describe('Module', function() {
     })
     class MainModule {}
 
-    const injector = await Injector.create(MainModule).init();
+    const injector = Injector.create(MainModule)
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -37,11 +37,11 @@ describe('Module', function() {
       }
     }
 
-    Injector.create(MainModule).init();
+    Injector.create(MainModule)
     expect(createdService).toBeInstanceOf(Service);
   });
 
-  test('should be able to create service with dependencies', async function() {
+  test('should be able to create service with dependencies', function() {
     @Injectable()
     class Service {}
 
@@ -64,13 +64,13 @@ describe('Module', function() {
       ) {}
     }
 
-    const injector = await Injector.create(MainModule).init();
-    const component = await injector.get(Controller);
+    const injector = Injector.create(MainModule)
+    const component = injector.getSync(Controller);
     expect(component).toBeInstanceOf(Controller);
     expect(component.service).toBeInstanceOf(Service);
   });
 
-  test('should be able to create module from plain ModuleMetadata type', async function() {
+  test('should be able to create module from plain ModuleMetadata type', function() {
     @Injectable()
     class Service {}
 
@@ -81,22 +81,22 @@ describe('Module', function() {
       ) {}
     }
 
-    const injector = await Injector.create({
+    const injector = Injector.create({
       providers: [
         Controller,
         Service,
       ],
-    }).init();
+    })
 
-    const service = await injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
 
-    const component = await injector.get(Controller);
+    const component = injector.getSync(Controller);
     expect(component).toBeInstanceOf(Controller);
     expect(component.service).toBeInstanceOf(Service);
   });
 
-  test('should init', async function() {
+  test('should init', function() {
     const onInit: string[] = []; 
 
     @Injectable()
@@ -121,11 +121,11 @@ describe('Module', function() {
       }
     }
 
-    Injector.create(MainModule).init();
+    Injector.create(MainModule);
     expect(onInit).toEqual(['Service', 'MainModule']);
   });
 
-  test('should init with imports in proper order', async function() {
+  test('should init with imports in proper order', function() {
     const onInit: string[] = [];
 
     @Injectable()
@@ -175,7 +175,7 @@ describe('Module', function() {
       }
     }
 
-    Injector.create(MainModule).init();
+    Injector.create(MainModule)
     expect(onInit).toEqual(['ChildService', 'ChildModule', 'Service', 'MainModule']);
   });
 
@@ -224,7 +224,7 @@ describe('Module', function() {
       }
     }
 
-    const injector = await Injector.create(MainModule).init();
+    const injector = Injector.create(MainModule)
     injector.get(Controller);
     injector.get(Service2);
 
@@ -308,7 +308,7 @@ describe('Module', function() {
       }
     }
 
-    const injector = await Injector.create(MainModule).init();
+    const injector = Injector.create(MainModule)
     injector.get(Controller);
     injector.get(Service);
 
@@ -320,7 +320,7 @@ describe('Module', function() {
     ]);
   });
 
-  test('should resolve definition from imported records if definitions from current record in injector do not meet the requirements', async function() {
+  test('should resolve definition from imported records if definitions from current record in injector do not meet the requirements', function() {
     @Module({ 
       providers: [
         {
@@ -359,7 +359,7 @@ describe('Module', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [Named('foobar')]) public foobar: string,
+        @Inject('token', Named('foobar')) public foobar: string,
       ) {}
     }
 
@@ -378,12 +378,12 @@ describe('Module', function() {
     })
     class MainModule {}
 
-    const injector = await Injector.create(MainModule).init();
-    const service = await injector.get(Service);
+    const injector = Injector.create(MainModule)
+    const service = injector.getSync(Service);
     expect(service.foobar).toEqual('named provider');
   });
 
-  test('should resolve definition from imported records only when given definition is exported', async function() {
+  test('should resolve definition from imported records only when given definition is exported', function() {
     @Module({ 
       providers: [
         {
@@ -428,8 +428,8 @@ describe('Module', function() {
     })
     class MainModule {}
 
-    const injector = await Injector.create(MainModule).init();
-    const service = await injector.get(Service);
+    const injector = Injector.create(MainModule)
+    const service = injector.getSync(Service);
     expect(service.foobar).toEqual('exported definition');
   });
 });

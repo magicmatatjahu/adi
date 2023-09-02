@@ -23,13 +23,25 @@ export function wait<T, R, C>(
 ): R | Promise<R> | C | Promise<C> | never;
 export function wait<T, R, C>(
   maybePromise: T,
+  thenAction: (value: Awaited<T>) => R | Promise<R>,
+  catchAction: (err: unknown) => C | Promise<C> | never,
+  finallyAction: () => void,
+): R | Promise<R> | C | Promise<C> | never;
+export function wait<T, R, C>(
+  maybePromise: T,
   thenAction: (value: Awaited<T>) => R | Promise<R> = noopThen,
   catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
+  finallyAction: () => void = noopFinally,
 ): R | Promise<R> | C | Promise<C> | never {
   if (isPromiseLike(maybePromise)) {
-    return maybePromise.then(thenAction as (value: unknown) => R | Promise<R>, catchAction) as R | Promise<R> | C | Promise<C> | never
+    return maybePromise.then(thenAction as (value: unknown) => R | Promise<R>, catchAction).finally(finallyAction) as R | Promise<R> | C | Promise<C> | never
   }
-  return thenAction(maybePromise as any) as R | Promise<R>;
+
+  try {
+    return thenAction(maybePromise as any) as R | Promise<R>;
+  } finally {
+    finallyAction()
+  }
 }
 
 export function waitCallback<T, R>(

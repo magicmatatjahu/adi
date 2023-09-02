@@ -1,14 +1,15 @@
 import { ADI } from '../adi';
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { getOrCreateProvider } from './provider';
-import { resolverClass, resolverFactory, resolveClassicProvider, resolverValue } from './resolver';
+import { resolverClass, resolverFactory, resolveClassicProvider, resolverValue, removeCache } from './resolver';
 import { INITIALIZERS } from '../constants';
 import { when, whenExported, whenComponent } from '../constraints';
 import { ProviderKind, InjectionKind, InjectorStatus } from '../enums';
-import { isInjectionHook, UseExistingHook, UseExistingDefinitionHook } from '../hooks/private';
+import { isInjectionHook, ExistingHook, AliasHook } from '../hooks/private';
+import { InjectionToken } from '../tokens';
 import { DefaultScope, getScopeDefinition } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
-import { cacheMetaKey, exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ITEM } from '../private';
+import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ARGUMENT } from '../private';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
@@ -19,7 +20,6 @@ import type {
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
   OnProviderAddPayload, ScopeType,
 } from '../types';
-import { InjectionToken } from '../tokens';
 
 export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<OnProviderAddPayload | undefined> {
   const processed: Array<OnProviderAddPayload> = [];
@@ -69,8 +69,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       return processProvider(injector, {
         ...options.provide,
         provide: original,
-        hooks,
-        annotations,
       });
     }
 
@@ -86,13 +84,15 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     token = original;
-    const options = injectableDefinition.options;
-    return processProvider(injector, {
-      provide: original,
-      hooks: options.hooks,
-      annotations: options.annotations,
-      ...options.provide || {},
-    })
+    const provide = injectableDefinition.options.provide;
+    if (provide) {
+      return processProvider(injector, {
+        provide: token,
+        ...provide,
+      })
+    }
+
+    throw new Error('Provide is not defined for InjectionToken')
   } else {
     annotations = original.annotations || {};
     definitionName = original.name;
@@ -160,8 +160,8 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     } else if (isExistingProvider(original)) {
       kind = ProviderKind.ALIAS;
       scope = DefaultScope;
-      hooks.push(UseExistingHook(original.useExisting));
-    } else if (isInjectionHook(hooks)) {
+      hooks.push(ExistingHook(original.useExisting));
+    } else if (isInjectionHook(hooks[0])) {
       // standalone hooks on provider level
       addHook(provider, hooks, 'provider', when, annotations);
       return { original, provider };
@@ -193,7 +193,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     concatConstraints(definition, whenExported);
   }
 
-  injector.meta[cacheMetaKey].delete(token);
+  removeCache(injector, token);
   handleAnnotations(provider, definition, annotations);
   defs.push(definition);
   defs.sort(compareOrder);
@@ -218,7 +218,7 @@ function handleAnnotations(provider: ProviderRecord, definition?: ProviderDefini
       processProvider(provider.host, {
         provide: INITIALIZERS, 
         useExisting: provider.token,
-        hooks: UseExistingDefinitionHook(definition),
+        hooks: AliasHook(definition),
       }); 
     }
 
@@ -235,7 +235,7 @@ function handleAnnotations(provider: ProviderRecord, definition?: ProviderDefini
         processProvider(provider.host, {
           provide: alias, 
           useExisting: provider.token,
-          hooks: UseExistingDefinitionHook(definition),
+          hooks: AliasHook(definition),
         });
       })
     }
@@ -328,15 +328,19 @@ function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Arra
 }
 
 export function parseInjectArguments<T>(token?: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks: Array<InjectionHook> = []): ParsedInjectionItem {
-  if ((token as InjectionToken)[ADI_INJECTION_ITEM]) {
-    return (token as InjectionToken)[ADI_INJECTION_ITEM]
+  let injectionArgument: PlainInjectionItem | undefined
+  if (token === undefined) {
+    return createPlainInjectionItem(undefined);
+  } else if (injectionArgument = (token as InjectionToken)[ADI_INJECTION_ARGUMENT]) {
+    const { token, annotations, hooks } = injectionArgument
+    return parseInjectArguments(token, annotations, hooks);
   } else if (isInjectionHook(token)) {
     hooks = [token, annotations, ...hooks] as InjectionHook[];
     token = undefined;
     annotations = {};
   } else if (typeof token === 'object' && isInjectionToken(token) === false) {
-    annotations = token as InjectionAnnotations;
     hooks = [annotations, ...hooks] as InjectionHook[];
+    annotations = token as InjectionAnnotations;
     token = undefined;
   } else if (isInjectionHook(annotations)) {
     hooks = [annotations, ...hooks] as InjectionHook[];
@@ -417,7 +421,11 @@ export function convertInjection<T>(injectionItem: InjectionItem<T> | undefined,
   return createInjectionArgument(token, annotations, hooks, metadata);
 }
 
-export function convertInjections(dependencies: Array<InjectionItem>, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {
+export function convertInjections(dependencies: Array<InjectionItem> | undefined, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {
+  if (!dependencies) {
+    return [];
+  }
+
   const converted: InjectionArgument[] = [];
   dependencies.forEach((dependency, index) => converted.push(convertInjection(dependency, { ...metadata, index })));
   return converted;

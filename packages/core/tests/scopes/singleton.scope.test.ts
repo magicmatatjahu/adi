@@ -18,9 +18,9 @@ describe('Singleton scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -38,19 +38,19 @@ describe('Singleton scope', function () {
     class Service {
       constructor(
         public readonly service: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService1: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService2: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService1: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService2: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     let error: any, instance: Service | undefined;
     try {
-      instance = injector.get(Service) as Service;
+      instance = injector.getSync(Service)
     } catch(err) {
       error = err;
     }
@@ -96,19 +96,19 @@ describe('Singleton scope', function () {
       Service1,
       Service2,
       TestService,
-    ]).init() as Injector;
+    ])
     const childInjector = Injector.create([
       ChildService1,
       ChildService2,
-    ], undefined, parentInjector).init() as Injector;
+    ], undefined, parentInjector)
 
-    const service1 = parentInjector.get(Service1) as Service1;
-    const service2 = parentInjector.get(Service2) as Service2;
+    const service1 = parentInjector.getSync(Service1)
+    const service2 = parentInjector.getSync(Service2)
     expect(service1.service).toBeInstanceOf(TestService);
     expect(service2.service).toBeInstanceOf(TestService);
     expect(service1.service === service2.service).toEqual(true);
-    const childService1 = childInjector.get(ChildService1) as ChildService1;
-    const childService2 = childInjector.get(ChildService2) as ChildService2;
+    const childService1 = childInjector.getSync(ChildService1)
+    const childService2 = childInjector.getSync(ChildService2)
     expect(childService1.service).toBeInstanceOf(TestService);
     expect(childService2.service).toBeInstanceOf(TestService);
     expect(childService1.service === childService2.service).toEqual(true);
@@ -144,7 +144,7 @@ describe('Singleton scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     injector.get(Service);
     injector.get(Service);
@@ -181,13 +181,13 @@ describe('Singleton scope', function () {
     const injector = Injector.create([
       SingletonService,
       TransientService,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(TransientService, [Destroyable()]) as unknown as DestroyableType<TransientService>;
+    let service = injector.getSync(TransientService, Destroyable())
     expect(service.value).toBeInstanceOf(TransientService);
     await service.destroy();
 
-    service = injector.get(TransientService, [Destroyable()]) as unknown as DestroyableType<TransientService>;
+    service = injector.getSync(TransientService, Destroyable())
     expect(service.value).toBeInstanceOf(TransientService);
     await service.destroy();
 
@@ -253,8 +253,8 @@ describe('Singleton scope', function () {
       }
     }
 
-    const injector = Injector.create(MainModule).init() as Injector;
-    let service = injector.get(Transient, [Destroyable()]) as unknown as DestroyableType<Transient>;
+    const injector = Injector.create(MainModule)
+    let service = injector.getSync(Transient, Destroyable())
     expect(service.value).toBeInstanceOf(Transient);
 
     const childInjector = injector.imports.get(ChildModule) as Injector;
@@ -311,7 +311,7 @@ describe('Singleton scope', function () {
       }
     }
 
-    const injector = Injector.create(MainModule).init() as Injector;
+    const injector = Injector.create(MainModule)
     const childInjector = injector.imports.get(ChildModule) as Injector;
 
     await childInjector.destroy();

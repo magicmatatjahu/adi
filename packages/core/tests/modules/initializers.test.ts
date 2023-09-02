@@ -21,7 +21,7 @@ describe('MODULE_INITIALIZERS provider', function() {
     })
     class RootModule {}
 
-    await new Injector(RootModule).init();
+    await Injector.create(RootModule).init();
     expect(foobar).toEqual('foobar');
   });
 
@@ -65,7 +65,7 @@ describe('MODULE_INITIALIZERS provider', function() {
     })
     class RootModule {}
 
-    await new Injector(RootModule).init();
+    await Injector.create(RootModule).init();
     expect(timesCalled).toEqual(3);
   });
 

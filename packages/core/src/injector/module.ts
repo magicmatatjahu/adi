@@ -72,18 +72,11 @@ export function extendsModule<T>(toExtend: ClassType<T> | ModuleToken | Promise<
   }
 }
 
-export function initModule(injector: Injector): Injector | Promise<Injector> {
-  return wait(
-    __importModule(injector, injector.input as any), 
-    _ => (injector as any).$ = injector
-  );
-}
-
 export function importModule(to: Injector, input: InjectorInput | Promise<InjectorInput>): Injector | Promise<Injector> {
   return wait(input, result => processImportModule(to, result));
 }
 
-function __importModule(injector: Injector, input: ModuleImportType): Injector | Promise<Injector> {
+export function initModule(injector: Injector, input: ModuleImportType): Injector | Promise<Injector> {
   if (injector.status & InjectorStatus.PENDING) {
     return injector;
   }
@@ -345,7 +338,7 @@ function importProvider(to: Injector, token: ProviderToken, provider: ProviderRe
   exportProvider(provider, to, names);
 }
 
-function exportProvider(provider: ProviderRecord, toInjector: Injector, names: any[] = []) {
+function exportProvider(provider: ProviderRecord, toInjector: Injector, names: any[] | undefined) {
   let exportedToInjectors: WeakMap<Injector, any[] | true> = provider.meta[exportedToInjectorsMetaKey]
   if (!exportedToInjectors) {
     exportedToInjectors = provider.meta[exportedToInjectorsMetaKey] = new WeakMap();
@@ -354,7 +347,7 @@ function exportProvider(provider: ProviderRecord, toInjector: Injector, names: a
   const givenInjector = exportedToInjectors.get(toInjector);
   if (givenInjector) {
     // TODO: Add error if someone try to export definition when first export all definitions
-    if (Array.isArray(givenInjector)) {
+    if (Array.isArray(givenInjector) && names) {
       givenInjector.push(...names);
     }
   } else {

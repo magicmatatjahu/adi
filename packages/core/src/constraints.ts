@@ -2,26 +2,29 @@ import { getHostInjector } from "./injector/metadata";
 import { treeInjectorMetaKey, exportedToInjectorsMetaKey } from './private';
 
 import type { Context, Injector, Session } from "./injector";
-import type { InjectionAnnotations, ConstraintDefinition } from "./interfaces";
+import type { InjectionAnnotations, ConstraintDefinition } from "./types";
 
 export function named(name: InjectionAnnotations['named']): ConstraintDefinition {
   return (session) => {
-    const { metadata, inject } = session.injection;
-    return name === (inject.annotations.named || metadata.annotations.named);
+    const { inject, metadata } = session.injection;
+    return name === (inject.annotations.named || metadata.annotations?.named);
   }
 }
 
 export function tagged(tags: InjectionAnnotations['tagged'] = [], mode: 'all' | 'partially' = 'all'): ConstraintDefinition {
-  const includeTag = (tag: string) => tags.includes(tag);
+  function includeTag(tag: string | symbol | object) {
+    tags.includes(tag);
+  }
+
   return (session) => {
-    const { metadata, options } = session.injection;
-    const alltags = [...metadata.annotations.tagged || [], ...options.annotations.tagged];
+    const { inject, metadata } = session.injection;
+    const alltags = [...metadata.annotations?.tagged || [], ...inject.annotations.tagged || []];
     return mode == 'all' ? alltags.every(includeTag) : alltags.some(includeTag);
   }
 }
 
 export function context(ctx: Context): ConstraintDefinition {
-  return (session) => session.iOptions.context === ctx;
+  return (session) => session.inject.context === ctx;
 }
 
 export function visible(type: 'public' | 'private'): ConstraintDefinition {
@@ -60,12 +63,12 @@ export function never(): boolean {
  **/
 export function whenExported(session: Session): boolean {
   const { provider, definition } = session.context;
-  const exportedTo = provider.meta[exportedToInjectorsMetaKey] as WeakMap<Injector, any[] | true>;
+  const exportedTo = provider?.meta[exportedToInjectorsMetaKey] as WeakMap<Injector, any[] | true>;
   if (exportedTo) {
     const treeInjector = session.meta[treeInjectorMetaKey];
     const names = exportedTo.get(treeInjector);
     if (Array.isArray(names)) {
-      return names.includes(definition.name);
+      return names.includes(definition?.name);
     }
   }
   return true;

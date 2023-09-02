@@ -1,4 +1,4 @@
-import { Injector, Context, Ctx, when } from "../../src";
+import { Injector, Context, Ctx, token, when } from "../../src";
 
 describe('useValue', function() {
   test('should work with simple provider', function() {
@@ -7,7 +7,7 @@ describe('useValue', function() {
         provide: 'useValue',
         useValue: 'foobar',
       },
-    ]).init() as Injector;
+    ]);
 
     const resolvedToken = injector.get<string>('useValue');
     expect(resolvedToken).toEqual('foobar');
@@ -26,11 +26,11 @@ describe('useValue', function() {
         useValue: 'barfoo',
         when: when.context(ctx),
       },
-    ]).init() as Injector;
+    ]);
 
     const foobar = injector.get<string>('useValue');
     expect(foobar).toEqual('foobar');
-    const barfoo = injector.get<string>('useValue', [Ctx(ctx)]);
+    const barfoo = injector.get(token<string>('useValue'), Ctx(ctx));
     expect(barfoo).toEqual('barfoo');
   });
 
@@ -42,7 +42,7 @@ describe('useValue', function() {
         provide: 'useValue',
         useValue: testFunction,
       },
-    ]).init() as Injector;
+    ])
 
     const fn = injector.get<Function>('useValue');
     expect(fn).toEqual(testFunction);

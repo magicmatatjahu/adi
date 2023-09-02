@@ -20,9 +20,9 @@ describe('Transient scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(false);
@@ -49,9 +49,9 @@ describe('Transient scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(false);
@@ -76,16 +76,16 @@ describe('Transient scope', function () {
     class Service {
       constructor(
         readonly newService: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService === service.ctxService).toEqual(false);
@@ -109,16 +109,16 @@ describe('Transient scope', function () {
     class Service {
       constructor(
         readonly newService: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService === service.ctxService).toEqual(false);
@@ -146,9 +146,9 @@ describe('Transient scope', function () {
     const injector = Injector.create([
       Service,
       TransientService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     service.method();
     service.method();
@@ -198,9 +198,9 @@ describe('Transient scope', function () {
       DeepTransientService,
       Service,
       TransientService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     
     service.method();
@@ -253,13 +253,13 @@ describe('Transient scope', function () {
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service, [Destroyable()]) as unknown as DestroyableType<Service>;
+    let service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
-    service = injector.get(Service, [Destroyable()]) as unknown as DestroyableType<Service>;
+    service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
@@ -283,17 +283,17 @@ describe('Transient scope', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TransientService, [Destroyable()]) public testService1: DestroyableType<TransientService>,
-        @Inject(TransientService, [Destroyable()]) public testService2: DestroyableType<TransientService>,
+        @Inject(TransientService, Destroyable()) public testService1: DestroyableType<TransientService>,
+        @Inject(TransientService, Destroyable()) public testService2: DestroyableType<TransientService>,
       ) {}
     }
 
     const injector = Injector.create([
       TransientService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1.value).toBeInstanceOf(TransientService);
     expect(service.testService2.value).toBeInstanceOf(TransientService);
@@ -334,9 +334,9 @@ describe('Transient scope', function () {
     const injector = Injector.create([
       TransientService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
 
     await injector.destroy();
@@ -364,15 +364,15 @@ describe('Transient scope', function () {
 
     @Injectable()
     class Service {
-      method(@Inject([Ctx(ctx)]) service1?: TransientService, @Inject() service2?: TransientService) {}
+      method(@Inject(Ctx(ctx)) service1?: TransientService, @Inject() service2?: TransientService) {}
     }
 
     const injector = Injector.create([
       TransientService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     service.method();
     service.method();
@@ -401,15 +401,15 @@ describe('Transient scope', function () {
 
     @Injectable()
     class Service {
-      method(@Inject([Ctx(ctx)]) service1?: TransientService, @Inject() service2?: TransientService) {}
+      method(@Inject(Ctx(ctx)) service1?: TransientService, @Inject() service2?: TransientService) {}
     }
 
     const injector = Injector.create([
       TransientService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
     service.method();
     service.method();

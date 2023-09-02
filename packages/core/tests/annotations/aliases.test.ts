@@ -13,9 +13,9 @@ describe('aliases annotation', function() {
 
     const injector = Injector.create([
       Service
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     const stringAlias = injector.get('service');
     const symbolAlias = injector.get(symbolService);
 

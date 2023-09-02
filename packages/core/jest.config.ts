@@ -1,10 +1,11 @@
-import type { Config } from '@jest/types';
+import { jsWithTsESM as tsjPreset } from 'ts-jest/presets';
 
-const config: Config.InitialOptions = {
+import type { JestConfigWithTsJest } from 'ts-jest'
+
+const config: JestConfigWithTsJest = {
   coverageReporters: [
     'text'
   ],
-  preset: 'ts-jest',
   roots: ['<rootDir>'],
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.ts$',
   moduleFileExtensions: ['ts', 'js'],
@@ -13,6 +14,9 @@ const config: Config.InitialOptions = {
   collectCoverageFrom: [
     'src/**'
   ],
+  transform: {
+    ...tsjPreset.transform,
+  }
 };
 
 export default config;

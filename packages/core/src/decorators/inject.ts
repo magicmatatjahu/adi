@@ -29,7 +29,7 @@ export function applyInject(ctx: DecoratorContext, { token, annotations, hooks }
   const descriptor = (ctx as { descriptor: PropertyDescriptor }).descriptor;
   const isStatic = (ctx as { static: boolean }).static || false;
   const targetObject = isStatic ? target : target.prototype;
-  const argument = createInjectionArgument(token as ProviderToken, {
+  const argument = createInjectionArgument(token as ProviderToken, annotations, hooks, {
     kind: InjectionKind.UNKNOWN,
     target,
     annotations,
@@ -37,7 +37,7 @@ export function applyInject(ctx: DecoratorContext, { token, annotations, hooks }
     index,
     descriptor,
     static: isStatic
-  }, hooks);
+  });
 
   const metadata = argument.metadata;
   const kind = ctx.kind;

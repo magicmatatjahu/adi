@@ -1,4 +1,4 @@
-import { Injector, Injectable, TransientScope, Named, createHook } from "../../src";
+import { Injector, Injectable, TransientScope, Named, Hook } from "../../src";
 
 describe('useExisting', function() {
   test('should return value from alias', function() {
@@ -41,12 +41,10 @@ describe('useExisting', function() {
   });
 
   test('should work with hooks', function() {
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        value.prop = {};
-        return value;
-      }
+    const TestHook = Hook((session, next) => {
+      const value = next(session) as Service;
+      value.prop = {};
+      return value;
     });
 
     @Injectable({
@@ -61,7 +59,7 @@ describe('useExisting', function() {
       {
         provide: 'useExisting',
         useExisting: Service,
-        hooks: [TestHook()],
+        hooks: TestHook,
       },
     ]).init() as Injector;
 
@@ -79,12 +77,10 @@ describe('useExisting', function() {
   });
 
   test('should persist session', function() {
-    const TestHook = createHook(() => {
-      return (session, next) => {
-        const value = next(session);
-        value.prop++;
-        return value;
-      }
+    const TestHook = Hook((session, next) => {
+      const value = next(session) as Service;
+      value.prop++;
+      return value;
     });
 
     @Injectable()
@@ -96,12 +92,12 @@ describe('useExisting', function() {
       Service,
       {
         provide: Service,
-        hooks: [TestHook()],
+        hooks: TestHook,
       },
       {
         provide: 'useExisting',
         useExisting: Service,
-        hooks: [TestHook()],
+        hooks: TestHook,
       },
     ]).init() as Injector;
 

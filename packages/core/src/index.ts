@@ -49,15 +49,15 @@ patchCircularRefs();
 initADI();
 
 export * from './decorators';
-export { createHook, All, Ctx, Destroyable, Hook, SessionHook, Named, OnDestroyHook, OnInitHook, Optional, Ref, Tagged, Token } from './hooks';
+export { Hook, All, Catch, Ctx, Destroyable, Named, New, OnDestroyHook, OnInitHook, Optional, Ref, Scoped, Skip, Tagged, Token } from './hooks';
 export { Context, Injector, Session, injectableMixin, moduleMixin, inject, injectMethod, runInInjectionContext, createFunction } from './injector';
 export { Scope, DefaultScope, SingletonScope, TransientScope, createScope } from './scopes';
-export { InjectionToken, ModuleToken } from './tokens';
+export { InjectionToken, ModuleToken, token, argument } from './tokens';
 export { ref, resolveRef, wait, waitCallback, waitSequence, waitAll } from './utils';
 export { ADI } from './adi';
 export { MODULE_REF, INITIALIZERS, INJECTOR_CONFIG, STATIC_CONTEXT } from './constants';
 export { when } from './constraints';
 
-export type { DestroyableType, OptionalType, OnInitHookOptions, OnDestroyHookOptions } from './hooks';
-export type { ScopeInstance, DefaultScopeOptions, SingletonScopeOptions, TransientScopeOptions } from './scopes';
-export * from './interfaces';
+export type { DestroyableType, OnInitHookOptions, OnDestroyHookOptions } from './hooks';
+export type { DefaultScopeOptions, SingletonScopeOptions, TransientScopeOptions } from './scopes';
+export * from './types';

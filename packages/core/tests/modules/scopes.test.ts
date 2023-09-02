@@ -10,8 +10,8 @@ describe('Module scopes', function() {
     })
     class Service {}
 
-    const injector = new Injector(MainModule).init() as Injector;
-    const service = injector.get(Service);
+    const injector = new Injector(MainModule)
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -33,8 +33,8 @@ describe('Module scopes', function() {
     })
     class MainModule {}
 
-    const injector = new Injector(MainModule).init() as Injector;
-    const service = injector.get(Service);
+    const injector = new Injector(MainModule)
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
   });
 
@@ -56,8 +56,8 @@ describe('Module scopes', function() {
     })
     class MainModule {}
 
-    const injector = new Injector(MainModule).init() as Injector;
-    const service = injector.get(Service);
+    const injector = new Injector(MainModule)
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
   });
 });

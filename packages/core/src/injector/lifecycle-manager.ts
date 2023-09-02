@@ -1,6 +1,6 @@
 import { ADI } from '../adi';
 import { InjectorStatus, InstanceStatus } from '../enums';
-import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey } from '../private';
+import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey } from '../private';
 import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../utils';
 
 import type { Injector, Session } from '../injector';
@@ -151,10 +151,16 @@ export async function destroyInjector(injector: Injector) {
   injector.providers.clear();
   await waitSequence(providers, provider => destroyProvider(provider, { event: 'injector' }));
 
-  // remove injector from parent imports
-  const parent = injector.parent;
+  const { parent, meta } = injector;
+  const scopedLabel = meta[scopedInjectorLabelMetaKey];
   if (parent) {
+    // remove injector from parent imports
     parent.imports.delete(injector.input);
+
+    // remove (optional) injector from parent scoped injectors
+    if (scopedLabel !== undefined) {
+      parent.meta[scopedInjectorsMetaKey].delete(scopedLabel);
+    }
   }
 
   // then destroy and clean all imported modules

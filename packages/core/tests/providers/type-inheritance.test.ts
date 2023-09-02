@@ -19,7 +19,7 @@ describe('Inheritance', function() {
       ExtendedService,
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
@@ -59,7 +59,7 @@ describe('Inheritance', function() {
         provide: Number,
         useValue: 2137,
       }
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
@@ -95,7 +95,7 @@ describe('Inheritance', function() {
         provide: Number,
         useValue: 2137,
       }
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
@@ -123,7 +123,7 @@ describe('Inheritance', function() {
       ExtendedService,
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
@@ -156,7 +156,7 @@ describe('Inheritance', function() {
       ExtendedService,
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     expect(extendedService).toBeInstanceOf(ExtendedService);
@@ -189,7 +189,7 @@ describe('Inheritance', function() {
         provide: Number,
         useValue: 2137,
       },
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     const service = injector.get(Service) as Service;
@@ -220,7 +220,7 @@ describe('Inheritance', function() {
       ExtendedService,
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
     const extendedService = injector.get(ExtendedService) as ExtendedService;
     const service = injector.get(Service) as Service;
@@ -272,7 +272,7 @@ describe('Inheritance', function() {
         provide: Number,
         useValue: 2137,
       }
-    ]).init() as Injector;
+    ])
 
     const deepExtendedService = injector.get(DeepExtendedService) as DeepExtendedService;
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
@@ -325,7 +325,7 @@ describe('Inheritance', function() {
         provide: Number,
         useValue: 2137,
       }
-    ]).init() as Injector;
+    ])
 
     const deepExtendedService = injector.get(DeepExtendedService) as DeepExtendedService;
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);
@@ -381,7 +381,7 @@ describe('Inheritance', function() {
         provide: Number,
         useValue: 2137,
       }
-    ]).init() as Injector;
+    ])
 
     const deepExtendedService = injector.get(DeepExtendedService) as DeepExtendedService;
     expect(deepExtendedService).toBeInstanceOf(DeepExtendedService);

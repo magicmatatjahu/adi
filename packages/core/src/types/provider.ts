@@ -19,13 +19,21 @@ export type ProviderType<T = any> =
   | HookProvider<T>
   | CustomProvider<T>;
 
-export type SimplifiedProvider<T = any> = 
-  | Omit<ClassProvider<T>, 'provide' | 'hooks' | 'annotations'> 
-  | Omit<FactoryProvider<T>, 'provide' | 'hooks' | 'annotations'> 
-  | Omit<ClassFactoryProvider<T>, 'provide' | 'hooks' | 'annotations'> 
-  | Omit<ValueProvider<T>, 'provide' | 'hooks' | 'annotations'>
-  | Omit<ExistingProvider<T>, 'provide' | 'hooks' | 'annotations'>
-  | Omit<CustomProvider<T>, 'provide' | 'hooks' | 'annotations'>; 
+export type ObjectProvider<T = any> = 
+  | ClassProvider<T>
+  | FactoryProvider<T>
+  | ClassFactoryProvider<T>
+  | ValueProvider<T>
+  | ExistingProvider<T>
+  | CustomProvider<T>;
+
+export type OverwriteProvider<T = any> = 
+  | Omit<ClassProvider<T>, 'provide'> 
+  | Omit<FactoryProvider<T>, 'provide'> 
+  | Omit<ClassFactoryProvider<T>, 'provide'> 
+  | Omit<ValueProvider<T>, 'provide'>
+  | Omit<ExistingProvider<T>, 'provide'>
+  | Omit<CustomProvider<T>, 'provide'>;
 
 export interface ClassTypeProvider<T = any> extends ClassType<T> {}
 
@@ -148,11 +156,9 @@ export interface HookProvider<T = any> {
 }
 
 export interface InjectionTokenOptions<T = any> {
-  provide?: SimplifiedProvider<T>;
-  inject?: InjectionItem<T>;
-  hooks?: ProviderHooks;
   provideIn?: InjectorScope | Array<InjectorScope>;
-  annotations?: ProviderAnnotations;
+  provide?: OverwriteProvider<T>;
+  inject?: InjectionItem<T>;
 }
 
 export interface Provide<T = any> {

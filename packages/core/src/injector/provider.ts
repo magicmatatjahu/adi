@@ -86,10 +86,10 @@ export function filterDefinitions(provider: ProviderRecord, session: Session, fi
   if (filter) {
     return filterProviderDefinitions(provider.defs, session, filter);
   }
-  return filterDefinition(provider.defs, session);
+  return __filterDefinition(provider.defs, session);
 }
 
-function filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
+function __filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
   const context = session.context;
   let defaultDefinition: ProviderDefinition | undefined;
 

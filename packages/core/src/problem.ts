@@ -4,9 +4,9 @@ import type { Session } from "./injector";
 
 export class NoProviderError extends Error {
   constructor(session: Session) {
-    const token = session.iOptions.token;
+    const token = session.inject.token;
 
-    let name: string;
+    let name: string | undefined;
     if (typeof token === 'function' || isInjectionToken(token)) {
       name = token.name;
     } else if (typeof token === 'symbol') {

@@ -3,6 +3,8 @@ import { getDeepProperty } from '../utils';
 import type { Path, PathValue } from '../types/private';
 
 export class Context<D extends Record<string | symbol, unknown> = Record<string | symbol, unknown>> {
+  static STATIC = new Context(undefined, 'adi:context:static');
+
   constructor(
     private readonly data: D = {} as D,
     public readonly name?: string,

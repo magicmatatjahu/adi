@@ -1,11 +1,14 @@
-import { createHook } from "./create-hook";
+import { Hook } from "./hook";
 
 import type { Session } from '../injector/session';
 import type { InjectionHookResult, NextInjectionHook, ProviderToken } from '../types';
 
-export const Token = createHook(<RT>(token: ProviderToken<RT>) => {
-  return <ResultType>(session: Session, next: NextInjectionHook<ResultType>): InjectionHookResult<RT> => {
-    session.inject.token = token;
-    return next(session) as RT;
-  }
-}, { name: 'adi:hook:token' })
+export function Token<NextValue, T>(token: ProviderToken<T>) {
+  return Hook(
+    function tokenHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue | T> {
+      session.inject.token = token;
+      return next(session);
+    },
+    { name: 'adi:token' }
+  )
+}
