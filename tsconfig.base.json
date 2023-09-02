@@ -5,6 +5,7 @@
     "declaration": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
+    "strictPropertyInitialization": false,
     "removeComments": true,
     "noLib": false,
     "experimentalDecorators": true,
