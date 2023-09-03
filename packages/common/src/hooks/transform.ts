@@ -1,6 +1,6 @@
-import { createHook, wait, createFunction } from '@adi/core';;
+import { Hook, wait, createCustomResolver } from '@adi/core';
 
-import type { InjectionItem } from '@adi/core';
+import type { Session, InjectionHookResult, NextInjectionHook, InjectionItem, CustomResolver } from '@adi/core';
 
 export interface TransformHookOptions<T = any> {
   transform: (toTransform: T, ...args: any[]) => any;
@@ -11,24 +11,27 @@ function hasTransformFunction(transform: unknown): transform is TransformHookOpt
   return typeof (transform as TransformHookOptions).transform === 'function';
 }
 
-export const Transform = createHook((transformOrOptions: ((toTransform: any) => any) | TransformHookOptions) => {
-  let resolver: ReturnType<typeof createFunction>;
+export function Transform<NextValue, T = NextValue>(transformOrOptions: ((toTransform: NextValue) => T) | TransformHookOptions) {
+  let resolver: CustomResolver
   if (hasTransformFunction(transformOrOptions)) {
-    resolver = createFunction(transformOrOptions.transform, transformOrOptions.inject || []);
+    resolver = createCustomResolver({ kind: 'function', handler: transformOrOptions.transform, inject: transformOrOptions.inject });
   } else {
-    resolver = (_, [value]) => transformOrOptions(value);
+    resolver = createCustomResolver({ kind: 'function', handler: transformOrOptions })
   }
-
-  return (session, next) => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    return wait(
-      next(session),
-      value => {
-        return resolver(session, [value]);
+  
+  return Hook(
+    function transformHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<T> {
+      if (session.hasFlag('dry-run')) {
+        return next(session) as T;
       }
-    );
-  }
-}, { name: 'adi:hook:transform' });
+  
+      return wait(
+        next(session),
+        value => {
+          return resolver(session, value);
+        }
+      ) as T;
+    },
+    { name: 'adi:transform' }
+  )
+}

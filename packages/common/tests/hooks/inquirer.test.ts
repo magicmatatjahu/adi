@@ -1,5 +1,6 @@
 import { Injector, Inject, Injectable } from "@adi/core";
-import { Inquirer } from "../../src";
+
+import { Inquirer } from "../../src/hooks/inquirer";
 
 import type { OnInit } from '@adi/core';
 
@@ -8,7 +9,7 @@ describe('Inquirer injection hook', function () {
     @Injectable()
     class TestService {
       constructor(
-        @Inject([Inquirer()]) readonly inquirer: any,
+        @Inject(Inquirer()) readonly inquirer: any,
       ) {}
     }
 
@@ -22,9 +23,9 @@ describe('Inquirer injection hook', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
@@ -43,11 +44,11 @@ describe('Inquirer injection hook', function () {
       {
         provide: 'test',
         useFactory(inquirer: Service) { return { inquirer } },
-        inject: [[Inquirer()]],
+        inject: [Inquirer()],
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });
@@ -65,11 +66,11 @@ describe('Inquirer injection hook', function () {
       {
         provide: 'test',
         async useFactory(inquirer: Service) { return { inquirer } },
-        inject: [[Inquirer()]],
+        inject: [Inquirer()],
       },
-    ]).init() as Injector;
+    ])
 
-    const service = await injector.get(Service) as Service;
+    const service = await injector.get(Service)
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
   });
@@ -102,48 +103,12 @@ describe('Inquirer injection hook', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.service.inquirer).toBeInstanceOf(Service);
     expect(service.service.inquirer).toEqual(service);
-    expect(order).toEqual(['TestService', 'Service']);
-  });
-
-  test('should inject prototype', function () {
-    const order: string[] = [];
-
-    @Injectable()
-    class TestService implements OnInit {
-      constructor(
-        @Inject(Inquirer({ proto: true })) readonly inquirer: typeof Service,
-      ) {}
-
-      onInit(): void {
-        order.push('TestService');
-      }
-    }
-
-    @Injectable()
-    class Service {
-      constructor(
-        readonly service: TestService,
-      ) {}
-
-      onInit(): void {
-        order.push('Service');
-      }
-    }
-
-    const injector = Injector.create([
-      Service,
-      TestService,
-    ]).init() as Injector;
-
-    const service = injector.get(Service) as Service;
-    expect(service.service).toBeInstanceOf(TestService);
-    expect(service.service.inquirer === Service).toEqual(true);
     expect(order).toEqual(['TestService', 'Service']);
   });
 });

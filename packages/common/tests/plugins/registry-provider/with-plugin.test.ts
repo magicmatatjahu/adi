@@ -1,5 +1,7 @@
 import { ADI, Injector, Injectable, Inject, Hook, TransientScope } from "@adi/core";
-import { Provides, registryProviderPlugin } from "../../../src";
+
+import { Provides } from "../../../src/decorators/provides";
+import { registryProviderPlugin } from "../../../src/plugins/registry-provider.plugin";
 
 describe('Registry provider plugin', function () {
   const plugin = registryProviderPlugin();
@@ -35,9 +37,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
     });
@@ -72,9 +74,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.foobar).toEqual('foobar');
@@ -112,9 +114,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.foobar).toEqual('foobar');
@@ -151,9 +153,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.foobar).toEqual('foobar');
@@ -181,9 +183,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService === RegistryProvider).toEqual(true);
     });
@@ -217,9 +219,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService1).toBeInstanceOf(TestService1);
       expect(service.testService2).toBeInstanceOf(TestService2);
@@ -262,9 +264,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
       
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService1).toBeInstanceOf(Array);
       expect(service.testService1[0]).toBeInstanceOf(Service1);
@@ -299,9 +301,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
     });
@@ -337,9 +339,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.foobar).toEqual('foobar');
@@ -378,9 +380,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.foobar).toEqual('foobar');
@@ -418,9 +420,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.foobar).toEqual('foobar');
@@ -449,9 +451,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(RegistryProvider);
     });
@@ -479,12 +481,12 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service1 = injector.get(Service) as Service;
+      const service1 = injector.getSync(Service)
       expect(service1).toBeInstanceOf(Service);
       expect(service1.testService).toBeInstanceOf(RegistryProvider);
-      const service2 = injector.get(Service) as Service;
+      const service2 = injector.getSync(Service)
       expect(service2).toBeInstanceOf(Service);
       expect(service2.testService).toBeInstanceOf(RegistryProvider);
       expect(service1 === service2).toEqual(true);
@@ -518,12 +520,12 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service1 = injector.get(TestService) as TestService;
+      const service1 = injector.getSync(TestService);
       expect(service1).toBeInstanceOf(TestService);
       expect(service1.service).toBeInstanceOf(RegistryProvider);
-      const service2 = injector.get(TestService) as TestService;
+      const service2 = injector.getSync(TestService);
       expect(service2).toBeInstanceOf(TestService);
       expect(service2.service).toBeInstanceOf(RegistryProvider);
       expect(service1 === service2).toEqual(false);
@@ -559,12 +561,12 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service1 = injector.get(TestService) as TestService;
+      const service1 = injector.getSync(TestService);
       expect(service1).toBeInstanceOf(TestService);
       expect(service1.service).toBeInstanceOf(RegistryProvider);
-      const service2 = injector.get(TestService) as TestService;
+      const service2 = injector.getSync(TestService);
       expect(service2).toBeInstanceOf(TestService);
       expect(service2.service).toBeInstanceOf(RegistryProvider);
       expect(service1 === service2).toEqual(false);
@@ -601,9 +603,9 @@ describe('Registry provider plugin', function () {
         {
           useRegistry: RegistryProvider,
         },
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService1).toBeInstanceOf(TestService1);
       expect(service.testService2).toBeInstanceOf(TestService2);
@@ -648,9 +650,9 @@ describe('Registry provider plugin', function () {
       {
         useRegistry: RegistryProvider,
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1).toBeInstanceOf(TestService1);
     expect(service.testService1.service === RegistryProvider).toEqual(true);
@@ -696,9 +698,9 @@ describe('Registry provider plugin', function () {
       {
         useRegistry: RegistryProvider,
       },
-    ]).init() as Injector;
+    ])
     
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1).toBeInstanceOf(Array);
     expect(service.testService1[0]).toBeInstanceOf(Service1);

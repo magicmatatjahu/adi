@@ -20,27 +20,27 @@ export interface PooledScopeOptions {
 
 const poolMetaKey = 'adi:key:pool';
 
-function hasOnGetFromPool(instance: unknown): instance is OnPool {
-  return instance && typeof (instance as OnPool).onGetFromPool === 'function';
+function hasOnGetFromPool(instance: unknown): instance is { onGetFromPool: () => void | Promise<void> } {
+  return Boolean(instance && typeof (instance as OnPool).onGetFromPool === 'function');
 }
 
-function hasOnReturnToPool(instance: unknown): instance is OnPool {
-  return instance && typeof (instance as OnPool).onReturnToPool === 'function';
+function hasOnReturnToPool(instance: unknown): instance is { onReturnToPool: () => void | Promise<void> } {
+  return Boolean(instance && typeof (instance as OnPool).onReturnToPool === 'function');
 }
 
 export class PooledScope extends Scope<PooledScopeOptions> {
   protected pools = new WeakMap<ProviderDefinition, PoolContext>();
 
   override get name(): string {
-    return "adi:scope:pooled";
+    return "adi:pooled";
   }
 
   override getContext(session: Session, options: PooledScopeOptions): Context | Promise<Context> {
-    const definition = session.context.definition;
+    const definition = session.context.definition as ProviderDefinition;
     const pool = this.getPool(definition, options);
     
     // get context from the beginning - pool should behaves as fifo queue, first in first out
-    let maybePromise: Promise<void> | void;
+    let maybePromise: Promise<void> | void | undefined;
     let context = pool.free.shift();
     if (!context) {
       if (pool.capacity === pool.created) {
@@ -60,7 +60,7 @@ export class PooledScope extends Scope<PooledScopeOptions> {
     if (maybePromise) {
       return wait(
         maybePromise,
-        () => context,
+        () => context as Context,
       );
     }
     return context;
@@ -69,6 +69,9 @@ export class PooledScope extends Scope<PooledScopeOptions> {
   override async shouldDestroy(instance: ProviderInstance): Promise<boolean> {
     const { context, definition, value } = instance;
     const pool = this.pools.get(definition);
+    if (!pool) {
+      return false;
+    }
 
     let shouldDestroy: boolean = false;
     if (context.meta[poolMetaKey] === 'redundant') {
@@ -83,8 +86,8 @@ export class PooledScope extends Scope<PooledScopeOptions> {
     return shouldDestroy;
   };
 
-  override canBeOverrided(_: Session<any>, options: PooledScopeOptions): boolean {
-    return options.canBeOverrided;
+  override canBeOverrided(_: Session, options: PooledScopeOptions): boolean {
+    return options.canBeOverrided as boolean;
   }
 
   protected getPool(definition: ProviderDefinition, options: PooledScopeOptions): PoolContext {

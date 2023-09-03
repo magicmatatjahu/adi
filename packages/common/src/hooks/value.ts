@@ -1,4 +1,6 @@
-import { createHook, wait } from '@adi/core';
+import { Hook, wait } from '@adi/core';
+
+import type { Session, InjectionHookResult, NextInjectionHook } from '@adi/core';
 
 // copy from lodash
 const INFINITY = 1 / 0;
@@ -21,17 +23,20 @@ function getValue(value: object, path: string[]) {
   return index == length ? value : undefined;
 }
 
-export const Value = createHook((path: string = '') => {
+export function Value<NextValue>(path: string = '') {
   const props = path.split('.').filter(Boolean);
   
-  return (session, next) => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    return wait(
-      next(session),
-      value => getValue(value, props),
-    );
-  }
-}, { name: 'adi:hook:value' });
+  return Hook(
+    function valueHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue | object | undefined> {
+      if (session.hasFlag('dry-run')) {
+        return next(session);
+      }
+  
+      return wait(
+        next(session),
+        value => getValue(value as any, props),
+      );
+    },
+    { name: 'adi:value' }
+  )
+}

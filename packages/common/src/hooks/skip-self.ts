@@ -1,9 +1,9 @@
-import { createHook, wait } from '@adi/core';
+import { Hook, wait } from '@adi/core';
 
-import type { Injector, Session, NextInjectionHook } from '@adi/core';
+import type { Injector, Session, InjectionHookResult, NextInjectionHook } from '@adi/core';
 
 // TODO: what about metadatas/annotations applied by another hooks?
-// It should apply metadatas and go to the parent injector when definition is not found 
+// It should apply metadatas and go to the parent injector when definition is not found - preserve session options/metadata across all injector checks 
 function findInjector(session: Session, next: NextInjectionHook, hostInjector: Injector): Injector | Promise<Injector> {
   const forked = session.fork();
   forked.setFlag('dry-run');
@@ -13,7 +13,8 @@ function findInjector(session: Session, next: NextInjectionHook, hostInjector: I
     () => {
       const injector = forked.context.injector;
       if (injector === hostInjector) {
-        session.context.injector = injector.parent;
+        // accept null or undefined injector in tree
+        session.context.injector = injector.parent!;
         return findInjector(session, next, hostInjector);
       }
       return injector;
@@ -21,14 +22,17 @@ function findInjector(session: Session, next: NextInjectionHook, hostInjector: I
   );
 }
 
-function hook(session: Session, next: NextInjectionHook) {
-  return wait(
-    findInjector(session, next, session.context.injector),
-    injector => {
-      session.context.injector = injector;
-      return next(session);
+export function SkipSelf<NextValue>() {
+  return Hook(
+    function skipSelfHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
+      return wait(
+        findInjector(session, next, session.context.injector),
+        injector => {
+          session.context.injector = injector;
+          return next(session);
+        },
+      );
     },
-  );
+    { name: 'adi:skip-self' }
+  )
 }
-
-export const SkipSelf = createHook(() => hook, { name: 'adi:hook:skip-self' });

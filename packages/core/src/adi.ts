@@ -4,24 +4,28 @@ import type { Injector } from './injector';
 import type { Plugin, PluginState, Events, EventKind, EventHandler, EventHandlerRef, EventContext } from './types';
 
 export class ADI {
-  static coreInjector: Injector;
+  static core: Injector;
 
   protected static plugins: Map<string, PluginState> = new Map();
-  protected static handlers: Map<EventKind, Array<EventHandler>> = new Map();
+  protected static handlers: Map<EventKind, Array<EventHandler<any>>> = new Map();
   protected static _injectors: Set<Injector> = new Set();
 
   static get injectors() {
     return this._injectors;
   }
 
-  static use(plugin: Plugin): typeof ADI {
+  static use(plugin: Plugin, options?: { recreate: boolean }): typeof ADI {
     const name = plugin.name;
-    if (this.plugins.has(name)) {
-      return this;
+    const existingPlugin = this.getPlugin(name);
+    if (existingPlugin) {
+      if (!options?.recreate) {
+        return this;
+      }
+      this.destroy(name)
     }
 
     const handlers: Array<EventHandlerRef> = [];
-    const on = <K extends EventKind>(event: K, handler: EventHandler): EventHandlerRef => {
+    const on: typeof ADI.on = (event, handler) => {
       const ref = this.on(event, handler);
       handlers.push(this.on(event, handler));
       return ref;
@@ -42,7 +46,7 @@ export class ADI {
     return this;
   }
 
-  static on<K extends EventKind>(event: K, handler: EventHandler): EventHandlerRef {
+  static on<K extends EventKind>(event: K, handler: EventHandler<K>): EventHandlerRef {
     const handlers = this.getHandlers(event);
     handlers.push(handler);
 
@@ -80,7 +84,7 @@ export class ADI {
     return this.handlers.has(kind);
   }
 
-  protected static getHandlers(event: EventKind): Array<EventHandler> {
+  protected static getHandlers<K extends EventKind>(event: K): Array<EventHandler<K>> {
     let handlers = this.handlers.get(event);
     if (handlers === undefined) {
       this.handlers.set(event, (handlers = []));
@@ -98,10 +102,10 @@ function corePlugin(): Plugin {
   return {
     name: 'adi:plugin:core',
     install(adi) {
-      adi.on('module:add', ({ injector }) => {
+      adi.on('module:add', (_, { injector }) => {
         adi.injectors.add(injector);
       });
-      adi.on('module:destroy', ({ injector }) => {
+      adi.on('module:destroy', (_, { injector }) => {
         adi.injectors.delete(injector);
       });
     }
@@ -114,7 +118,7 @@ export function installADI(coreInjector: Injector) {
     return;
   }
   global.$$adi = ADI;
-  ADI.coreInjector = coreInjector;
+  ADI.core = coreInjector;
   ADI.use(corePlugin());
 }
 

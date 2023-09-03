@@ -37,7 +37,6 @@ export interface Events {
   'instance:destroy': OnInstanceDestroyPayload,
   'module:add': OnModuleAddPayload,
   'module:destroy': OnModuleDestroyPayload,
-  [event: string | symbol]: any; 
 }
 
 export interface EventContext {
@@ -46,7 +45,7 @@ export interface EventContext {
 
 export type EventKind = keyof Events;
 
-export type EventHandler<T = void> = (payload: Events[EventKind], ctx: EventContext) => T;
+export type EventHandler<K extends EventKind, T = void> = (payload: Events[K], ctx: EventContext) => T;
 
 export type EventHandlerRef = {
   unsubscribe: () => void;

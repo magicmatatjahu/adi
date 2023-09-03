@@ -13,7 +13,7 @@ export abstract class Scope<O> {
     instance: ProviderInstance,
     options: O,
     context: DestroyContext,
-  ): boolean | Promise<boolean>;
+  ): boolean | Promise<boolean>
 
   public canBeOverrided(
     session: Session,

@@ -6,8 +6,7 @@ import { createDefinition, getAllKeys, getDecoratorInfo, Reflection } from '@adi
 import { ADI_ENHANCERS_DEF } from '../constants';
 import { hasInjections } from '../utils';
 
-import type { Session, InjectionItem, InjectionMetadata, ProviderToken, ClassType } from '@adi/core';
-import type { Decorator } from '@adi/core/lib/utils';
+import type { Session, InjectionItem, InjectionMetadata, ProviderToken, ClassType, DecoratorContext } from '@adi/core';
 import type { EnhancerType, EnhancerKind, EnhancerMethod, EnhancersDefinition, EnhancerItem, EnhancersDefinitionMethod, EnhancersDefinitionPipe, ExtractorFactory, ArgumentMetadata, PipeTransformType } from './interfaces';
 
 export const enhancersDefinitions = createDefinition<EnhancersDefinition>(ADI_ENHANCERS_DEF, enhancersFactory);

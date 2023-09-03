@@ -1,5 +1,6 @@
 import { Injector, Inject, Injectable, Optional } from "@adi/core";
-import { Self } from "../../src/hooks";
+
+import { Self } from "../../src/hooks/self";
 
 describe('Self injection hook', function () {
   test('should inject service from self injector', function () {
@@ -15,16 +16,16 @@ describe('Self injection hook', function () {
         provide: 'useValue',
         useValue: 'foobar',
       },
-    ]).init() as Injector;
+    ])
     const childInjector = Injector.create([
       Service,
       {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector).init() as Injector;
+    ], undefined, parentInjector)
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.getSync(Service)
     expect(service.useValue).toEqual('barfoo');
   });
 
@@ -32,10 +33,7 @@ describe('Self injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('useValue', [
-          Optional(),
-          Self(),
-        ]) 
+        @Inject('useValue', Optional(), Self()) 
         readonly useValue: string,
       ) {}
     }
@@ -45,12 +43,12 @@ describe('Self injection hook', function () {
         provide: 'useValue',
         useValue: 'foobar',
       },
-    ]).init() as Injector;
+    ])
     const childInjector = Injector.create([
       Service,
-    ], undefined, parentInjector).init() as Injector;
+    ], undefined, parentInjector)
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.getSync(Service)
     expect(service.useValue).toEqual(undefined);
   });
 });

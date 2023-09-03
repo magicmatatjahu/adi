@@ -1,6 +1,6 @@
 import { wait, waitCallback, waitSequence } from '@adi/core';
 import { injectableDefinitions } from '@adi/core/lib/injector';
-import { getAllKeys } from '@adi/core/lib/utils';
+import { getAllKeys, noopThen } from '@adi/core/lib/utils';
 import { ExecutionContext, executionContextFactory, retrieveExecutionContextArguments, setExecutionContextArguments, isExecutionContextArgument } from './execution-context';
 import { enhancersDefinitions, addEnhancersByToken } from './definition';
 import { INTERCEPTORS, GUARDS, EXCEPTION_HANDLERS, PIPES } from './tokens';
@@ -21,7 +21,7 @@ export function injectEnhancers(provDefinition: ProviderDefinition) {
   }
 
   const injectableDef = injectableDefinitions.get(clazz);
-  const enhancers = injectableDef.options?.annotations?.enhancers;
+  const enhancers = injectableDef?.options?.annotations?.enhancers;
 
   applyGlobalEnhancers(definition, enhancers);
   const resolver = factory.resolver;
@@ -190,7 +190,7 @@ function applyExceptionHandlers(enhancers: Array<EnhancerItem>, next: NextEnhanc
 function runExceptionHandlers(handlers: Array<ExceptionHandler>, ctx: ExecutionContext, next: NextEnhancer) {
   return waitCallback(
     () => next(ctx),
-    undefined,
+    noopThen,
     error => runExceptionHandlers(
       handlers, ctx, () => handleExceptionHandlers(error, handlers, ctx),
     ),
@@ -239,7 +239,7 @@ function resolveEnhancers<T>(enhancers: Array<EnhancerItem>, session: Session): 
 }
 
 function flatAndFilter(value: Array<any | any[]>): any[] {
-  const flatted = [];
+  const flatted: any[] = [];
   value.forEach(v => {
     if (Array.isArray(v)) {
       flatted.push(...v)

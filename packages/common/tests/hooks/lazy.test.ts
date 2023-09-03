@@ -1,5 +1,7 @@
 import { Injector, Injectable, Inject, Ref } from "@adi/core";
-import { Decorate, Lazy } from "../../src/hooks";
+
+import { Decorate } from "../../src/hooks/decorate";
+import { Lazy } from "../../src/hooks/lazy";
 
 describe('Lazy injection hook', function () {
   test('should create lazy injection - normal injection.get(...) invocation', function () {
@@ -10,11 +12,11 @@ describe('Lazy injection hook', function () {
       {
         provide: Service,
         useClass: Service,
-        hooks: [Lazy()],
+        hooks: Lazy(),
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as () => Service;
+    const service = injector.getSync(Service) as () => Service;
     expect(service).toBeInstanceOf(Function);
     expect(service()).toBeInstanceOf(Service);
   });
@@ -25,16 +27,16 @@ describe('Lazy injection hook', function () {
 
     @Injectable()
     class Service {
-      @Inject(LazyService, [Lazy()])
+      @Inject(LazyService, Lazy())
       public lazyService: () => LazyService;
     }
 
     const injector = Injector.create([
       Service,
       LazyService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.lazyService).toBeInstanceOf(Function);
     expect(service.lazyService()).toBeInstanceOf(LazyService);
@@ -49,7 +51,7 @@ describe('Lazy injection hook', function () {
       public serviceB: ServiceB;
 
       constructor(
-        @Inject([
+        @Inject(
           Ref(() => ServiceB),
           Lazy(),
           Decorate({
@@ -60,7 +62,7 @@ describe('Lazy injection hook', function () {
               return value;
             },
           }),
-        ])
+        )
         readonly lazyServiceB: () => ServiceB,
       ) {
         serviceA = this;
@@ -81,7 +83,7 @@ describe('Lazy injection hook', function () {
       public calledFromServiceA: boolean = false;
 
       constructor(
-        @Inject([Ref(() => ServiceA)]) 
+        @Inject(Ref(() => ServiceA)) 
         readonly serviceA: ServiceA,
       ) {}
 
@@ -96,9 +98,9 @@ describe('Lazy injection hook', function () {
     const injector = Injector.create([
       ServiceA,
       ServiceB,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(ServiceA) as ServiceA;
+    const service = injector.getSync(ServiceA)
     expect(service).toBeInstanceOf(ServiceA);
     expect(service.lazyServiceB).toBeInstanceOf(Function);
     

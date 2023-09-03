@@ -1,9 +1,12 @@
 import { Injector, Injectable, Inject, Token } from "@adi/core";
-import { Override } from "../../../src";
+
+import { Override } from "../../../src/hooks/override";
+
+import type { Injections } from '@adi/core';
 
 describe('Without overrides plugin', function () {
   test('should not work', function () {
-    const overrides = {
+    const overrides: Injections = {
       parameters: [Token('parameter')],
       properties: {
         property: 'property',
@@ -53,9 +56,9 @@ describe('Without overrides plugin', function () {
       },
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(service.testService.parameter).toEqual('string');

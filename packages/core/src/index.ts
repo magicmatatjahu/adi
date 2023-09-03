@@ -50,7 +50,7 @@ initADI();
 
 export * from './decorators';
 export { Hook, All, Catch, Ctx, Destroyable, Named, New, OnDestroyHook, OnInitHook, Optional, Ref, Scoped, Skip, Tagged, Token } from './hooks';
-export { Context, Injector, Session, injectableMixin, moduleMixin, inject, injectMethod, runInInjectionContext, createFunction } from './injector';
+export { Context, Injector, Session, injectableMixin, moduleMixin, inject, injectMethod, runInInjectionContext, createCustomResolver } from './injector';
 export { Scope, DefaultScope, SingletonScope, TransientScope, createScope } from './scopes';
 export { InjectionToken, ModuleToken, token, argument } from './tokens';
 export { ref, resolveRef, wait, waitCallback, waitSequence, waitAll } from './utils';

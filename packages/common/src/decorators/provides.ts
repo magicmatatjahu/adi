@@ -1,8 +1,8 @@
 import { applyInject } from '@adi/core/lib/decorators/inject';
-import { getDecoratorInfo, createDefinition, Reflection } from '@adi/core/lib/utils';
+import { getDecoratorContext, createDefinition, Reflection } from '@adi/core/lib/utils';
 
 import type { ClassType, AbstractClassType } from '@adi/core';
-import type { ProvidesOptions, ProvideDefinition } from '../interfaces';
+import type { ProvidesOptions, ProvideDefinition } from '../types';
 
 export const ADI_PROVIDE_DEF = 'adi:definition:provide';
 
@@ -15,7 +15,7 @@ export function providesMixin(token: ClassType | AbstractClassType, method: { me
     isStatic = true;
   } else {
     methodName = method.methodName;
-    isStatic = method.static;
+    isStatic = method.static || false;
   }
 
   
@@ -34,12 +34,13 @@ function provideFactory(): ProvideDefinition {
 }
 
 export function Provides(options?: ProvidesOptions): MethodDecorator {
-  return function(target: Function, key: string | symbol, descriptor: PropertyDescriptor) {
-    const decoratorInfo = getDecoratorInfo(target, key, descriptor);
-    if (decoratorInfo.kind !== 'method') {
+  return function(target: Object, key: string | symbol, descriptor: PropertyDescriptor) {
+    const ctx = getDecoratorContext(target, key, descriptor);
+    if (ctx.kind !== 'method') {
       throw new Error('@Provides decorator can be only used on method level.');
     }
-    applyInject(decoratorInfo, {} as any);
-    providesMixin(target, { methodName: decoratorInfo.key, static: decoratorInfo.static }, options);
+
+    applyInject(ctx, {} as any);
+    providesMixin(target as ClassType, { methodName: ctx.key, static: ctx.static }, options);
   }
 }

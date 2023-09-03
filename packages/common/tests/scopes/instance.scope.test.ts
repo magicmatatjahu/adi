@@ -1,6 +1,6 @@
-import { Injector, Injectable, Inject, Ctx, Context, STATIC_CONTEXT, OnDestroy, Destroyable, DestroyableType, SingletonScope, TransientScope } from "@adi/core";
-import { InstanceScope, Scoped } from "../../src"
+import { Injector, Injectable, Inject, Ctx, Context, STATIC_CONTEXT, Scoped, OnDestroy, Destroyable, DestroyableType, SingletonScope, TransientScope } from "@adi/core";
 
+import { InstanceScope } from "../../src/scopes"
 import { wait } from "../helpers";
 
 describe('Instance scope', function () {
@@ -21,9 +21,9 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -50,9 +50,9 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
@@ -78,16 +78,16 @@ describe('Instance scope', function () {
       constructor(
         readonly newService1: TestService,
         readonly newService2: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
@@ -115,16 +115,16 @@ describe('Instance scope', function () {
       constructor(
         readonly newService1: TestService,
         readonly newService2: TestService,
-        @Inject([Ctx(ctx)]) readonly ctxService: TestService,
+        @Inject(Ctx(ctx)) readonly ctxService: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.newService1).toBeInstanceOf(TestService);
     expect(service.newService2).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
@@ -153,9 +153,9 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     const services1 = service.method();
     const services2 = service.method();
     expect(services1[0]).toBeInstanceOf(TestService);
@@ -179,16 +179,16 @@ describe('Instance scope', function () {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject([Scoped(SingletonScope)]) readonly singletonService: TestService,
+        @Inject(Scoped(SingletonScope)) readonly singletonService: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.singletonService).toBeInstanceOf(TestService);
     expect(service.service === service.singletonService).toEqual(false);
@@ -225,9 +225,9 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
 
     await injector.destroy();
@@ -266,7 +266,7 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
     injector.get(Service);
     injector.get(Service);
@@ -295,17 +295,17 @@ describe('Instance scope', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [Destroyable()]) public testService1: DestroyableType<TestService>,
-        @Inject(TestService, [Destroyable()]) public testService2: DestroyableType<TestService>,
+        @Inject(TestService, Destroyable()) public testService1: DestroyableType<TestService>,
+        @Inject(TestService, Destroyable()) public testService2: DestroyableType<TestService>,
       ) {}
     }
 
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.testService1.value).toBeInstanceOf(TestService);
     expect(service.testService2.value).toBeInstanceOf(TestService);
@@ -330,13 +330,13 @@ describe('Instance scope', function () {
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service, [Destroyable()]) as unknown as DestroyableType<Service>;
+    let service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
-    service = injector.get(Service, [Destroyable()]) as unknown as DestroyableType<Service>;
+    service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
@@ -372,13 +372,13 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service, [Destroyable()]) as unknown as DestroyableType<Service>;
+    let service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
-    service = injector.get(Service, [Destroyable()]) as unknown as DestroyableType<Service>;
+    service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     await service.destroy();
 
@@ -405,9 +405,9 @@ describe('Instance scope', function () {
     const injector = Injector.create([
       TestService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     service.method();
     service.method();
@@ -436,7 +436,7 @@ describe('Instance scope', function () {
     })
     class TransientInstance implements OnDestroy {
       constructor(
-        @Inject([Ctx(instanceCtx)]) public ctxService: InstanceService,
+        @Inject(Ctx(instanceCtx)) public ctxService: InstanceService,
         public service: InstanceService,
       ) {}
 
@@ -460,9 +460,9 @@ describe('Instance scope', function () {
       InstanceService,
       TransientInstance,
       Service,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     service.method();
 

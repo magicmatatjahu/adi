@@ -1,5 +1,6 @@
 import { Injector, Injectable } from "@adi/core";
-import { Provides } from "../../../src";
+
+import { Provides } from "../../../src/decorators/provides";
 
 describe('Without registry provider plugin', function () {
   test('should not work', function () {
@@ -40,7 +41,7 @@ describe('Without registry provider plugin', function () {
       {
         useRegistry: RegistryProvider,
       },
-    ]).init() as Injector;
+    ])
 
     expect(() => injector.get(TestService1)).toThrow();
     expect(() => injector.get(TestService2)).toThrow();

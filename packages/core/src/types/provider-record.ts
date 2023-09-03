@@ -2,7 +2,7 @@ import type { Context } from '../injector/context';
 import type { Injector } from '../injector/injector';
 import type { Session } from '../injector/session';
 import type { InjectionHook } from './hook';
-import type { InjectionArgument, InjectionArguments } from './injection';
+import type { InjectionArgument, InjectionArguments, InjectionItem } from './injection';
 import type { ProviderToken } from './provider-token';
 import type { ProviderType, ConstraintDefinition, ProviderAnnotations, ProviderDefinitionAnnotations, ProviderHookAnnotations } from './provider';
 import type { ScopeDefinition, ScopeType } from './scope';
@@ -80,3 +80,9 @@ export type FactoryResolver<R = any, D = any> = (injector: Injector, session: Se
 export type FactoryDefinitionClass<T = any> = FactoryDefinition<T, { class: ClassType<T>, inject: InjectionArguments }>;
 export type FactoryDefinitionFactory<T = any> = FactoryDefinition<T, { factory: (...args: any[]) => T | Promise<T>, inject: Array<InjectionArgument> }>;
 export type FactoryDefinitionValue<T = any> = FactoryDefinition<T, T>;
+
+export type CustomResolver<R = any> = (session: Session, ...args: any[]) => R | Promise<R>;
+
+export type CustomResolverOptions<T = any> = 
+  { kind: 'function', handler: (...args: any[]) => T | Promise<T>, inject?: InjectionItem[] } |
+  { kind: 'class', class: ClassType<T> }

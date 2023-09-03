@@ -1,5 +1,8 @@
 import { Injector, Inject, Injectable } from "@adi/core";
-import { Transform, TransformHookOptions } from "../../src";
+
+import { Transform } from "../../src/hooks/transform";
+
+import type { TransformHookOptions } from "../../src/hooks/transform";
 
 describe('Transform injection hook', function () {
   test('should transform returned value - injection based hook', function () {
@@ -17,16 +20,16 @@ describe('Transform injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Transform(transformer)]) readonly service: TestService,
+        @Inject(Transform(transformer)) readonly service: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -46,7 +49,7 @@ describe('Transform injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Transform(transformer)]) readonly service: TestService,
+        @Inject(Transform(transformer)) readonly service: TestService,
       ) {}
     }
 
@@ -57,9 +60,9 @@ describe('Transform injection hook', function () {
         provide: 'bar',
         useValue: 'bar',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service).toEqual('barfoo');
   });
 
@@ -91,10 +94,10 @@ describe('Transform injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
+        @Inject(
           Transform(transformer2),
           Transform(transformer1),
-        ]) 
+        ) 
         readonly service: TestService,
       ) {}
     }
@@ -107,9 +110,9 @@ describe('Transform injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service).toEqual('(foobar is awesome!)');
   });
 
@@ -137,11 +140,11 @@ describe('Transform injection hook', function () {
       TestService,
       {
         provide: TestService,
-        hooks: [Transform(transformer)],
+        hooks: Transform(transformer),
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service).toEqual('foobar');
   });
 
@@ -161,9 +164,9 @@ describe('Transform injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       },
-    ]).init() as Injector;
+    ])
 
-    const t = injector.get('test') as string;
+    const t = injector.getSync<string>('test')
     expect(t).toEqual('foobar!');
   });
 });

@@ -1,12 +1,15 @@
-import { createHook } from '@adi/core';
+import { Hook } from '@adi/core';
 
-import type { InjectionItem, Injections } from '@adi/core';
+import type { Session, InjectionHookResult, NextInjectionHook, InjectionItem, Injections } from '@adi/core';
 
 export const OVERRIDE_KEY = 'adi:key:override';
 
-export const Override = createHook((injections: Array<InjectionItem | undefined> | Injections) => {
-  return (session, next) => {
-    session.annotations[OVERRIDE_KEY] = injections;
-    return next(session);
-  }
-}, { name: 'adi:hook:override' });
+export function Override<NextValue>(injections: Array<InjectionItem | undefined> | Injections) {  
+  return Hook(
+    function overrideHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
+      session.annotations[OVERRIDE_KEY] = injections;
+      return next(session);
+    },
+    { name: 'adi:override' }
+  )
+}

@@ -1,35 +1,40 @@
-import { createHook } from '@adi/core';
+import { Hook } from "@adi/core";
 
 import { DELEGATE_KEY, DELEGATE_VALUE } from './delegate';
 
-export type FactoryType<T> = (...args: any[]) => T;
+import type { Session, InjectionHookResult, NextInjectionHook } from '@adi/core';
 
-export interface FactoryHookOptions {
-  delegations: Array<string | symbol | undefined>;
+export interface FactoryHookOptions { 
+  delegations: Array<string | symbol | undefined>; 
 }
 
-export const Factory = createHook((options?: FactoryHookOptions) => {
+export function Factory<NextValue>(options?: FactoryHookOptions) {
   const delegations = options?.delegations;
 
-  return (session, next) => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-  
-    return (...args: any[]) => {
-      // TODO: preserve session between calls - sometimes we can create two instances (by transient scope) but instance will be saved in one session - problem with destroying it
-      const newSession = session.fork();
-      const annotations = newSession.annotations;
-      if (delegations) {
-        const keys = {}; 
-        delegations.forEach((delegation, index) => (keys[delegation] = args[index]));
-        annotations[DELEGATE_KEY] = keys;
-      } else {
-        annotations[DELEGATE_KEY] = args;
+  return Hook(
+    function factoryHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<(...args: any[]) => NextValue | Promise<NextValue>> {
+      if (session.hasFlag('dry-run')) {
+        return next(session) as any;
       }
-      (annotations[DELEGATE_VALUE] = []).push(...args);
-      
-      return next(newSession);
-    }
-  }
-}, { name: 'adi:hook:factory' });
+    
+      return (...args: any[]) => {
+        // TODO: preserve session between calls - sometimes we can create two instances (by transient scope) but instance will be saved in one session - problem with destroying it
+        const newSession = session.fork();
+        const annotations = newSession.annotations;
+        if (delegations) {
+          const keys: Record<string | symbol, any> = {}; 
+          delegations.forEach((delegation, index) => {
+            delegation && (keys[delegation] = args[index])
+          });
+          annotations[DELEGATE_KEY] = keys;
+        } else {
+          annotations[DELEGATE_KEY] = args;
+        }
+        (annotations[DELEGATE_VALUE] = [] as any[]).push(...args);
+        
+        return next(newSession)
+      }
+    },
+    { name: 'adi:factory' }
+  )
+}

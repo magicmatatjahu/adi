@@ -12,3 +12,5 @@
 
 - how to not destroy instances in standalone resolver function which should be destroyed, e.g. transient instances? Maybe by metadata label `destroy: false`
 - handle in proper way all ModuleMetadata input in injector import/export
+
+- IMPORTANT: Change hooks execution from right to left (from last one to first)

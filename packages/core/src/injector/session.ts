@@ -26,10 +26,12 @@ export class Session<T = any> {
   }
 
   private flags: SessionFlag = SessionFlag.NONE;
+  
   public result: any;
   public deep: number = this.parent ? this.parent.deep + 1 : 0
   public readonly meta: Record<string | symbol, any> = {};
   public readonly children: Array<Session> = [];
+
   public readonly inject = this.injection.inject;
   public readonly metadata = this.injection.metadata;
 

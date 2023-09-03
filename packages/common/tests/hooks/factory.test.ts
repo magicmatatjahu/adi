@@ -1,5 +1,7 @@
-import { Injector, Inject, Injectable } from "@adi/core";
-import { Factory, Delegation, New } from "../../src";
+import { Injector, Inject, Injectable, New } from "@adi/core";
+
+import { Delegation } from "../../src/hooks/delegation";
+import { Factory } from "../../src/hooks/factory";
 
 describe('Factory injection hook', function () {
   test('should work - using the New hook', function () {
@@ -9,10 +11,7 @@ describe('Factory injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [
-          Factory(),
-          New(),
-        ])
+        @Inject(TestService, Factory(), New())
         readonly factory: () => TestService,
       ) {}
     }
@@ -20,9 +19,9 @@ describe('Factory injection hook', function () {
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     const testService1 = service.factory();
     const testService2 = service.factory();
     const testService3 = service.factory();
@@ -41,18 +40,15 @@ describe('Factory injection hook', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject([Delegation(0)]) readonly stringValue: string,
-        @Inject([Delegation(1)]) readonly numberValue: number,
+        @Inject(Delegation(0)) readonly stringValue: string,
+        @Inject(Delegation(1)) readonly numberValue: number,
       ) {}
     }
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [
-          Factory(),
-          New(),
-        ]) 
+        @Inject(TestService, Factory(), New()) 
         readonly factory: (str: string, nr: number) => TestService,
       ) {}
     }
@@ -64,9 +60,9 @@ describe('Factory injection hook', function () {
         provide: 'injected',
         useValue: 'injected value',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     const testService1 = service.factory("foo", 1);
     const testService2 = service.factory("bar", 2);
     expect(testService1 === testService2).toEqual(false);
@@ -82,9 +78,7 @@ describe('Factory injection hook', function () {
     @Injectable()
     class ServiceA {
       constructor(
-        @Inject('test', [
-          Factory(),
-        ]) 
+        @Inject('test', Factory()) 
         public readonly foobarFactory: () => string
       ) {}
     }
@@ -92,7 +86,8 @@ describe('Factory injection hook', function () {
     @Injectable()
     class ServiceB {
       constructor(
-        @Inject('test', [Factory()]) public readonly foobarFactory: () => string
+        @Inject('test', Factory()) 
+        public readonly foobarFactory: () => string
       ) {}
     }
 
@@ -111,16 +106,16 @@ describe('Factory injection hook', function () {
       {
         provide: 'test',
         useValue: 'foobar',
-        when(session) { return session.iMetadata.target === ServiceA; }
+        when(session) { return session.metadata.target === ServiceA; }
       },
       {
         provide: 'test',
         useValue: 'barfoo',
-        when(session) { return session.iMetadata.target === ServiceB; }
+        when(session) { return session.metadata.target === ServiceB; }
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.serviceA.foobarFactory()).toEqual('foobar');
     expect(service.serviceB.foobarFactory()).toEqual('barfoo');
   });
@@ -131,10 +126,7 @@ describe('Factory injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [
-          Factory(),
-          New(),
-        ])
+        @Inject(TestService, Factory(), New())
         readonly factory: () => Promise<TestService>,
       ) {}
     }
@@ -147,7 +139,7 @@ describe('Factory injection hook', function () {
           return new TestService();
         }
       },
-    ]).init() as Injector;
+    ])
 
     const service = await injector.get(Service);
     const testService1 = service.factory();
@@ -169,18 +161,15 @@ describe('Factory injection hook', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject([Delegation('foo')]) readonly stringValue: string,
-        @Inject([Delegation('bar')]) readonly numberValue: number,
+        @Inject(Delegation('foo')) readonly stringValue: string,
+        @Inject(Delegation('bar')) readonly numberValue: number,
       ) {}
     }
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [
-          Factory({ delegations: ['foo', 'bar'] }),
-          New(),
-        ]) 
+        @Inject(TestService, Factory({ delegations: ['foo', 'bar'] }), New()) 
         readonly factory: (str: string, nr: number) => TestService,
       ) {}
     }
@@ -192,9 +181,9 @@ describe('Factory injection hook', function () {
         provide: 'injected',
         useValue: 'injected value',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     const testService1 = service.factory("foo", 1);
     const testService2 = service.factory("bar", 2);
     expect(testService1 === testService2).toEqual(false);
@@ -211,18 +200,15 @@ describe('Factory injection hook', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject([Delegation()]) readonly stringValue: string,
-        @Inject([Delegation()]) readonly numberValue: number,
+        @Inject(Delegation()) readonly stringValue: string,
+        @Inject(Delegation()) readonly numberValue: number,
       ) {}
     }
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [
-          Factory(),
-          New(),
-        ]) 
+        @Inject(TestService, Factory(), New()) 
         readonly factory: (str: string, nr: number) => TestService,
       ) {}
     }
@@ -234,9 +220,9 @@ describe('Factory injection hook', function () {
         provide: 'injected',
         useValue: 'injected value',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     const testService1 = service.factory("foo", 1);
     const testService2 = service.factory("bar", 2);
     expect(testService1 === testService2).toEqual(false);
@@ -253,20 +239,17 @@ describe('Factory injection hook', function () {
     class TestService {
       constructor(
         @Inject('injected') public readonly injected: string, 
-        @Inject([Delegation('second-string')]) readonly stringValue2: string,
-        @Inject([Delegation('first-string')]) readonly stringValue1: string,
-        @Inject([Delegation()]) readonly numberValue: number,
+        @Inject(Delegation('second-string')) readonly stringValue2: string,
+        @Inject(Delegation('first-string')) readonly stringValue1: string,
+        @Inject(Delegation()) readonly numberValue: number,
       ) {}
     }
 
     @Injectable()
     class Service {
       constructor(
-        @Inject(TestService, [
-          Factory({ delegations: ['first-string', undefined, 'second-string'] }),
-          New(),
-        ]) 
-        readonly factory: (stringValue1: string, nr: number, stringValue2: string, ) => TestService,
+        @Inject(TestService, Factory({ delegations: ['first-string', undefined, 'second-string'] }), New()) 
+        readonly factory: (stringValue1: string, nr: number, stringValue2: string ) => TestService,
       ) {}
     }
 
@@ -277,9 +260,9 @@ describe('Factory injection hook', function () {
         provide: 'injected',
         useValue: 'injected value',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     const testService1 = service.factory("foo", 1, "bar");
     const testService2 = service.factory("bar", 2, "foo");
     expect(testService1 === testService2).toEqual(false);

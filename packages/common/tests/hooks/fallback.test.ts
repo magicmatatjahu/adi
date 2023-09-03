@@ -1,5 +1,7 @@
 import { Injector, Inject, Injectable } from "@adi/core";
-import { Fallback, Value } from "../../src";
+
+import { Fallback } from "../../src/hooks/fallback";
+import { Value } from "../../src/hooks/value";
 
 describe('Fallback injection hook', function () {
   test('should inject fallback provider when given provider does not exist in injector', function () {
@@ -9,7 +11,7 @@ describe('Fallback injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Fallback("token")]) readonly service: TestService
+        @Inject(Fallback("token")) readonly service: TestService
       ) {}
     }
 
@@ -19,9 +21,9 @@ describe('Fallback injection hook', function () {
         provide: "token",
         useValue: "foobar"
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toEqual("foobar");
   });
 
@@ -32,7 +34,7 @@ describe('Fallback injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Fallback("token")]) readonly service: TestService
+        @Inject(Fallback("token")) readonly service: TestService
       ) {}
     }
 
@@ -43,9 +45,9 @@ describe('Fallback injection hook', function () {
         provide: "token",
         useValue: "foobar"
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(TestService);
   });
 
@@ -56,12 +58,12 @@ describe('Fallback injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
+        @Inject(
           Fallback({
             token: 'token',
             hooks: [Value('a.b.c')],
           })
-        ]) 
+        ) 
         readonly service: TestService
       ) {}
     }
@@ -78,9 +80,9 @@ describe('Fallback injection hook', function () {
           }
         }
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toEqual("foobar");
   });
 
@@ -91,17 +93,17 @@ describe('Fallback injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Fallback('foobar')]) readonly service: TestService
+        @Inject(Fallback('foobar')) readonly service: TestService
       ) {}
     }
 
     const injector = Injector.create([
       Service,
-    ]).init() as Injector;
+    ])
 
-    let err, service;
+    let err: any, service: any;
     try {
-      service = injector.get(Service);
+      service = injector.getSync(Service);
     } catch(e) {
       err = e;
     }
@@ -122,9 +124,9 @@ describe('Fallback injection hook', function () {
         provide: Service,
         hooks: [Fallback('foobar')],
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service);
+    const service = injector.getSync(Service);
     expect(service).toEqual("foobar");
   });
 
@@ -135,7 +137,7 @@ describe('Fallback injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Fallback("token")]) readonly service: TestService
+        @Inject(Fallback("token")) readonly service: TestService
       ) {}
     }
 
@@ -145,7 +147,7 @@ describe('Fallback injection hook', function () {
         provide: "token",
         async useFactory() { return "foobar" },
       }
-    ]).init() as Injector;
+    ])
 
     const service = await injector.get(Service);
     expect(service.service).toEqual("foobar");

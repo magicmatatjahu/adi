@@ -12,25 +12,28 @@ export function isInjectionHook<T = any, R = any>(hooks: unknown): hooks is Inje
   return !!hooks[ADI_HOOK_DEF];
 }
 
-export function runInjectioHooks(hooks: Array<InjectionHook>, session: Session, ctx: InjectionHookContext, lastHook: NextInjectionHook) {
+export function runInjectioHooks(hooks: Array<InjectionHook>, session: Session, ctx: Partial<InjectionHookContext>, lastHook: NextInjectionHook) {
   if (hooks.length === 0) return lastHook(session);
-  return __runInjectioHooks([...hooks, lastHook as unknown as InjectionHook], session, -1, ctx);
+  hooks = [...hooks, lastHook as unknown as InjectionHook]
+  return __runInjectioHooks(hooks, session, -1, { ...ctx, hooks });
 }
 
-function __runInjectioHooks(hooks: Array<InjectionHook>, session: Session, index: number, ctx:InjectionHookContext) {
-  return hooks[++index](session, (s: Session) => __runInjectioHooks(hooks, s, index, ctx), ctx);
+function __runInjectioHooks(hooks: Array<InjectionHook>, session: Session, index: number, ctx: Partial<InjectionHookContext>) {
+  const current = hooks[++index];
+  return current(session, (s: Session) => __runInjectioHooks(hooks, s, index, ctx), { ...ctx, current } as InjectionHookContext);
 }
 
 export function runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord | null }>, session: Session, lastHook: NextInjectionHook) {
-  const ctx: InjectionHookContext = { kind: InjectionHookKind.PROVIDER };
   const last: { hook: InjectionHook, provider: ProviderRecord | null } = { hook: lastHook as unknown as InjectionHook, provider: null }
-  return __runInjectioHooksWithProviders([...hooks, last], session, -1, ctx);
+  hooks = [...hooks, last]
+  const ctx: Partial<InjectionHookContext> = { kind: InjectionHookKind.PROVIDER, hooks: hooks as any };
+  return __runInjectioHooksWithProviders(hooks, session, -1, ctx);
 }
 
-function __runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord | null }>, session: Session, index: number, ctx: InjectionHookContext) {
+function __runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord | null }>, session: Session, index: number, ctx: Partial<InjectionHookContext>) {
   const { hook, provider } = hooks[++index];
   session.context.injector = (session.context.provider = provider || undefined)?.host as Injector;
-  return hook(session, (s: Session) => __runInjectioHooksWithProviders(hooks, s, index, ctx), ctx);
+  return hook(session, (s: Session) => __runInjectioHooksWithProviders(hooks, s, index, ctx), { ...ctx, current: hook } as InjectionHookContext);
 }
 
 export function ExistingHook<NextValue, T>(token: ProviderToken<T>) {

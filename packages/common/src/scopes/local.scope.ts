@@ -1,7 +1,11 @@
 import { Context, createScope, Scope, SingletonScope, TransientScope, resolveRef } from '@adi/core';
 import { InstanceStatus } from '@adi/core/lib/enums';
+import { getScopeDefinition } from '@adi/core/lib/scopes';
 
 import type { Session, ProviderToken, ProviderInstance, DestroyContext, ForwardReference } from '@adi/core';
+
+const singletonDef = getScopeDefinition(SingletonScope)
+const transientDef = getScopeDefinition(TransientScope)
 
 export interface LocalScopeOptions {
   toToken?: ProviderToken | ForwardReference;
@@ -19,21 +23,23 @@ export class LocalScope extends Scope<LocalScopeOptions> {
   protected contexts = new WeakMap<Context | ProviderInstance, Context | ProviderInstance>();
 
   override get name(): string {
-    return "adi:scope:local";
+    return "adi:local";
   }
 
   override getContext(session: Session, options: LocalScopeOptions): Context | Promise<Context> {
     const parent = session.parent;
-    if (options.reuseContext === true && session.iOptions.context) {
-      return TransientScope.kind.getContext(session, options);
-    } else if (!session.parent) {
-      return SingletonScope.kind.getContext(session, SingletonScope.options);
+    if (options.reuseContext === true && session.inject.context) {
+      const { scope, options } = transientDef;
+      return scope!.getContext(session, options!);
+    } else if (!parent) {
+      const { scope, options } = singletonDef;
+      return scope!.getContext(session, options!);
     }
 
     // always treat scope as with side effects
     session.setFlag('side-effect');
 
-    let instance: ProviderInstance;
+    let instance: ProviderInstance | undefined;
     const depth = options.depth || 'nearest';
     const toToken = resolveRef(options.toToken) as ProviderToken;
     const toScope = options.toScope;
@@ -47,7 +53,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     // if instance doesn't exist then treat scope as Singleton
     if (!instance) {
-      return;
+      return Context.STATIC;
     }
 
     let context = this.contexts.get(instance) as Context;
@@ -59,12 +65,12 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return context;
   }
 
-  override shouldDestroy(instance: ProviderInstance, options: LocalScopeOptions, destroyCtx: DestroyContext): boolean | Promise<boolean> {
+  override shouldDestroy(instance: ProviderInstance, options: LocalScopeOptions, ctx: DestroyContext): boolean | Promise<boolean> {
     const context = instance.context;
 
     // if ctx doesn't exist in the Local scope treat scope as Transient
     if (this.contexts.has(context) === false) {
-      return TransientScope.kind.shouldDestroy(instance, options, destroyCtx);
+      return transientDef.scope!.shouldDestroy(instance, options, ctx);
     }
 
     // when no parent and only when local instance is previously destroyed
@@ -85,11 +91,11 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return false;
   };
 
-  override canBeOverrided(session: Session<any>, options: LocalScopeOptions): boolean {
-    return options.canBeOverrided;
+  override canBeOverrided(_: Session, options: LocalScopeOptions): boolean {
+    return options.canBeOverrided as boolean;
   }
 
-  protected retrieveInstanceByDepth(session: Session, goal: number, toToken: ProviderToken, toScope: string | symbol, depth: number = 0, instance?: ProviderInstance | undefined): ProviderInstance {
+  protected retrieveInstanceByDepth(session: Session | undefined, goal: number, toToken: ProviderToken, toScope: string | symbol | undefined, depth: number = 0, instance?: ProviderInstance | undefined): ProviderInstance | undefined {
     // if depth goal is achieved or parent session doesn't exist
     if (depth === goal || session === undefined) {
       return instance;
@@ -102,8 +108,8 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
   private retrieveInstance(session: Session, toToken?: ProviderToken, toScope?: string | symbol): ProviderInstance | undefined {
     const context = session.context;
-    const isProviderToken = context.provider.token === toToken;
-    const annotation = context.definition.annotations.localScope;
+    const isProviderToken = context.provider?.token === toToken;
+    const annotation = context.definition?.annotations.localScope;
     const instance = context.instance;
 
     // if annotations exists but scope hasn't any options

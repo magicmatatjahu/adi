@@ -1,8 +1,12 @@
-import { ADI, Injector, Injectable, Inject, Token, TransientScope } from "@adi/core";
-import { Override, Portal, overridesPlugin } from "../../../src";
+import { ADI, Injector, Injectable, Inject, Token } from "@adi/core";
+
+import { Override } from "../../../src/hooks/override";
+import { overridesPlugin } from "../../../src/plugins/overrides.plugin";
+
+import type { Injections } from '@adi/core';
 
 describe('Overrides plugin with Override injection hook', function () {
-  const plugin = overridesPlugin({ overrides: true, portal: true });
+  const plugin = overridesPlugin();
 
   beforeAll(() => {
     ADI.use(plugin);
@@ -14,7 +18,7 @@ describe('Overrides plugin with Override injection hook', function () {
 
   describe('Override injection hook', function() {
     test('should work', function () {
-      const overrides = {
+      const overrides: Injections = {
         parameters: [Token('parameter')],
         properties: {
           property: 'property',
@@ -63,9 +67,9 @@ describe('Overrides plugin with Override injection hook', function () {
         },
         Service,
         TestService,
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
       expect(service.testService.parameter).toEqual('parameter injection');
@@ -104,9 +108,9 @@ describe('Overrides plugin with Override injection hook', function () {
         HelperService,
         TestService,
         Service,
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service);
       const helpService = injector.get(HelperService);
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
@@ -146,9 +150,9 @@ describe('Overrides plugin with Override injection hook', function () {
         },
         HelperService,
         Service,
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       expect(service).toBeInstanceOf(Service);
       expect(service.foobar).toBeInstanceOf(Array);
       expect(service.foobar[0]).toBeInstanceOf(HelperService);
@@ -207,9 +211,9 @@ describe('Overrides plugin with Override injection hook', function () {
         HelperService,
         TestService,
         Service,
-      ]).init() as Injector;
+      ])
   
-      const service = injector.get(Service) as Service;
+      const service = injector.getSync(Service)
       const helpService = injector.get(HelperService);
       expect(service).toBeInstanceOf(Service);
       expect(service.testService).toBeInstanceOf(TestService);
@@ -223,136 +227,6 @@ describe('Overrides plugin with Override injection hook', function () {
       expect(args[0]).toEqual(helpService);
       expect(args[0]).toBeInstanceOf(HelperService);
       expect(args[1]).toEqual('argument injection');
-    });
-  });
-
-  describe('Portal injection hook', function() {
-    test('should work with simple graph - dependency in this same injector', function () {
-      @Injectable({
-        scope: TransientScope,
-      })
-      class TestService {
-        constructor(
-          @Inject('foobar') readonly foobar: string,
-        ) {}
-      }
-  
-      @Injectable()
-      class Service {
-        constructor(
-          readonly service: TestService,
-          @Inject(Portal()) readonly portalService: TestService,
-        ) {}
-      }
-  
-      const parentInjector = Injector.create([
-        TestService,
-        {
-          provide: 'foobar',
-          useValue: 'parent foobar',
-        }
-      ]).init() as Injector;
-      const childInjector = Injector.create([
-        Service,
-        {
-          provide: 'foobar',
-          useValue: 'child foobar',
-        }
-      ], undefined, parentInjector).init() as Injector;
-  
-      const service = childInjector.get(Service) as Service;
-      expect(service.service).toBeInstanceOf(TestService);
-      expect(service.portalService).toBeInstanceOf(TestService);
-      expect(service.service === service.portalService).toEqual(false);
-      expect(service.service.foobar).toEqual('parent foobar');
-      expect(service.portalService.foobar).toEqual('child foobar');
-    });
-
-    test('should work with simple graph - dependency in deep injector', function () {
-      @Injectable({
-        scope: TransientScope,
-      })
-      class TestService {
-        constructor(
-          @Inject('foobar') readonly foobar: string,
-        ) {}
-      }
-  
-      @Injectable()
-      class Service {
-        constructor(
-          readonly service: TestService,
-        ) {}
-      }
-  
-      const parentInjector = Injector.create([
-        TestService,
-        Service,
-        {
-          provide: 'foobar',
-          useValue: 'parent foobar',
-        }
-      ]).init() as Injector;
-      const childInjector = Injector.create([
-        {
-          provide: 'foobar',
-          useValue: 'child foobar',
-        }
-      ], undefined, parentInjector).init() as Injector;
-  
-      const service = childInjector.get(Service, Portal()) as Service;
-      expect(service.service).toBeInstanceOf(TestService);
-      expect(service.service.foobar).toEqual('child foobar');
-    });
-
-    test('should work with complex graph - using deep option', function () {
-      @Injectable({
-        scope: TransientScope,
-      })
-      class DeepService {
-        constructor(
-          @Inject('foobar') readonly foobar: string,
-        ) {}
-      }
-
-      @Injectable({
-        scope: TransientScope,
-      })
-      class TestService {
-        constructor(
-          @Inject('foobar') readonly foobar: string,
-          readonly deepService: DeepService,
-        ) {}
-      }
-  
-      @Injectable()
-      class Service {
-        constructor(
-          readonly service: TestService,
-        ) {}
-      }
-  
-      const parentInjector = Injector.create([
-        DeepService,
-        TestService,
-        Service,
-        {
-          provide: 'foobar',
-          useValue: 'parent foobar',
-        }
-      ]).init() as Injector;
-      const childInjector = Injector.create([
-        {
-          provide: 'foobar',
-          useValue: 'child foobar',
-        }
-      ], undefined, parentInjector).init() as Injector;
-  
-      const service = childInjector.get(Service, Portal({ deep: true })) as Service;
-      expect(service.service).toBeInstanceOf(TestService);
-      expect(service.service.foobar).toEqual('child foobar');
-      expect(service.service.deepService).toBeInstanceOf(DeepService);
-      expect(service.service.deepService.foobar).toEqual('child foobar');
     });
   });
 });

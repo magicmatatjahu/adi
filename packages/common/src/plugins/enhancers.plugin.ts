@@ -1,21 +1,19 @@
 import { injectEnhancers } from '../enhancers/apply';
 
-import type { ADIPlugin } from '@adi/core';
+import type { Plugin } from '@adi/core';
 
 export interface EnhancersPluginOptions {}
 
-export function enhancersPlugin(): ADIPlugin {
+export function enhancersPlugin(): Plugin {
   return {
-    name: 'adi:plugin:enhancers',
-    install(adi, { unsubscribers }) {
-      unsubscribers.push(
-        adi.on('provider:create', ({ definition }) => {
-          if (!definition) {
-            return;
-          }
-          injectEnhancers(definition);
-        }),
-      );
+    name: 'adi:enhancers',
+    install(_, { on }) {
+      on('provider:add', ({ definition }) => {
+        if (!definition) {
+          return;
+        }
+        injectEnhancers(definition);
+      });
     }
   }
 }

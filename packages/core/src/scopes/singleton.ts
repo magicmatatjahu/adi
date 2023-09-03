@@ -38,11 +38,11 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
     return STATIC_CONTEXT;
   }
 
-  override shouldDestroy(instance: ProviderInstance, options: SingletonScopeOptions, destroyCtx: DestroyContext): boolean {
+  override shouldDestroy(instance: ProviderInstance, options: SingletonScopeOptions, ctx: DestroyContext): boolean {
     const noParents = !instance.parents?.size;
     
     if (!options.perInjector) {
-      return destroyCtx.event === 'injector' && noParents;
+      return ctx.event === 'injector' && noParents;
     }
     
     const context = instance.context;

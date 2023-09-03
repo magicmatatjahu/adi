@@ -15,7 +15,7 @@ export interface PluginState {
 
 export interface InstallPluginContext {
   state: PluginState;
-  on<K extends EventKind>(event: K, handler: EventHandler): EventHandlerRef
+  on<K extends EventKind>(event: K, handler: EventHandler<K>): EventHandlerRef
 }
 
 export interface DestroyPluginContext {

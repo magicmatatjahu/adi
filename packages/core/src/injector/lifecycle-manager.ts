@@ -4,13 +4,13 @@ import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey, scopedI
 import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../utils';
 
 import type { Injector, Session } from '../injector';
-import type { ProviderRecord, ProviderDefinition, ProviderInstance, DestroyContext } from '../types';
+import type { ProviderRecord, ProviderDefinition, ProviderInstance, DestroyContext, CustomResolver } from '../types';
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   const { annotations, context } = session;
   const injector = context.injector;
   const value = instance.value;
-  const hooks: undefined | Array<Function> = annotations[initHooksMetaKey];
+  const hooks: undefined | Array<CustomResolver> = annotations[initHooksMetaKey];
   if (!hooks) {
     ADI.emit('instance:create', { session, instance }, { injector })
     if (hasOnInitLifecycle(value)) {
@@ -27,7 +27,7 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   ADI.emit('instance:create', { session, instance }, { injector })
   return waitSequence(
     hooks.reverse(), 
-    hook => hook(session, [value]),
+    hook => hook(session, value),
   );
 }
 
@@ -53,7 +53,7 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   }
   
   const meta = instance.meta;
-  const hooks: undefined | Array<Function> = meta[destroyHooksMetaKey];
+  const hooks: undefined | Array<CustomResolver> = meta[destroyHooksMetaKey];
   if (!hooks) {
     return;
   }
@@ -63,7 +63,7 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   ADI.emit('instance:destroy', { session, instance }, { injector });
 
   for (let i = 0, l = hooks.length; i < l; i++) {
-    await hooks[i](session, [value]);
+    await hooks[i](session, value);
   }
 }
 

@@ -1,35 +1,24 @@
-import { createHook } from "@adi/core";
+import { Hook } from '@adi/core';
 import { resolveInstance } from "@adi/core/lib/injector/resolver";
 
-export interface InquirerHookOptions {
-  proto?: boolean
-}
+import type { Session, InjectionHookResult, NextInjectionHook } from '@adi/core';
 
-export const Inquirer = createHook((options?: InquirerHookOptions) => {
-  const proto = Boolean(options?.proto);
-
-  return (session, next) => {
-    if (proto) {
+export function Inquirer<T = any>() {  
+  return Hook(
+    function inquirerHook(session: Session, next: NextInjectionHook): InjectionHookResult<T> {
+      if (session.hasFlag('dry-run')) {
+        return next(session);
+      }
+  
       const inquirerSession = session.parent?.parent;
       if (inquirerSession === undefined) {
-        return;
+        return undefined as T;
       }
-
-      const def = inquirerSession.context.definition;
-      return def.factory.data.class
-    }
-
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    const inquirerSession = session.parent?.parent;
-    if (inquirerSession === undefined) {
-      return;
-    }
-    
-    Object.assign(session.injection.options, inquirerSession.injection.options);
-    Object.assign(session.context, inquirerSession.context);
-    return resolveInstance(session);
-  }
-}, { name: 'adi:hook:inquirer' });
+      
+      Object.assign(session.injection.inject, inquirerSession.injection.inject);
+      Object.assign(session.context, inquirerSession.context);
+      return resolveInstance(session) as T;
+    },
+    { name: 'adi:inquirer' }
+  )
+}

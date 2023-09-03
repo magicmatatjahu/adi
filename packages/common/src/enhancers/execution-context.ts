@@ -28,7 +28,7 @@ export class ExecutionContext<K extends keyof ExecutionContextKind = keyof Execu
       data,
       [ExecutionContextArgumentSymbol]: true,
     }
-    return method.apply(instance, [argument]);
+    return method.apply(instance, [argument] as any);
   }
   
   public [ExecutionContextArgumentsSymbol]: any[];

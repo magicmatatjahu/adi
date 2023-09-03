@@ -1,5 +1,6 @@
-import { Injector, Injectable, Inject, createHook } from "@adi/core";
-import { Config } from "../../src";
+import { Injector, Injectable, Inject } from "@adi/core";
+
+import { Config } from "../../src/hooks/config";
 
 describe('Config injection hook', function () {
   test('should work as self token', function () {

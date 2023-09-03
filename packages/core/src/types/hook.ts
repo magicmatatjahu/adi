@@ -11,6 +11,8 @@ export type NextInjectionHook<T = any> = (session: Session) => InjectionHookResu
 
 export interface InjectionHookContext {
   kind: InjectionHookKind;
+  hooks: InjectionHook[];
+  current: InjectionHook;
 }
 
 export interface InjectionHookOptions {

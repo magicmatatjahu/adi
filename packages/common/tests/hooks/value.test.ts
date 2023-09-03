@@ -1,13 +1,14 @@
 import { Injector, Inject, Injectable } from "@adi/core";
-import { Value } from "../../src/hooks";
+
+import { Value } from "../../src/hooks/value";
 
 describe('Value injection hook', function() {
   test('should return given deep value from object', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [Value('a.b.c')]) readonly value1: string,
-        @Inject('token', [Value('a.d')]) readonly value2: string,
+        @Inject('token', Value('a.b.c')) readonly value1: string,
+        @Inject('token', Value('a.d')) readonly value2: string,
       ) {}
     }
 
@@ -24,9 +25,9 @@ describe('Value injection hook', function() {
           }
         },
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service).toBeInstanceOf(Service);
     expect(service.value1).toEqual('foo');
     expect(service.value2).toEqual('bar');
@@ -36,8 +37,8 @@ describe('Value injection hook', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [Value('a.b.0.c')]) readonly value1: string,
-        @Inject('token', [Value('a.b.1.d')]) readonly value2: string,
+        @Inject('token', Value('a.b.0.c')) readonly value1: string,
+        @Inject('token', Value('a.b.1.d')) readonly value2: string,
       ) {}
     }
 
@@ -58,9 +59,9 @@ describe('Value injection hook', function() {
           }
         },
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.value1).toEqual('foo');
     expect(service.value2).toEqual('bar');
@@ -70,8 +71,8 @@ describe('Value injection hook', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [Value('a.b.0.c')]) readonly value1: string,
-        @Inject('token', [Value('a.b.1.e')]) readonly value2: string,
+        @Inject('token', Value('a.b.0.c')) readonly value1: string,
+        @Inject('token', Value('a.b.1.e')) readonly value2: string,
       ) {}
     }
 
@@ -92,9 +93,9 @@ describe('Value injection hook', function() {
           }
         },
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.value1).toEqual('foo');
     expect(service.value2).toEqual(undefined);
@@ -104,7 +105,7 @@ describe('Value injection hook', function() {
     @Injectable()
     class Service {
       constructor(
-        @Inject('token', [Value()]) readonly value1: string,
+        @Inject('token', Value()) readonly value1: string,
       ) {}
     }
 
@@ -121,9 +122,9 @@ describe('Value injection hook', function() {
           }
         },
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.value1).toEqual({
       a: {

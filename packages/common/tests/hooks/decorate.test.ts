@@ -1,5 +1,10 @@
-import { Injector, Injectable, Inject, createHook } from "@adi/core";
-import { Decorate, DECORATE_KEY, DecorateHookOptions, Delegation, Fallback } from "../../src";
+import { Injector, Injectable, Inject, Hook } from "@adi/core";
+
+import { Decorate, DECORATE_KEY } from "../../src/hooks/decorate";
+import { Delegation } from "../../src/hooks/delegation";
+import { Fallback } from "../../src/hooks/fallback";
+
+import type { DecorateHookOptions } from "../../src/hooks/decorate";
 
 describe('Decorate injection hook', function () {
   test('should decorate provider - injection based hook with function case', function () {
@@ -17,16 +22,17 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Decorate(functionDecorator)]) readonly service: TestService,
+        @Inject(Decorate(functionDecorator)) 
+        readonly service: TestService,
       ) {}
     }
 
     const injector = Injector.create([
       Service,
       TestService,
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toEqual('foobar');
   });
 
@@ -46,7 +52,8 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Decorate(functionDecorator)]) readonly service: TestService,
+        @Inject(Decorate(functionDecorator)) 
+        readonly service: TestService,
       ) {}
     }
 
@@ -57,9 +64,9 @@ describe('Decorate injection hook', function () {
         provide: 'bar',
         useValue: 'bar',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toEqual('barfoo');
   });
 
@@ -91,10 +98,7 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
-          Decorate(decorator2), 
-          Decorate(decorator1),
-        ]) 
+        @Inject(Decorate(decorator2), Decorate(decorator1)) 
         readonly service: TestService,
       ) {}
     }
@@ -107,9 +111,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toEqual('(foobar is awesome!)');
   });
 
@@ -125,7 +129,7 @@ describe('Decorate injection hook', function () {
     class DecoratorService implements TestService {
       constructor(
         @Inject('exclamation') readonly exclamation: string,
-        @Inject([Delegation(DECORATE_KEY)]) public decorated: any,
+        @Inject(Delegation(DECORATE_KEY)) public decorated: any,
       ) {}
 
       method() {
@@ -136,7 +140,7 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Decorate(DecoratorService)]) readonly service: TestService,
+        @Inject(Decorate(DecoratorService)) readonly service: TestService,
       ) {}
     }
 
@@ -147,9 +151,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -165,7 +169,7 @@ describe('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation(DECORATE_KEY)])
+      @Inject(Delegation(DECORATE_KEY))
       public decorated: any;
 
       constructor(
@@ -180,7 +184,7 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Decorate(DecoratorService)]) readonly service: TestService,
+        @Inject(Decorate(DecoratorService)) readonly service: TestService,
       ) {}
     }
 
@@ -191,9 +195,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -217,7 +221,7 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class DecoratorService1 implements TestService {
       constructor(
-        @Inject([Delegation(DECORATE_KEY)]) public decorated: any,
+        @Inject(Delegation(DECORATE_KEY)) public decorated: any,
         public service: AwesomeService,
       ) {}
 
@@ -230,7 +234,7 @@ describe('Decorate injection hook', function () {
     class DecoratorService2 implements TestService {
       constructor(
         @Inject('exclamation') readonly exclamation: string,
-        @Inject([Delegation(DECORATE_KEY)]) public decorated: any,
+        @Inject(Delegation(DECORATE_KEY)) public decorated: any,
       ) {}
 
       method() {
@@ -241,10 +245,7 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
-          Decorate(DecoratorService2), 
-          Decorate(DecoratorService1)
-        ])
+        @Inject(Decorate(DecoratorService2), Decorate(DecoratorService1))
         readonly service: TestService,
       ) {}
     }
@@ -257,9 +258,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService2);
     expect((service.service as DecoratorService2).decorated).toBeInstanceOf(DecoratorService1);
     expect(service.service.method()).toEqual('(foobar is awesome!)');
@@ -289,11 +290,11 @@ describe('Decorate injection hook', function () {
       TestService,
       {
         provide: TestService,
-        hooks: [Decorate(functionDecorator)],
+        hooks: Decorate(functionDecorator),
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toEqual('foobar');
   });
 
@@ -307,7 +308,7 @@ describe('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation(DECORATE_KEY)])
+      @Inject(Delegation(DECORATE_KEY))
       public decorated: TestService;
 
       constructor(
@@ -337,9 +338,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -347,13 +348,13 @@ describe('Decorate injection hook', function () {
 
   test('should decorate provider with custom hook on delegate injection', function () {
     let called: boolean = false;
-    const TestHook = createHook(() => {
-      return (session, next) => {
+    function TestHook<NextValue>() {
+      return Hook<NextValue, NextValue>((session, next) => {
         const value = next(session);
         called = true;
         return value;
-      }
-    });
+      });
+    }
 
     @Injectable()
     class TestService {
@@ -364,10 +365,7 @@ describe('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([
-        TestHook(),
-        Delegation(DECORATE_KEY),
-      ])
+      @Inject(TestHook(), Delegation(DECORATE_KEY))
       public decorated: TestService;
 
       constructor(
@@ -391,15 +389,15 @@ describe('Decorate injection hook', function () {
       TestService,
       {
         provide: TestService,
-        hooks: [Decorate(DecoratorService)],
+        hooks: Decorate(DecoratorService),
       },
       {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -420,7 +418,7 @@ describe('Decorate injection hook', function () {
         @Inject('exclamation') readonly exclamation: string,
       ) {}
 
-      method(@Inject([Delegation(DECORATE_KEY)]) decorated?: TestService): string {
+      method(@Inject(Delegation(DECORATE_KEY)) decorated?: TestService): string {
         return decorated?.method() + 'bar' + this.exclamation;
       }
     }
@@ -437,15 +435,15 @@ describe('Decorate injection hook', function () {
       TestService,
       {
         provide: TestService,
-        hooks: [Decorate(DecoratorService)],
+        hooks: Decorate(DecoratorService),
       },
       {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect(service.service.method()).toEqual('foobar!');
   });
@@ -466,9 +464,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       },
-    ]).init() as Injector;
+    ])
 
-    const t = injector.get('test') as string;
+    const t = injector.getSync<string>('test')
     expect(t).toEqual('foobar!');
   });
 
@@ -478,7 +476,8 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class DecoratorService {
       constructor(
-        @Inject([Delegation(DECORATE_KEY)]) readonly service: any,
+        @Inject(Delegation(DECORATE_KEY)) 
+        readonly service: any,
       ) {}
     }
 
@@ -494,9 +493,9 @@ describe('Decorate injection hook', function () {
           Decorate(DecoratorService),
         ],
       },
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as DecoratorService;
+    const service = injector.getSync(Service)
     expect(service).toEqual('foobar');
   });
 
@@ -512,7 +511,7 @@ describe('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation(DECORATE_KEY)])
+      @Inject(Delegation(DECORATE_KEY))
       public decorated: TestService;
 
       constructor(
@@ -545,9 +544,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service);
     expect(service.service1).toBeInstanceOf(DecoratorService);
     expect((service.service1 as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service1.method()).toEqual('foobar!');
@@ -565,7 +564,7 @@ describe('Decorate injection hook', function () {
 
     @Injectable()
     class DecoratorService implements TestService {
-      @Inject([Delegation('customKey')])
+      @Inject(Delegation('customKey'))
       public decorated: any;
 
       constructor(
@@ -580,12 +579,12 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([
+        @Inject(
           Decorate({
             class: DecoratorService,
             delegationKey: 'customKey',
           })
-        ]) 
+        ) 
         readonly service: TestService,
       ) {}
     }
@@ -597,9 +596,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');
@@ -609,7 +608,8 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class TestService {
       public calledTimes: number = 0;
-      @Inject('useFactory') proto: TestService;
+      @Inject('useFactory') 
+      proto: TestService;
     }
 
     @Injectable()
@@ -657,7 +657,7 @@ describe('Decorate injection hook', function () {
         provide: 'useFactory',
         useFactory: async () => { return Object.create(TestService.prototype) },
       }
-    ]).init() as Injector;
+    ])
   
     const service = await injector.get(Service);
 
@@ -752,7 +752,8 @@ describe('Decorate injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject([Decorate(DecoratorService)]) readonly service: TestService,
+        @Inject(Decorate(DecoratorService))
+        readonly service: TestService,
       ) {}
     }
 
@@ -763,9 +764,9 @@ describe('Decorate injection hook', function () {
         provide: 'exclamation',
         useValue: '!',
       }
-    ]).init() as Injector;
+    ])
 
-    const service = injector.get(Service) as Service;
+    const service = injector.getSync(Service)
     expect(service.service).toBeInstanceOf(DecoratorService);
     expect((service.service as DecoratorService).decorated).toBeInstanceOf(TestService);
     expect(service.service.method()).toEqual('foobar!');

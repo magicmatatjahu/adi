@@ -1,7 +1,7 @@
 import { Injector, Injectable, TransientScope, Destroyable, DestroyableType } from "@adi/core";
-import { PooledScope } from "../../src"
+import { PooledScope } from "../../src/scopes"
 
-import type { OnPool } from '../../src';
+import type { OnPool } from '../../src/scopes';
 
 describe('Pooled scope', function () {
   test('should create new instances for every new inject', function () {
@@ -34,9 +34,9 @@ describe('Pooled scope', function () {
       PoolService,
       TempService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service) as Service;
+    let service = injector.getSync(Service)
     expect(service).toBeInstanceOf(Service);
     expect(service.service1).toBeInstanceOf(TempService);
     expect(service.service2).toBeInstanceOf(TempService);
@@ -73,15 +73,15 @@ describe('Pooled scope', function () {
     const injector = Injector.create([
       PoolService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    let service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(service.value.poolService1).toBeInstanceOf(PoolService);
     expect(service.value.poolService2).toBeInstanceOf(PoolService);
     await service.destroy();
 
-    service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(service.value.poolService1).toBeInstanceOf(PoolService);
     expect(service.value.poolService2).toBeInstanceOf(PoolService);
@@ -122,16 +122,16 @@ describe('Pooled scope', function () {
     const injector = Injector.create([
       PoolService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    let service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(service.value.poolService1).toBeInstanceOf(PoolService);
     expect(service.value.poolService2).toBeInstanceOf(PoolService);
     expect(service.value.poolService3).toBeInstanceOf(PoolService);
     await service.destroy();
 
-    service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(service.value.poolService1).toBeInstanceOf(PoolService);
     expect(service.value.poolService2).toBeInstanceOf(PoolService);
@@ -185,16 +185,16 @@ describe('Pooled scope', function () {
     const injector = Injector.create([
       PoolService,
       Service,
-    ]).init() as Injector;
+    ])
 
-    let service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    let service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(service.value.poolService1).toBeInstanceOf(PoolService);
     expect(service.value.poolService2).toBeInstanceOf(PoolService);
     expect(service.value.poolService3).toBeInstanceOf(PoolService);
     await service.destroy();
 
-    service = injector.get(Service, Destroyable()) as unknown as DestroyableType<Service>;
+    service = injector.getSync(Service, Destroyable())
     expect(service.value).toBeInstanceOf(Service);
     expect(service.value.poolService1).toBeInstanceOf(PoolService);
     expect(service.value.poolService2).toBeInstanceOf(PoolService);

@@ -1,23 +1,26 @@
-import { createHook, wait } from '@adi/core';
+import { Hook, wait } from '@adi/core';
 
-export type LazyType<T = any> = () => T;
+import type { Session, InjectionHookResult, NextInjectionHook } from '@adi/core';
 
-export const Lazy = createHook(() => {
-  return (session, next) => {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    let value: any, resolved = false;
-    return () => {
-      if (resolved === false) {
-        resolved = true;
-        return value = wait(
-          next(session),
-          v => value = v,
-        );
+export function Lazy<NextValue>() {  
+  return Hook(
+    function lazyHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<() => NextValue> {
+      if (session.hasFlag('dry-run')) {
+        return next(session) as any;
       }
-      return value;
-    };
-  }
-}, { name: 'adi:hook:lazy' });
+  
+      let value: any, resolved = false;
+      return () => {
+        if (resolved === false) {
+          resolved = true;
+          return value = wait(
+            next(session),
+            v => value = v,
+          );
+        }
+        return value;
+      };
+    },
+    { name: 'adi:lazy' }
+  )
+}

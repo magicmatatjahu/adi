@@ -1,10 +1,10 @@
-import { createHook, InjectionMetadata } from '@adi/core';
+import { Hook } from '@adi/core';
 import { Reflection } from '@adi/core/lib/utils';
 import { DELEGATE_KEY, DELEGATE_VALUE } from './delegate';
 
-import type { Session, ClassType } from '@adi/core';
+import type { Session, InjectionHookResult, NextInjectionHook, ClassType, InjectionMetadata } from '@adi/core';
 
-const uRef = {}; // fallback for undefined, null, '', false, 0
+const falsyRef = {}; // fallback for undefined, null, '', false, 0
 
 function retrieveDelegationByKey(session: Session, key: string | symbol | number) {
   const delegations = session.annotations[DELEGATE_KEY];
@@ -14,12 +14,12 @@ function retrieveDelegationByKey(session: Session, key: string | symbol | number
 
   const parent = session.parent;
   if (!parent) {
-    return uRef;
+    return falsyRef;
   }
   return retrieveDelegationByKey(parent, key);
 }
 
-function retrieveReflectedType(metadata: InjectionMetadata): Object {
+function retrieveReflectedType(metadata: InjectionMetadata): Object | undefined {
   const { target, index, key } = metadata;
   if (typeof key !== 'undefined') {
     if (typeof index === 'number') {
@@ -27,7 +27,10 @@ function retrieveReflectedType(metadata: InjectionMetadata): Object {
     }
     return Reflection.getOwnMetadata("design:type", (target as ClassType).prototype, key);
   }
-  return Reflection.getOwnMetadata("design:paramtypes", target)[index];
+
+  if (target && typeof index === 'number') {
+    return Reflection.getOwnMetadata("design:paramtypes", target)[index];
+  }
 }
 
 function isInstanceOf(value: any, type: Object) {
@@ -43,33 +46,35 @@ function retrieveDelegationByReflectedType(session: Session, reflectedType: Obje
 
   const parent = session.parent;
   if (!parent) {
-    return uRef;
+    return falsyRef;
   }
   return retrieveDelegationByReflectedType(parent, reflectedType);
 }
 
-export const Delegation = createHook((key?: string | symbol | number) => {
+export function Delegation<NextValue>(key?: string | symbol | number) {
   key = typeof key === 'number' ? String(key) : key;
-  const hasKey = typeof key !== 'undefined';
 
-  return function(session, next) {
-    if (session.hasFlag('dry-run')) {
-      return next(session);
-    }
-
-    let delegation: any;
-    if (hasKey) {
-      delegation = retrieveDelegationByKey(session, key);
-    } else {
-      const reflectedType = retrieveReflectedType(session.iMetadata);
-      delegation = retrieveDelegationByReflectedType(session, reflectedType);
-    }
-
-    if (delegation === uRef) {
-      return next(session);
-    }
-
-    session.setFlag('side-effect');
-    return delegation;
-  }
-}, { name: "adi:hook:delegation" });
+  return Hook(
+    function delegationHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
+      if (session.hasFlag('dry-run')) {
+        return next(session);
+      }
+  
+      let delegation: any;
+      if (key === undefined) {
+        const reflectedType = retrieveReflectedType(session.metadata);
+        delegation = reflectedType && retrieveDelegationByReflectedType(session, reflectedType);
+      } else {
+        delegation = retrieveDelegationByKey(session, key);
+      }
+  
+      if (delegation === falsyRef) {
+        return next(session);
+      }
+  
+      session.setFlag('side-effect');
+      return delegation;
+    },
+    { name: 'adi:delegation' }
+  )
+}

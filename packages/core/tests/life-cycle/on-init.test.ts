@@ -274,7 +274,7 @@ describe('onInit', function() {
             order.push(2);
           }
           resolve();
-        }, 20);
+        }, 0);
       });
     }
     async function hook3(value: string) {

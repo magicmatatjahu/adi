@@ -1,5 +1,6 @@
-import { Injector, Injectable, Inject, Optional, Module, Token, Ref } from "@adi/core"
-import { SkipSelf } from "../../src/hooks";
+import { Injector, Injectable, Inject, Optional } from "@adi/core"
+
+import { SkipSelf } from "../../src/hooks/skip-self";
 
 describe('SkipSelf injection hook', function () {
   test('should inject service from parent injector', function () {
@@ -15,16 +16,16 @@ describe('SkipSelf injection hook', function () {
         provide: 'useValue',
         useValue: 'foobar',
       },
-    ]).init() as Injector;
+    ])
     const childInjector = Injector.create([
       Service,
       {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector).init() as Injector;
+    ], undefined, parentInjector)
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.getSync(Service);
     expect(service.useValue).toEqual('foobar');
   });
 
@@ -32,24 +33,21 @@ describe('SkipSelf injection hook', function () {
     @Injectable()
     class Service {
       constructor(
-        @Inject('useValue', [
-          Optional(),
-          SkipSelf(),
-        ])
+        @Inject('useValue', Optional(), SkipSelf())
         readonly useValue: string,
       ) {}
     }
 
-    const parentInjector = Injector.create().init() as Injector;
+    const parentInjector = Injector.create()
     const childInjector = Injector.create([
       Service,
       {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector).init() as Injector;
+    ], undefined, parentInjector)
 
-    const service = childInjector.get(Service) as Service;
+    const service = childInjector.getSync(Service)
     expect(service.useValue).toEqual(undefined);
   });
 });

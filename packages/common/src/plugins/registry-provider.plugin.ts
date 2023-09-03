@@ -3,16 +3,17 @@ import { injectableDefinitions, injectArray } from '@adi/core/lib/injector';
 import { getAllKeys } from '@adi/core/lib/utils';
 import { providesDefinitions } from '../decorators/provides';
 
-import type { ADIPlugin, Injector, ClassType, AbstractClassType, InjectionArgument } from '@adi/core';
+import type { Plugin, Injector, ClassType, AbstractClassType, InjectionArgument } from '@adi/core';
+import type { RegistryProvider } from '../types';
 
-function createProviders(injector: Injector, useRegistry: ClassType | AbstractClassType) {
+function createRegistryProviders(injector: Injector, useRegistry: ClassType | AbstractClassType) {
   const definition = providesDefinitions.get(useRegistry);
   if (!definition) {
     return;
   }
 
-  let injections: Record<string | symbol, InjectionArgument[]>;
-  let staticInjections: Record<string | symbol, InjectionArgument[]>;
+  let injections: Record<string | symbol, Array<InjectionArgument | undefined>>;
+  let staticInjections: Record<string | symbol, Array<InjectionArgument | undefined>>;
   const injectableInjections = injectableDefinitions.get(useRegistry)?.injections;
   if (injectableInjections) {
     injections = injectableInjections.methods;
@@ -61,18 +62,17 @@ function createProviders(injector: Injector, useRegistry: ClassType | AbstractCl
   });
 }
 
-export function registryProviderPlugin(): ADIPlugin {
+export function registryProviderPlugin(): Plugin {
   return {
-    name: 'adi:plugin:registry-provider',
-    install(adi, { unsubscribers }) {
-      unsubscribers.push(
-        adi.on('provider:create', ({ injector, original }) => {
-          if (typeof original !== 'object' || !(original as any).useRegistry) {
-            return;
-          }
-          createProviders(injector, (original as any).useRegistry);
-        })
-      );
+    name: 'adi:registry-provider',
+    install(_, { on }) {
+      on('provider:add', ({ original }, { injector }) => {
+        const useRegistry: ClassType | AbstractClassType = (original as RegistryProvider)?.useRegistry
+        if (!useRegistry) {
+          return;
+        }
+        createRegistryProviders(injector, useRegistry);
+      })
     }
   }
 }

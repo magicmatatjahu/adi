@@ -472,7 +472,7 @@ function initInjector(compiled?: CompiledModule) {
   const { input, proxy } = compiled;
   if (injector.status & InjectorStatus.INITIALIZED) return;
   injector.status |= InjectorStatus.INITIALIZED;
-  ADI.emit('module:create', { original: input }, { injector });
+  ADI.emit('module:add', { original: input }, { injector });
 
   return wait(
     injector.get(INITIALIZERS),

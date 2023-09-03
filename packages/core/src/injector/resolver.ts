@@ -1,6 +1,6 @@
 import { setCurrentInjectionContext } from './inject';
 import { processOnInitLifecycle, destroy } from './lifecycle-manager';
-import { compareOrder, convertInjection, convertInjections, createInjectionMetadata, filterHooks, getTreeshakableProvider, parseInjectArguments } from './metadata';
+import { compareOrder, convertInjection, convertInjections, createInjectionArgument, createInjectionMetadata, filterHooks, getTreeshakableProvider, parseInjectArguments } from './metadata';
 import { filterDefinitions, getOrCreateProviderInstance } from './provider';
 import { Session } from './session';
 import { InjectionKind, InstanceStatus, InjectionHookKind, InjectorStatus } from '../enums';
@@ -12,16 +12,17 @@ import { getAllKeys, isClassProvider, wait, waitAll, waitCallback, noopThen, noo
 import type { Injector } from './injector'
 import type { 
   ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, 
-  Provide as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, 
-  InjectionArgument, InjectableDefinition, InjectionItem, 
-  ProviderAnnotations, InjectionAnnotations, InjectionMetadata, InjectionHookContext, InjectionHookReturnType, InjectionContext,
+  Provide as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, CustomResolver, CustomResolverOptions,
+  InjectionArgument, InjectableDefinition, InjectionItem,
+  ProviderAnnotations, InjectionAnnotations, InjectionHookContext, InjectionHookReturnType, InjectionContext, InjectionArguments,
 } from '../types'
+import { injectableDefinitions } from './injectable';
 
 const resultHook = ResultHook();
-const injectorHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECTOR };
-const injectHookCtx: InjectionHookContext = { kind: InjectionHookKind.INJECT };
-const providerHookCtx: InjectionHookContext = { kind: InjectionHookKind.PROVIDER };
-const definitionHookCtx: InjectionHookContext = { kind: InjectionHookKind.DEFINITION };
+const injectorHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.INJECTOR };
+const injectHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.INJECT };
+const providerHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.PROVIDER };
+const definitionHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.DEFINITION };
 
 function getFromCache<T>(injector: Injector, key: InjectionArgument | ProviderToken): T {
   return injector.meta[cacheMetaKey].get(key);
@@ -454,13 +455,13 @@ export function injectMethod<T>(injector: Injector, instance: T, originalMethod:
 }
 
 export function resolverClass<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | undefined | Promise<T | undefined> {
-  const inject = data.inject;
+  const { class: clazz, inject } = data;
 
   // TODO: optimize when there are only constructor parameters
   return wait(
     injectArray(injector, inject.parameters, session),
     deps => {
-      const instance = new data.class(...deps);
+      const instance = new clazz(...deps);
       injectMethods(injector, instance, inject.methods, session);
       return wait(
         injectProperties(injector, instance, inject.properties, session),
@@ -471,9 +472,10 @@ export function resolverClass<T>(injector: Injector, session: Session, data: Fac
 }
 
 export function resolverFactory<T>(injector: Injector, session: Session, data: FactoryDefinitionFactory<T>['data']): T | Promise<T> {
+  const { factory, inject } = data;
   return wait(
-    injectArray(injector, data.inject, session),
-    deps => data.factory(...deps),
+    injectArray(injector, inject, session),
+    deps => factory(...deps),
   );
 }
 
@@ -488,21 +490,33 @@ export function resolverValue<T>(_: Injector, __: Session, data: FactoryDefiniti
   return data;
 }
 
-export function createFunction<T>(fn: (...args: any[]) => T | Promise<T>, ctx?: { inject?: Array<InjectionItem> }) {
-  if (!ctx) {
-    return (_: Session, args: any[] = []) => fn(...args);
-  }
+export function createCustomResolver<T>(options: CustomResolverOptions<T>): CustomResolver<T> {
+  switch (options.kind) {
+    case 'class': {
+      const clazz = options.class;
+      const metadata = createInjectionMetadata({ kind: InjectionKind.CUSTOM, target: clazz });
+      const argument = createInjectionArgument(clazz, undefined, undefined, metadata)
+      return (session: Session) => optimizedInject(session.context.injector, argument, session);
+    }
+    case 'function': 
+    default: {
+      const { handler, inject } = options;
+      if (!inject) {
+        return (_: Session, ...args: any[]) => handler(...args);
+      }
 
-  const metadata = createInjectionMetadata({ kind: InjectionKind.FUNCTION, function: fn })
-  const converted = convertInjections(ctx.inject, metadata);
-  return (session: Session, args: any[] = []) => {
-    const injector = session.context.injector;
-    const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
-    return wait(
-      injectArray(injector, converted, session),
-      deps => fn(...args, ...deps),
-      noopCatch,
-      () => setCurrentInjectionContext(previosuContext),
-    );
+      const metadata = createInjectionMetadata({ kind: InjectionKind.FUNCTION, function: handler })
+      const converted = convertInjections(inject, metadata);
+      return (session: Session, ...args: any[]) => {
+        const injector = session.context.injector;
+        const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
+        return wait(
+          injectArray(injector, converted, session),
+          deps => handler(...args, ...deps),
+          noopCatch,
+          () => setCurrentInjectionContext(previosuContext),
+        );
+      }
+    }
   }
 }

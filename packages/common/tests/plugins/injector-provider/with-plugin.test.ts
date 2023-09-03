@@ -1,5 +1,6 @@
 import { ADI, Injector, Injectable } from "@adi/core";
-import { injectorProviderPlugin } from "../../../src";
+
+import { injectorProviderPlugin } from "../../../src/plugins/injector-provider.plugin";
 
 describe('Injector provider plugin', function () {
   const plugin = injectorProviderPlugin();

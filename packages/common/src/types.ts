@@ -1,6 +1,85 @@
-export interface GenericHook {};
+import type { ProviderToken, InjectionHook, ConstraintDefinition, ProviderAnnotations, ScopeType, ClassType, AbstractClassType, ModuleImportType, ProviderType } from '@adi/core';
+import type { ExecutionContext } from './enhancers';
 
-export type Token<T, R = T> = R;
-export type Optional<T> = T | undefined;
-export type New<T> = T;
-export type Lazy<T> = T;
+export interface ProvidesOptions<T = any> {
+  provide?: ProviderToken<T>;
+  hooks?: InjectionHook | Array<InjectionHook>;
+  when?: ConstraintDefinition;
+  annotations?: ProviderAnnotations;
+  scope?: ScopeType;
+}
+
+export interface ProvideDefinition {
+  prototype: Record<string | symbol, ProvidesOptions>;
+  static: Record<string | symbol, ProvidesOptions>;
+}
+
+export interface RegistryProvider {
+  useRegistry: ClassType | AbstractClassType;
+}
+
+declare module '@adi/core' {
+  export interface TokenProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+    useRegistry?: never;
+  }
+
+  export interface ClassProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+    useRegistry?: never;
+  }
+
+  export interface FactoryProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+    useRegistry?: never;
+  }
+
+  export interface ClassFactoryProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+    useRegistry?: never;
+  }
+
+  export interface ValueProvider {
+    imports?: never;
+    providers?: never;
+    useRegistry?: never;
+  }
+
+  export interface ExistingProvider {
+    imports?: never;
+    providers?: never;
+    useRegistry?: never;
+  }
+
+  export interface HookProvider {
+    imports?: never;
+    providers?: never;
+    useRegistry?: never;
+  }
+
+  export interface CustomProvider extends RegistryProvider {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+  }
+
+  export interface InjectableOptions {
+    imports?: Array<ModuleImportType>;
+    providers?: Array<ProviderType>;
+  }
+
+  export interface DefinitionAnnotations {
+    enhancers?: {
+      guardCallback?: (ctx: ExecutionContext) => unknown,
+      tokens?: {
+        interceptor?: ProviderToken;
+        guard?: ProviderToken;
+        exceptionHandler?: ProviderToken;
+        pipe?: ProviderToken;
+      }
+    }
+  }
+}

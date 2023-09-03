@@ -1,10 +1,10 @@
 import { Hook } from "./hook";
-import { createFunction } from '../injector';
+import { createCustomResolver } from '../injector';
 import { destroyHooksMetaKey } from "../private";
 import { wait, hasOnDestroyLifecycle } from "../utils";
 
 import type { Session } from '../injector';
-import type { InjectionItem, NextInjectionHook, InjectionHookResult } from '../types';
+import type { InjectionItem, NextInjectionHook, InjectionHookResult, CustomResolver } from '../types';
 
 export interface OnDestroyHookOptions<T = any> {
   onDestroy: (value: T, ...args: any[]) => any;
@@ -12,11 +12,11 @@ export interface OnDestroyHookOptions<T = any> {
 }
 
 export function OnDestroyHook<NextValue>(hook: ((value: NextValue) => void | Promise<void>) | OnDestroyHookOptions<NextValue>) {
-  let resolver: ReturnType<typeof createFunction>;
+  let resolver: CustomResolver;
   if (hasOnDestroyLifecycle(hook)) {
-    resolver = createFunction(hook.onDestroy, { inject: (hook as OnDestroyHookOptions).inject });
+    resolver = createCustomResolver({ kind: 'function', handler: hook.onDestroy, inject: (hook as OnDestroyHookOptions).inject });
   } else {
-    resolver = createFunction(hook as (value: NextValue) => void | Promise<void>)
+    resolver = createCustomResolver({ kind: 'function', handler: hook as (value: NextValue) => void | Promise<void> });
   }
 
   return Hook(

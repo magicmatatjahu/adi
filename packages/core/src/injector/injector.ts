@@ -41,7 +41,7 @@ export class Injector<T = any> {
   constructor(
     public readonly input: InjectorInput<T> = [],
     public readonly options: InjectorOptions = {},
-    public readonly parent: Injector<T> | null | undefined = ADI.coreInjector,
+    public readonly parent: Injector<T> | null | undefined = ADI.core,
   ) {
     if (typeof input === 'object' && typeof (input as ModuleMetadata).options === 'object') {
       options = { ...(input as ModuleMetadata).options, ...options };

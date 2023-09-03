@@ -11,7 +11,7 @@ export function named(name: InjectionAnnotations['named']): ConstraintDefinition
   }
 }
 
-export function tagged(tags: InjectionAnnotations['tagged'] = [], mode: 'all' | 'partially' = 'all'): ConstraintDefinition {
+export function tagged(tags: InjectionAnnotations['tagged'] = [], mode: 'all' | 'partially' = 'partially'): ConstraintDefinition {
   function includeTag(tag: string | symbol | object) {
     tags.includes(tag);
   }
@@ -19,7 +19,7 @@ export function tagged(tags: InjectionAnnotations['tagged'] = [], mode: 'all' | 
   return (session) => {
     const { inject, metadata } = session.injection;
     const alltags = [...metadata.annotations?.tagged || [], ...inject.annotations.tagged || []];
-    return mode == 'all' ? alltags.every(includeTag) : alltags.some(includeTag);
+    return mode == 'partially' ? alltags.some(includeTag) : alltags.every(includeTag);
   }
 }
 
