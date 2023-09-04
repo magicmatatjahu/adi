@@ -72,13 +72,11 @@ describe('standalone injection', function () {
     @Injectable()
     class TestService {}
 
-    const token = new InjectionToken<TestService>({
+    const token = InjectionToken.provide({
       provideIn: "any",
-      provide: {
-        useFactory() {
-          return inject(TestService);
-        },
-      }
+      useFactory() {
+        return inject(TestService);
+      },
     });
 
     @Injectable()
@@ -132,6 +130,37 @@ describe('standalone injection', function () {
   });
 
   test('should work inside method', function () {
+    @Injectable()
+    class TestService {}
+
+    @Injectable()
+    class Service {
+      constructor() {
+        injectMethod(this, this.method);
+      }
+
+      method() {
+        return inject(TestService);
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: 'useFactory',
+        useFactory() {
+          return inject(Service);
+        }
+      },
+    ])
+
+    const service = injector.getSync<Service>('useFactory');
+    expect(service).toBeInstanceOf(Service);
+    expect(service.method()).toBeInstanceOf(TestService);
+  });
+
+  test('should work inside method (reassign method)', function () {
     @Injectable()
     class TestService {}
 

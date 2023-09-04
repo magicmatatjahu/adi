@@ -1,11 +1,9 @@
-import { Injector, Injectable, InjectionToken, Module, INJECTOR_CONFIG } from "../../src";
+import { Injector, Injectable, InjectionToken, Module, INJECTOR_CONFIG, Optional } from "../../src";
 
 describe('InjectionToken', function() {
-  describe('should works as normal provider in providers array', function() {
+  describe('should work as normal provider in providers array', function() {
     test('with useValue', function() {
-      class A {}
-
-      const Token = new InjectionToken<string>();
+      const Token = InjectionToken.create<string>();
 
       const injector = new Injector([
         {
@@ -19,7 +17,7 @@ describe('InjectionToken', function() {
     });
 
     test('with useFactory', function() {
-      const Token = new InjectionToken<string>();
+      const Token = InjectionToken.create<string>();
 
       const injector = new Injector([
         {
@@ -43,7 +41,7 @@ describe('InjectionToken', function() {
       @Injectable()
       class Service {}
 
-      const Token = new InjectionToken<Service>();
+      const Token = InjectionToken.create<Service>();
 
       const injector = new Injector([
         {
@@ -57,7 +55,7 @@ describe('InjectionToken', function() {
     });
 
     test('with useExisting', function() {
-      const Token = new InjectionToken<string>();
+      const Token = InjectionToken.create<string>();
 
       const injector = new Injector([
         {
@@ -75,10 +73,8 @@ describe('InjectionToken', function() {
     });
 
     test('as standalone provider', function() {
-      const Token = new InjectionToken<string>({
-        provide: {
-          useValue: 'foobar',
-        }
+      const Token = InjectionToken.provide<string>({
+        useValue: 'foobar',
       });
 
       const injector = new Injector([
@@ -90,13 +86,39 @@ describe('InjectionToken', function() {
     });
   });
 
-  describe('should works as tree shakable provider', function() {
+  describe('should work as injection argument', function() {
+    test('with provider token argument', function() {
+      @Injectable()
+      class Service {}
+
+      const Token = InjectionToken.argument(Service);
+
+      const injector = new Injector([
+        Service,
+      ]);
+  
+      const resolvedToken = injector.get(Token);
+      expect(resolvedToken).toBeInstanceOf(Service);
+    });
+
+    test('with injection hooks', function() {
+      @Injectable()
+      class Service {}
+
+      const Token = InjectionToken.argument(Service, Optional());
+
+      const injector = new Injector();
+  
+      const resolvedToken = injector.get(Token);
+      expect(resolvedToken).toEqual(undefined);
+    });
+  })
+
+  describe('should work as tree shakable provider', function() {
     test('with useValue', function() {
-      const Token = new InjectionToken<string>({
+      const Token = InjectionToken.provide({
         provideIn: 'any',
-        provide: {
-          useValue: 'foobar',
-        }
+        useValue: 'foobar',
       });
 
       const injector = new Injector();
@@ -106,14 +128,12 @@ describe('InjectionToken', function() {
     });
 
     test('with useFactory', function() {
-      const Token = new InjectionToken<string>({
+      const Token = InjectionToken.provide<string>({
         provideIn: 'any',
-        provide: {
-          useFactory(useValue) {
-            return useValue;
-          },
-          inject: ['useValue'],
-        }
+        useFactory(useValue) {
+          return useValue;
+        },
+        inject: ['useValue'],
       });
 
       const injector = new Injector([
@@ -131,11 +151,9 @@ describe('InjectionToken', function() {
       @Injectable()
       class Service {}
 
-      const Token = new InjectionToken<Service>({
+      const Token = InjectionToken.provide({
         provideIn: 'any',
-        provide: {
-          useClass: Service,
-        }
+        useClass: Service,
       });
 
       const injector = new Injector();
@@ -145,11 +163,9 @@ describe('InjectionToken', function() {
     });
 
     test('with useExisting', function() {
-      const Token = new InjectionToken<string>({
+      const Token = InjectionToken.provide<string>({
         provideIn: 'any',
-        provide: {
-          useExisting: 'useValue',
-        }
+        useExisting: 'useValue',
       });
 
       const injector = new Injector([
@@ -164,11 +180,9 @@ describe('InjectionToken', function() {
     });
 
     test('should override tree shakable provider when this same token is defined in providers array', async () => {
-      const token = new InjectionToken<string>({
+      const token = InjectionToken.provide({
         provideIn: "any",
-        provide: {
-          useValue: "foobar",
-        }
+        useValue: "foobar",
       });
   
       const injector = new Injector([
@@ -183,21 +197,17 @@ describe('InjectionToken', function() {
     });
 
     test('should use another tree shakable InjectionToken', async () => {
-      const helperToken = new InjectionToken<string>({
+      const helperToken = InjectionToken.provide<string>({
         provideIn: "any",
-        provide: {
-          useValue: "foobar",
-        }
+        useValue: "foobar",
       });
 
-      const token = new InjectionToken<string>({
+      const token = InjectionToken.provide<string>({
         provideIn: "any",
-        provide: {
-          useFactory(value) {
-            return value;
-          },
-          inject: [helperToken],
-        }
+        useFactory(value: string) {
+          return value;
+        },
+        inject: [helperToken],
       });
   
       const injector = new Injector();
@@ -219,11 +229,9 @@ describe('InjectionToken', function() {
       })
       class MainModule {}
 
-      const token = new InjectionToken<string>({
+      const token = InjectionToken.provide<string>({
         provideIn: "child",
-        provide: {
-          useValue: "foobar",
-        },
+        useValue: "foobar",
       });
 
       const injector = Injector.create(MainModule);

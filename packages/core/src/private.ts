@@ -19,3 +19,6 @@ export const treeInjectorMetaKey = 'adi:tree-injector';
 export const exportedToInjectorsMetaKey = 'adi:exported-to-injectors';
 export const definitionInjectionMetadataMetaKey = 'adi:definition-injection-metadata';
 export const instancesToDestroyMetaKey = 'adi:instances-to-destroy';
+
+export const originalMethodDescriptor = 'adi:original-method-descriptor';
+export const methodPatched = 'adi:method-patched';

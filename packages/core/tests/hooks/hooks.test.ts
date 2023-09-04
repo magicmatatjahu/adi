@@ -309,7 +309,7 @@ describe('Injection hooks', function() {
   });
 
   test('should use definition from imported module', function() {
-    const token = new InjectionToken<string>();
+    const token = InjectionToken.create<string>();
 
     let childCalled: boolean = false;
     const ChildHook = Hook((session, next) => {
@@ -358,7 +358,7 @@ describe('Injection hooks', function() {
   });
 
   test('should allow defining single hook', function() {
-    const token = new InjectionToken<string>();
+    const token = InjectionToken.create<string>();
 
     let childCalled: boolean = false;
     const ChildHook = Hook((session, next) => {

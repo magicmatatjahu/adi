@@ -1,7 +1,7 @@
 import { injectableMixin } from '../injector';
 import { getDecoratorContext } from '../utils';
 
-import type { InjectableOptions } from '../types';
+import type { ClassType, InjectableOptions } from '../types';
 
 export function Injectable(options?: InjectableOptions) {
   return function(target: Object, ...rest: any[]) {
@@ -10,6 +10,6 @@ export function Injectable(options?: InjectableOptions) {
       throw new Error('@Injectable decorator can be only used on class level.');
     }
     
-    injectableMixin(target, undefined, options);
+    injectableMixin(target as ClassType, undefined, options);
   }
 }

@@ -11,6 +11,6 @@ export function Module(metadata?: ModuleMetadata) {
     }
     
     moduleMixin(target as ClassType, metadata);
-    injectableMixin(target);
+    injectableMixin(target as ClassType);
   }
 }

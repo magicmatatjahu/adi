@@ -108,7 +108,7 @@ describe('ClassType provider (injectable provider)', function() {
     expect(service._service3).toBeInstanceOf(HelperService2);
   });
 
-  test('should works with method injection', function() {
+  test('should work with method injection', function() {
     @Injectable()
     class HelperService1 {}
 
@@ -117,6 +117,8 @@ describe('ClassType provider (injectable provider)', function() {
 
     @Injectable()
     class Service {
+      static test = 'lol'
+
       // check if property injection with method injection isn't broken
       @Inject()
       readonly service2: HelperService1;
@@ -348,7 +350,7 @@ describe('ClassType provider (injectable provider)', function() {
     expect(service.method()).toBeInstanceOf(TestService1);
   });
 
-  describe('should works as tree shakable provider', function() {
+  describe('should work as tree shakable provider', function() {
     test('when provideIn scope is this same as injector', function() {
       @Injectable({
         provideIn: 'any',
@@ -397,7 +399,7 @@ describe('ClassType provider (injectable provider)', function() {
     });
   });
 
-  describe('should works as plain provide with .provide option', function() {
+  describe('should work as plain provide with .provide option', function() {
     test('with simple provide', function() {
       @Injectable({
         provide: {

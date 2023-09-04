@@ -84,12 +84,10 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     token = original;
-    const provide = injectableDefinition.options.provide;
+    // `provide` should exist in definition
+    const provide = (injectableDefinition as any).provide;
     if (provide) {
-      return processProvider(injector, {
-        provide: token,
-        ...provide,
-      })
+      return processProvider(injector, provide as ProviderType)
     }
 
     throw new Error('Provide is not defined for InjectionToken')
@@ -304,23 +302,12 @@ export function getTreeshakableProvider(token: InjectableDefinition['token'], in
     return;
   }
 
-  provideIn = (Array.isArray(provideIn) ? provideIn : [provideIn]) as Array<InjectorScope>;
+  provideIn = createArray(provideIn as any) as InjectorScope[]
   if (!isProviderInInjectorScope(injector.options.scopes!, provideIn)) {
     return;
   }
 
-  // case with class
-  if (typeof token === 'function') {
-    return processProvider(injector, token)?.provider;
-  }
-
-  // case with injection token
-  return processProvider(injector, {
-    provide: token,
-    hooks: options.hooks,
-    annotations: options.annotations,
-    ...options.provide || {},
-  })?.provider;
+  return processProvider(injector, token)?.provider;
 }
 
 function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Array<InjectorScope>): boolean {
@@ -362,63 +349,9 @@ export function parseInjectionItem<T>(item?: InjectionItem): PlainInjectionItem<
   return item || { token: undefined, annotations: {}, hooks: [] };
 }
 
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T>): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(hook?: InjectionHook): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hook?: InjectionHook): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(hook?: InjectionHook, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T>;
-// export function serializeInjectArguments<T = any>(token?: ProviderToken<T> | InjectionHook | Array<InjectionHook> | InjectionAnnotations, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): PlainInjectionItem<T> {
-//   if (isHook(token)) { // case with one argument
-//     annotations = hooks as InjectionAnnotations;
-//     hooks = token;
-//     token = undefined;
-//   } else if (typeof token === 'object' && !isInjectionToken(token)) {
-//     annotations = token as InjectionAnnotations;
-//     token = undefined;
-//   } else if (!isHook(hooks)) { // case with two arguments
-//     annotations = hooks || {} as InjectionAnnotations;
-//     hooks = [];
-//   }
-//   annotations = annotations || {};
-//   return { token: token as ProviderToken, hooks: createArray(hooks) as Array<InjectionHook>, annotations };
-// }
-
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T>): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(hook: InjectionHook): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(hooks: Array<InjectionHook>): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hook?: InjectionHook): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hooks?: Array<InjectionHook>): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T>, annotations?: InjectionAnnotations): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(hook: InjectionHook, annotations?: InjectionAnnotations): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(hooks: Array<InjectionHook>, annotations?: InjectionAnnotations): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hook?: InjectionHook, annotations?: InjectionAnnotations): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T>, hooks?: Array<InjectionHook>, annotations?: InjectionAnnotations): InjectionArgument<T>;
-// export function prepareInjectArgument<T = any>(token: ProviderToken<T> | InjectionHook | Array<InjectionHook>, hooks?: InjectionHook | Array<InjectionHook> | InjectionAnnotations, annotations?: InjectionAnnotations): InjectionArgument<T> {
-//   let cacheKey: any;
-//   if (isHook(token)) { // case with one argument
-//     annotations = hooks as InjectionAnnotations;
-//     hooks = token;
-//     token = undefined;
-//   } else if (!isHook(hooks)) { // case with two arguments
-//     if (hooks === undefined) {
-//       cacheKey = token;
-//     }
-//     annotations = hooks as InjectionAnnotations;
-//     hooks = undefined;
-//   }
-//   return { token: token as ProviderToken, hooks: createArray(hooks) as Array<InjectionHook>, metadata: createInjectionMetadata({ kind: InjectionKind.STANDALONE }, annotations), [cacheMetaKey]: cacheKey };
-// }
-
 export function convertInjection<T>(injectionItem: InjectionItem<T> | undefined, metadata: Partial<InjectionMetadata>): InjectionArgument<T> {
   const { token, hooks, annotations } = parseInjectionItem(injectionItem);
-  return createInjectionArgument(token, annotations, hooks, metadata);
+  return createInjectionArgument(token, annotations, hooks, metadata) as InjectionArgument<T> ;
 }
 
 export function convertInjections(dependencies: Array<InjectionItem> | undefined, metadata: Omit<InjectionMetadata, 'index'>): InjectionArgument[] {

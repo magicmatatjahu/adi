@@ -4,6 +4,7 @@ import { ADI_INJECTABLE_DEF } from '../private';
 import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
 import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionArgument, InjectionItem } from "../types";
+import { patchMethods } from './method-injection';
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 
@@ -33,6 +34,9 @@ export function injectableMixin(token: InjectableDefinition['token'], injections
     if (injections) {
       definition.injections = overrideInjections(definition.injections, injections, token);
     }
+
+    const methodNames = getAllKeys(definition.injections.methods);
+    patchMethods(token as ClassType, methodNames);
   }
 
   return definition;

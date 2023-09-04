@@ -6,12 +6,12 @@ import type { ScopeType } from './scope'
 import type { ClassType, AbstractClassType } from './types'
 
 export interface InjectableOptions<T = any> {
-  provide?: OverwriteProvider<T>;
-  name?: string | symbol | object;
-  hooks?: ProviderHooks;
-  scope?: ScopeType;
   provideIn?: InjectorScope | Array<InjectorScope>;
+  hooks?: ProviderHooks;
+  name?: string | symbol | object;
+  scope?: ScopeType;
   annotations?: ProviderAnnotations;
+  provide?: OverwriteProvider<T>;
 }
 
 export interface InjectableDefinition<T = any> {

@@ -155,10 +155,12 @@ export interface HookProvider<T = any> {
   scope?: never;
 }
 
-export interface InjectionTokenOptions<T = any> {
+export type InjectionTokenProvide<T> = OverwriteProvider<T> & {
   provideIn?: InjectorScope | Array<InjectorScope>;
-  provide?: OverwriteProvider<T>;
-  inject?: InjectionItem<T>;
+} 
+
+export interface InjectionTokenOptions {
+  name: string
 }
 
 export interface Provide<T = any> {

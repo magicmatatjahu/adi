@@ -3,8 +3,8 @@ import { InjectionToken } from "./tokens";
 
 import type { InjectorInput, InjectorOptions } from "./types";
 
-export const MODULE_REF = new InjectionToken<InjectorInput>(undefined, "adi:token:module-ref");
-export const INJECTOR_CONFIG = new InjectionToken<InjectorOptions>({}, "adi:token:injector-config");
-export const INITIALIZERS = new InjectionToken<void>(undefined, 'adi:token:initializers');
+export const MODULE_REF = InjectionToken.create<InjectorInput>({ name: "adi:module-ref" });
+export const INJECTOR_CONFIG = InjectionToken.create<InjectorOptions>({ name: "adi:injector-config" });
+export const INITIALIZERS = InjectionToken.create<void>({ name: 'adi:initializers' });
 
 export const STATIC_CONTEXT = new Context(undefined, 'adi:context:static');
