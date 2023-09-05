@@ -1,14 +1,13 @@
 import { optimizedInject } from './resolver';
-import { destroy } from './lifecycle-manager';
 import { setCurrentInjectionContext, exitFromInjectionContext } from './inject';
 import { createInjectionMetadata } from './metadata';
 import { InjectionKind } from '../enums';
 import { methodPatched, originalMethodDescriptor } from '../private';
-import { noopThen, noopCatch, wait, waitAll, waitCallback } from '../utils';
+import { noopThen, noopCatch, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from "./injector";
 import type { Session } from "./session";
-import type { ClassType, InjectionArgument, InjectionMetadata, ProviderInstance, InjectionContext } from "../types";
+import type { ClassType, InjectionArgument, InjectionMetadata, ProviderInstance } from "../types";
 
 type RegistryItem = {
   injector: Injector;
@@ -55,28 +54,16 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
     const { injector, session, injections } = ctxRegistry.get(this)!;
     const inject = injections[methodName];
     const toDestroy: ProviderInstance[] = [];
-    let hasInjection = false;
 
     if (inject) {
       let dependency: InjectionArgument | undefined = undefined;
       for (let i = 0, l = inject.length; i < l; i++) {
         if (args[i] === undefined && (dependency = inject[i])) {
-          hasInjection = true
           args[i] = optimizedInject(injector, dependency, session, undefined, toDestroy)
         }
       }
     }
 
-    if (hasInjection === false) {
-      const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
-      return wait(
-        originalMethod.apply(this, args),
-        noopThen,
-        noopCatch,
-        () => setCurrentInjectionContext(previosuContext)
-      )
-    }
-  
     const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
     return waitAll(
       args,

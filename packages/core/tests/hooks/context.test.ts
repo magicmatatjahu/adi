@@ -2,8 +2,8 @@ import { Injector, Injectable, Inject, Ctx, Context } from "../../src";
 
 describe('Ctx injection hook', function () {
   test('should inject given context', function () {
-    const firstCtx = new Context();
-    const secondCtx = new Context();
+    const firstCtx = Context.create();
+    const secondCtx = Context.create();
 
     @Injectable()
     class TestService {

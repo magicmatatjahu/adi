@@ -4,6 +4,7 @@ import type { Scope } from '../scopes'
 import type { InjectionAnnotations } from './injection'
 import type { InjectionHook } from './hook'
 import type { ClassType } from './types'
+import type { ProviderToken } from './provider-token';
 
 export type ScopeDefinition<O = any> = 
   {
@@ -19,9 +20,7 @@ export type ScopeDefinition<O = any> =
   {
     kind: 'provider';
     scope: Scope<O> | undefined
-    provider: ClassType<Scope<O>>;
-    hooks: InjectionHook[]
-    annotations: InjectionAnnotations
+    provider: ProviderToken<Scope<O>>;
     options?: O;
   }
 
@@ -39,8 +38,6 @@ export type ScopeType<O = any> =
     options?: O;
   } | 
   {
-    scope: ClassType<Scope<O>>;
-    hooks: InjectionHook | InjectionHook[]
-    annotations?: InjectionAnnotations
+    scope: ProviderToken<Scope<O>>;
     options?: O;
   };

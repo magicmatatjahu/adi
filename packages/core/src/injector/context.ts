@@ -1,14 +1,20 @@
 import { getDeepProperty } from '../utils';
 
 import type { Path, PathValue } from '../types/private';
+import type { ContextOptions } from '../types';
 
+// TODO: Add .for() method simialr like Symbol.for()
 export class Context<D extends Record<string | symbol, unknown> = Record<string | symbol, unknown>> {
-  static STATIC = new Context(undefined, 'adi:static');
+  static STATIC = Context.create(undefined, { name: 'adi:static' });
 
-  constructor(
+  static create<T extends Record<string | symbol, unknown> = Record<string | symbol, unknown>>(data: T = {} as T, options?: ContextOptions, meta?: Record<string | symbol, any>): Context<T> {
+    return new this(data, options, meta);
+  }
+
+  private constructor(
     private readonly data: D = {} as D,
-    public readonly name?: string,
-    public readonly meta?: any,
+    private readonly options?: ContextOptions,
+    public readonly meta: Record<string | symbol, any> = {},
   ) {}
 
   get(): D;

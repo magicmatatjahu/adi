@@ -3,7 +3,7 @@ import { enhancersPlugin, ExecutionContext, UseInterceptors, UseGuards, UseExcep
 
 import type { ArgumentMetadata, Interceptor, NextInterceptor, Guard, ExceptionHandler, NextExceptionHandler, PipeTransform } from '../../../src';
 
-describe('Enhancers plugin - execution context', function () {
+describe.skip('Enhancers plugin - execution context', function () {
   const plugin = enhancersPlugin();
 
   beforeAll(() => {

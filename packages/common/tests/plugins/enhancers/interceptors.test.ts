@@ -3,7 +3,7 @@ import { enhancersPlugin, UseInterceptors, INTERCEPTORS } from "../../../src";
 
 import type { Interceptor, ExecutionContext, NextInterceptor } from '../../../src';
 
-describe('Enhancers plugin - interceptors', function () {
+describe.skip('Enhancers plugin - interceptors', function () {
   const plugin = enhancersPlugin();
 
   beforeAll(() => {

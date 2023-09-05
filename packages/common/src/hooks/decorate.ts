@@ -58,13 +58,13 @@ export function Decorate<NextValue = unknown, T = any>(options: DecorateHookOpti
     if (!definition) { // normal function case
       resolver = createCustomResolver({ kind: 'function', handler: options as ((decorate: any) => any) })
     } else {
-      resolver = createCustomResolver({ kind: 'class', class: options as ClassType })
+      resolver = createCustomResolver({ kind: 'class', class: options as ClassType, asStandalone: true })
       isClass = true;
     }
   } else if (hasDecorateFunction(options)) { // function based decorator
     resolver = createCustomResolver({ kind: 'function', handler: options.decorate, inject: options.inject });
   } else if (hasDecorateClass(options)) {
-    resolver = createCustomResolver({ kind: 'class', class: options.class })
+    resolver = createCustomResolver({ kind: 'class', class: options.class, asStandalone: true })
     delegationKey = options.delegationKey;
     isClass = true;
   }

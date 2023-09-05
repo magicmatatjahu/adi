@@ -25,7 +25,7 @@ describe('Default scope', function () {
   });
 
   test('should inject new instance if custom Context is passed', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable()
     class TestService {}

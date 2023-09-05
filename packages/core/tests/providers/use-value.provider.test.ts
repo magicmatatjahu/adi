@@ -14,7 +14,7 @@ describe('useValue', function() {
   });
 
   test('should work with custom context', function() {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     const injector = Injector.create([
       {

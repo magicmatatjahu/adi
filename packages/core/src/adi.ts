@@ -2,20 +2,37 @@ import { getGlobalThis } from "./utils";
 
 import type { Injector } from './injector';
 import type { Plugin, PluginState, Events, EventKind, EventHandler, EventHandlerRef, EventContext } from './types';
+import type { ADIOptions } from "./types/adi";
 
 export class ADI {
   static core: Injector;
 
   protected static plugins: Map<string, PluginState> = new Map();
   protected static handlers: Map<EventKind, Array<EventHandler<any>>> = new Map();
+  protected static _config: ADIOptions = { stackoveflowDeep: 200 }
   protected static _injectors: Set<Injector> = new Set();
+
+  static get config() {
+    return this._config;
+  }
 
   static get injectors() {
     return this._injectors;
   }
 
-  static use(plugin: Plugin, options?: { recreate: boolean }): typeof ADI {
-    const name = plugin.name;
+  static use(options: Partial<ADIOptions>): typeof ADI;
+  static use(plugin: Plugin, options?: { recreate: boolean }): typeof ADI;
+  static use(optionsOrPlugin: Plugin | Partial<ADIOptions>, options?: { recreate: boolean }): typeof ADI {
+    const name: string = (optionsOrPlugin as any)?.name;
+    if (name === undefined) {
+      this._config = {
+        ...this._config,
+        ...options || {},
+      }
+      return this;
+    }
+
+    const plugin = optionsOrPlugin as Plugin;
     const existingPlugin = this.getPlugin(name);
     if (existingPlugin) {
       if (!options?.recreate) {

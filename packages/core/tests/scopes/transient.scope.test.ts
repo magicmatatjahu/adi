@@ -1,4 +1,5 @@
-import { Injector, Injectable, Inject, Ctx, Context, STATIC_CONTEXT, OnDestroy, DestroyableType, Destroyable, TransientScope, SingletonScope } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, OnDestroy, DestroyableType, Destroyable, TransientScope, SingletonScope, Ref } from "../../src";
+import { StackoverflowError } from "../../src/errors/stackoverflow-error";
 
 import { wait } from "../helpers";
 
@@ -28,7 +29,7 @@ describe('Transient scope', function () {
     expect(service.service1 === service.service2).toEqual(false);
   });
 
-  test('should have another Context than STATIC_CONTEXT', function () {
+  test('should have another Context than Context.STATIC', function () {
     @Injectable({
       scope: TransientScope,
     })
@@ -55,13 +56,13 @@ describe('Transient scope', function () {
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(false);
-    expect(service.service1.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.service2.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.service1.context === Context.STATIC).toEqual(false);
+    expect(service.service2.context === Context.STATIC).toEqual(false);
     expect(service.service1.context === service.service2.context).toEqual(false);
   });
 
   test('should by default inject passed custom Context (should behaves like Default scope)', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable({
       scope: TransientScope,
@@ -89,12 +90,12 @@ describe('Transient scope', function () {
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService === service.ctxService).toEqual(false);
-    expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService.context === Context.STATIC).toEqual(false);
     expect(service.ctxService.context === ctx).toEqual(true);
   });
 
   test('should not use the passed custom Context if reuseContext option is set to false', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable({
       scope: TransientScope({ reuseContext: false }),
@@ -122,7 +123,7 @@ describe('Transient scope', function () {
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService === service.ctxService).toEqual(false);
-    expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService.context === Context.STATIC).toEqual(false);
     expect(service.ctxService.context === ctx).toEqual(false);
   });
 
@@ -350,7 +351,7 @@ describe('Transient scope', function () {
   });
 
   test('should not destroy when user pass custom context - default destroy event' , async function() {
-    const ctx = new Context();
+    const ctx = Context.create();
     let destroyTimes: number = 0;
 
     @Injectable({
@@ -387,7 +388,7 @@ describe('Transient scope', function () {
   });
 
   test('should destroy when user pass custom context on injector destruction - injector destroy event' , async function() {
-    const ctx = new Context();
+    const ctx = Context.create();
     let destroyTimes: number = 0;
 
     @Injectable({
@@ -428,4 +429,31 @@ describe('Transient scope', function () {
     // destroy 5 times the `service2` instance + 1 time service1
     expect(destroyTimes).toEqual(6);
   });
+
+  test.skip('should throw Stackoverflow error when one provider with transient scope want to inject another provider with transient scope' , async function() {
+    @Injectable({
+      scope: TransientScope,
+    })
+    class TransientService1 {
+      constructor(
+        @Inject(Ref(() => TransientService2)) private service: any
+      ) {}
+    }
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class TransientService2 {
+      constructor(
+        private service: TransientService1
+      ) {}
+    }
+
+    const injector = Injector.create([
+      TransientService1,
+      TransientService2,
+    ])
+
+    expect(() => injector.get(TransientService1)).toThrowError(StackoverflowError);
+  })
 });

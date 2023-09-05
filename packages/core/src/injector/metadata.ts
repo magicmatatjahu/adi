@@ -18,8 +18,9 @@ import type {
   InjectionHook, InjectionHookRecord, ConstraintDefinition,
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, ParsedInjectionItem, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
-  OnProviderAddPayload, ScopeType,
+  OnProviderAddPayload, ScopeType, ClassType,
 } from '../types';
+import { patchMethod, patchMethods } from './method-injection';
 
 export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<OnProviderAddPayload | undefined> {
   const processed: Array<OnProviderAddPayload> = [];
@@ -389,22 +390,22 @@ export function createInjectionMetadata<T>(metadata?: Partial<InjectionMetadata>
 export function overrideInjections(
   original: InjectionArguments,
   overriding: Array<InjectionItem | undefined> | Injections | undefined,
-  target: Function,
+  target: Function | ClassType,
 ): InjectionArguments;
 export function overrideInjections(
   original: Array<InjectionArgument | undefined>,
   overriding: Array<InjectionItem | undefined> | undefined,
-  target: Function,
+  target: Function | ClassType,
 ): Array<InjectionArgument>;
 export function overrideInjections(
   original: InjectionArguments | Array<InjectionArgument | undefined>,
   overriding: Array<InjectionItem | undefined> | Injections | undefined,
-  target: Function,
+  target: Function | ClassType,
 ): InjectionArguments | Array<InjectionArgument>;
 export function overrideInjections(
   original: InjectionArguments | Array<InjectionArgument | undefined>,
   overriding: Array<InjectionItem | undefined> | Injections | undefined,
-  target: Function,
+  target: Function | ClassType,
 ): InjectionArguments | Array<InjectionArgument | undefined> {
   if (!overriding) {
     return original;
@@ -469,7 +470,7 @@ function overrideArrayInjections(
 function overridePropertiesAndMethodsInjections(
   injections: Pick<InjectionArguments, 'properties' | 'methods'>,
   overriding: Pick<Injections, 'properties' | 'methods'>,
-  target: Function,
+  target: Function | ClassType,
   isStatic: boolean = false,
 ) {
   const { properties, methods } = overriding;
@@ -498,6 +499,9 @@ function overridePropertiesAndMethodsInjections(
     getAllKeys(methods).forEach(method => {
       const descriptor = Object.getOwnPropertyDescriptor(descriptorTarget, method);
       injections.methods[method] = overrideArrayInjections(injections.methods[method] || [], methods[method], { ...metadata, target, key: method, descriptor });
+      if (!isStatic) {
+        patchMethod(target as ClassType, method)
+      }
     });
   }
 }

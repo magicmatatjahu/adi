@@ -1,3 +1,4 @@
+import { ADI } from '../adi';
 import { SessionFlag } from '../enums';
 
 import type { Injector } from './injector'; 
@@ -28,7 +29,7 @@ export class Session<T = any> {
   private flags: SessionFlag = SessionFlag.NONE;
   
   public result: any;
-  public deep: number = this.parent ? this.parent.deep + 1 : 0
+  public deep: number;
   public readonly meta: Record<string | symbol, any> = {};
   public readonly children: Array<Session> = [];
 
@@ -40,7 +41,16 @@ export class Session<T = any> {
     public readonly context: SessionContext<T>,
     public readonly parent?: Session,
     public readonly annotations: SessionAnnotations = {},
-  ) {}
+  ) {
+    // possible stackoverflow
+    // e.g. transient instance can have circular reference to the another transient instance which will end with infinite injection
+    // TODO: Add warning, not throw error
+    // if (
+    //   (this.deep = parent ? parent.deep + 1 : 0) > ADI.config.stackoveflowDeep
+    // ) {
+    //   // console.warn()
+    // }
+  }
 
   fork(): Session {
     const { inject, metadata } = this.injection;

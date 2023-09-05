@@ -32,7 +32,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     const parentInstance = parent.context.instance!;
     let context = this.contexts.get(parentInstance) as Context | undefined;
     if (context === undefined) {
-      context = new Context();
+      context = Context.create();
       this.contexts.set(parentInstance, context);
       this.contexts.set(context, parentInstance);
     }

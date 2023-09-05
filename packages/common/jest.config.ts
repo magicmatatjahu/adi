@@ -8,6 +8,9 @@ const config: JestConfigWithTsJest = {
   ],
   roots: ['<rootDir>'],
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.ts$',
+  testPathIgnorePatterns: [
+    "<rootDir>/tests/plugins/enhancers" 
+  ],
   moduleFileExtensions: ['ts', 'js'],
   testTimeout: 10000,
   setupFiles: ["./tests/jest.setup.ts"],

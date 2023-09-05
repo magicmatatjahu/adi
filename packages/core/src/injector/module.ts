@@ -289,7 +289,6 @@ function processNormalExport(exportItem: ProviderToken | ProviderType | Exported
   }
 }
 
-// TODO: Handle named definition exports
 function processModuleExports(exportedModule: Exclude<ExportedModule, ForwardReference>, from: Injector, to: Injector) {
   const { from: fromExported, export: exportedProviders } = exportedModule;
   const fromInjector = from.imports.get(resolveRef(fromExported));

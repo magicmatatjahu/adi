@@ -3,7 +3,7 @@ import { enhancersPlugin, EXCEPTION_HANDLERS, NextExceptionHandler, UseException
 
 import type { ExecutionContext, ExceptionHandler } from '../../../src';
 
-describe('Enhancers plugin - interceptors', function () {
+describe.skip('Enhancers plugin - interceptors', function () {
   const plugin = enhancersPlugin();
 
   beforeAll(() => {

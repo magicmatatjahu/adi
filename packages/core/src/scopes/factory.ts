@@ -52,8 +52,6 @@ export function getScopeDefinition<O>(scope: ScopeType<O>): ScopeDefinition<O> {
     kind: 'provider',
     scope: undefined,
     provider: scope as ClassType<Scope<O>>,
-    hooks: hooks as InjectionHook[],
-    annotations: annotations || {},
     options: options,
   };
 }
@@ -72,11 +70,15 @@ export function resolveScope<O>(def: ScopeDefinition<O>, session: Session) {
   }
 
   const injector = session.context.injector;
-  const { target, function: fn } = session.metadata;
-  const { provider, hooks, annotations, options } = def;
-  const metadata = createInjectionMetadata({ kind: InjectionKind.SCOPE, target, function: fn });
+  const { provider, options } = def;
+  const parentMetadata = session.metadata;
+  const metadata = createInjectionMetadata({ 
+    kind: InjectionKind.SCOPE, 
+    target: parentMetadata.target, 
+    function: parentMetadata.function,
+  })
   return wait(
-    inject({ injector, metadata, session: session.parent }, provider, annotations, ...hooks),
-    instance => ({ scope: (def.scope = instance), options })
+    inject({ injector, metadata, session: session.parent }, provider),
+    instance => ({ scope: instance, options })
   )
 }

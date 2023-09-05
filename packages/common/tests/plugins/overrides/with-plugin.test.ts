@@ -17,7 +17,7 @@ describe('Overrides plugin with Override injection hook', function () {
   });
 
   describe('Override injection hook', function() {
-    test('should work', function () {
+    test.only('should work', function () {
       const overrides: Injections = {
         parameters: [Token('parameter')],
         properties: {

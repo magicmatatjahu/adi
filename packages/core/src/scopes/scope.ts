@@ -12,7 +12,7 @@ export abstract class Scope<O> {
   public abstract shouldDestroy(
     instance: ProviderInstance,
     options: O,
-    context: DestroyContext,
+    ctx: DestroyContext,
   ): boolean | Promise<boolean>
 
   public canBeOverrided(

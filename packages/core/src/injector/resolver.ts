@@ -17,6 +17,7 @@ import type {
   InjectionArgument, InjectableDefinition,
   ProviderAnnotations, InjectionAnnotations, InjectionHookContext, InjectionContext,
 } from '../types'
+import { injectableDefinitions } from './injectable';
 
 const resultHook = ResultHook();
 const injectorHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.INJECTOR };
@@ -402,15 +403,17 @@ function injectProperties<T>(injector: Injector, instance: T, properties: Record
   return waitAll(injections);
 }
 
-function injectMethods<T>(injector: Injector, instance: T, injections: Record<string | symbol, Array<InjectionArgument | undefined>>, session: Session): any {
+function injectMethods<T>(injector: Injector, instance: T, injections: Record<string | symbol, Array<InjectionArgument | undefined>>, session: Session): void {
   const methodNames = getAllKeys(injections);
   if (methodNames.length === 0) {
     return;
   }
+
+  // we need to pass injections because they can be overwritten by overwritten plugin from @adi/common
   setInstanceContext(instance, { injector, session, injections })
 }
 
-export function resolverClass<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | undefined | Promise<T | undefined> {
+export function resolverClass<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | Promise<T> {
   const { class: clazz, inject } = data;
 
   // TODO: optimize when there are only constructor parameters
@@ -449,7 +452,13 @@ export function resolverValue<T>(_: Injector, __: Session, data: FactoryDefiniti
 export function createCustomResolver<T>(options: CustomResolverOptions<T>): CustomResolver<T> {
   switch (options.kind) {
     case 'class': {
-      const clazz = options.class;
+      const { class: clazz, asStandalone } = options;
+      if (asStandalone) {
+        const definition = injectableDefinitions.ensure(clazz);
+        const inject = definition.injections;
+        return (session: Session) => resolverClass(session.context.injector, session, { class: clazz, inject });
+      }
+
       const metadata = createInjectionMetadata({ kind: InjectionKind.CUSTOM, target: clazz });
       const argument = createInjectionArgument(clazz, undefined, undefined, metadata)
       return (session: Session) => optimizedInject(session.context.injector, argument, session);

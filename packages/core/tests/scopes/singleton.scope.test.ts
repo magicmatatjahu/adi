@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, Scope, OnDestroy, DestroyableType, Destroyable, Module, SingletonScope, TransientScope } from "../../src";
+import { Injector, Injectable, Inject, Ctx, Context, OnDestroy, Destroyable, Module, SingletonScope, TransientScope } from "../../src";
 
 describe('Singleton scope', function () {
   test('should always inject this same value', function () {
@@ -26,8 +26,8 @@ describe('Singleton scope', function () {
     expect(service.service1 === service.service2).toEqual(true);
   });
 
-  test('should throw error if custom Context (not STATIC_CONTEXT) is passed', function () {
-    const ctx = new Context();
+  test('should throw error if custom Context (not Context.STATIC) is passed', function () {
+    const ctx = Context.create();
 
     @Injectable({
       scope: SingletonScope,

@@ -155,14 +155,6 @@ export interface HookProvider<T = any> {
   scope?: never;
 }
 
-export type InjectionTokenProvide<T> = OverwriteProvider<T> & {
-  provideIn?: InjectorScope | Array<InjectorScope>;
-} 
-
-export interface InjectionTokenOptions {
-  name: string
-}
-
 export interface Provide<T = any> {
   provide(...args: []): T | Promise<T>;
 }

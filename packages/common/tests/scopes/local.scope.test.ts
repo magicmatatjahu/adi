@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, STATIC_CONTEXT, Scoped, ref, OnDestroy, DestroyableType, Destroyable, TransientScope, SingletonScope } from "@adi/core";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, ref, OnDestroy, DestroyableType, Destroyable, TransientScope, SingletonScope } from "@adi/core";
 
 import { InstanceScope, LocalScope } from "../../src/scopes"
 
@@ -439,15 +439,15 @@ describe('Local scope', function () {
     expect(service1.service1).toBeInstanceOf(TestService);
     expect(service1.service2).toBeInstanceOf(TestService);
     expect(service1.service1 === service1.service2).toEqual(true);
-    expect(service1.service1.context === STATIC_CONTEXT).toEqual(true);
-    expect(service1.service2.context === STATIC_CONTEXT).toEqual(true);
+    expect(service1.service1.context === Context.STATIC).toEqual(true);
+    expect(service1.service2.context === Context.STATIC).toEqual(true);
     expect(service1.service1.context === service1.service2.context).toEqual(true);
     expect(service1.service1 === service2.service1).toEqual(true);
     expect(service1.service2 === service2.service2).toEqual(true);
   });
 
   test('should by default inject passed custom Context (should behaves like Default scope)', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable({
       scope: LocalScope,
@@ -475,12 +475,12 @@ describe('Local scope', function () {
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.service === service.ctxService).toEqual(false);
-    expect(service.service.context === STATIC_CONTEXT).toEqual(true);
+    expect(service.service.context === Context.STATIC).toEqual(true);
     expect(service.ctxService.context === ctx).toEqual(true);
   });
 
   test('should not use the passed custom Context if reuseContext option is set to false', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable({
       scope: LocalScope({ reuseContext: false }),
@@ -508,8 +508,8 @@ describe('Local scope', function () {
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.service === service.ctxService).toEqual(true);
-    expect(service.service.context === STATIC_CONTEXT).toEqual(true);
-    expect(service.ctxService.context === STATIC_CONTEXT).toEqual(true);
+    expect(service.service.context === Context.STATIC).toEqual(true);
+    expect(service.ctxService.context === Context.STATIC).toEqual(true);
   });
 
   test('should be able to be replaced by another scope', function () {
@@ -539,8 +539,8 @@ describe('Local scope', function () {
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.service === service.newService).toEqual(false);
-    expect(service.service.context === STATIC_CONTEXT).toEqual(true);
-    expect(service.newService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.service.context === Context.STATIC).toEqual(true);
+    expect(service.newService.context === Context.STATIC).toEqual(false);
   });
 
   test('should destroy only when parent instance is destroyed (using Transient scope in parent instance)', async function() {
@@ -743,7 +743,7 @@ describe('Local scope', function () {
 
   test('should not destroy when user pass custom context - default destroy event (treat scope as Transient)' , async function() {
     let destroyOrder: string[] = [];
-    const localCtx = new Context(undefined, 'Local ctx');
+    const localCtx = Context.create(undefined, { name: 'Local ctx' });
 
     @Injectable({
       scope: LocalScope({ toScope: 'test' }),

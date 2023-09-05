@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, Ctx, Context, STATIC_CONTEXT, Scoped, OnDestroy, Destroyable, DestroyableType, SingletonScope, TransientScope } from "@adi/core";
+import { Injector, Injectable, Inject, Ctx, Context, Scoped, OnDestroy, Destroyable, DestroyableType, SingletonScope, TransientScope } from "@adi/core";
 
 import { InstanceScope } from "../../src/scopes"
 import { wait } from "../helpers";
@@ -29,7 +29,7 @@ describe('Instance scope', function () {
     expect(service.service1 === service.service2).toEqual(true);
   });
 
-  test('should have another Context than STATIC_CONTEXT', function () {
+  test('should have another Context than Context.STATIC', function () {
     @Injectable({
       scope: InstanceScope,
     })
@@ -56,13 +56,13 @@ describe('Instance scope', function () {
     expect(service.service1).toBeInstanceOf(TestService);
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service1 === service.service2).toEqual(true);
-    expect(service.service1.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.service2.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.service1.context === Context.STATIC).toEqual(false);
+    expect(service.service2.context === Context.STATIC).toEqual(false);
     expect(service.service1.context === service.service2.context).toEqual(true);
   });
 
   test('should by default inject passed custom Context - should behave like Default scope', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable({
       scope: InstanceScope,
@@ -93,13 +93,13 @@ describe('Instance scope', function () {
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService1 === service.newService2).toEqual(true);
     expect(service.newService1 === service.ctxService).toEqual(false);
-    expect(service.newService1.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.newService2.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService1.context === Context.STATIC).toEqual(false);
+    expect(service.newService2.context === Context.STATIC).toEqual(false);
     expect(service.ctxService.context === ctx).toEqual(true);
   });
 
   test('should not use the passed custom Context if reuseContext option is set to false', function () {
-    const ctx = new Context();
+    const ctx = Context.create();
 
     @Injectable({
       scope: InstanceScope({ reuseContext: false }),
@@ -130,9 +130,9 @@ describe('Instance scope', function () {
     expect(service.ctxService).toBeInstanceOf(TestService);
     expect(service.newService1 === service.newService2).toEqual(true);
     expect(service.newService1 === service.ctxService).toEqual(true);
-    expect(service.newService1.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.newService2.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.ctxService.context === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService1.context === Context.STATIC).toEqual(false);
+    expect(service.newService2.context === Context.STATIC).toEqual(false);
+    expect(service.ctxService.context === Context.STATIC).toEqual(false);
     expect(service.newService1.context === service.ctxService.context).toEqual(true);
     expect(service.ctxService.context === ctx).toEqual(false);
   });
@@ -192,8 +192,8 @@ describe('Instance scope', function () {
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.singletonService).toBeInstanceOf(TestService);
     expect(service.service === service.singletonService).toEqual(false);
-    expect(service.service.context === STATIC_CONTEXT).toEqual(false);
-    expect(service.singletonService.context === STATIC_CONTEXT).toEqual(true);
+    expect(service.service.context === Context.STATIC).toEqual(false);
+    expect(service.singletonService.context === Context.STATIC).toEqual(true);
   });
 
   test('should destroy only when parent instance is destroyed - using Singleton scope', async function() {
@@ -420,7 +420,7 @@ describe('Instance scope', function () {
 
   test('should not destroy when user pass custom context - default destroy event, treat scope as Transient' , async function() {
     let destroyOrder: string[] = [];
-    const instanceCtx = new Context(undefined, 'Instance ctx');
+    const instanceCtx = Context.create(undefined, { name: 'Instance ctx' });
 
     @Injectable({
       scope: InstanceScope,

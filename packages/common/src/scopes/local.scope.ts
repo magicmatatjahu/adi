@@ -58,7 +58,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     let context = this.contexts.get(instance) as Context;
     if (!context) {
-      context = new Context();
+      context = Context.create();
       this.contexts.set(instance, context);
       this.contexts.set(context, instance);
     }

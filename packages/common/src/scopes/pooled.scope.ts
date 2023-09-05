@@ -44,10 +44,10 @@ export class PooledScope extends Scope<PooledScopeOptions> {
     let context = pool.free.shift();
     if (!context) {
       if (pool.capacity === pool.created) {
-        context = new Context(undefined, undefined, { [poolMetaKey]: 'redundant' });
+        context = Context.create(undefined, undefined, { [poolMetaKey]: 'redundant' });
       } else {
         pool.created++;
-        context = new Context(undefined, undefined, { [poolMetaKey]: 'default' });
+        context = Context.create(undefined, undefined, { [poolMetaKey]: 'default' });
       }
     } else {
       const value = definition.values.get(context)?.value;

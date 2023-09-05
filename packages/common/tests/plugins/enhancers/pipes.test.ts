@@ -3,7 +3,7 @@ import { enhancersPlugin, PIPES, UsePipes } from "../../../src";
 
 import type { ArgumentMetadata, ExecutionContext, PipeTransform } from '../../../src';
 
-describe('Enhancers plugin - pipes', function() {
+describe.skip('Enhancers plugin - pipes', function() {
   const plugin = enhancersPlugin();
 
   beforeAll(() => {

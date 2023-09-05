@@ -5,8 +5,8 @@ import { ExecutionContext, executionContextFactory, retrieveExecutionContextArgu
 import { enhancersDefinitions, addEnhancersByToken } from './definition';
 import { INTERCEPTORS, GUARDS, EXCEPTION_HANDLERS, PIPES } from './tokens';
 
-import type { Injector, Session, ProviderDefinition, ProviderAnnotations, ProviderToken, ClassType } from "@adi/core";
-import type { EnhancerItem, EnhancersDefinition, EnhancersDefinitionMethod, PipeTransform, Interceptor, Guard, ExceptionHandler, ArgumentMetadata, ExtractorFactory, EnhancerKind } from './interfaces';
+import type { Injector, Session, ProviderDefinition, ProviderAnnotations } from "@adi/core";
+import type { EnhancerItem, EnhancersDefinition, EnhancersDefinitionMethod, PipeTransform, Interceptor, Guard, ExceptionHandler, ArgumentMetadata, ExtractorFactory } from './interfaces';
 
 export function injectEnhancers(provDefinition: ProviderDefinition) {
   const factory = provDefinition.factory;

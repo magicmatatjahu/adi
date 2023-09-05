@@ -23,7 +23,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
 
     let context = options.reuseContext && session.inject.context;
     if (!context) {
-      context = new Context();
+      context = Context.create();
       this.contexts.set(context, session.metadata);
       session.setFlag('side-effect');
     }

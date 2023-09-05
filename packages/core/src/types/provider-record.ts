@@ -85,4 +85,4 @@ export type CustomResolver<R = any> = (session: Session, ...args: any[]) => R | 
 
 export type CustomResolverOptions<T = any> = 
   { kind: 'function', handler: (...args: any[]) => T | Promise<T>, inject?: InjectionItem[] } |
-  { kind: 'class', class: ClassType<T> }
+  { kind: 'class', class: ClassType<T>, asStandalone?: boolean }

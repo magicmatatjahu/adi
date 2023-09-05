@@ -1,9 +1,8 @@
-import { STATIC_CONTEXT } from '../constants';
+import { Context } from './context';
 import { when } from '../constraints';
 import { wait } from '../utils';
 import { resolveScope } from '../scopes';
 
-import type { Context } from './context';
 import type { Injector } from './injector';
 import type { Session } from './session';
 import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeDefinition } from '../types';
@@ -50,7 +49,7 @@ export function getOrCreateProviderInstance(session: Session) {
 
   return wait(
     wait(scope, result => result.scope.getContext(session, result.options)),
-    ctx => getProviderInstance(session, ctx || STATIC_CONTEXT, scopeDefinition)
+    ctx => getProviderInstance(session, ctx || Context.STATIC, scopeDefinition)
   )
 }
 

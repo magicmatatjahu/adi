@@ -1,4 +1,4 @@
-import { Injector, Injectable, Context, STATIC_CONTEXT, Inject, Hook, Token, TransientScope } from "../../src";
+import { Injector, Injectable, Context, Inject, Hook, Token, TransientScope } from "../../src";
 import { getScopeDefinition } from "../../src/scopes";
 
 describe('Context token', function() {
@@ -33,9 +33,9 @@ describe('Context token', function() {
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.context).toBeInstanceOf(Context);
-    expect(service.context === STATIC_CONTEXT).toEqual(true);
+    expect(service.context === Context.STATIC).toEqual(true);
     expect(service.service.context1).toBeInstanceOf(Context);
-    expect(service.service.context1 === STATIC_CONTEXT).toEqual(true);
+    expect(service.service.context1 === Context.STATIC).toEqual(true);
     expect(service.service.context1 === service.service.context2).toEqual(true);
   });
 
@@ -68,12 +68,12 @@ describe('Context token', function() {
     expect(service.newService).toBeInstanceOf(TestService);
     expect(service.service === service.newService).toEqual(false);
     expect(service.context).toBeInstanceOf(Context);
-    expect(service.context === STATIC_CONTEXT).toEqual(true);
+    expect(service.context === Context.STATIC).toEqual(true);
     expect(service.service.context1).toBeInstanceOf(Context);
-    expect(service.service.context1 === STATIC_CONTEXT).toEqual(true);
-    expect(service.service.context2 === STATIC_CONTEXT).toEqual(true);
+    expect(service.service.context1 === Context.STATIC).toEqual(true);
+    expect(service.service.context2 === Context.STATIC).toEqual(true);
     expect(service.newService.context1).toBeInstanceOf(Context);
-    expect(service.newService.context1 === STATIC_CONTEXT).toEqual(false);
+    expect(service.newService.context1 === Context.STATIC).toEqual(false);
     expect(service.newService.context1 === service.newService.context2).toEqual(true);
   });
 
@@ -94,8 +94,8 @@ describe('Context token', function() {
     const context = injector.getSync<Context>('test')
     expect(context[0]).toBeInstanceOf(Context);
     expect(context[1]).toBeInstanceOf(Context);
-    expect(context[0] === STATIC_CONTEXT).toEqual(true);
-    expect(context[1] === STATIC_CONTEXT).toEqual(false);
+    expect(context[0] === Context.STATIC).toEqual(true);
+    expect(context[1] === Context.STATIC).toEqual(false);
   });
 
   test('should point to instance context in method injection', function() {
@@ -115,6 +115,6 @@ describe('Context token', function() {
     const ctx = service.method();
 
     expect(ctx).toBeInstanceOf(Context);
-    expect(ctx === STATIC_CONTEXT).toEqual(true);
+    expect(ctx === Context.STATIC).toEqual(true);
   });
 });

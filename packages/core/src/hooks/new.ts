@@ -11,7 +11,7 @@ export function New<NextValue>(data?: Record<string, any>) {
   return Hook(
     function newHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
       if (data) {
-        session.inject.context = new Context(data);
+        session.inject.context = Context.create(data);
       }
       session.inject.scope = scopeDef;
       return next(session);
