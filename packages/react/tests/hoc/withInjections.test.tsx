@@ -41,7 +41,7 @@ describe('withInjections HOC', function() {
     })
 
     render(
-      <Module module={[Service, DeepService]}>
+      <Module input={[Service, DeepService]}>
         <InjectedComponent customProp="custom prop" />
       </Module>
     );
@@ -84,7 +84,7 @@ describe('withInjections HOC', function() {
     })
 
     render(
-      <Module module={[Service, DeepService]}>
+      <Module input={[Service, DeepService]}>
         <InjectedComponent customProp="custom prop" />
       </Module>
     );
@@ -142,7 +142,7 @@ describe('withInjections HOC', function() {
     }
 
     render(
-      <Module module={[Service1, Service2]}>
+      <Module input={[Service1, Service2]}>
         <TestComponent />
       </Module>
     )
@@ -216,7 +216,7 @@ describe('withInjections HOC', function() {
     }
 
     render(
-      <Module module={[Service1, Service2]}>
+      <Module input={[Service1, Service2]}>
         <TestComponent />
       </Module>
     )
@@ -273,7 +273,7 @@ describe('withInjections HOC', function() {
 
     render(
       <Module 
-        module={{
+        input={{
           providers: [
             DeepService,
             {

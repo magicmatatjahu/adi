@@ -5,11 +5,15 @@ import { ADI_HOOK_DEF } from '../private';
 import { resolveProvider } from '../injector/resolver';
 
 import type { Injector, Session } from '../injector';
-import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, InjectionHook, InjectionHookContext, NextInjectionHook, InjectionHookResult } from '../types';
+import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, InjectionHook, InjectionHookContext, InjectionHookDefinition, NextInjectionHook, InjectionHookResult } from '../types';
 
 export function isInjectionHook<T = any, R = any>(hooks: unknown): hooks is InjectionHook<T, R> {
   if (!hooks) return false;
   return !!hooks[ADI_HOOK_DEF];
+}
+
+export function getInjectionHookDef(hook: unknown): InjectionHookDefinition | undefined {
+  return hook?.[ADI_HOOK_DEF]
 }
 
 export function runInjectioHooks(hooks: Array<InjectionHook>, session: Session, ctx: Partial<InjectionHookContext>, lastHook: NextInjectionHook) {
@@ -64,33 +68,5 @@ export function AliasHook<NextValue, T>(definition: ProviderDefinition<T>) {
       return resolveProvider(session);
     },
     { name: 'adi:hook:alias' }
-  )
-}
-
-export type ResultHookType<T = any> = {
-  session: Session,
-  instance: ProviderInstance<T>,
-  sideEffect: boolean,
-  result: T,
-}
-
-let cachedResultHook: any | undefined;
-export function ResultHook<NextValue>(): InjectionHook<NextValue, ResultHookType<NextValue>> {
-  if (cachedResultHook) {
-    return cachedResultHook;
-  }
-
-  return cachedResultHook = Hook(
-    function resultHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<ResultHookType<NextValue>> {
-      return wait(
-        next(session), result => ({ 
-          session,
-          instance: session.context.instance!,
-          sideEffect: session.hasFlag('side-effect'),
-          result,
-        })
-      );
-    },
-    { name: 'adi:hook:use-alias-definition' }
   )
 }

@@ -21,7 +21,7 @@ describe('onDestroy', function() {
       method(@Inject() service1?: TransientService, @Inject() service2?: TransientService) {}
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       TransientService,
       Service,
     ])
@@ -72,7 +72,7 @@ describe('onDestroy', function() {
       method(@Inject() service?: TransientService) {}
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       DeepTransientService,
       TransientService,
       Service,
@@ -120,7 +120,7 @@ describe('onDestroy', function() {
   test('should work as hook', async function() {
     let called = false;
 
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'foobar',
         useFactory: () => {
@@ -148,7 +148,7 @@ describe('onDestroy', function() {
   test('should call hook only one time after destruction (injection hook case)', async function() {
     let onInitCalls = 0;
 
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'foobar',
         useFactory: () => {
@@ -195,7 +195,7 @@ describe('onDestroy', function() {
       }
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       {
         provide: 'foobar',
         useFactory: () => {
@@ -260,7 +260,7 @@ describe('onDestroy', function() {
       }
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       Service,
       TestService,
     ])
@@ -308,7 +308,7 @@ describe('onDestroy', function() {
       ) {}
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       Service,
       TestService,
       {
@@ -355,7 +355,7 @@ describe('onDestroy', function() {
       }
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       ServiceA,
       ServiceB,
     ])
@@ -420,7 +420,7 @@ describe('onDestroy', function() {
       }
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       ZeroService,
       ServiceA,
       ServiceB,

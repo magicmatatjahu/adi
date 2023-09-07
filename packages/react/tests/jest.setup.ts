@@ -1,2 +1,2 @@
 import 'reflect-metadata';
-import '../src/interfaces';
+import '../src/types';

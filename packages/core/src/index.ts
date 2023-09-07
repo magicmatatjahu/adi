@@ -1,7 +1,6 @@
-import { ADI, installADI } from './adi';
+import { installADI } from './adi';
 import { Context, EventEmitter, Injector, Session, injectableMixin } from './injector';
 import { Hook } from './hooks';
-import { patchPromise } from './utils/wait';
 
 function patchCircularRefs() {
   injectableMixin(Context, undefined, { 
@@ -33,20 +32,8 @@ function patchCircularRefs() {
   });
 }
 
-function initADI() {
-  // create core Injector
-  const coreInjector = Injector.create(undefined, { name: 'adi:core-injector', importing: false, exporting: false }, null);
-  // override parent to null
-  (coreInjector as any).parent = null;
-  // override scopes of core injector to only ADI reference
-  coreInjector.options.scopes = [ADI];
-  // install ADI to global object
-  installADI(coreInjector);
-}
-
-patchPromise();
 patchCircularRefs();
-initADI();
+installADI()
 
 export * from './decorators';
 export { Hook, All, Catch, Ctx, Destroyable, Named, New, OnDestroyHook, OnInitHook, Optional, Ref, Scoped, Skip, Tagged, Token } from './hooks';

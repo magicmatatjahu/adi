@@ -100,7 +100,7 @@ describe('Singleton scope', function () {
     const childInjector = Injector.create([
       ChildService1,
       ChildService2,
-    ], undefined, parentInjector)
+    ], parentInjector)
 
     const service1 = parentInjector.getSync(Service1)
     const service2 = parentInjector.getSync(Service2)

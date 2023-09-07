@@ -23,7 +23,7 @@ describe('Self injection hook', function () {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector)
+    ], parentInjector)
 
     const service = childInjector.getSync(Service)
     expect(service.useValue).toEqual('barfoo');
@@ -46,7 +46,7 @@ describe('Self injection hook', function () {
     ])
     const childInjector = Injector.create([
       Service,
-    ], undefined, parentInjector)
+    ], parentInjector)
 
     const service = childInjector.getSync(Service)
     expect(service.useValue).toEqual(undefined);

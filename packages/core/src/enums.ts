@@ -50,9 +50,11 @@ export enum SessionFlag {
   RESOLVED = 1,
   SIDE_EFFECTS = 2,
   DYNAMIC = 4,
-  DRY_RUN = 8,
+  ASYNC = 8,
   DYNAMIC_SCOPE = 16,
-  CIRCULAR = 32,
+  DRY_RUN = 32,
+  PARALLEL = 64,
+  CIRCULAR = 128,
 }
 
 export enum InjectionHookKind {

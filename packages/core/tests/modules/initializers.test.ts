@@ -108,7 +108,7 @@ describe('MODULE_INITIALIZERS provider', function() {
     })
     class RootModule {}
 
-    const injector = await new Injector(RootModule).init();
+    const injector = await Injector.create(RootModule).init();
     expect(foobar).toEqual('foobar');
     expect(calledTimes).toEqual(1);
     expect(eagerService === injector.get(Service)).toEqual(true);
@@ -145,7 +145,7 @@ describe('MODULE_INITIALIZERS provider', function() {
     })
     class RootModule {}
 
-    const injector = await new Injector(RootModule).init();
+    const injector = await Injector.create(RootModule).init();
     expect(foobar).toEqual('foobar');
     expect(calledTimes).toEqual(1);
     expect(eagerService).toBeInstanceOf(Service);

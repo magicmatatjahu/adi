@@ -1,5 +1,6 @@
 import { ADI } from '../adi';
 import { injectableDefinitions, injectableMixin } from './injectable';
+import { patchMethod } from './method-injection';
 import { getOrCreateProvider } from './provider';
 import { resolverClass, resolverFactory, resolveClassicProvider, resolverValue, removeCache } from './resolver';
 import { INITIALIZERS } from '../constants';
@@ -20,7 +21,6 @@ import type {
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
   OnProviderAddPayload, ScopeType, ClassType,
 } from '../types';
-import { patchMethod, patchMethods } from './method-injection';
 
 export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<OnProviderAddPayload | undefined> {
   const processed: Array<OnProviderAddPayload> = [];
@@ -316,12 +316,11 @@ function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Arra
 }
 
 export function parseInjectArguments<T>(token?: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks: Array<InjectionHook> = []): ParsedInjectionItem {
-  let injectionArgument: PlainInjectionItem | undefined
+  let injectionArgument: ParsedInjectionItem | undefined
   if (token === undefined) {
     return createPlainInjectionItem(undefined);
   } else if (injectionArgument = (token as InjectionToken)[ADI_INJECTION_ARGUMENT]) {
-    const { token, annotations, hooks } = injectionArgument
-    return parseInjectArguments(token, annotations, hooks);
+    return injectionArgument as ParsedInjectionItem
   } else if (isInjectionHook(token)) {
     hooks = [token, annotations, ...hooks] as InjectionHook[];
     token = undefined;
@@ -366,11 +365,11 @@ export function convertInjections(dependencies: Array<InjectionItem> | undefined
 }
 
 export function createPlainInjectionItem<T>(token?: ProviderToken<T>, annotations: InjectionAnnotations = {}, hooks: Array<InjectionHook<unknown, unknown>> = []): ParsedInjectionItem {
-  return { token, hooks, annotations };
+  return { token, annotations, hooks };
 }
 
 export function createInjectionArgument<T>(token?: ProviderToken<T>, annotations: InjectionAnnotations = {}, hooks: Array<InjectionHook<unknown, unknown>> = [], metadata?: Partial<InjectionMetadata>): InjectionArgument<T> {
-  return { token, hooks, annotations, metadata: createInjectionMetadata(metadata, annotations) };
+  return { token, annotations, hooks, metadata: createInjectionMetadata(metadata, annotations) };
 }
 
 export function createInjectionMetadata<T>(metadata?: Partial<InjectionMetadata>, annotations: InjectionAnnotations = {}): InjectionMetadata {

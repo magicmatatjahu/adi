@@ -5,7 +5,7 @@ describe('InjectionToken', function() {
     test('with useValue', function() {
       const Token = InjectionToken.create<string>();
 
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: Token,
           useValue: 'foobar',
@@ -19,7 +19,7 @@ describe('InjectionToken', function() {
     test('with useFactory', function() {
       const Token = InjectionToken.create<string>();
 
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: 'useValue',
           useValue: 'foobar',
@@ -43,7 +43,7 @@ describe('InjectionToken', function() {
 
       const Token = InjectionToken.create<Service>();
 
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: Token,
           useClass: Service,
@@ -57,7 +57,7 @@ describe('InjectionToken', function() {
     test('with useExisting', function() {
       const Token = InjectionToken.create<string>();
 
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: 'useValue',
           useValue: 'foobar',
@@ -77,7 +77,7 @@ describe('InjectionToken', function() {
         useValue: 'foobar',
       });
 
-      const injector = new Injector([
+      const injector = Injector.create([
         Token,
       ]);
   
@@ -93,7 +93,7 @@ describe('InjectionToken', function() {
 
       const Token = InjectionToken.argument(Service);
 
-      const injector = new Injector([
+      const injector = Injector.create([
         Service,
       ]);
   
@@ -107,7 +107,7 @@ describe('InjectionToken', function() {
 
       const Token = InjectionToken.argument(Service, Optional());
 
-      const injector = new Injector();
+      const injector = Injector.create();
   
       const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual(undefined);
@@ -121,7 +121,7 @@ describe('InjectionToken', function() {
         useValue: 'foobar',
       });
 
-      const injector = new Injector();
+      const injector = Injector.create();
   
       const resolvedToken = injector.get(Token);
       expect(resolvedToken).toEqual('foobar');
@@ -136,7 +136,7 @@ describe('InjectionToken', function() {
         inject: ['useValue'],
       });
 
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: 'useValue',
           useValue: 'foobar',
@@ -156,7 +156,7 @@ describe('InjectionToken', function() {
         useClass: Service,
       });
 
-      const injector = new Injector();
+      const injector = Injector.create();
   
       const resolvedToken = injector.get(Token);
       expect(resolvedToken).toBeInstanceOf(Service);
@@ -168,7 +168,7 @@ describe('InjectionToken', function() {
         useExisting: 'useValue',
       });
 
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: 'useValue',
           useValue: 'foobar',
@@ -185,7 +185,7 @@ describe('InjectionToken', function() {
         useValue: "foobar",
       });
   
-      const injector = new Injector([
+      const injector = Injector.create([
         {
           provide: token,
           useValue: "barfoo",
@@ -210,7 +210,7 @@ describe('InjectionToken', function() {
         inject: [helperToken],
       });
   
-      const injector = new Injector();
+      const injector = Injector.create();
   
       const value = injector.get(token);
       expect(value).toEqual("foobar");

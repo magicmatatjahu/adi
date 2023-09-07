@@ -1,6 +1,6 @@
+import { Injector } from './injector';
 import { getGlobalThis } from "./utils";
 
-import type { Injector } from './injector';
 import type { Plugin, PluginState, Events, EventKind, EventHandler, EventHandlerRef, EventContext } from './types';
 import type { ADIOptions } from "./types/adi";
 
@@ -117,7 +117,7 @@ export class ADI {
 
 function corePlugin(): Plugin {
   return {
-    name: 'adi:plugin:core',
+    name: 'adi:core',
     install(adi) {
       adi.on('module:add', (_, { injector }) => {
         adi.injectors.add(injector);
@@ -129,13 +129,19 @@ function corePlugin(): Plugin {
   }
 }
 
-export function installADI(coreInjector: Injector) {
+export function installADI() {
   const global = getGlobalThis();
   if (global.$$adi !== undefined) {
     return;
   }
+
   global.$$adi = ADI;
-  ADI.core = coreInjector;
+  ADI.core = Injector.create([], { 
+    name: 'adi:core-injector', 
+    importing: false, 
+    exporting: false, 
+    scopes: [ADI]
+  });;
   ADI.use(corePlugin());
 }
 

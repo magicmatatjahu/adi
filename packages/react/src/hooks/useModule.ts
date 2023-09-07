@@ -1,20 +1,14 @@
 import { useMemo, useRef } from "react";
-import { Injector } from "@adi/core";
 
-import { createProvider } from "../context";
-import { useInjectorContext, useCachedInjectorInput, useCachedInjectorOptions, useDestroyInjector } from "../hooks";
+import { useInjectorContext, useCachedInjectorInput, useCachedInjectorOptions, useDestroyInjector } from "./helper-hooks";
 import { createInjector, destroyInjector } from "../utils";
 
-import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import type { InjectorOptions, InjectorInput } from "@adi/core";
+import type { Injector, InjectorInput, InjectorOptions } from "@adi/core";
 
-export interface ModuleProps extends PropsWithChildren {
-  input: InjectorInput | Injector;
-  options?: InjectorOptions;
-  fallback?: ReactNode;
-}
-
-export const Module: FunctionComponent<ModuleProps> = ({ input, options, children }) => {
+export function useModule(
+  input: InjectorInput | Injector,
+  options?: InjectorOptions,
+): Injector {
   const ctx = useInjectorContext();
   const injectorRef = useRef<Injector | undefined>();
 
@@ -32,6 +26,6 @@ export const Module: FunctionComponent<ModuleProps> = ({ input, options, childre
   }, [cachedInput, cachedOptions, injectorRef]);
 
   useDestroyInjector(injector)
-
-  return createProvider(injector, children);
+  
+  return injector;
 }

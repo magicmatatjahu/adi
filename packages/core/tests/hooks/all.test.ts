@@ -47,7 +47,7 @@ describe('All injection hook', function () {
       ) {}
     }
 
-    const injector = new Injector([
+    const injector = Injector.create([
       Service,
       {
         provide: MultiProvider,

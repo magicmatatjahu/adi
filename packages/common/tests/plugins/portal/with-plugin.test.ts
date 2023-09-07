@@ -46,7 +46,7 @@ describe('Portal plugin with Portal injection hook', function () {
           provide: 'foobar',
           useValue: 'child foobar',
         }
-      ], undefined, parentInjector)
+      ], parentInjector)
   
       const service = childInjector.getSync(Service);
       expect(service.service).toBeInstanceOf(TestService);
@@ -86,7 +86,7 @@ describe('Portal plugin with Portal injection hook', function () {
           provide: 'foobar',
           useValue: 'child foobar',
         }
-      ], undefined, parentInjector)
+      ], parentInjector)
   
       const service = childInjector.getSync(Service, Portal())
       expect(service.service).toBeInstanceOf(TestService);
@@ -134,7 +134,7 @@ describe('Portal plugin with Portal injection hook', function () {
           provide: 'foobar',
           useValue: 'child foobar',
         }
-      ], undefined, parentInjector)
+      ], parentInjector)
   
       const service = childInjector.getSync(Service, Portal({ deep: true }));
       expect(service.service).toBeInstanceOf(TestService);

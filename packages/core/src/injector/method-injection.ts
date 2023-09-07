@@ -51,7 +51,7 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
       return originalMethod.apply(this, args);
     }
 
-    const { injector, session, injections } = ctxRegistry.get(this)!;
+    const { injector, session, injections } = ctx
     const inject = injections[methodName];
     const toDestroy: ProviderInstance[] = [];
 
@@ -59,7 +59,7 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
       let dependency: InjectionArgument | undefined = undefined;
       for (let i = 0, l = inject.length; i < l; i++) {
         if (args[i] === undefined && (dependency = inject[i])) {
-          args[i] = optimizedInject(injector, dependency, session, undefined, toDestroy)
+          args[i] = optimizedInject(injector, session, dependency, { toDestroy })
         }
       }
     }

@@ -3,9 +3,9 @@ import { useContext } from "react";
 import { Injectable } from "@adi/core";
 
 import { InjectorContext, Module, useInjector } from "../../src";
-import { NotFoundInjectorError } from '../../src/problems';
+import { NotFoundInjectorError } from '../../src/errors';
 
-import { FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
 
 describe('useInjector hook', function() {
   test('should work', async function() {
@@ -33,7 +33,7 @@ describe('useInjector hook', function() {
     }
 
     render(
-      <Module module={[Service, DeepService]}>
+      <Module input={[Service, DeepService]}>
         <TestComponent />
       </Module>
     )
@@ -56,7 +56,7 @@ describe('useInjector hook', function() {
 
     const TestComponent: FunctionComponent = () => {
       const ctx = useContext(InjectorContext);
-      const service = ctx.injector.get(Service) as Service;
+      const service = ctx?.injector.get(Service) as Service;
 
       return (
         <div>
@@ -66,7 +66,7 @@ describe('useInjector hook', function() {
     }
 
     render(
-      <Module module={[Service, DeepService]}>
+      <Module input={[Service, DeepService]}>
         <TestComponent />
       </Module>
     )

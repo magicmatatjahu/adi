@@ -4,7 +4,7 @@ export class NotFoundInjectorError extends Error {
   }
 }
 
-export class UndefinedSuspenseIdError extends Error {
+export class DynamicInjectionError extends Error {
   constructor() {
     super(`Asynchronous injection is performed, but without specifying suspenseID. Please specify suspenseId.`)
   }

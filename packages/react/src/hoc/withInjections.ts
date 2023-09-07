@@ -1,12 +1,13 @@
 import { waitAll } from "@adi/core";
-import { createElement, ReactNode, useContext, useState } from "react";
+import { createElement, ReactNode, useEffect, useState } from "react";
 
-import { InjectorContext } from "../context";
-import { injectMap, convertMapInjections, useDestroy } from "../utils";
+import { useDestroyInstances, useInjector } from "../hooks";
+import { injectMap, convertMapInjections } from "../utils";
 
 import type { InjectionItem } from "@adi/core";
 
 export type WithInjectionsOptions = {
+  displayName?: string
   fallback?: ReactNode;
 }
 
@@ -17,22 +18,31 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
 ) {
   const converted = convertMapInjections(injections);
   
-  const ComponentWithInjection = (props: Omit<TProps, TInjectedKeys>) => {
-    const ctx = useContext(InjectorContext);
-    const [[results, instances, asyncOps], setState] = useState(() => {
-      return injectMap(ctx.injector, converted);
+  function ComponentWithInjection(props: Omit<TProps, TInjectedKeys>) {
+    const injector = useInjector()
+    const [{ instances, asyncOperations, toDestroy }, setState] = useState(() => {
+      return injectMap(injector, converted);
     });
 
-    useDestroy(instances, true);
+    useEffect(() => {
+      if (asyncOperations.length) {
+        waitAll(
+          asyncOperations,
+          result => setState(old => ({ ...old, asyncOperations: [] })),
+        )
+      }
+    }, [setState, asyncOperations])
 
-    if (asyncOps) {
-      waitAll(asyncOps, () => setState([results, instances, undefined]));
+    useDestroyInstances(toDestroy);
+
+    if (asyncOperations.length) {
       const fallback = options?.fallback;
       return fallback ? fallback : null as any;
     }
   
-    return createElement(Component, { ...(props as TProps), ...results });
+    return createElement(Component, { ...(props as TProps), ...instances });
   };
 
+  ComponentWithInjection.displayName = options.displayName || 'ComponentWithInjection'
   return ComponentWithInjection;
 }

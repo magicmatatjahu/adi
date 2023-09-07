@@ -34,7 +34,7 @@ describe('Without portal plugin', function () {
         provide: 'foobar',
         useValue: 'child foobar',
       }
-    ], undefined, parentInjector)
+    ], parentInjector)
 
     const service = childInjector.getSync(Service);
     expect(service.service).toBeInstanceOf(TestService);

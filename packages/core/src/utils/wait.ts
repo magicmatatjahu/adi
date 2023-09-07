@@ -1,8 +1,9 @@
-const ADI_PROMISE_DEF = Symbol('adi:definition:promise');
+const ADI_PROMISE_DEF = Symbol('adi:promise');
 
-export function patchPromise(promise: any = Promise): void {
+export function patchPromise(promise: any): void {
   promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_DEF; 
 }
+patchPromise(Promise)
 
 export function isPromiseLike<T>(maybePromise: unknown): maybePromise is Promise<T> {
   return maybePromise! && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_DEF;

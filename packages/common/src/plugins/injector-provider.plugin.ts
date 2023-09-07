@@ -45,7 +45,7 @@ export function injectorProviderPlugin(): Plugin {
         }
       
         if (imports || providers) {
-          // add destroy hook to destroy new injector 
+          // add destroy hook to destroy Injector.create 
           definition.hooks.push(DestroyInjectorHook);
           
           imports = imports || [];

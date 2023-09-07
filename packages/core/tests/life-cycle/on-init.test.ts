@@ -321,7 +321,7 @@ describe('onInit', function() {
     })
     class Service {}
 
-    const injector = new Injector([
+    const injector = Injector.create([
       Service,
       {
         provide: 'foobar',

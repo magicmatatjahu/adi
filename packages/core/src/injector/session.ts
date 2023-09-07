@@ -1,25 +1,26 @@
-import { ADI } from '../adi';
 import { SessionFlag } from '../enums';
 
 import type { Injector } from './injector'; 
-import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations } from '../types';
+import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations, InjectionAnnotations } from '../types';
 
 const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
   'side-effect': SessionFlag.SIDE_EFFECTS,
   'dynamic': SessionFlag.DYNAMIC,
-  'dry-run': SessionFlag.DRY_RUN,
+  'async': SessionFlag.ASYNC,
   'dynamic-scope': SessionFlag.DYNAMIC_SCOPE,
-  'circular': SessionFlag.CIRCULAR,
+  'dry-run': SessionFlag.DRY_RUN,
+  'parallel': SessionFlag.CIRCULAR,
+  'circular': SessionFlag.PARALLEL,
 }
 
 type FlagsType = keyof typeof sessionFlags;
 
 export class Session<T = any> {
   // TODO: Fix type for metadata argument
-  static create<T>(token: ProviderToken<T> | undefined, metadata: InjectionMetadata | undefined = {} as any, injector: Injector, parentSession?: Session): Session {
+  static create<T>(token: ProviderToken<T> | undefined, annotations: InjectionAnnotations = {}, metadata: InjectionMetadata | undefined = {} as any, injector: Injector, parentSession?: Session): Session {
     const injections: SessionInjection = {
-      inject: { token, context: undefined, scope: undefined, annotations: {} },
+      inject: { token, context: undefined, scope: undefined, annotations },
       metadata,
     };
     const session = new Session(injections, { injector, provider: undefined, definition: undefined, instance: undefined }, parentSession);

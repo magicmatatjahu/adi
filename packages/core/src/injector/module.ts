@@ -102,7 +102,7 @@ function processImportModule(to: Injector, input: InjectorInput) {
       return alreadyImported;
     }
 
-    const injector = Injector.create(input, undefined, to);
+    const injector = Injector.create(input, to);
     to.imports.set(input, injector);
     return wait(initInjector({ injector, input } as any), () => injector);
   }

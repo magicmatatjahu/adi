@@ -23,7 +23,7 @@ describe('SkipSelf injection hook', function () {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector)
+    ], parentInjector)
 
     const service = childInjector.getSync(Service);
     expect(service.useValue).toEqual('foobar');
@@ -45,7 +45,7 @@ describe('SkipSelf injection hook', function () {
         provide: 'useValue',
         useValue: 'barfoo',
       },
-    ], undefined, parentInjector)
+    ], parentInjector)
 
     const service = childInjector.getSync(Service)
     expect(service.useValue).toEqual(undefined);
