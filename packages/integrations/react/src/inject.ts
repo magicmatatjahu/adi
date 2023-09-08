@@ -1,21 +1,12 @@
-import { destroy } from './lifecycle-manager';
-import { inject as coreInject } from './resolver';
-import { patchMethod, setInstanceContext } from './method-injection';
-import { waitCallback, noopThen, noopCatch } from '../utils';
+import { InjectorContext } from './context';
+import { getReactInternals } from './utils';
+import { NotFoundInjectorError } from './errors';
 
-import type { Session } from './session';
-import type { ProviderToken, InjectionHook, InjectionAnnotations, InferredProviderTokenType, InjectFunctionResult, InjectionContext, ProviderInstance } from '../types';
-
-export interface RunInContextArgument {
-  inject: typeof inject,
-}
-
-export let CURRENT_INJECTION_CONTEXT: InjectionContext | undefined = undefined;
-export function setCurrentInjectionContext(ctx: InjectionContext | undefined): InjectionContext | undefined {
-  const previous = CURRENT_INJECTION_CONTEXT;
-  CURRENT_INJECTION_CONTEXT = ctx;
-  return previous;
-}
+import type { ProviderToken, InjectionHook, InjectionAnnotations, InferredProviderTokenType, InjectFunctionResult } from '@adi/core';
+import type { InjectorContextValue } from './context';
+import { getGlobalThis } from '@adi/core/lib/utils';
+import { createInjectionMetadata } from '@adi/core/lib/injector';
+import { InjectionKind } from '@adi/core/lib/enums';
 
 export function inject<T>(token: ProviderToken<T>): InjectFunctionResult<InferredProviderTokenType<T>>;
 export function inject<T, A>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>): InjectFunctionResult<A>;
@@ -65,41 +56,45 @@ export function inject<A, B, C, D, E, F, G, H>(hook1: InjectionHook<unknown, A>,
 export function inject(...hooks: InjectionHook[]): InjectFunctionResult<unknown>;
 
 export function inject<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: InjectionHook[]): InjectFunctionResult<T> {
-  if (CURRENT_INJECTION_CONTEXT === undefined) {
-    throw new Error('inject() must be called from an injection context such as a constructor, a factory function or field initializer.');
+  if (isCallingInConstructor() === false) {
+    throw new Error('');
+  }
+  
+  const injector = getInjectorContext();
+  const metadata = createInjectionMetadata({
+    kind: InjectionKind.CUSTOM,
+    target: getConstructor(),
+  })
+
+  // return 
+
+  return undefined as any;
+}
+
+function getInjectorContext() {
+  const readContext = getReactInternals()?.ReactCurrentDispatcher?.current?.readContext;
+  if (typeof readContext !== 'function') {
+    throw new Error('');
   }
 
-  return coreInject(CURRENT_INJECTION_CONTEXT, token as any, annotations as any, hooks)
-}
-
-export function runInInjectionContext<R>(fn: (arg: RunInContextArgument) => R, ctx: InjectionContext): R {
-  function nearestInject<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: Array<InjectionHook>) {
-    return coreInject(ctx, token as any, annotations as any, hooks)
-  };
-
-  const toDestroy = ctx.toDestroy = []
-  const previosuContext = setCurrentInjectionContext(ctx);
-  return waitCallback(
-    () => fn({ inject: nearestInject }),
-    noopThen,
-    noopCatch,
-    () => exitFromInjectionContext(toDestroy, previosuContext),
-  )
-}
-
-export function exitFromInjectionContext(instances: ProviderInstance[], previosuContext: InjectionContext | undefined) {
-  destroy(instances);
-  setCurrentInjectionContext(previosuContext)
-}
-
-export function injectMethod<T, F extends (...args: any) => any>(instance: T, method: F): F {
-  if (CURRENT_INJECTION_CONTEXT === undefined) {
-    throw new Error('injectMethod() must be called inside constructor!');
+  const ctx = readContext(InjectorContext) as InjectorContextValue | null;
+  if (ctx === null) {
+    throw new NotFoundInjectorError();
   }
 
-  const { injector, session } = CURRENT_INJECTION_CONTEXT;
-  const target = (instance as any).constructor;
-  const methodName = method.name;
-  setInstanceContext(instance, { injector, session: session as Session, injections: {} })
-  return patchMethod(target, methodName);
+  return ctx.injector;
+}
+
+function isCallingInConstructor(): boolean {
+  const currentOwner = getReactInternals()?.ReactCurrentOwner;
+  return currentOwner === null;
+}
+
+const globalThis = getGlobalThis();
+function getConstructor(this: any) {
+  if (this === globalThis) {
+    return;
+  }
+
+  return this.constructor;
 }

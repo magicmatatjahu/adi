@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { Injector, Injectable, Module as ADIModule } from "@adi/core";
+import { Injector, Injectable, Module as ADIModule, ProviderType, ModuleToken } from "@adi/core";
 import { InjectorStatus } from '@adi/core/lib/enums';
 
 import { Module, useInject, useInjector } from "../../src";
@@ -220,8 +220,7 @@ describe('Module component', function() {
     expect(count).toEqual(3);
   });
 
-  // TODO: Handle async creation by suspense
-  test.skip('should work with async modules', async function() {
+  test('should work with async modules using fallback', async function() {
     @Injectable()
     class DeepService {
       prop: string = "Deep Service injected";
@@ -272,8 +271,118 @@ describe('Module component', function() {
     });
   });
 
+  test('should work with async modules using Suspense with class module', async function() {
+    @Injectable()
+    class DeepService {
+      prop: string = "Deep Service injected";
+    }
+
+    @ADIModule({
+      providers: [DeepService],
+      exports: [DeepService],
+    })
+    class ChildModule {}
+
+    @Injectable()
+    class Service {
+      prop: string = "Service injected";
+    }
+
+    const TestComponent: FunctionComponent = () => {
+      const service = useInject(Service);
+      const deepService = useInject(DeepService);
+
+      return (
+        <div>
+          <span>{service.prop}!</span>
+          <span>{deepService.prop}!</span>
+        </div>
+      );
+    }
+
+    @ADIModule({
+      imports: [Promise.resolve(ChildModule)],
+      providers: [Service],
+    })
+    class RootModule {}
+
+    render(
+      <Suspense fallback='Fallback is rendered...'>
+        <Module 
+          input={RootModule}
+          suspense={true}
+        >
+          <TestComponent />
+        </Module>
+      </Suspense>
+    );
+
+    // check if fallback is rendered
+    expect(screen.getByText('Fallback is rendered...')).toBeDefined();
+
+    // check if TestComponent is rendered after initialization of injector
+    await waitFor(() => {
+      expect(screen.getByText('Service injected!')).toBeDefined();
+      expect(screen.getByText('Deep Service injected!')).toBeDefined();
+    });
+  });
+
+  test('should work with async modules using Suspense with ModuleToken', async function() {
+    @Injectable()
+    class DeepService {
+      prop: string = "Deep Service injected";
+    }
+
+    @ADIModule({
+      providers: [DeepService],
+      exports: [DeepService],
+    })
+    class ChildModule {}
+
+    @Injectable()
+    class Service {
+      prop: string = "Service injected";
+    }
+
+    const TestComponent: FunctionComponent = () => {
+      const service = useInject(Service);
+      const deepService = useInject(DeepService);
+
+      return (
+        <div>
+          <span>{service.prop}!</span>
+          <span>{deepService.prop}!</span>
+        </div>
+      );
+    }
+
+    const moduleToken = new ModuleToken({
+      imports: [Promise.resolve(ChildModule)],
+      providers: [Service],
+    })
+
+    render(
+      <Suspense fallback='Fallback is rendered...'>
+        <Module 
+          input={moduleToken}
+          suspense={true}
+        >
+          <TestComponent />
+        </Module>
+      </Suspense>
+    );
+
+    // check if fallback is rendered
+    expect(screen.getByText('Fallback is rendered...')).toBeDefined();
+
+    // check if TestComponent is rendered after initialization of injector
+    await waitFor(() => {
+      expect(screen.getByText('Service injected!')).toBeDefined();
+      expect(screen.getByText('Deep Service injected!')).toBeDefined();
+    });
+  });
+
   test('should destroy injector after removing component', async function() {
-    jest.useFakeTimers();
     let count: number = 0;
 
     @Injectable()
@@ -334,16 +443,103 @@ describe('Module component', function() {
     // check if injector variable is set
     expect(injector).toBeInstanceOf(Injector);
 
-    // wait for all timeouts
-    jest.runAllTimers();
+    // wait
+    await Promise.resolve();
     
     // check if injector is destroyed
     expect((injector!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
   });
 
-  // TODO: Check this after implementing caching of injectors
+  test('should not persist module when input is changed', async function() {
+    let count: number = 0;
+
+    @Injectable()
+    class Service {
+      prop: string = "Module works";
+
+      constructor() {
+        count++;
+      }
+    }
+
+    let injector1: Injector | undefined;
+    let injector2: Injector | undefined;
+    let injector3: Injector | undefined;
+
+    const ChildComponent: FunctionComponent = () => {
+      const injector = useInjector();
+
+      if (injector1 === undefined) {
+        injector1 = injector
+      } else if (injector2 === undefined) {
+        injector2 = injector
+      } else {
+        injector3 = injector;
+      }
+
+      return (
+        <div>
+          Module is rendered!
+        </div>
+      );
+    };
+
+    const TestComponent: FunctionComponent<PropsWithChildren> = ({ children }) => {
+      const [text, setText] = useState('');
+
+      let dependency: ProviderType
+      if (text === '') {
+        dependency = Service
+      } else if (text === 'test') {
+        dependency = { provide: Service, useClass: Service }
+      } else {
+        dependency = Service
+      }
+
+      return (
+        <Module input={[dependency]}>
+          <button onClick={() => setText(previous => previous + 'test')}>Change text</button>
+          <ChildComponent />
+        </Module>
+      );
+    }
+
+    render(
+      <TestComponent />
+    );
+
+    // check if children is rendered
+    expect(screen.getByText('Module is rendered!')).toBeDefined();
+
+    // try to render module
+    let button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('Module is rendered!')).toBeDefined();
+
+    // try to unmount injector
+    button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.queryByText('Module is rendered!')).toBeDefined();
+
+    // check if injector variable is set
+    expect(injector1).toBeInstanceOf(Injector);
+    expect(injector2).toBeInstanceOf(Injector);
+    expect(injector3).toBeInstanceOf(Injector);
+    expect(injector1 === injector2).toEqual(false);
+    expect(injector1 === injector3).toEqual(false);
+    expect(injector2 === injector3).toEqual(false);
+
+    // wait
+    await Promise.resolve();
+    
+    // check if injector is destroyed
+    expect((injector1!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
+    expect((injector2!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
+    expect((injector3!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+  });
+
+  // TODO: Check this after implementing caching of injectors by .of() method
   test.skip('should not destroy injector if cache id is set', async function() {
-    jest.useFakeTimers();
     let count: number = 0;
 
     @Injectable()
@@ -404,8 +600,8 @@ describe('Module component', function() {
     // check if injector variable is set
     expect(injector).toBeInstanceOf(Injector);
 
-    // wait for all timeouts
-    jest.runAllTimers();
+    // wait
+    await Promise.resolve();
     
     // check if injector is not destroyed
     expect((injector!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);

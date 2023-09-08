@@ -97,16 +97,12 @@ function equalArray(original: any[], toCompare: any[]): boolean {
 
 export function useDestroyInstances(toDestroy: Array<ProviderInstance>): void {
   useEffect(() => {
-    if (toDestroy && toDestroy.length) {
-      return () => destroyInstances(toDestroy)
-    }
+    return () => destroyInstances(toDestroy)
   }, [toDestroy]);
 }
 
-export function useDestroyInjector(toDestroy?: Injector): void {
+export function useDestroyInjector(toDestroy?: Injector | Promise<Injector>): void {
   useEffect(() => {
-    if (toDestroy) {
-      return () => destroyInjector(toDestroy)
-    }
+    return () => destroyInjector(toDestroy)
   }, [toDestroy]);
 }

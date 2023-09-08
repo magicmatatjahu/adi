@@ -16,13 +16,13 @@ export function useModule(
   const cachedOptions = useCachedInjectorOptions(options);
 
   const injector = useMemo(() => {
-    const { injector: newInjector } = createInjector(cachedInput, cachedOptions, ctx?.injector);
+    const { injector } = createInjector(cachedInput, cachedOptions, ctx?.injector);
 
     if (injectorRef.current !== undefined) {
       destroyInjector(injectorRef.current)
     }
 
-    return injectorRef.current = newInjector as Injector
+    return injectorRef.current = injector as Injector
   }, [cachedInput, cachedOptions, injectorRef]);
 
   useDestroyInjector(injector)

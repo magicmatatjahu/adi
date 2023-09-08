@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Injectable, InjectionToken, Optional, TransientScope } from "@adi/core";
 
 import { Module, useInject } from "../../src";
-import { DynamicInjectionError } from "../../src/errors";
+import { SuspenseError } from "../../src/errors";
 
 import type { FunctionComponent, JSXElementConstructor } from 'react';
 
@@ -240,7 +240,7 @@ describe('useInject hook', function() {
 
       return (
         <div>
-          <button onClick={() => setText(previous => previous + 'a')}>Change text</button>
+          <button onClick={() => setText(previous => previous + 'test')}>Change text</button>
           <ChildComponent text={text} />
         </div>
       );
@@ -255,23 +255,29 @@ describe('useInject hook', function() {
     // try to render module
     let button = screen.getByRole('button');
     fireEvent.click(button);
-    expect(screen.getByText('a')).toBeDefined();
+    expect(screen.getByText('test')).toBeDefined();
 
     // wait
     await Promise.resolve();
 
+    // check if instance is destroyed
+    expect(onDestroyCalled).toEqual(0);
+
     // render additional text
     button = screen.getByRole('button');
     fireEvent.click(button);
-    expect(screen.queryByText('aa')).toBeDefined();
+    expect(screen.getByText('testtest')).toBeDefined();
 
     // wait
     await Promise.resolve();
 
+    // check if instance is destroyed
+    expect(onDestroyCalled).toEqual(0);
+
     // render additional text
     button = screen.getByRole('button');
     fireEvent.click(button);
-    expect(screen.queryByText('aaa')).toBeDefined();
+    expect(screen.getByText('testtesttest')).toBeDefined();
 
     // wait
     await Promise.resolve();
@@ -280,9 +286,82 @@ describe('useInject hook', function() {
     expect(onDestroyCalled).toEqual(0);
   });
 
+  test('should change injection between rerendering when inject arguments are changed', async function() {
+    let onDestroyCalled = 0;
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      onDestroy() {
+        onDestroyCalled++;
+      }
+    }
+
+    const ChildComponent: FunctionComponent<{ text: string, annotation: string }> = ({ text, annotation }) => {
+      useInject(Service, { key: annotation }, Optional());
+
+      return (
+        <div>
+          {text}
+        </div>
+      );
+    };
+
+    const TestComponent: FunctionComponent = () => {
+      const [text, setText] = useState('');
+
+      return (
+        <div>
+          <button onClick={() => setText(previous => previous + 'test')}>Change text</button>
+          <ChildComponent text={text} annotation={text} />
+        </div>
+      );
+    }
+
+    render(
+      <Module input={[Service]}>
+        <TestComponent />
+      </Module>
+    )
+
+    // try to render module
+    let button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('test')).toBeDefined();
+
+    // wait
+    await Promise.resolve();
+
+    // check if instance is destroyed
+    expect(onDestroyCalled).toEqual(1);
+
+    // render additional text
+    button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('testtest')).toBeDefined();
+
+    // wait
+    await Promise.resolve();
+
+    // check if instance is destroyed
+    expect(onDestroyCalled).toEqual(2);
+
+    // render additional text
+    button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('testtesttest')).toBeDefined();
+
+    // wait
+    await Promise.resolve();
+
+    // check if instance is destroyed
+    expect(onDestroyCalled).toEqual(3);
+  });
+
   test('should handle async injection using Suspense', async function() {
     const AsyncComponent: FunctionComponent = () => {
-      const asyncValue = useInject<string>('asyncToken');
+      const asyncValue = useInject<string>('asyncToken', { suspense: true });
 
       return (
         <div>
@@ -379,8 +458,11 @@ describe('useInject hook', function() {
   });
 
   test('should handle async injection using Suspense with suspense id (array injection) with Transient (dynamic) scope', async function() {
+    let services: string[] = []
+
     const AsyncComponent: FunctionComponent<{ suspense: string }> = ({ suspense }) => {
       const asyncValue = useInject<string>('asyncToken', { suspense });
+      services.push(asyncValue)
 
       return (
         <div>
@@ -438,12 +520,12 @@ describe('useInject hook', function() {
       await Promise.resolve()
     })
 
+    expect(services).toHaveLength(15);
     expect(screen.queryByText('Resolving async injection...')).toBeNull();
     expect(screen.queryAllByText('async value is rendered!')).toBeDefined();
   });
 
-  // TODO: Fix that to throw error
-  test.skip('should throw error when suspense injection is to dynamic - cannot recognize proper promise to resolve', async function() {
+  test('should throw error when suspense is disabled', async function() {
     const AsyncComponent: FunctionComponent = () => {
       const asyncValue = useInject<string>('asyncToken');
 
@@ -464,48 +546,26 @@ describe('useInject hook', function() {
       );
     }
 
-    render(
-      <Module 
-        input={[
-          {
-            provide: 'asyncToken',
-            async useFactory() {
-              return 'async value';
-            },
-            scope: TransientScope,
-          }
-        ]}
-      >
-        <TestComponent />
-      </Module>
-    );
-
-    // wait
-    await act(async () => {
-      await Promise.resolve()
-    })
-    
-
-    // // override console.error native function to not see error in console
-    // const nativeConsoleError = console.error;
-    // console.error = () => {};
-    // expect(() => {
-    //   render(
-    //     <Module 
-    //       input={[
-    //         {
-    //           provide: 'asyncToken',
-    //           async useFactory() {
-    //             return 'async value';
-    //           },
-    //           scope: TransientScope,
-    //         }
-    //       ]}
-    //     >
-    //       <TestComponent />
-    //     </Module>
-    //   );
-    // }).toThrow(DynamicInjectionError);
-    // console.error = nativeConsoleError;
+    // override console.error native function to not see error in console
+    const nativeConsoleError = console.error;
+    console.error = () => {};
+    expect(() => {
+      render(
+        <Module 
+          input={[
+            {
+              provide: 'asyncToken',
+              async useFactory() {
+                return 'async value';
+              },
+              scope: TransientScope,
+            }
+          ]}
+        >
+          <TestComponent />
+        </Module>
+      );
+    }).toThrow(SuspenseError);
+    console.error = nativeConsoleError;
   });
 });

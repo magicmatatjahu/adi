@@ -1,10 +1,17 @@
 import { useMemo, useRef } from "react";
 
-import { useInjector } from './useInjector';
-import { useDestroyInstances, useCachedAnnotations, useCachedHooks } from './helper-hooks';
-import { inject, destroyInstances } from "../utils";
+import { createInjectionMetadata } from "@adi/core/lib/injector";
+import { inject as coreInject } from "@adi/core/lib/injector/resolver";
+import { isInjectionToken } from "@adi/core/lib/utils";
+import { InjectionKind } from "@adi/core/lib/enums";
 
-import type { ProviderToken, InjectionHook, InjectionAnnotations, InferredProviderTokenType, ProviderInstance } from "@adi/core";
+import { SuspenseError } from '../errors';
+import { useDestroyInstances, useCachedAnnotations, useCachedHooks } from './helper-hooks';
+import { useInjector } from './useInjector';
+import { destroyInstances, handleProviderSuspense, getReactInternals } from '../utils';
+
+import type { Injector, ProviderToken, InjectionHook, InjectionAnnotations, InjectionContext, InferredProviderTokenType, ProviderInstance } from "@adi/core";
+import type { SuspensePromise } from '../utils';
 
 export function useInject<T>(token: ProviderToken<T>): InferredProviderTokenType<T>;
 export function useInject<T, A>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>): A;
@@ -64,7 +71,7 @@ export function useInject<T>(token: ProviderToken<T> | InjectionAnnotations | In
     const result = inject(injector, token, cachedAnnotations, cachedHooks);
 
     const current = instanceRef.current
-    if (current !== undefined && current.toDestroy[0] !== toDestroy[0]) {
+    if (current !== undefined && current.toDestroy[0] !== result.toDestroy[0]) {
       destroyInstances(current.toDestroy)
     }
 
@@ -74,4 +81,59 @@ export function useInject<T>(token: ProviderToken<T> | InjectionAnnotations | In
   useDestroyInstances(toDestroy);
 
   return instance;
+}
+
+export function inject<T>(injector: Injector, token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks?: InjectionHook[]): { instance: T, toDestroy: ProviderInstance[] } {
+  const metadata = createInjectionMetadata({
+    kind: InjectionKind.CUSTOM,
+    target: getCurrentFunction(),
+  })
+
+  const toDestroy: ProviderInstance[] = [];
+  const ctx: InjectionContext = { 
+    injector,
+    session: undefined,
+    current: undefined,
+    metadata,
+    toDestroy,
+  }
+
+  let instance: any
+  const suspense = getInjectionAnnotations(token, annotations)?.suspense;
+  if (suspense) {
+    instance = handleProviderSuspense(injector, ctx, suspense);
+  }
+
+  if (instance === undefined) {
+    instance = coreInject<T>(ctx, token, annotations, hooks);
+    if (ctx.current?.hasFlag('async')) {
+      if (suspense) {
+        instance = handleProviderSuspense(injector, ctx, suspense, instance as SuspensePromise);
+      } else {
+        throw new SuspenseError()
+      }
+    }
+  }
+
+  return {
+    instance: instance as T,
+    toDestroy
+  }
+}
+
+function getInjectionAnnotations<T>(token: ProviderToken<T> | InjectionAnnotations, annotations?: InjectionAnnotations): InjectionAnnotations | undefined {
+  if (typeof token === 'object' && !isInjectionToken(token)) {
+    return token;
+  }
+  if (typeof annotations === 'object') {
+    return annotations;
+  }
+}
+
+function getCurrentFunction(): Function | undefined {
+  const currentOwner = getReactInternals()?.ReactCurrentOwner?.current;
+  if (currentOwner) {
+    return currentOwner?.elementType || currentOwner?.type;
+  }
+  return
 }
