@@ -5,7 +5,7 @@ describe('ModuleToken', function() {
     @Injectable()
     class Service {}
 
-    const MainModule = new ModuleToken({
+    const MainModule = ModuleToken.create({
       providers: [
         Service,
       ]
@@ -16,11 +16,11 @@ describe('ModuleToken', function() {
     expect(service).toBeInstanceOf(Service);
   });
 
-  test('should behave like normal imported module', async function() {
+  test('should work with imported module', async function() {
     @Injectable()
     class Service {}
 
-    const ChildModule = new ModuleToken({
+    const ChildModule = ModuleToken.create({
       providers: [
         Service,
       ],
@@ -28,7 +28,7 @@ describe('ModuleToken', function() {
         Service,
       ]
     });
-    const MainModule = new ModuleToken({
+    const MainModule = ModuleToken.create({
       imports: [
         ChildModule,
       ],

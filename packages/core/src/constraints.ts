@@ -1,4 +1,3 @@
-import { getHostInjector } from "./injector/metadata";
 import { treeInjectorMetaKey, exportedToInjectorsMetaKey } from './private';
 
 import type { Context, Injector, Session } from "./injector";
@@ -31,7 +30,8 @@ export function visible(type: 'public' | 'private'): ConstraintDefinition {
   return (session) => {
     switch(type) {
       case 'private': {
-        return getHostInjector(session) === session.context.injector;
+        const { host, context } = session;
+        return host === context.provider?.host
       }
       default: return true;
     }
@@ -75,7 +75,7 @@ export function whenExported(session: Session): boolean {
 }
 
 export function whenComponent(session: Session): boolean {
-  return Boolean(session.parent || getHostInjector(session) !== session.context.injector) === false;
+  return Boolean(session.parent) === false;
 }
 
 export const when = {

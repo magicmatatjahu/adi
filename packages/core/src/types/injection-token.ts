@@ -6,5 +6,5 @@ export type InjectionTokenProvide<T> = OverwriteProvider<T> & {
 } 
 
 export interface InjectionTokenOptions {
-  name: string
+  name?: string
 }

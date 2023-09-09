@@ -16,7 +16,7 @@ export class DynamicService {}
 })
 export class DynamicModule {}
 
-export const DynamicModuleToken = new ModuleToken({
+export const DynamicModuleToken = ModuleToken.create({
   providers: [
     {
       provide: 'service',

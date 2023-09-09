@@ -2,7 +2,6 @@ import { createScope } from "./factory";
 import { Scope } from "./scope";
 import { InjectorStatus } from "../enums";
 import { Context } from "../injector";
-import { getHostInjector } from "../injector/metadata";
 
 import type { Injector, Session } from "../injector";
 import type { ProviderInstance, DestroyContext } from "../types";
@@ -20,7 +19,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
 
   override getContext(session: Session, options: SingletonScopeOptions): Context {
     if (options.perInjector) {
-      const hostInjector = getHostInjector(session) as Injector;
+      const hostInjector = session.host;
       let context = this.perInjectors.get(hostInjector) as Context;
       if (context === undefined) {
         context = Context.create(Context.STATIC.get());

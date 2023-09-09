@@ -11,12 +11,15 @@ import { isExtendedModule, isModuleToken, PromisesHub, wait } from '../utils';
 import { cacheMetaKey, scopedInjectorsMetaKey, scopedInjectorLabelMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata, InjectionContext, InjectFunctionResult, InferredProviderTokenType } from '../types';
+import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata, InjectionContext, InjectFunctionResult, InferredProviderTokenType, ScopedInjectorOptions } from '../types';
 
 export class Injector<T = any> {
   static create<T, P>(): Injector<T>
   static create<T, P>(
-    input: InjectorInput<T>,
+    input: InjectorInput<T> | undefined,
+  ): Injector<T>
+  static create<T, P>(
+    parent: Injector<P> | undefined,
   ): Injector<T>
   static create<T, P>(
     input: InjectorInput<T>,
@@ -32,10 +35,15 @@ export class Injector<T = any> {
     parent: Injector<P> | undefined,
   ): Injector<T>
   static create<T, P>(
-    input?: InjectorInput<T>,
+    input?: InjectorInput<T> | Injector<P>,
     options?: InjectorOptions | Injector<P>,
-    parent?: Injector<P> | undefined,
+    parent?: Injector<P>,
   ) {
+    if (input instanceof this) {
+      parent = input; 
+      input = undefined
+      options = undefined
+    }
     if (options instanceof this) {
       parent = options; 
       options = undefined
@@ -70,6 +78,7 @@ export class Injector<T = any> {
 
     if (options.importing === undefined) options.importing = true;
     if (options.exporting === undefined) options.exporting = true;
+    if (options.destroy === undefined) options.destroy = true;
     if (options.initialize === undefined) options.initialize = true;
     if (options.scopes) {
       options.scopes = [...new Set(['any', input as ClassType, ...(options.scopes || [])])];
@@ -225,36 +234,51 @@ export class Injector<T = any> {
 
   of(): Injector;
   of(label: string | symbol): Injector;
-  of(input: ModuleMetadata | Array<ProviderType>): Injector;
-  of(label: string | symbol, input: ModuleMetadata | Array<ProviderType>): Injector;
-  of(inputOrLabel?: string | symbol | ModuleMetadata | Array<ProviderType>, maybeInput?: ModuleMetadata | Array<ProviderType>): Injector {
+  of(input: InjectorInput): Injector;
+  of<T>(label: string | symbol, input: InjectorInput<T>): Injector<T>;
+  of<T>(input: InjectorInput<T>, options: ScopedInjectorOptions): Injector<T>;
+  of<T>(label: string | symbol, input: InjectorInput<T>, options: ScopedInjectorOptions): Injector<T>;
+  of<T>(inputOrLabel?: string | symbol | InjectorInput, maybeInput?: InjectorInput<T>, maybeOptions?: ScopedInjectorOptions): Injector<T> {
     if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
       return undefined as unknown as Injector;
     }
 
     let label: string | symbol | undefined;
-    let input: ModuleMetadata | Array<ProviderType> | undefined;
+    let input: InjectorInput | undefined;
+    let options: ScopedInjectorOptions | undefined
+    let scopedInjectors: Map<string | symbol, Injector> | undefined = this.meta[scopedInjectorsMetaKey]
+
     if (inputOrLabel !== undefined) {
       const typeOf = typeof inputOrLabel;
       if (typeOf === 'string' || typeOf === 'symbol') {
         label = inputOrLabel as string | symbol;
         input = maybeInput
+        options = maybeOptions
+
+        const injector = scopedInjectors?.get(label) as Injector;
+        if (injector) {
+          if (!options?.recreate) {
+            return injector;
+          }
+
+          injector.destroy()
+        }
       } else {
-        input = inputOrLabel as ModuleMetadata | Array<ProviderType>;
+        input = inputOrLabel as InjectorOptions
+        options = maybeInput as InjectorOptions
       }
     }
 
-    const scopedInjector = Injector.create(input || [], { exporting: false }, this);
+    const injector = Injector.create(input || [], { ...options || {}, exporting: false }, this);
     if (label !== undefined) {
-      scopedInjector[scopedInjectorLabelMetaKey] = label
-      let injectors: Map<string | symbol, Injector> = this.meta[scopedInjectorsMetaKey];
-      if (!injectors) {
-        injectors = (this.meta[scopedInjectorsMetaKey] = new Map<string | symbol, Injector>());
+      injector.meta[scopedInjectorLabelMetaKey] = label
+      if (!scopedInjectors) {
+        scopedInjectors = (this.meta[scopedInjectorsMetaKey] = new Map<string | symbol, Injector>());
       }
-      injectors.set(label, scopedInjector);
+      scopedInjectors.set(label, injector);
     }
     
-    return scopedInjector;
+    return injector;
   }
 
   import<T>(input: InjectorInput<T> | Promise<InjectorInput<T>>): Injector<T> | Promise<Injector<T>> {
@@ -272,6 +296,6 @@ export class Injector<T = any> {
   }
 
   destroy(): Promise<void> {
-    return destroyInjector(this)
+    return destroyInjector(this, { event: 'manually' })
   }
 }

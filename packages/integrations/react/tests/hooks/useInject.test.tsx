@@ -457,6 +457,60 @@ describe('useInject hook', function() {
     expect(screen.getByText('async value is rendered!')).toBeDefined();
   });
 
+  // TODO: Fix problem with removing promises from cache 
+  test.skip('should handle async injection using Suspense with suspense id (multiple injection to this same component)', async function() {
+    const AsyncComponent: FunctionComponent = () => {
+      const asyncValue1 = useInject<string>('asyncToken', { suspense: 'some-id-1' });
+      const asyncValue2 = useInject<string>('asyncToken', { suspense: 'some-id-2' });
+
+      return (
+        <div>
+          {asyncValue1} is rendered!
+          {asyncValue2} is rendered!
+        </div>
+      );
+    };
+
+    const TestComponent: FunctionComponent = () => {
+      return (
+        <div>
+          <Suspense fallback={'Resolving async injection...'}>
+            <AsyncComponent />
+          </Suspense>
+        </div>
+      );
+    }
+
+    let nr = 0
+    render(
+      <Module 
+        input={[
+          {
+            provide: 'asyncToken',
+            async useFactory() {
+              return `async value ${++nr}`;
+            },
+            scope: TransientScope,
+          },
+        ]}
+      >
+        <TestComponent />
+      </Module>
+    );
+
+    // try to render module
+    expect(screen.getByText('Resolving async injection...')).toBeDefined();
+    expect(screen.queryByText('async value is rendered!')).toBeNull();
+
+    // wait
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(screen.queryByText('Resolving async injection...')).toBeNull();
+    expect(screen.getByText('async value is rendered!')).toBeDefined();
+  });
+
   test('should handle async injection using Suspense with suspense id (array injection) with Transient (dynamic) scope', async function() {
     let services: string[] = []
 

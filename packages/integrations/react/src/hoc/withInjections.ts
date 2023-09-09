@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState, useMemo, useRef } from "react";
+import { createElement, useState, useMemo, useRef } from "react";
 import { waitAll } from "@adi/core";
 
 import { createInjectionMetadata } from "@adi/core/lib/injector";
@@ -43,8 +43,9 @@ export function withInjections<TProps, TInjectedKeys extends keyof TProps>(
       return instancesRef.current = result
     }, [injector, instancesRef]);
 
-    const [, hardRender] = useState(false);
     useDestroyInstances(result.toDestroy);
+    
+    const [, hardRender] = useState(false);
 
     const asyncOperations = result.asyncOperations;
     if (isSuspense === false && asyncOperations.length) {

@@ -4,6 +4,7 @@ import { Injector, Injectable, Module as ADIModule, ProviderType, ModuleToken } 
 import { InjectorStatus } from '@adi/core/lib/enums';
 
 import { Module, useInject, useInjector } from "../../src";
+import { wait } from '../helpers';
 
 import type { FunctionComponent, PropsWithChildren } from 'react';
 
@@ -356,7 +357,7 @@ describe('Module component', function() {
       );
     }
 
-    const moduleToken = new ModuleToken({
+    const moduleToken = ModuleToken.create({
       imports: [Promise.resolve(ChildModule)],
       providers: [Service],
     })
@@ -451,12 +452,10 @@ describe('Module component', function() {
   });
 
   test('should not persist module when input is changed', async function() {
-    let count: number = 0;
+    let count = 0;
 
     @Injectable()
     class Service {
-      prop: string = "Module works";
-
       constructor() {
         count++;
       }
@@ -468,6 +467,7 @@ describe('Module component', function() {
 
     const ChildComponent: FunctionComponent = () => {
       const injector = useInjector();
+      injector.get(Service)
 
       if (injector1 === undefined) {
         injector1 = injector
@@ -528,6 +528,7 @@ describe('Module component', function() {
     expect(injector1 === injector2).toEqual(false);
     expect(injector1 === injector3).toEqual(false);
     expect(injector2 === injector3).toEqual(false);
+    expect(count).toEqual(3);
 
     // wait
     await Promise.resolve();
@@ -538,22 +539,28 @@ describe('Module component', function() {
     expect((injector3!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
   });
 
-  // TODO: Check this after implementing caching of injectors by .of() method
-  test.skip('should not destroy injector if cache id is set', async function() {
+  test('should not destroy injector if cache is set', async function() {
     let count: number = 0;
 
     @Injectable()
     class Service {
-      prop: string = "Module works";
-
       constructor() {
         count++;
       }
     }
 
-    let injector: Injector | undefined;
+    let injector1: Injector | undefined;
+    let injector2: Injector | undefined;
+
     const ChildComponent: FunctionComponent = () => {
-      injector = useInjector();
+      const injector = useInjector();
+      injector.get(Service)
+
+      if (injector1 === undefined) {
+        injector1 = injector
+      } else {
+        injector2 = injector
+      }
 
       return (
         <div>
@@ -566,26 +573,20 @@ describe('Module component', function() {
       const [renderModule, setRenderModule] = useState(false);
 
       return (
-        <>
+        <Module>
           <button onClick={() => setRenderModule(previous => !previous)}>Change state</button>
-          {children}
           {renderModule && (
-            <Module input={[Service]}>
+            <Module input={[Service]} cache='some-cache'>
               <ChildComponent />
             </Module>
           )}
-        </>
+        </Module>
       );
     }
 
     render(
-      <TestComponent>
-        <div>Children are rendered!</div>
-      </TestComponent>
+      <TestComponent />
     );
-
-    // check if children is rendered
-    expect(screen.getByText('Children are rendered!')).toBeDefined();
 
     // try to render module
     let button = screen.getByRole('button');
@@ -597,13 +598,102 @@ describe('Module component', function() {
     fireEvent.click(button);
     expect(screen.queryByText('Module is rendered!')).toBeNull();
 
-    // check if injector variable is set
-    expect(injector).toBeInstanceOf(Injector);
+    // try to mount injector
+    button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('Module is rendered!')).toBeDefined();
+
+    // check if injector variables is set
+    expect(injector1).toBeInstanceOf(Injector);
+    expect(injector2).toBeInstanceOf(Injector);
+    expect(injector1 === injector2).toEqual(true);
+    expect(count).toEqual(1);
 
     // wait
     await Promise.resolve();
     
     // check if injector is not destroyed
-    expect((injector!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+    expect((injector1!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+    expect((injector2!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+  });
+
+  test('should destroy injector if cache is set but parent injector is destroyed', async function() {
+    let count: number = 0;
+
+    @Injectable()
+    class Service {
+      constructor() {
+        count++;
+      }
+    }
+
+    let injector1: Injector | undefined;
+    let injector2: Injector | undefined;
+
+    const ChildComponent: FunctionComponent = () => {
+      const injector = useInjector();
+      injector.get(Service)
+
+      if (injector1 === undefined) {
+        injector1 = injector
+      } else {
+        injector2 = injector
+      }
+
+      return (
+        <div>
+          Module is rendered!
+        </div>
+      );
+    };
+
+    const TestComponent: FunctionComponent<PropsWithChildren> = ({ children }) => {
+      const [renderModule, setRenderModule] = useState(false);
+
+      return (
+        <Module>
+          <button onClick={() => setRenderModule(previous => !previous)}>Change state</button>
+          {renderModule && (
+            <Module>
+              <Module input={[Service]} cache='some-cache'>
+                <ChildComponent />
+              </Module>
+            </Module>
+          )}
+        </Module>
+      );
+    }
+
+    render(
+      <TestComponent />
+    );
+
+    // try to render module
+    let button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('Module is rendered!')).toBeDefined();
+
+    // try to unmount injector
+    button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.queryByText('Module is rendered!')).toBeNull();
+
+    // try to mount injector
+    button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(screen.getByText('Module is rendered!')).toBeDefined();
+
+    // check if injector variables is set
+    expect(injector1).toBeInstanceOf(Injector);
+    expect(injector2).toBeInstanceOf(Injector);
+    expect(injector1 === injector2).toEqual(false);
+    expect(count).toEqual(2);
+
+    // wait
+    await wait(5);
+    
+    // check if injector is not destroyed
+    expect((injector1!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
+    expect((injector2!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
   });
 });

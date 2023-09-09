@@ -9,22 +9,25 @@ export type ModuleImportType<T = any> =
   | ClassType<T>
   | ModuleToken
   | ExtendedModule<T>
+  | ImportedModule<T>
   | Promise<ClassType<T>>
   | Promise<ModuleToken>
   | Promise<ExtendedModule<T>>
+  | Promise<ImportedModule<T>>
   | ForwardReference<ModuleImportType<T>>;
 
 export type ModuleExportType<T = any> = 
+  | ClassType<T>
+  | ModuleToken
+  | ExtendedModule<T>
+  | ExportedModule<T>
   | ProviderToken<T>
   | ProviderType<T>
   | ExportedProvider<T>
-  | ExportedModule
-  | ClassType
-  | ModuleToken
-  | ExtendedModule
   | Promise<ClassType<T>>
   | Promise<ModuleToken>
   | Promise<ExtendedModule<T>>
+  | Promise<ExportedModule<T>>
   | ForwardReference<ModuleExportType<T>>;
 
 export interface ModuleOptions extends InjectorOptions {}
@@ -41,18 +44,23 @@ export interface ExtendedModule<T = any> extends ModuleMetadata {
   extends: ModuleImportType<T>;
 }
 
-// export interface ImportedModule {
-//   from: ClassType | ModuleToken | ForwardReference<ClassType>;
-//   import?: Array<ProviderToken<any> | ExportedProvider<any>> | '*';
-// }
+export interface ImportedProvider<T = any> {
+  export: ProviderToken<T>;
+  names: Array<string | symbol | object>;
+}
+
+export interface ImportedModule<T = any> {
+  from: ClassType<T> | ModuleToken | ForwardReference<ClassType<T>>;
+  import?: Array<ProviderToken<any> | ExportedProvider<any>> | '*';
+}
 
 export interface ExportedProvider<T = any> {
   export: ProviderToken<T>;
   names: Array<string | symbol | object>;
 }
 
-export interface ExportedModule {
-  from: ClassType | ModuleToken | ForwardReference<ClassType>;
+export interface ExportedModule<T = any> {
+  from: ClassType<T> | ModuleToken | ForwardReference<ClassType<T>>;
   export: Array<ProviderToken<any> | ExportedProvider<any>> | '*';
 }
 

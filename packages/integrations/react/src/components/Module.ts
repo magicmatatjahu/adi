@@ -9,13 +9,14 @@ import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 import type { InjectorOptions, InjectorInput } from "@adi/core";
 
 export interface ModuleProps extends PropsWithChildren {
-  input: InjectorInput | Injector;
+  input?: InjectorInput | Injector;
   options?: InjectorOptions;
   fallback?: ReactNode;
   suspense?: string | symbol | object | boolean;
+  cache?: string | symbol;
 }
 
-export const Module: FunctionComponent<ModuleProps> = ({ input, options, fallback, suspense, children }) => {
+export const Module: FunctionComponent<ModuleProps> = ({ input = [], options, fallback, suspense, cache, children }) => {
   const ctx = useInjectorContext();
   const injectorRef = useRef<{ injector: Injector | Promise<any>, isAsync: boolean }>();
 
@@ -25,17 +26,19 @@ export const Module: FunctionComponent<ModuleProps> = ({ input, options, fallbac
   const result = useMemo(() => {
     const isSuspense = Boolean(suspense) && fallback === undefined;
     const suspenseKey = typeof suspense === 'boolean' ? undefined : suspense;
-    const result = createInjector(cachedInput, cachedOptions, ctx?.injector, isSuspense, suspenseKey);
+    const result = createInjector(cachedInput, cachedOptions, ctx?.injector, cache, isSuspense, suspenseKey);
 
-    if (injectorRef.current !== undefined) {
-      destroyInjector(injectorRef.current.injector)
+    const { current } = injectorRef;
+    if (current !== undefined) {
+      destroyInjector(current.injector)
     }
 
-    return injectorRef.current = result
-  }, [cachedInput, cachedOptions, fallback, suspense, injectorRef]);
+    return injectorRef.current = result;
+  }, [cachedInput, cachedOptions, fallback, suspense, cache, injectorRef]);
+
+  useDestroyInjector(result.injector)
 
   const [, hardRender] = useState(false);
-  useDestroyInjector(result.injector)
   
   const injector = result.injector
   if (fallback !== undefined && result.isAsync) {

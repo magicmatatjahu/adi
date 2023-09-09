@@ -1,10 +1,10 @@
 import { createInjectionArgument, overrideInjections } from './metadata';
+import { patchMethods } from './method-injection';
 import { InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
 import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
 import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionArgument, InjectionItem } from "../types";
-import { patchMethods } from './method-injection';
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 

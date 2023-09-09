@@ -63,3 +63,9 @@ export enum InjectionHookKind {
   PROVIDER = 'provider',
   DEFINITION = 'definition',
 }
+
+export enum ProvideIn {
+  CORE = 'core',
+  ANY = 'any',
+  ROOT = 'root',
+}

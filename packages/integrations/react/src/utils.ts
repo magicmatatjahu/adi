@@ -1,7 +1,7 @@
-import * as React from 'react';
 import { ADI, Injector } from "@adi/core";
 
-import { destroy } from "@adi/core/lib/injector";
+import { hasScopedInjector } from "@adi/core/lib/injector";
+import { destroy, destroyInjector as coreDestroyInjector } from "@adi/core/lib/injector/lifecycle-manager";
 import { isModuleToken, isPromiseLike, wait } from "@adi/core/lib/utils";
 
 import { SuspenseError } from './errors';
@@ -10,11 +10,17 @@ import type { ProviderInstance, InjectionContext, InjectorInput, InjectorOptions
 
 export type SuspensePromise<T = any> = Promise<T> & { status?: 'fulfilled' | 'rejected' | 'pending', error: any, value: T, instance?: ProviderInstance<T> };
 
-export function createInjector(input: InjectorInput | Injector, options: InjectorOptions | undefined, parentInjector?: Injector, isSuspense?: boolean, suspenseKey?: string | symbol | object): { injector: Injector | Promise<Injector>, isAsync: boolean } {
+export function createInjector(input: InjectorInput | Injector, options: InjectorOptions | undefined, parentInjector?: Injector, cacheKey?: string | symbol, isSuspense?: boolean, suspenseKey?: string | symbol | object): { injector: Injector | Promise<Injector>, isAsync: boolean } {
   let isAsync: boolean = false;
   let injector: Injector | Promise<Injector> | undefined;
+  const hasCacheKey = cacheKey !== undefined
+  const parent = parentInjector || ADI.core;
 
-  const suspenseCache = getSuspenseCache(parentInjector || ADI.core);
+  if (hasCacheKey && hasScopedInjector(parent, cacheKey)) {
+    injector = parent.of(cacheKey);
+  }
+
+  const suspenseCache = getSuspenseCache(parent);
   const promise = suspenseCache.get(suspenseKey || input);
 
   if (promise) {
@@ -28,8 +34,12 @@ export function createInjector(input: InjectorInput | Injector, options: Injecto
 
   if (input instanceof Injector) {
     injector = input.init();
+  } else if (injector) {
+    injector = (injector as Injector).init()
+  } else if (hasCacheKey) {
+    injector = parent.of(cacheKey, input as InjectorInput, { ...options || {}, exporting: false }).init();
   } else {
-    injector = Injector.create(input as InjectorInput, { ...options || {}, exporting: false }, parentInjector).init();
+    injector = Injector.create(input as InjectorInput, { ...options || {}, exporting: false }, parent).init();
   }
 
   if (isPromiseLike(injector)) {
@@ -52,7 +62,7 @@ export function createInjector(input: InjectorInput | Injector, options: Injecto
 
 export function destroyInjector(injector: Injector | Promise<Injector> | undefined) {
   if (injector) {
-    wait(injector, injector => injector.destroy())
+    wait(injector, inj => coreDestroyInjector(inj))
   }
 }
 
@@ -174,12 +184,4 @@ function getSuspenseCache(injector: Injector): Map<string | symbol | object | Pr
     suspenseCache = injector.meta[suspenseSymbol] = new Map<string | symbol | object | ProviderDefinition | ProviderInstance, SuspensePromise | { instances: number }>();
   }
   return suspenseCache;
-}
-
-export function getReactInternals(): any {
-  try {
-    return (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher
-  } catch(err: unknown) {
-    throw err;
-  }
 }

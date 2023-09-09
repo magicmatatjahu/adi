@@ -187,7 +187,7 @@ function processExtractedImport(extracted: ExtractedMetadata, parent?: CompiledM
     parentInjector = proxy ? (proxy as CompiledModule).injector : parent?.injector;
   }
 
-  const injector = compiled.injector = Injector.create(input, { initialize: false }, parentInjector);
+  const injector = compiled.injector = Injector.create(input, { initialize: false }, parentInjector as Injector);
   if (proxy) {
     injector.status |= InjectorStatus.PROXY;
   } else if (!isInjector) {

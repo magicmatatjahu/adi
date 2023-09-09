@@ -28,9 +28,10 @@ export class Session<T = any> {
   }
 
   private flags: SessionFlag = SessionFlag.NONE;
-  
+  public host: Injector
   public result: any;
   public deep: number;
+
   public readonly meta: Record<string | symbol, any> = {};
   public readonly children: Array<Session> = [];
 
@@ -51,6 +52,7 @@ export class Session<T = any> {
     // ) {
     //   // console.warn()
     // }
+    this.host = context.injector;
   }
 
   fork(): Session {

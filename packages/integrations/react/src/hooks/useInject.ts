@@ -8,10 +8,14 @@ import { InjectionKind } from "@adi/core/lib/enums";
 import { SuspenseError } from '../errors';
 import { useDestroyInstances, useCachedAnnotations, useCachedHooks } from './helper-hooks';
 import { useInjector } from './useInjector';
-import { destroyInstances, handleProviderSuspense, getReactInternals } from '../utils';
+import { destroyInstances, handleProviderSuspense } from '../utils';
 
 import type { Injector, ProviderToken, InjectionHook, InjectionAnnotations, InjectionContext, InferredProviderTokenType, ProviderInstance } from "@adi/core";
 import type { SuspensePromise } from '../utils';
+
+const metadata = createInjectionMetadata({
+  kind: InjectionKind.CUSTOM,
+})
 
 export function useInject<T>(token: ProviderToken<T>): InferredProviderTokenType<T>;
 export function useInject<T, A>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>): A;
@@ -84,17 +88,12 @@ export function useInject<T>(token: ProviderToken<T> | InjectionAnnotations | In
 }
 
 export function inject<T>(injector: Injector, token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks?: InjectionHook[]): { instance: T, toDestroy: ProviderInstance[] } {
-  const metadata = createInjectionMetadata({
-    kind: InjectionKind.CUSTOM,
-    target: getCurrentFunction(),
-  })
-
   const toDestroy: ProviderInstance[] = [];
   const ctx: InjectionContext = { 
     injector,
     session: undefined,
     current: undefined,
-    metadata,
+    metadata: { ...metadata },
     toDestroy,
   }
 
@@ -128,12 +127,4 @@ function getInjectionAnnotations<T>(token: ProviderToken<T> | InjectionAnnotatio
   if (typeof annotations === 'object') {
     return annotations;
   }
-}
-
-function getCurrentFunction(): Function | undefined {
-  const currentOwner = getReactInternals()?.ReactCurrentOwner?.current;
-  if (currentOwner) {
-    return currentOwner?.elementType || currentOwner?.type;
-  }
-  return
 }

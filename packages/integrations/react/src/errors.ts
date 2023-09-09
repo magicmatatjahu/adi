@@ -9,3 +9,9 @@ export class SuspenseError extends Error {
     super(`Asynchronous injection is performed, but without enabled suspense. Please enable suspense or specify suspense key in injection annotations.`)
   }
 }
+
+export class InjectOutsideClassComponentError extends Error {
+  constructor() {
+    super(`inject() function is only supported inside constructor of React Class Component.`)
+  }
+}

@@ -9,6 +9,7 @@ export * from './injection-token';
 export * from './injection';
 export * from './injector';
 export * from './lifecycle-hooks';
+export * from './module-token';
 export * from './module';
 export * from './plugin';
 export * from './provider-record';

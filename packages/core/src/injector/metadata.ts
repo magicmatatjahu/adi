@@ -10,7 +10,7 @@ import { isInjectionHook, ExistingHook, AliasHook } from '../hooks/private';
 import { InjectionToken } from '../tokens';
 import { DefaultScope, getScopeDefinition } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
-import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ARGUMENT } from '../private';
+import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ARGUMENT, scopedInjectorsMetaKey } from '../private';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
@@ -96,7 +96,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     annotations = original.annotations || {};
     definitionName = original.name;
 
-    // TODO: add error in dev env 
     token = original.provide!;
     let factory: FactoryDefinition,
       kind: ProviderKind,
@@ -386,6 +385,10 @@ export function createInjectionMetadata<T>(metadata?: Partial<InjectionMetadata>
   }
 }
 
+export function hasScopedInjector(injector: Injector, label: string | symbol): boolean {
+  return injector.meta[scopedInjectorsMetaKey]?.has(label) || false
+}
+
 export function overrideInjections(
   original: InjectionArguments,
   overriding: Array<InjectionItem | undefined> | Injections | undefined,
@@ -503,16 +506,6 @@ function overridePropertiesAndMethodsInjections(
       }
     });
   }
-}
-
-export function getHostInjector(session: Session): Injector | undefined {
-  if (session.parent) {
-    return session.parent.context.provider?.host;
-  }
-  if (session.metadata.kind === InjectionKind.INJECTOR) {
-    return session.context.injector;
-  }
-  return;
 }
 
 function createClassInjections(): InjectionArguments {

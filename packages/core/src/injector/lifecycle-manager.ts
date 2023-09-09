@@ -140,7 +140,15 @@ function shouldForceDestroy(instance: ProviderInstance) {
   );
 }
 
-export async function destroyInjector(injector: Injector) {
+export async function destroyInjector(injector: Injector, ctx: { event: 'manually' | 'default' } = { event: 'default' }) {
+  const { parent, meta } = injector;
+  const scopedLabel = meta[scopedInjectorLabelMetaKey];
+  const isScoped = scopedLabel !== undefined
+
+  if (ctx.event === 'default' && isScoped) {
+    return;
+  }
+
   if (injector.status & InjectorStatus.DESTROYED) return; 
   injector.status |= InjectorStatus.DESTROYED;
 
@@ -151,20 +159,24 @@ export async function destroyInjector(injector: Injector) {
   injector.providers.clear();
   await waitSequence(providers, provider => destroyProvider(provider, { event: 'injector' }));
 
-  const { parent, meta } = injector;
-  const scopedLabel = meta[scopedInjectorLabelMetaKey];
   if (parent) {
     // remove injector from parent imports
     parent.imports.delete(injector.input);
 
     // remove (optional) injector from parent scoped injectors
-    if (scopedLabel !== undefined) {
+    if (isScoped) {
       parent.meta[scopedInjectorsMetaKey].delete(scopedLabel);
     }
+  }
+
+  const scopedInjectors = meta[scopedInjectorsMetaKey];
+  if (scopedInjectors) {
+    const injectors: Injector[] = Array.from(scopedInjectors.values());
+    await waitSequence(injectors, inj => destroyInjector(inj, { event: 'manually' }));
   }
 
   // then destroy and clean all imported modules
   const injectors = Array.from(injector.imports.values());
   injector.imports.clear();
-  return waitSequence(injectors, destroyInjector);
+  return waitSequence(injectors, inj => destroyInjector(inj, { event: 'manually' }));
 }
