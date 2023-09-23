@@ -1,9 +1,14 @@
 const ADI_PROMISE_DEF = Symbol('adi:promise');
 
+async function createNativePromise() {}
+
 export function patchPromise(promise: any): void {
   promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_DEF; 
 }
+
 patchPromise(Promise)
+// patching native Promise created by async/await
+patchPromise(createNativePromise().constructor)
 
 export function isPromiseLike<T>(maybePromise: unknown): maybePromise is Promise<T> {
   return maybePromise! && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_DEF;

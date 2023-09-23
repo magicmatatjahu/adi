@@ -11,7 +11,7 @@ export class Context<D extends Record<string | symbol, unknown> = Record<string 
     return new this(data, options, meta);
   }
 
-  private constructor(
+  protected constructor(
     private readonly data: D = {} as D,
     private readonly options?: ContextOptions,
     public readonly meta: Record<string | symbol, any> = {},

@@ -140,7 +140,7 @@ export function installADI() {
     name: 'adi:core-injector', 
     importing: false, 
     exporting: false, 
-    scopes: [ADI]
+    scopes: [ADI, 'core']
   });;
   ADI.use(corePlugin());
 }

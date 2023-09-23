@@ -7,7 +7,8 @@ import { Session } from './session';
 import { InjectionKind, InstanceStatus, InjectionHookKind, InjectorStatus } from '../enums';
 import { runInjectioHooks, runInjectioHooksWithProviders } from '../hooks/private';
 import { cacheMetaKey, circularSessionsMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
-import { NoProviderError, CircularReferenceError } from "../problem";
+import { NotFoundProviderError } from "../errors/not-found-provider.error";
+import { CircularReferenceError } from "../errors/circular-reference.error";
 import { getAllKeys, isClassProvider, wait, waitAll, noopCatch, isPromiseLike, PromisesHub } from '../utils';
 
 import type { Injector } from './injector'
@@ -287,7 +288,7 @@ function resolveFromParent<T>(session: Session): T | Promise<T> {
   const context = session.context;
   const injector = context.injector.parent;
   if (injector === null) {
-    throw new NoProviderError(session);
+    throw new NotFoundProviderError({ session });
   }
   context.injector = injector!;
   context.provider = context.definition = context.instance = undefined;
@@ -322,7 +323,7 @@ function handleCircularInjection<T>(session: Session, instance: ProviderInstance
 
   const proto = getPrototype(instance);
   if (!proto) {
-    throw new CircularReferenceError();
+    throw new CircularReferenceError({ session });
   }
   instance.status |= InstanceStatus.CIRCULAR;
 

@@ -1,6 +1,6 @@
 import { Hook } from "./hook";
-import { NoProviderError } from "../problem";
 import { waitCallback, noopThen } from "../utils";
+import { NotFoundProviderError } from "../errors/not-found-provider.error";
 
 import type { Session } from '../injector/session';
 import type { InjectionHookResult, NextInjectionHook } from '../types';
@@ -12,7 +12,7 @@ export function Optional<NextValue, T = undefined>(value?: T) {
         () => next(session),
         noopThen,
         err => {
-          if (err instanceof NoProviderError) {
+          if (err instanceof NotFoundProviderError) {
             return value;
           }
           throw err;

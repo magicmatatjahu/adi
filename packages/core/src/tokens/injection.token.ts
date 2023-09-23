@@ -82,7 +82,7 @@ export class InjectionToken<T = unknown> {
     return this.options?.name;
   }
 
-  private constructor(
+  protected constructor(
     protected readonly options?: InjectionTokenOptions,
   ) {}
 };

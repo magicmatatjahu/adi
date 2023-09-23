@@ -6,10 +6,18 @@ import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../util
 import type { Injector, Session } from '../injector';
 import type { ProviderRecord, ProviderDefinition, ProviderInstance, DestroyContext, CustomResolver } from '../types';
 
+const resolved = new WeakMap<object, ProviderInstance>();
+
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   const { annotations, context } = session;
   const injector = context.injector;
   const value = instance.value;
+
+  // assign resolved value to provider instance for future gc
+  if (typeof value === 'object' && value !== null) {
+    resolved.set(value, instance)
+  }
+
   const hooks: undefined | Array<CustomResolver> = annotations[initHooksMetaKey];
   if (!hooks) {
     ADI.emit('instance:create', { session, instance }, { injector })
@@ -67,14 +75,20 @@ export async function processOnDestroyLifecycle(instance: ProviderInstance) {
   }
 }
 
+export async function destroy(instance: any, ctx?: DestroyContext): Promise<void>;
 export async function destroy(instance: ProviderInstance, ctx?: DestroyContext): Promise<void>;
 export async function destroy(instances: Array<ProviderInstance>, ctx?: DestroyContext): Promise<void>;
-export async function destroy(instances: ProviderInstance | Array<ProviderInstance>, ctx?: DestroyContext): Promise<void>;
-export async function destroy(instances: ProviderInstance | Array<ProviderInstance>, ctx: DestroyContext = { event: 'default' }): Promise<void> {
-  if (Array.isArray(instances)) {
-    return destroyCollection(instances, ctx);
+export async function destroy(instance: ProviderInstance | Array<ProviderInstance> | any, ctx: DestroyContext = { event: 'default' }): Promise<void> {
+  const possibleInstance = resolved.get(instance)
+  if (possibleInstance) {
+    return destroyInstance(possibleInstance, ctx);
   }
-  return destroyInstance(instances, ctx);
+
+  if (Array.isArray(instance)) {
+    return destroyCollection(instance, ctx);
+  }
+
+  return destroyInstance(instance, ctx);
 }
  
 async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) {
@@ -96,7 +110,7 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) 
 }
 
 async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: DestroyContext) {
-  if (!instances.length) return;
+  if (instances.length === 0) return;
   return waitSequence(instances, instance => destroyInstance(instance, ctx));
 }
 
@@ -121,7 +135,7 @@ export function destroyDefinition(injector: Injector, definition: ProviderDefini
 function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
   const children = instance.session.children.map(s => s.context.instance!);
 
-  children.forEach(child => child.parents?.delete(instance));
+  children.forEach(child => child?.parents?.delete(instance));
   if (instance.links) {
     children.push(...Array.from(instance.links));
   }

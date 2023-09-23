@@ -9,7 +9,7 @@ export class ModuleToken {
     return token;
   }
 
-  private constructor(
+  protected constructor(
     protected readonly options?: ModuleTokenOptions,
   ) {}
 

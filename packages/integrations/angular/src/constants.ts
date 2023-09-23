@@ -1,0 +1,1 @@
+export const ROUTE_INIT_INJECTOR = Symbol.for('adi:angular-route-init-injector')

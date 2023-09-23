@@ -13,6 +13,7 @@ import { cacheMetaKey, scopedInjectorsMetaKey, scopedInjectorLabelMetaKey } from
 import type { RunInContextArgument } from './inject'
 import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata, InjectionContext, InjectFunctionResult, InferredProviderTokenType, ScopedInjectorOptions } from '../types';
 
+// TODO: Handle promises as input for injector
 export class Injector<T = any> {
   static create<T, P>(): Injector<T>
   static create<T, P>(
@@ -58,7 +59,7 @@ export class Injector<T = any> {
   }
 
   public status: InjectorStatus = InjectorStatus.NONE;
-  public readonly imports = new Map<InjectorInput<T>, Injector<T>>();
+  public readonly imports = new Map<InjectorInput<any>, Injector<any>>();
   public readonly providers = new Map<ProviderToken<any>, { self?: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
   public readonly hooks: Array<InjectionHookRecord> = [];
   public readonly meta: Record<string | symbol, any> = {
@@ -67,7 +68,7 @@ export class Injector<T = any> {
     [scopedInjectorLabelMetaKey]: undefined,
   };
 
-  private constructor(
+  protected constructor(
     public readonly input: InjectorInput<T>,
     public readonly options: InjectorOptions,
     public readonly parent: Injector<T> | null,
@@ -80,11 +81,11 @@ export class Injector<T = any> {
     if (options.exporting === undefined) options.exporting = true;
     if (options.destroy === undefined) options.destroy = true;
     if (options.initialize === undefined) options.initialize = true;
-    if (options.scopes) {
-      options.scopes = [...new Set(['any', input as ClassType, ...(options.scopes || [])])];
-    } else {
-      options.scopes = ['any', input as ClassType];
-    }
+
+    const defaultScopes = parent === ADI.core ? ['any', 'root', input] : ['any', input]
+    options.scopes = options.scopes 
+      ? [...new Set([...defaultScopes, ...options.scopes])]
+      : defaultScopes;
   
     const providers: ProviderType[] = [];
     if (typeof input === 'function') { // module class
