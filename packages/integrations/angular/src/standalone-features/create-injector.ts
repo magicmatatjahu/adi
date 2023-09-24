@@ -1,146 +1,112 @@
-import { Injector, wait } from "@adi/core";
-import { inject, Injector as AngularInjector, DestroyRef } from "@angular/core";
+import { Injector, ModuleToken, wait } from "@adi/core";
+import { Injector as NgInjector } from "@angular/core";
 import { isPromiseLike } from "@adi/core/lib/utils";
 
-import { ADI_MODULE, ADI_IMPORT, ADI_EXPORT, ADI_PROVIDERS, ADI_INJECTOR, ANGULAR_INJECTOR } from "../tokens";
+import { ADI_INJECTOR, NG_INJECTOR, InjectorContextType } from "../tokens";
 
 import type { ModuleMetadata, ExtendedModule, InjectorInput, InjectorOptions } from "@adi/core";
-import type { AdiModule, AdiImport, AdiProviders, AdiExport } from "../tokens";
-
-export type CreateInjectorContext = {
-  parent: Injector | undefined;
-  angularInjector: AngularInjector;
-  destroyRef: DestroyRef;
-  skipInputs?: boolean;
-  resaveInjector?: boolean
-}
 
 export function createInjector(
-  ctx: CreateInjectorContext,
+  ctx: InjectorContextType,
   input?: InjectorInput | Injector,
   options?: InjectorOptions,
-  provides?: AdiModule[],
-): Injector | Promise<Injector> {
-  const { parent, angularInjector, destroyRef, skipInputs, resaveInjector = false } = ctx;
+) {
+  const { parent, destroyRef, internalInjector, input: inputProvider } = ctx;
+  const metadata = getMetadataForInjector(ctx)
+  input = input || inputProvider.input || undefined;
 
-  const canExport = parent !== undefined;
-  const metadata = getInputsForInjector(provides, angularInjector, skipInputs)
-  
+  if (parent?.promise) {
+    internalInjector.isAsync = true;
+    internalInjector.isResolving = true;
+    return internalInjector.promise = wait(
+      parent?.promise,
+      () => createInjector(ctx, input, options)
+    );
+  }
+
+  const parentInjector = parent?.injector || undefined;
   let injector: Injector | Promise<Injector>
   if (!input) {
-    injector = Injector.create(metadata || [], parent);
+    injector = Injector.create({ extends: ModuleToken.create(), ...metadata }, parentInjector);
   } else if (input instanceof Injector) {
     injector = input;
   } else {
-    injector = Injector.create({ extends: input, ...metadata } as ExtendedModule, { ...options || {}, exporting: canExport }, parent);
+    injector = Injector.create({ extends: input, ...metadata } as ExtendedModule, { exporting: false, ...options || {} }, parentInjector);
   }
 
-  // destroying injector
+  // destroy injector
   destroyRef.onDestroy(() => {
     wait(injector, inj => inj.destroy());
   });
 
+  // init injector
   injector = injector.init();
-  if (isPromiseLike(injector)) {
-    resolveAsyncInjector(injector, angularInjector)
-    return injector;
-  }
 
-  if (resaveInjector) {
-    reassignInjector(injector, angularInjector)
+  if (isPromiseLike(injector)) {
+    internalInjector.isAsync = true;
+    internalInjector.isResolving = true;
+    internalInjector.promise = wait(
+      injector,
+      resolved => {
+        resolveInternalInjector(ctx, resolved)
+      }
+    ) as Promise<void>
+  } else {
+    resolveInternalInjector(ctx, injector)
   }
 
   return injector;
 }
 
-async function resolveAsyncInjector(injector: Promise<Injector>, angularInjector: AngularInjector): Promise<void> {
-  const resolved = await injector;
-  reassignInjector(resolved, angularInjector)
-}
+function getMetadataForInjector(ctx: InjectorContextType): ModuleMetadata {
+  const { ngInjector, modules } = ctx;
 
-function reassignInjector(injector: Injector, angularInjector: AngularInjector) {
-  const records = (angularInjector as any).records
-  records.set(Injector, { factory: undefined, value: injector, multi: undefined })
-  records.set(ADI_INJECTOR, { factory: undefined, value: injector, multi: undefined })
-}
-
-function getInputsForInjector(provides: AdiModule[] = [], angularInjector: AngularInjector, skipInputs: boolean = false): ModuleMetadata {
   const metadata: ModuleMetadata = {
     imports: [],
     providers: [
       {
-        provide: AngularInjector,
-        useValue: angularInjector,
+        provide: NgInjector,
+        useValue: ngInjector,
       },
       {
-        provide: ANGULAR_INJECTOR,
-        useExisting: AngularInjector,
+        provide: NG_INJECTOR,
+        useExisting: NgInjector,
       },
     ],
     exports: []
   }
 
-  if (skipInputs) {
-    return metadata;
-  }
-
-  const modules = getModules();
-  const imports = getImports();
-  const providers = getProviders();
-  const exports = getExports();
-
-  const shouldProcess = Boolean(modules.length || imports.length || providers.length || exports.length);
-  if (shouldProcess === false) {
-    return metadata;
-  }
-
-  const items = [
-    ...[...provides, ...modules].map((m: any) => ({ type: 'module', item: m.module || m, order: m.order || 0 })),
-    ...imports.map((i: any) => ({ type: 'import', item: i.import || i, order: i.order || 0 })),
-    ...providers.map((p: any) => ({ type: 'providers', item: p.providers || p, order: p.order || 0 })),
-    ...exports.map((e: any) => ({ type: 'export', item: e.export || e, order: e.order || 0 })),
-  ].sort((input1, input2) => input1.order - input2.order)
-
-  items.forEach(({ type, item }) => {
-    switch (type) {
-      case 'module': {
-        const { imports, providers, exports } = item;
-        metadata.imports?.push(...imports || []);
-        metadata.providers?.push(...providers || []);
-        metadata.exports?.push(...exports || []);
-        return;
-      }
-      case 'import': {
-        metadata.imports?.push(item);
-        return;
-      }
-      case 'providers': {
-        metadata.providers?.push(...item);
-        return;
-      }
-      case 'export': {
-        metadata.exports?.push(item);
-        return;
-      }
-    }
-
-  })
+  modules
+    .map((m: any) => ({ item: m.module || m, order: m.order || 0 }))
+    .sort((module1, module2) => module1.order - module2.order)
+    .forEach(m => {
+      const { imports, providers, exports } = m.item;
+      metadata.imports?.push(...imports || []);
+      metadata.providers?.push(...providers || []);
+      metadata.exports?.push(...exports || []);
+    });
 
   return metadata;
 }
 
-function getModules() {
-  return inject<Array<AdiModule>>(ADI_MODULE, { self: true, optional: true }) || [];
+function reassignInjector(injector: Injector, ctx: InjectorContextType) {
+  const { ngInjector } = ctx;
+
+  const records = (ngInjector as any).records
+  if (records) {
+    records.set(Injector, { factory: undefined, value: injector, multi: undefined })
+    records.set(ADI_INJECTOR, { factory: undefined, value: injector, multi: undefined })
+  }
 }
 
-function getImports() {
-  return inject<Array<AdiImport>>(ADI_IMPORT, { self: true, optional: true }) || [];
-}
-
-function getProviders() {
-  return inject<Array<AdiProviders>>(ADI_PROVIDERS, { self: true, optional: true }) || [];
-}
-
-function getExports() {
-  return inject<Array<AdiExport>>(ADI_EXPORT, { self: true, optional: true }) || [];
+function resolveInternalInjector(ctx: InjectorContextType, injector: Injector) {
+  const { internalInjector } = ctx;
+  Object.assign(internalInjector, {
+    isAsync: false,
+    isResolving: false,
+    isResolved: true,
+    promise: undefined,
+    injector: injector,
+  })
+  reassignInjector(injector, ctx);
 }

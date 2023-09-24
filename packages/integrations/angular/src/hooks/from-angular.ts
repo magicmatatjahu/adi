@@ -1,7 +1,7 @@
 import { Hook } from "@adi/core";
 import { isProviderToken } from "@adi/core/lib/utils";
 
-import { ANGULAR_INJECTOR } from '../tokens';
+import { NG_INJECTOR } from '../tokens';
 
 import type { Session, NextInjectionHook, InjectionHookResult } from '@adi/core';
 import type { ProviderToken, InjectOptions } from '@angular/core';
@@ -17,8 +17,8 @@ export function FromAngular<NextValue, T>(token?: ProviderToken<T> | InjectOptio
 
   return Hook(
     function fromAngularHook(session: Session, __: NextInjectionHook<NextValue>): InjectionHookResult<T | null> {
-      const angularInjector = session.context.injector.getSync(ANGULAR_INJECTOR);
-      return angularInjector.get(token || session.inject.token as any, undefined, flags);
+      const ngInjector = session.context.injector.getSync(NG_INJECTOR);
+      return ngInjector.get(token || session.inject.token as any, undefined, flags);
     },
     { name: 'adi:from-angular' }
   )

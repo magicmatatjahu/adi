@@ -1,4 +1,4 @@
-import { Inject, Injectable, Injector, Optional, Token, TransientScope, wait } from '@adi/core';
+import { Injectable, Injector, Optional, Token, TransientScope } from '@adi/core';
 import { Injectable as AngularInjectable, Component, inject as angularInject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 

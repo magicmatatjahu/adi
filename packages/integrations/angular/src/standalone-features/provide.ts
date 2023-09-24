@@ -1,10 +1,12 @@
-import { providers } from './providers';
+import { ADI_MODULE } from '../tokens';
 
 import type { StaticProvider } from '@angular/core';
 import type { AdiModule } from '../tokens';
 
-export function provide(
-  ...provides: AdiModule[]
-): StaticProvider[] {
-  return providers(provides);
+export function provide(...modules: AdiModule[]): StaticProvider[] {
+  return modules.map(m => ({
+    provide: ADI_MODULE,
+    multi: true,
+    useValue: m,
+  }))
 }

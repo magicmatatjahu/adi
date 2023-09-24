@@ -5,4 +5,4 @@ import type { Injector } from '@angular/core';
 /**
  * @private
  */
-export const ANGULAR_INJECTOR = InjectionToken.create<Injector>({ name: 'angular:injector' });
+export const NG_INJECTOR = InjectionToken.create<Injector>({ name: 'ng:injector' });

@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 
-import { injectorProviders, providers } from '../standalone-features';
+import { provideInjector, provide } from '../standalone-features';
 
 import type { Injector, InjectorInput, InjectorOptions } from "@adi/core";
 import type { ModuleWithProviders } from '@angular/core';
@@ -15,7 +15,7 @@ export class ADIModule {
   ): ModuleWithProviders<ADIModule> {
     return {
       ngModule: ADIModule,
-      providers: injectorProviders(input, options, provides)
+      providers: provideInjector(input, options, ...provides)
     }
   }
 
@@ -24,7 +24,7 @@ export class ADIModule {
   ): ModuleWithProviders<ADIModule> {
     return {
       ngModule: ADIModule,
-      providers: providers(provides)
+      providers: provide(...provides)
     }
   }
 }

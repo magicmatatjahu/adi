@@ -2,7 +2,9 @@ import { Injector, waitAll } from '@adi/core';
 import { getAllKeys, isPromiseLike, wait } from '@adi/core/lib/utils';
 import { convertInjection, createInjectionMetadata, optimizedInject } from '@adi/core/lib/injector';
 import { InjectionKind } from '@adi/core/lib/enums';
-import { Directive, Input, inject, ViewContainerRef, TemplateRef, ChangeDetectorRef } from '@angular/core'
+import { Injector as NgInjector, Directive, Input, inject, ViewContainerRef, TemplateRef, ChangeDetectorRef } from '@angular/core'
+
+import { ADI_INTERNAL_INJECTOR } from '../tokens';
 
 import type { InjectionItem } from '@adi/core'
 import type { OnChanges, OnDestroy, OnInit, EmbeddedViewRef } from '@angular/core'
@@ -29,7 +31,8 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
     return true;
   }
 
-  private readonly injector = inject(Injector);
+  private readonly ngInjector = inject(NgInjector)
+  private readonly internalInjector = inject(ADI_INTERNAL_INJECTOR);
 
   private readonly viewContainerRef = inject(ViewContainerRef);
   private readonly templateRef = inject(TemplateRef);
@@ -49,36 +52,38 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
 
   @Input()
   set adiInjectFallback(templateRef: TemplateRef<any> | null) {
-    this.assertTemplate('adiWaitFallback', templateRef);
+    this.assertTemplate('adiInjectFallback', templateRef);
 
     this.fallbackTemplateRef = templateRef;
     this.fallbackViewRef = null;  // clear previous view if any exist
   }
 
   ngOnInit() {
-    this.updateView(this.injector)
+    this.updateView()
   }
   
   ngOnChanges() {
-    this.updateView(this.injector)
+    this.updateView()
   }
 
   ngOnDestroy() {
     this.destroyed = true;
   }
 
-  private updateView(injector: Injector) {
+  private updateView() {
     if (this.destroyed || this.resolved) {
       return;
     }
 
-    let isPromise = isPromiseLike(injector);
-    if (isPromise) {
+    // create injector if it doesn't
+    this.ngInjector.get(Injector)
+    const { isResolving, isAsync } = this.internalInjector;
+    if (isResolving && isAsync) {
       this.renderFallback()
 
       return wait(
-        injector,
-        resolvedInjector => this.updateView(resolvedInjector)
+        this.internalInjector.promise,
+        _ => this.updateView()
       )
     }
 
@@ -88,7 +93,7 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
       return this.viewContainerRef.createEmbeddedView(this.templateRef);
     }
 
-    isPromise = isPromiseLike(injections);
+    const isPromise = isPromiseLike(injections);
     if (isPromise === false) {
       return this.renderTemplate(injections)
     }
@@ -132,10 +137,11 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
       kind: InjectionKind.CUSTOM,
     })
 
+    const injector = this.internalInjector.injector as Injector
     properties.forEach(prop => {
       injections.push(
         wait(
-          optimizedInject(this.injector, undefined, convertInjection(providers[prop as string], metadata)),
+          optimizedInject(injector, undefined, convertInjection(providers[prop as string], metadata)),
           value => values[prop] = value,
         )
       );

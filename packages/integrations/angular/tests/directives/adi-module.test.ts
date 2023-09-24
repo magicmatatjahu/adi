@@ -1,8 +1,8 @@
 import { ModuleToken } from '@adi/core';
-import { Component, ChangeDetectionStrategy, ElementRef, Input } from '@angular/core'
+import { Component, ChangeDetectionStrategy, ElementRef } from '@angular/core'
 import { TestBed } from '@angular/core/testing';
 
-import { provideInjector, provide, inject } from '../../src'
+import { provideInjector, inject } from '../../src'
 import { ADIModuleDirective } from '../../src/directives/adi-module'
 
 describe('ADIModuleDirective', () => {
@@ -55,7 +55,7 @@ describe('ADIModuleDirective', () => {
       expect(fixture.componentInstance.textContent).toBe('Child component content');
     });
 
-    it('should not wait for sync injector', async () => {
+    it('should not wait for parent sync injector', async () => {
       const childModule = ModuleToken.create()
 
       const rootModule = ModuleToken.create({
@@ -76,8 +76,7 @@ describe('ADIModuleDirective', () => {
       expect(fixture.componentInstance.textContent).toBe('Child component content');
     });
 
-    // TODO: weird effect that directive waits for async injector when logic should not be - fix that and make similar logic to the adiInject directive
-    it.skip('should wait for async injector', async () => {
+    it('should wait for parent async injector', async () => {
       const childModule = ModuleToken.create()
 
       const rootModule = ModuleToken.create({

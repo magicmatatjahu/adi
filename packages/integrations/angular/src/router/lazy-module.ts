@@ -1,7 +1,7 @@
 import { Injector } from '@adi/core';
 import { inject } from '@angular/core';
 
-import { injectorProviders } from '../standalone-features';
+import { provideInjector } from '../standalone-features';
 import { ROUTE_INIT_INJECTOR } from '../constants';
 
 import type { InjectorInput, InjectorOptions } from '@adi/core';
@@ -10,7 +10,7 @@ import type { AdiModule } from '../tokens'
 
 export type LazyModuleInput = {
   route: Route, 
-  input: InjectorInput, 
+  input?: Injector | InjectorInput, 
   options?: InjectorOptions,
   provide: AdiModule[]
 }
@@ -23,7 +23,7 @@ export function lazyModule(ctx: LazyModuleInput): Route {
     ...route,
     providers: [
       ...providers,
-      injectorProviders(input, options, provide)
+      ...provideInjector(input, options, ...provide)
     ],
     resolve: {
       ...resolve,

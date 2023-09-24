@@ -2,7 +2,7 @@ import { Inject, Injectable, Injector } from '@adi/core';
 import { Injectable as AngularInjectable } from '@angular/core'
 import { TestBed } from '@angular/core/testing';
 
-import { provideInjector, provide, FromAngular, AngularFallback } from '../../src'
+import { provideInjector, provide, AngularFallback } from '../../src'
 
 describe('AngularFallback injection hook', () => {
   it('should inject provider from Angular when provider does not exist in ADI injector', async () => {

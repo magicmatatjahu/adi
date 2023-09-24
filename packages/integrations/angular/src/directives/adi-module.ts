@@ -1,8 +1,7 @@
 import { Injector } from '@adi/core'
 import { wait } from '@adi/core/lib/utils';
 import { 
-  Injector as AngularInjector,
-  DestroyRef,
+  Injector as NgInjector,
   Directive, 
   Input, 
   inject, 
@@ -11,8 +10,8 @@ import {
   ChangeDetectorRef, 
 } from '@angular/core'
 
-import { provideSubInjector, createSubInjector, CreateSubInjectorContext } from '../standalone-features';
-import { ADI_INJECTOR, ADI_INTERNAL_INJECTOR, InternalInjectorType } from '../tokens';
+import { provideInjector } from '../standalone-features';
+import { ADI_INJECTOR_INPUT, ADI_INTERNAL_INJECTOR } from '../tokens';
 
 import type { InjectorInput } from '@adi/core'
 import type { OnDestroy, OnInit, EmbeddedViewRef } from '@angular/core'
@@ -26,7 +25,7 @@ export type ADIModuleContext = {
   selector: '[adiModule]',
   standalone: true,
   providers: [
-    provideSubInjector(),
+    provideInjector(),
   ]
 })
 export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDestroy {
@@ -37,10 +36,9 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
     return true;
   }
 
-  private readonly internalInjector: InternalInjectorType = inject(ADI_INTERNAL_INJECTOR)
-  private readonly parent = inject<Injector>(ADI_INJECTOR, { skipSelf: true, optional: true }) || undefined;
-  private readonly angularInjector = inject(AngularInjector);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly ngInjector = inject(NgInjector)
+  private readonly internalInjector = inject(ADI_INTERNAL_INJECTOR)
+  private readonly injectorInput = inject(ADI_INJECTOR_INPUT)
 
   private readonly viewContainerRef = inject(ViewContainerRef);
   private readonly templateRef = inject(TemplateRef);
@@ -48,12 +46,11 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
 
   private fallbackTemplateRef: TemplateRef<any> | null = null;
   private fallbackViewRef: EmbeddedViewRef<any> | null = null;
-  private input: T | null = null;
   private destroyed = false;
 
   @Input()
   set adiModule(input: T | null) {
-    this.input = input;
+    this.injectorInput.input = input;
   }
 
   @Input()
@@ -77,26 +74,23 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
       return;
     }
 
-    const { isResolving, isResolved, isAsync, promise, injector } = this.internalInjector;
-    if (isResolving === false && isResolved === false) {
-      this.createInjector()
-      return this.initInjector()
-    }
-
-    if (isAsync) {
+    // create injector if it doesn't
+    this.ngInjector.get(Injector)
+    const { isResolving, isAsync } = this.internalInjector;
+    if (isResolving && isAsync) {
       this.renderFallback()
+
       return wait(
-        promise,
-        () => {
-          this.initInjector()
-        }
+        this.internalInjector.promise,
+        _ => this.renderTemplate()
       )
     }
 
-    return this.renderTemplate(injector as Injector);
+    return this.renderTemplate();
   }
 
-  private renderTemplate(injector: Injector) {
+  private renderTemplate() {
+    const injector = this.internalInjector.injector as Injector;
     const context: ADIModuleContext = {
       $implicit: injector,
       injector,
@@ -113,17 +107,6 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
       this.viewContainerRef.clear();
       this.fallbackViewRef = this.viewContainerRef.createEmbeddedView(this.fallbackTemplateRef);
     }
-  }
-
-  private createInjector() {
-    const ctx: CreateSubInjectorContext = {
-      parent: this.parent,
-      angularInjector: this.angularInjector,
-      destroyRef: this.destroyRef,
-      internalInjector: this.internalInjector,
-    }
-
-    createSubInjector(ctx, this.input || undefined)
   }
 
   private assertTemplate(property: string, templateRef: TemplateRef<any> | null): void {

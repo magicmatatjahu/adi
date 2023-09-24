@@ -1,10 +1,9 @@
-import { wait } from '@adi/core';
 import { InjectionKind } from '@adi/core/lib/enums';
 import { createInjectionMetadata, destroy } from '@adi/core/lib/injector';
 import { inject as coreInject } from '@adi/core/lib/injector/resolver';
-import { ComponentRef, DestroyRef, inject as angularInject } from '@angular/core';
+import { DestroyRef, inject as ngInject } from '@angular/core';
 
-import { ADI_INJECTOR } from '../tokens';
+import { injectInjector } from './inject-injector';
 
 import type { ProviderToken, InjectionAnnotations, InjectionHook, InferredProviderTokenType, InjectionContext, InjectionMetadata } from '@adi/core'
 
@@ -56,11 +55,7 @@ export function inject<A, B, C, D, E, F, G, H>(hook1: InjectionHook<unknown, A>,
 export function inject(...hooks: InjectionHook[]): unknown;
 
 export function inject<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: InjectionHook[]): T {
-  const injector = angularInject(ADI_INJECTOR)
-  if (injector === null) {
-    throw new Error('')
-  }
-
+  const injector = injectInjector();
   const ctx: InjectionContext = {
     injector,
     session: undefined,
@@ -75,7 +70,7 @@ export function inject<T>(token: ProviderToken<T> | InjectionAnnotations | Injec
 }
 
 function assignOnDestroyHook(ctx: InjectionContext) {
-  const destroyRef = angularInject(DestroyRef, { self: true, optional: true });
+  const destroyRef = ngInject(DestroyRef, { self: true, optional: true });
   if (destroyRef === null) {
     return;
   }
