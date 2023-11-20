@@ -11,15 +11,13 @@ export type InjectorScope<T = any> = ProvideIn | EnumAsUnion<typeof ProvideIn> |
 
 export interface InjectorOptions {
   name?: string;
+  label?: string | symbol;
   annotations?: InjectorAnnotations;
   scopes?: Array<InjectorScope<any>>;
   importing?: boolean;
   exporting?: boolean;
   initialize?: boolean;
   destroy?: boolean
-}
-
-export interface ScopedInjectorOptions extends InjectorOptions {
   recreate?: boolean;
 }
 

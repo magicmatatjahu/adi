@@ -286,7 +286,7 @@ function processResult(result: any, session: Session, argument: InjectionArgumen
 
 function resolveFromParent<T>(session: Session): T | Promise<T> {
   const context = session.context;
-  const injector = context.injector.parent;
+  const injector = context.injector.parent as Injector;
   if (injector === null) {
     throw new NotFoundProviderError({ session });
   }

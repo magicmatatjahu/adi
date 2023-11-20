@@ -1,5 +1,6 @@
-import { ModuleToken } from '@adi/core';
-import { Component, ChangeDetectionStrategy, ElementRef } from '@angular/core'
+import { Injector, ModuleToken } from '@adi/core';
+import { Component, ChangeDetectionStrategy, ElementRef, ViewChild } from '@angular/core'
+import { CommonModule } from '@angular/common'
 import { TestBed } from '@angular/core/testing';
 
 import { provideInjector, inject } from '../../src'
@@ -216,6 +217,87 @@ describe('ADIModuleDirective', () => {
       await new Promise(process.nextTick);
 
       expect(fixture.componentInstance.textContent).toBe('async value');
+    });
+  });
+
+  // TODO: Handle cache label when is passed to module options
+  describe('with cache label', () => {
+    @Component({
+      selector: 'child-component',
+      template: `<div>{{ injectedText }}</div>`,
+      standalone: true,
+      changeDetection: ChangeDetectionStrategy.OnPush,
+    })
+    class ChildComponent {
+      injectedText = inject('token')
+      injector = inject(Injector)
+    }
+    
+    @Component({
+      template: `
+        <div *ngIf="renderChild; else fallback">
+          <child-component *adiModule="moduleInput" #childElement></child-component>
+        </div>
+
+        <ng-template #fallback>Fallback is rendered...</ng-template>
+      `,
+      imports: [ADIModuleDirective, ChildComponent, CommonModule],
+      standalone: true,
+    })
+    class ParentComponent {
+      private renderChild = false
+
+      @ViewChild('childElement') 
+      childElement: ChildComponent;
+
+      constructor(private readonly elementRef: ElementRef<any>) {}
+
+      readonly moduleInput = ModuleToken.create({
+        options: {
+          label: 'some-label'
+        },
+        providers: [
+          {
+            provide: 'token',
+            useFactory() {
+              return 'Child content'
+            }
+          }
+        ],
+      })
+
+      get textContent(): string {
+        return this.elementRef.nativeElement.textContent?.trim() ?? '';
+      }
+
+      setRenderChild(value: boolean) {
+        this.renderChild = value;
+      }
+    }
+
+    it.skip('should cache injector using label', async () => {
+      const fixture = TestBed.createComponent(ParentComponent);
+      fixture.autoDetectChanges();
+      expect(fixture.componentInstance.textContent).toBe('Fallback is rendered...');
+
+      fixture.componentInstance.setRenderChild(true)
+      fixture.autoDetectChanges();
+      const oldInjector = fixture.componentInstance.childElement.injector;
+
+      expect(fixture.componentInstance.textContent).toBe('Child content');
+      expect(oldInjector).toBeInstanceOf(Injector);
+
+      fixture.componentInstance.setRenderChild(false)
+      fixture.autoDetectChanges();
+      expect(fixture.componentInstance.textContent).toBe('Fallback is rendered...');
+
+      fixture.componentInstance.setRenderChild(true)
+      fixture.autoDetectChanges();
+      const newInjector = fixture.componentInstance.childElement.injector;
+
+      expect(fixture.componentInstance.textContent).toBe('Child content');
+      expect(newInjector).toBeInstanceOf(Injector);
+      expect(oldInjector === newInjector).toBe(true);
     });
   });
 });

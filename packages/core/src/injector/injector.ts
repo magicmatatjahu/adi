@@ -2,16 +2,14 @@ import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
 import { inject } from './resolver';
 import { createInjectionMetadata, processProviders } from './metadata';
-import { initModule, importModule, retrieveDeepExtendedModule } from './module';
+import { initModule, importModule, createInjector, createScopedInjector } from './module';
 import { ADI } from '../adi';
-import { MODULE_REF, INJECTOR_CONFIG, INITIALIZERS } from '../constants';
 import { InjectionKind, InjectorStatus } from '../enums';
-import { Optional, All } from '../hooks';
-import { isExtendedModule, isModuleToken, PromisesHub, wait } from '../utils';
+import { isPromiseLike } from '../utils';
 import { cacheMetaKey, scopedInjectorsMetaKey, scopedInjectorLabelMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ClassType, ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, ModuleMetadata, InjectionContext, InjectFunctionResult, InferredProviderTokenType, ScopedInjectorOptions } from '../types';
+import type { ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, InjectionContext, InjectFunctionResult, InferredProviderTokenType } from '../types';
 
 // TODO: Handle promises as input for injector
 export class Injector<T = any> {
@@ -20,36 +18,36 @@ export class Injector<T = any> {
     input: InjectorInput<T> | undefined,
   ): Injector<T>
   static create<T, P>(
-    parent: Injector<P> | undefined,
+    parent: Injector<P> | Promise<Injector<P>> | undefined,
   ): Injector<T>
   static create<T, P>(
     input: InjectorInput<T>,
-    parent: Injector<P> | undefined,
-  ): Injector<T>
-  static create<T, P>(
-    input: InjectorInput<T>,
-    options: InjectorOptions,
+    parent: Injector<P> | Promise<Injector<P>> | undefined,
   ): Injector<T>
   static create<T, P>(
     input: InjectorInput<T>,
     options: InjectorOptions,
-    parent: Injector<P> | undefined,
   ): Injector<T>
   static create<T, P>(
-    input?: InjectorInput<T> | Injector<P>,
-    options?: InjectorOptions | Injector<P>,
-    parent?: Injector<P>,
+    input: InjectorInput<T>,
+    options: InjectorOptions,
+    parent: Injector<P> | Promise<Injector<P>> | undefined,
+  ): Injector<T>
+  static create<T, P>(
+    input?: InjectorInput<T> | Injector<P> | Promise<Injector<P>>,
+    options?: InjectorOptions | Injector<P> | Promise<Injector<P>>,
+    parent?: Injector<P> | Promise<Injector<P>>,
   ) {
-    if (input instanceof this) {
+    if (input instanceof this || isPromiseLike(input)) {
       parent = input; 
       input = undefined
       options = undefined
     }
-    if (options instanceof this) {
+    if (options instanceof this || isPromiseLike(options)) {
       parent = options; 
       options = undefined
     }
-    return new this(input || [], options || {}, parent || ADI.core || null);
+    return createInjector(this, input || [], options || {}, parent || ADI.core || null);
   }
 
   private injectionCtx: InjectionContext = {
@@ -71,51 +69,9 @@ export class Injector<T = any> {
   protected constructor(
     public readonly input: InjectorInput<T>,
     public readonly options: InjectorOptions,
-    public readonly parent: Injector<T> | null,
-  ) {
-    if (typeof input === 'object' && typeof (input as ModuleMetadata).options === 'object') {
-      options = { ...(input as ModuleMetadata).options, ...options };
-    }
-
-    if (options.importing === undefined) options.importing = true;
-    if (options.exporting === undefined) options.exporting = true;
-    if (options.destroy === undefined) options.destroy = true;
-    if (options.initialize === undefined) options.initialize = true;
-
-    const defaultScopes = parent === ADI.core ? ['any', 'root', input] : ['any', input]
-    options.scopes = options.scopes 
-      ? [...new Set([...defaultScopes, ...options.scopes])]
-      : defaultScopes;
+    public readonly parent: Injector | Promise<Injector> | null,
+  ) {}
   
-    const providers: ProviderType[] = [];
-    if (typeof input === 'function') { // module class
-      providers.push(input as ClassType, { provide: MODULE_REF, useExisting: input });
-    } else if (Array.isArray(input)) { // array of providers
-      providers.push({ provide: MODULE_REF, useValue: input }, ...input);
-    } else if (isExtendedModule(input)) { // object module
-      const deepModule = retrieveDeepExtendedModule(input);
-      if (typeof deepModule === 'function' && isModuleToken(deepModule)) {
-        providers.push({ provide: MODULE_REF, useValue: deepModule });
-      } else {
-        // TODO... throw error
-      }
-    } else {
-      providers.push({ provide: MODULE_REF, useValue: input });
-    }
-
-    this.provide(
-      { provide: Injector, useValue: this }, 
-      { provide: INJECTOR_CONFIG, useValue: options }, 
-      { provide: INITIALIZERS, hooks: [All({ imported: false }), Optional()] },
-      ...providers
-    );
-
-    if (options.initialize) {
-      PromisesHub.create(this)
-      wait(initModule(this, this.input as any), () => PromisesHub.resolve(this, this));
-    }
-  }
-
   get<T>(token: ProviderToken<T>): InjectFunctionResult<InferredProviderTokenType<T>>;
   get<T, A>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>): InjectFunctionResult<A>;
   get<T, A, B>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>, hook2: InjectionHook<A, B>): InjectFunctionResult<B>;
@@ -237,49 +193,13 @@ export class Injector<T = any> {
   of(label: string | symbol): Injector;
   of(input: InjectorInput): Injector;
   of<T>(label: string | symbol, input: InjectorInput<T>): Injector<T>;
-  of<T>(input: InjectorInput<T>, options: ScopedInjectorOptions): Injector<T>;
-  of<T>(label: string | symbol, input: InjectorInput<T>, options: ScopedInjectorOptions): Injector<T>;
-  of<T>(inputOrLabel?: string | symbol | InjectorInput, maybeInput?: InjectorInput<T>, maybeOptions?: ScopedInjectorOptions): Injector<T> {
+  of<T>(input: InjectorInput<T>, options: InjectorOptions): Injector<T>;
+  of<T>(label: string | symbol, input: InjectorInput<T>, options: InjectorOptions): Injector<T>;
+  of<T>(inputOrLabel?: string | symbol | InjectorInput, maybeInput?: InjectorInput<T>, maybeOptions?: InjectorOptions): Injector<T> {
     if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
       return undefined as unknown as Injector;
     }
-
-    let label: string | symbol | undefined;
-    let input: InjectorInput | undefined;
-    let options: ScopedInjectorOptions | undefined
-    let scopedInjectors: Map<string | symbol, Injector> | undefined = this.meta[scopedInjectorsMetaKey]
-
-    if (inputOrLabel !== undefined) {
-      const typeOf = typeof inputOrLabel;
-      if (typeOf === 'string' || typeOf === 'symbol') {
-        label = inputOrLabel as string | symbol;
-        input = maybeInput
-        options = maybeOptions
-
-        const injector = scopedInjectors?.get(label) as Injector;
-        if (injector) {
-          if (!options?.recreate) {
-            return injector;
-          }
-
-          injector.destroy()
-        }
-      } else {
-        input = inputOrLabel as InjectorOptions
-        options = maybeInput as InjectorOptions
-      }
-    }
-
-    const injector = Injector.create(input || [], { ...options || {}, exporting: false }, this);
-    if (label !== undefined) {
-      injector.meta[scopedInjectorLabelMetaKey] = label
-      if (!scopedInjectors) {
-        scopedInjectors = (this.meta[scopedInjectorsMetaKey] = new Map<string | symbol, Injector>());
-      }
-      scopedInjectors.set(label, injector);
-    }
-    
-    return injector;
+    return createScopedInjector(this, inputOrLabel, maybeInput, maybeOptions)
   }
 
   import<T>(input: InjectorInput<T> | Promise<InjectorInput<T>>): Injector<T> | Promise<Injector<T>> {
@@ -290,10 +210,7 @@ export class Injector<T = any> {
   }
 
   init(): Injector<T> | Promise<Injector<T>> {
-    if (!PromisesHub.get(this)) {
-      return this;
-    }
-    return PromisesHub.create(this);
+    return initModule(this, this.input as any);
   }
 
   destroy(): Promise<void> {

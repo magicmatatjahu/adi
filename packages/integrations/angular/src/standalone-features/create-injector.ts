@@ -1,10 +1,11 @@
-import { Injector, ModuleToken, wait } from "@adi/core";
+import { ADI, Injector, ModuleToken, wait } from "@adi/core";
 import { Injector as NgInjector } from "@angular/core";
 import { isPromiseLike } from "@adi/core/lib/utils";
 
 import { ADI_INJECTOR, NG_INJECTOR, InjectorContextType } from "../tokens";
 
 import type { ModuleMetadata, ExtendedModule, InjectorInput, InjectorOptions } from "@adi/core";
+import { hasScopedInjector } from "@adi/core/lib/injector";
 
 export function createInjector(
   ctx: InjectorContextType,
@@ -12,8 +13,6 @@ export function createInjector(
   options?: InjectorOptions,
 ) {
   const { parent, destroyRef, internalInjector, input: inputProvider } = ctx;
-  const metadata = getMetadataForInjector(ctx)
-  input = input || inputProvider.input || undefined;
 
   if (parent?.promise) {
     internalInjector.isAsync = true;
@@ -24,14 +23,26 @@ export function createInjector(
     );
   }
 
-  const parentInjector = parent?.injector || undefined;
-  let injector: Injector | Promise<Injector>
-  if (!input) {
-    injector = Injector.create({ extends: ModuleToken.create(), ...metadata }, parentInjector);
+  const metadata = getMetadataForInjector(ctx)
+  input = input || inputProvider.input || undefined;
+  options = { exporting: false, ...options || {} };
+
+  const label = options.label;
+  const hasLabel = label !== undefined;
+  const parentInjector = parent?.injector || ADI.core;
+
+  let injector: Injector | Promise<Injector>;
+  if (hasLabel && hasScopedInjector(parentInjector, label as string | symbol)) {
+    injector = parentInjector.of(label as string | symbol)
   } else if (input instanceof Injector) {
-    injector = input;
+    injector = input
   } else {
-    injector = Injector.create({ extends: input, ...metadata } as ExtendedModule, { exporting: false, ...options || {} }, parentInjector);
+    const injectorInput = { extends: input || ModuleToken.create(), ...metadata } as ExtendedModule
+    if (hasLabel) {
+      injector = parentInjector.of(label, injectorInput, options)
+    } else {
+      injector = Injector.create(injectorInput, options, parentInjector);
+    }
   }
 
   // destroy injector

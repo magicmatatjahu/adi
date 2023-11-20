@@ -6,16 +6,16 @@ import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../util
 import type { Injector, Session } from '../injector';
 import type { ProviderRecord, ProviderDefinition, ProviderInstance, DestroyContext, CustomResolver } from '../types';
 
-const resolved = new WeakMap<object, ProviderInstance>();
+const resolvedInstances = new WeakMap<object, ProviderInstance>();
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
   const { annotations, context } = session;
   const injector = context.injector;
   const value = instance.value;
 
-  // assign resolved value to provider instance for future gc
+  // assign resolved value to provider instance for future destroying
   if (typeof value === 'object' && value !== null) {
-    resolved.set(value, instance)
+    resolvedInstances.set(value, instance)
   }
 
   const hooks: undefined | Array<CustomResolver> = annotations[initHooksMetaKey];
@@ -79,7 +79,7 @@ export async function destroy(instance: any, ctx?: DestroyContext): Promise<void
 export async function destroy(instance: ProviderInstance, ctx?: DestroyContext): Promise<void>;
 export async function destroy(instances: Array<ProviderInstance>, ctx?: DestroyContext): Promise<void>;
 export async function destroy(instance: ProviderInstance | Array<ProviderInstance> | any, ctx: DestroyContext = { event: 'default' }): Promise<void> {
-  const possibleInstance = resolved.get(instance)
+  const possibleInstance = resolvedInstances.get(instance)
   if (possibleInstance) {
     return destroyInstance(possibleInstance, ctx);
   }
@@ -155,7 +155,7 @@ function shouldForceDestroy(instance: ProviderInstance) {
 }
 
 export async function destroyInjector(injector: Injector, ctx: { event: 'manually' | 'default' } = { event: 'default' }) {
-  const { parent, meta } = injector;
+  const { meta } = injector;
   const scopedLabel = meta[scopedInjectorLabelMetaKey];
   const isScoped = scopedLabel !== undefined
 
@@ -173,6 +173,7 @@ export async function destroyInjector(injector: Injector, ctx: { event: 'manuall
   injector.providers.clear();
   await waitSequence(providers, provider => destroyProvider(provider, { event: 'injector' }));
 
+  const parent = injector.parent as Injector
   if (parent) {
     // remove injector from parent imports
     parent.imports.delete(injector.input);

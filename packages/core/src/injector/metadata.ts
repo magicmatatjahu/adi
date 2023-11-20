@@ -19,7 +19,7 @@ import type {
   InjectionHook, InjectionHookRecord, ConstraintDefinition,
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, ParsedInjectionItem, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
-  OnProviderAddPayload, ScopeType, ClassType,
+  OnProviderAddPayload, ScopeType, ClassType, ClassTypeProvider,
 } from '../types';
 
 export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<OnProviderAddPayload | undefined> {
@@ -199,7 +199,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
 }
 
 function checkExistingDefinition(defs: ProviderDefinition[], definitionName?: string | symbol | object) {
-  return definitionName !== undefined && defs.some(d => d.name === definitionName);
+  return definitionName && defs.some(d => d.name === definitionName);
 }
 
 function handleAnnotations(provider: ProviderRecord, definition?: ProviderDefinition, annotations?: ProviderAnnotations) {
@@ -385,8 +385,8 @@ export function createInjectionMetadata<T>(metadata?: Partial<InjectionMetadata>
   }
 }
 
-export function hasScopedInjector(injector: Injector, label: string | symbol): boolean {
-  return injector.meta[scopedInjectorsMetaKey]?.has(label) || false
+export function hasScopedInjector(injector: Injector | undefined, label: string | symbol): boolean {
+  return injector?.meta[scopedInjectorsMetaKey]?.has(label) || false
 }
 
 export function overrideInjections(

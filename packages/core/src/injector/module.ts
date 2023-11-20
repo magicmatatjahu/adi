@@ -2,12 +2,13 @@ import { ADI } from '../adi';
 import { Injector } from './injector';
 import { concatConstraints } from './metadata';
 import { whenExported } from '../constraints';
-import { INITIALIZERS, INJECTOR_CONFIG, MODULE_REF } from '../constants';
+import { INITIALIZERS, INJECTOR_OPTIONS, MODULE_REF } from '../constants';
 import { InjectorStatus } from '../enums';
-import { createDefinition, wait, waitSequence, resolveRef, isInjectionToken } from '../utils';
-import { ADI_MODULE_DEF, exportedToInjectorsMetaKey } from '../private';
+import { All, Optional } from '../hooks';
+import { createDefinition, wait, waitSequence, resolveRef, isInjectionToken, PromisesHub, isPromiseLike, isModuleToken, isExtendedModule } from '../utils';
+import { ADI_MODULE_DEF, exportedToInjectorsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey } from '../private';
 
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput, InjectorScope } from "../types";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput, InjectorScope, InjectorOptions } from "../types";
 import type { InjectionToken, ModuleToken } from '../tokens';
 
 type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference<any> | Promise<any>>;
@@ -72,21 +73,170 @@ export function extendsModule<T>(toExtend: ClassType<T> | ModuleToken | Promise<
   }
 }
 
+export function createInjector(
+  injectorTypeOf: typeof Injector,
+  input: InjectorInput,
+  options: InjectorOptions,
+  parent: Injector | Promise<Injector> | null,
+) {
+  let inputToken: any;
+  let moduleDef: ModuleMetadata | undefined;
+  const providers: ProviderType[] = [];
+  
+  if (typeof input === 'function' || isModuleToken(input)) { // module class
+    moduleDef = moduleDefinitions.get(input)
+    inputToken = input;
+    if (typeof input === 'function') {
+      providers.push(input, { provide: MODULE_REF, useExisting: input });
+    } else {
+      providers.push({ provide: MODULE_REF, useValue: input });
+    }
+  } else if (Array.isArray(input)) { // array of providers
+    providers.push({ provide: MODULE_REF, useValue: input }, ...input);
+  } else if (isExtendedModule(input)) { // object module
+    const deepModule = retrieveDeepExtendedModule(input);
+    if (typeof deepModule === 'function' || isModuleToken(deepModule)) {
+      moduleDef = moduleDefinitions.get(deepModule)
+      inputToken = deepModule;
+      if (typeof deepModule === 'function') {
+        providers.push(deepModule, { provide: MODULE_REF, useExisting: deepModule });
+      } else {
+        providers.push({ provide: MODULE_REF, useValue: deepModule });
+      }
+    } else {
+      // TODO... throw error
+    }
+  } else { // module metadata
+    providers.push({ provide: MODULE_REF, useValue: input });
+  }
+
+  let inputOptions: InjectorOptions | undefined = 
+    (moduleDef && moduleDef.options) ||
+    (input && (input as ModuleMetadata).options)
+
+  if (typeof inputOptions !== 'object') {
+    inputOptions = {}
+  }
+
+  const defaultScopes = parent === ADI.core ? ['any', 'root'] : ['any']
+  inputToken && defaultScopes.push(inputToken);
+  const optionsScopes = options.scopes
+  options = {
+    importing: true,
+    exporting: true,
+    initialize: true,
+    destroy: true,
+    ...inputOptions || {},
+    ...options,
+    scopes: optionsScopes ? [...new Set([...defaultScopes, ...optionsScopes])] : defaultScopes
+  }
+
+  const injector = new (injectorTypeOf as any)(input, options, parent);
+  injector.provide(
+    { provide: Injector, useValue: injector }, 
+    { provide: INJECTOR_OPTIONS, useValue: options }, 
+    { provide: INITIALIZERS, hooks: [All({ imported: false }), Optional()] },
+    ...providers
+  );
+  if (options.initialize) {
+    initModule(injector, input as any);
+  }
+
+  return injector;
+}
+
+export function createScopedInjector(
+  parent: Injector,
+  inputOrLabel?: string | symbol | InjectorInput,
+  maybeInput?: InjectorInput,
+  maybeOptions?: InjectorOptions
+) {
+  let label: string | symbol | undefined;
+  let input: InjectorInput | undefined;
+  let options: InjectorOptions | undefined
+  let scopedInjectors: Map<string | symbol, Injector> | undefined = parent.meta[scopedInjectorsMetaKey]
+
+  if (inputOrLabel !== undefined) {
+    const typeOf = typeof inputOrLabel;
+    if (typeOf === 'string' || typeOf === 'symbol') {
+      label = inputOrLabel as string | symbol;
+      input = maybeInput
+      options = maybeOptions
+
+      const injector = scopedInjectors?.get(label) as Injector;
+      if (injector) {
+        if (!options?.recreate) {
+          return injector;
+        }
+
+        injector.destroy()
+      }
+    } else {
+      input = inputOrLabel as InjectorOptions
+      options = maybeInput as InjectorOptions
+    }
+  }
+
+  const injector = Injector.create(input || [], { exporting: false, ...options || {} }, parent);
+  if (label !== undefined) {
+    injector.meta[scopedInjectorLabelMetaKey] = label
+    if (!scopedInjectors) {
+      scopedInjectors = (parent.meta[scopedInjectorsMetaKey] = new Map<string | symbol, Injector>());
+    }
+    scopedInjectors.set(label, injector);
+  }
+  
+  return injector;
+}
+
 export function importModule(to: Injector, input: InjectorInput | Promise<InjectorInput>): Injector | Promise<Injector> {
   return wait(input, result => processImportModule(to, result));
 }
 
 export function initModule(injector: Injector, input: ModuleImportType): Injector | Promise<Injector> {
-  if (injector.status & InjectorStatus.PENDING) {
+  if (injector.status & InjectorStatus.INITIALIZED) {
     return injector;
   }
+
+  if (injector.status & InjectorStatus.PENDING) {
+    return PromisesHub.get(injector) || injector;
+  }
+
   injector.status |= InjectorStatus.PENDING;
+  PromisesHub.create(injector)
+
+  return wait(
+    processInitModule(injector, input, true),
+    () => {
+      PromisesHub.resolve(injector, injector)
+      return injector;
+    }
+  )
+}
+
+function processInitModule(injector: Injector, input: ModuleImportType, initParent: boolean) {
+  const parent = injector.parent;
+  if (parent && initParent) {
+    return wait(
+      parent,
+      inj => {
+        (injector as any).parent = inj
+        return wait(
+          inj.init(),
+          () => processInitModule(injector, input, false)
+        )
+      }
+    )
+  }
 
   if (Array.isArray(input)) {
-    if (injector.parent) {
-      injector.parent.imports.set(input, injector);
+    if (parent) {
+      (parent as Injector).imports.set(input, injector);
     }
-    return wait(initInjector({ injector, input } as any), () => injector);
+    return wait(
+      initInjector({ injector, input } as any), 
+      () => injector,
+    );
   }
 
   return wait(
@@ -115,7 +265,7 @@ function processImportModule(to: Injector, input: InjectorInput) {
       imports: [input as any]
     }],
     all: [],
-  }, to.parent, to, to, false);
+  }, to.parent as Injector, to, to, false);
 
   return wait(
     processModule(to, parentCompiled),
@@ -468,9 +618,12 @@ function initInjector(compiled?: CompiledModule) {
     return;
   }
 
-  const { input, proxy } = compiled;
-  if (injector.status & InjectorStatus.INITIALIZED) return;
+  if (injector.status & InjectorStatus.INITIALIZED) {
+    return;
+  }
+
   injector.status |= InjectorStatus.INITIALIZED;
+  const { input, proxy } = compiled;
   ADI.emit('module:add', { original: input }, { injector });
 
   return wait(
@@ -484,7 +637,7 @@ function initInjector(compiled?: CompiledModule) {
 
 function loadModuleConfig(injector: Injector) {
   return wait(
-    injector.get(INJECTOR_CONFIG),
+    injector.get(INJECTOR_OPTIONS),
     options => {
       const injectorOptions = injector.options;
       if (options.scopes) {

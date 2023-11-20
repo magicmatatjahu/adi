@@ -69,7 +69,7 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
     this.destroyed = true;
   }
 
-  private initInjector() {
+  protected initInjector() {
     if (this.destroyed) {
       return;
     }
@@ -89,7 +89,7 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
     return this.renderTemplate();
   }
 
-  private renderTemplate() {
+  protected renderTemplate() {
     const injector = this.internalInjector.injector as Injector;
     const context: ADIModuleContext = {
       $implicit: injector,
@@ -102,14 +102,14 @@ export class ADIModuleDirective<T extends InjectorInput> implements OnInit, OnDe
     this.cdr.markForCheck();
   }
 
-  private renderFallback() {
+  protected renderFallback() {
     if (this.fallbackTemplateRef) {
       this.viewContainerRef.clear();
       this.fallbackViewRef = this.viewContainerRef.createEmbeddedView(this.fallbackTemplateRef);
     }
   }
 
-  private assertTemplate(property: string, templateRef: TemplateRef<any> | null): void {
+  protected assertTemplate(property: string, templateRef: TemplateRef<any> | null): void {
     const isTemplateRefOrNull = !!(!templateRef || templateRef.createEmbeddedView);
 
     if (!isTemplateRefOrNull) {

@@ -43,7 +43,7 @@ export { Scope, DefaultScope, SingletonScope, TransientScope, createScope } from
 export { InjectionToken, ModuleToken, token, argument } from './tokens';
 export { ref, resolveRef, wait, waitCallback, waitSequence, waitAll } from './utils';
 export { ADI } from './adi';
-export { MODULE_REF, INITIALIZERS, INJECTOR_CONFIG } from './constants';
+export { MODULE_REF, INITIALIZERS, INJECTOR_OPTIONS } from './constants';
 export { when } from './constraints';
 
 export type { DestroyableType, OnInitHookOptions, OnDestroyHookOptions } from './hooks';

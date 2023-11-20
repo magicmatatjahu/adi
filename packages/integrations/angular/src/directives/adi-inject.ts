@@ -70,7 +70,7 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
     this.destroyed = true;
   }
 
-  private updateView() {
+  protected updateView() {
     if (this.destroyed || this.resolved) {
       return;
     }
@@ -105,7 +105,7 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
     )
   }
 
-  private renderTemplate(injections: InjectionItemMap<T>) {
+  protected renderTemplate(injections: InjectionItemMap<T>) {
     const context: ADIInjectContext<T> = {
       $implicit: injections,
       ...injections,
@@ -117,14 +117,14 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
     this.cdr.markForCheck();
   }
 
-  private renderFallback() {
+  protected renderFallback() {
     if (this.fallbackTemplateRef) {
       this.viewContainerRef.clear();
       this.fallbackViewRef = this.viewContainerRef.createEmbeddedView(this.fallbackTemplateRef);
     }
   }
   
-  private resolveProviders() {
+  protected resolveProviders() {
     const providers = this.providers;
     if (providers === null) {
       return null;
@@ -156,7 +156,7 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
     )
   }
 
-  private assertTemplate(property: string, templateRef: TemplateRef<any> | null): void {
+  protected assertTemplate(property: string, templateRef: TemplateRef<any> | null): void {
     const isTemplateRefOrNull = !!(!templateRef || templateRef.createEmbeddedView);
 
     if (!isTemplateRefOrNull) {
