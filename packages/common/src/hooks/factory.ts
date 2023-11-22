@@ -20,17 +20,17 @@ export function Factory<NextValue>(options?: FactoryHookOptions) {
       return (...args: any[]) => {
         // TODO: preserve session between calls - sometimes we can create two instances (by transient scope) but instance will be saved in one session - problem with destroying it
         const newSession = session.fork();
-        const annotations = newSession.annotations;
+        const data = newSession.data;
         if (delegations) {
           const keys: Record<string | symbol, any> = {}; 
           delegations.forEach((delegation, index) => {
             delegation && (keys[delegation] = args[index])
           });
-          annotations[DELEGATE_KEY] = keys;
+          data[DELEGATE_KEY] = keys;
         } else {
-          annotations[DELEGATE_KEY] = args;
+          data[DELEGATE_KEY] = args;
         }
-        (annotations[DELEGATE_VALUE] = [] as any[]).push(...args);
+        (data[DELEGATE_VALUE] = [] as any[]).push(...args);
         
         return next(newSession)
       }

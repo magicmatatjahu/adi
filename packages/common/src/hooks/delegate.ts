@@ -7,8 +7,8 @@ export const DELEGATE_KEY = 'adi:key:delegate-key';
 export const DELEGATE_VALUE = 'adi:key:delegate-value';
 
 export function getDelegations(session: Session, delegations?: Record<string | symbol, any>) {
-  const annotations = session.annotations;
-  return annotations[DELEGATE_KEY] || (annotations[DELEGATE_KEY] = delegations);
+  const data = session.data;
+  return data[DELEGATE_KEY] || (data[DELEGATE_KEY] = delegations);
 }
 
 export function Delegate<NextValue>(delegations: Record<string | symbol, any>) {  

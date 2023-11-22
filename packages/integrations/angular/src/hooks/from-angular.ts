@@ -17,8 +17,8 @@ export function FromAngular<NextValue, T>(token?: ProviderToken<T> | InjectOptio
 
   return Hook(
     function fromAngularHook(session: Session, __: NextInjectionHook<NextValue>): InjectionHookResult<T | null> {
-      const ngInjector = session.context.injector.getSync(NG_INJECTOR);
-      return ngInjector.get(token || session.inject.token as any, undefined, flags);
+      const ngInjector = session.injector.getSync(NG_INJECTOR);
+      return ngInjector.get(token || session.token as any, undefined, flags);
     },
     { name: 'adi:from-angular' }
   )

@@ -14,9 +14,18 @@ export function Inquirer<T = any>() {
       if (inquirerSession === undefined) {
         return undefined as T;
       }
-      
-      Object.assign(session.injection.inject, inquirerSession.injection.inject);
-      Object.assign(session.context, inquirerSession.context);
+
+      const { injector, provider, definition, instance, token, ctx, scope, annotations } = inquirerSession;
+      Object.assign(session, {
+        injector, 
+        provider,
+        definition,
+        instance,
+        token,
+        ctx,
+        scope,
+        annotations,
+      });
       return resolveInstance(session) as T;
     },
     { name: 'adi:inquirer' }

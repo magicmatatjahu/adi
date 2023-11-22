@@ -72,8 +72,16 @@ export class Injector<T = any> {
   protected constructor(
     public readonly input: InjectorInput<T>,
     public readonly options: InjectorOptions,
-    public readonly parent: Injector | Promise<Injector> | null,
+    private parentInjector: Injector | Promise<Injector> | null,
   ) {}
+
+  get parent(): Injector | null {
+    return this.parentInjector as Injector | null;
+  }
+
+  set parent(injector: Injector) {
+    this.parentInjector = injector
+  }
   
   get<T>(token: ProviderToken<T>): InjectFunctionResult<InferredProviderTokenType<T>>;
   get<T, A>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>): InjectFunctionResult<A>;

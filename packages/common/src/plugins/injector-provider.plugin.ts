@@ -7,7 +7,7 @@ const providerInjectorMetaKey = 'adi:key:provider-injector';
 
 const DestroyInjectorHook = OnDestroyHook({
   onDestroy(_: any, session: Session) {
-    const hostInjector: Injector = session.context.instance?.meta[providerInjectorMetaKey];
+    const hostInjector: Injector = session.instance?.meta[providerInjectorMetaKey];
     return hostInjector && hostInjector.destroy();
   },
   inject: [Session]
@@ -55,7 +55,7 @@ export function injectorProviderPlugin(): Plugin {
             return wait(
               Injector.create({ imports, providers }, { exporting: false }, injector).init(),
               newInjector => {
-                session.context.instance!.meta[providerInjectorMetaKey] = newInjector;
+                session.instance!.meta[providerInjectorMetaKey] = newInjector;
                 return resolver(newInjector, session, data);
               },
             );

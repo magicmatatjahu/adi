@@ -81,7 +81,7 @@ export function Decorate<NextValue = unknown, T = any>(options: DecorateHookOpti
       return wait(
         next(session),
         decorated => {
-          const sessionInstance = session.context.instance;
+          const sessionInstance = session.instance;
           if (!sessionInstance) {
             return;
           }
@@ -91,13 +91,13 @@ export function Decorate<NextValue = unknown, T = any>(options: DecorateHookOpti
             return decorated;
           }
   
-          const annotations = forked.annotations;
-          (annotations[DELEGATE_VALUE] = [] as any[]).push(decorated);
+          const data = forked.data;
+          (data[DELEGATE_VALUE] = [] as any[]).push(decorated);
           if (delegationKey) { // classType based decorator
-            if (annotations[DELEGATE_KEY]) {
-              annotations[DELEGATE_KEY][delegationKey] = decorated;
+            if (data[DELEGATE_KEY]) {
+              data[DELEGATE_KEY][delegationKey] = decorated;
             } else {
-              annotations[DELEGATE_KEY] = {
+              data[DELEGATE_KEY] = {
                 [delegationKey]: decorated,
               }
             }

@@ -7,7 +7,7 @@ export const OVERRIDE_KEY = 'adi:key:override';
 export function Override<NextValue>(injections: Array<InjectionItem | undefined> | Injections) {  
   return Hook(
     function overrideHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
-      session.annotations[OVERRIDE_KEY] = injections;
+      session.data[OVERRIDE_KEY] = injections;
       return next(session);
     },
     { name: 'adi:override' }

@@ -1,7 +1,7 @@
 import { Hook, waitCallback } from "@adi/core";
 import { resolve } from "@adi/core/lib/injector/resolver";
-import { NoProviderError } from "@adi/core/lib/problem";
-import { createArray, noopCatch, noopThen } from "@adi/core/lib/utils";
+import { NotFoundProviderError } from "@adi/core/lib/errors/not-found-provider.error";
+import { createArray, noopThen } from "@adi/core/lib/utils";
 
 import type { Session, InjectionHookResult, NextInjectionHook, ProviderToken, InjectionHook } from '@adi/core';
 
@@ -25,13 +25,12 @@ export function Fallback<NextValue, T>(options: ProviderToken<T> | FallbackHookO
         () => next(session),
         noopThen,
         err => {
-          if (err instanceof NoProviderError) {
+          if (err instanceof NotFoundProviderError) {
             // preserve all information about session
             session.apply(forked);
-            session.inject.token = token;
-            const context = session.context;
-            context.provider = context.definition = context.instance = undefined;
-            return resolve(session.context.injector, session, hooks);
+            session.token = token;
+            session.provider = session.definition = session.instance = undefined;
+            return resolve(session.injector, session, hooks);
           }
           throw err;
         }

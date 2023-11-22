@@ -42,20 +42,18 @@ export function portalPlugin(options?: PortalPluginOptions): Plugin {
   
         const resolver = factory.resolver;
         factory.resolver = (injector: Injector, session: Session, data: any) => {
-          const annotations = session.annotations;
-          let portalInjector = annotations[PORTAL_KEY] as { injector: Injector | undefined, deep: boolean };
-          const context = session.context;
+          let portalInjector = session.data[PORTAL_KEY] as { injector: Injector | undefined, deep: boolean };
 
           if (portalInjector) {
-            injector = context.injector = portalInjector.injector as Injector;
+            injector = session.injector = portalInjector.injector as Injector;
           } else if (session.parent) {
-            portalInjector = session.parent.annotations[PORTAL_KEY] as { injector: Injector | undefined, deep: boolean };
+            portalInjector = session.parent.data[PORTAL_KEY] as { injector: Injector | undefined, deep: boolean };
             if (portalInjector) {
-              injector = context.injector = portalInjector.injector as Injector;
+              injector = session.injector = portalInjector.injector as Injector;
 
               // defined deep portaling
               if (portalInjector.deep) {
-                session.annotations[PORTAL_KEY] = portalInjector;
+                session.data[PORTAL_KEY] = portalInjector;
               }
             }
           }

@@ -20,7 +20,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
 
   override getContext(session: Session, options: InstanceScopeOptions): Context | Promise<Context> {
     const parent = session.parent;
-    if (options.reuseContext === true && session.inject.context) {
+    if (options.reuseContext === true && session.ctx) {
       const { scope, options } = transientDef;
       return scope!.getContext(session, options!);
     } else if (!parent) {
@@ -29,7 +29,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
     }
     
     session.setFlag('side-effect');
-    const parentInstance = parent.context.instance!;
+    const parentInstance = parent.instance!;
     let context = this.contexts.get(parentInstance) as Context | undefined;
     if (context === undefined) {
       context = Context.create();

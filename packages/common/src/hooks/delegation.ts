@@ -7,7 +7,7 @@ import type { Session, InjectionHookResult, NextInjectionHook, ClassType, Inject
 const falsyRef = {}; // fallback for undefined, null, '', false, 0
 
 function retrieveDelegationByKey(session: Session, key: string | symbol | number) {
-  const delegations = session.annotations[DELEGATE_KEY];
+  const delegations = session.data[DELEGATE_KEY];
   if (delegations && delegations.hasOwnProperty(key)) {
     return delegations[key];
   }
@@ -38,7 +38,7 @@ function isInstanceOf(value: any, type: Object) {
 }
 
 function retrieveDelegationByReflectedType(session: Session, reflectedType: Object) {
-  const delegations = session.annotations[DELEGATE_VALUE];
+  const delegations = session.data[DELEGATE_VALUE];
   const instance = delegations && delegations.find((d: any) => isInstanceOf(d, reflectedType));
   if (instance) {
     return instance;

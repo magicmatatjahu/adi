@@ -207,7 +207,7 @@ export function initModule(injector: Injector, input: ModuleImportType): Injecto
 
 function processInitModule(injector: Injector, input: ModuleImportType, initParent: boolean) {
   const parent = injector.parent;
-  if (parent && initParent) {
+  if (initParent && parent) {
     return wait(
       parent,
       inj => {

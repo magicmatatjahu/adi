@@ -14,4 +14,5 @@ export { when } from './constraints';
 
 export type { DestroyableType, OnInitHookOptions, OnDestroyHookOptions } from './hooks';
 export type { DefaultScopeOptions, SingletonScopeOptions, TransientScopeOptions } from './scopes';
+export type { ProviderRecord, ProviderDefinition, ProviderInstance } from './injector';
 export * from './types';

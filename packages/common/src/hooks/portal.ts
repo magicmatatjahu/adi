@@ -17,8 +17,8 @@ export function Portal<NextValue>(options?: PortalHookOptions) {
       }
   
       // set portal injector and options
-      session.annotations[PORTAL_KEY] = {
-        injector: session.context.injector,
+      session.data[PORTAL_KEY] = {
+        injector: session.injector,
         deep,
       }
   

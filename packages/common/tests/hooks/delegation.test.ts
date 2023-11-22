@@ -28,7 +28,7 @@ describe('Delegation injection hook', function () {
   test('should return delegation', function () {
     function TestHook<NextValue>() {
       return Hook<NextValue, NextValue>((session, next) => {
-        session.annotations[DELEGATE_KEY] = { default: 'foobar' };
+        session.data[DELEGATE_KEY] = { default: 'foobar' };
         return next(session);
       });
     }
@@ -56,7 +56,7 @@ describe('Delegation injection hook', function () {
   test('should return deep delegation', function () {
     function TestHook<NextValue>(key: string, value: string) {
       return Hook<NextValue, NextValue>((session, next) => {
-        session.annotations[DELEGATE_KEY] = { [key]: value };
+        session.data[DELEGATE_KEY] = { [key]: value };
         return next(session);
       });
     }
@@ -89,7 +89,7 @@ describe('Delegation injection hook', function () {
   test('should return normal provider when key in delegations does not exist', function () {
     function TestHook<NextValue>() {
       return Hook<NextValue, NextValue>((session, next) => {
-        session.annotations[DELEGATE_KEY] = { default: 'foobar' };
+        session.data[DELEGATE_KEY] = { default: 'foobar' };
         return next(session);
       });
     }

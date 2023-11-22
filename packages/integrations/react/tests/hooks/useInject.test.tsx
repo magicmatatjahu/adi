@@ -4,6 +4,7 @@ import { Injectable, InjectionToken, Optional, TransientScope } from "@adi/core"
 
 import { Module, useInject } from "../../src";
 import { SuspenseError } from "../../src/errors";
+import { wait } from "../helpers";
 
 import type { FunctionComponent, JSXElementConstructor } from 'react';
 
@@ -138,7 +139,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('Child component is rendered!')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // try to unmount injector
     button = screen.getByRole('button');
@@ -146,7 +147,7 @@ describe('useInject hook', function() {
     expect(screen.queryByText('Child component is rendered!')).toBeNull();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(0);
@@ -199,7 +200,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('Child component is rendered!')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait();
 
     // try to unmount component
     button = screen.getByRole('button');
@@ -207,7 +208,7 @@ describe('useInject hook', function() {
     expect(screen.queryByText('Child component is rendered!')).toBeNull();
 
     // wait
-    await Promise.resolve();
+    await wait();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(1);
@@ -258,7 +259,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('test')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(0);
@@ -269,7 +270,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('testtest')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(0);
@@ -280,7 +281,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('testtesttest')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(0);
@@ -331,7 +332,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('test')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(1);
@@ -342,7 +343,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('testtest')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(2);
@@ -353,7 +354,7 @@ describe('useInject hook', function() {
     expect(screen.getByText('testtesttest')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait()
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(3);

@@ -8,7 +8,7 @@ import { SuspenseError } from './errors';
 
 import type { ProviderInstance, InjectionContext, InjectorInput, InjectorOptions, Session, ProviderDefinition } from "@adi/core";
 
-export type SuspensePromise<T = any> = Promise<T> & { status?: 'fulfilled' | 'rejected' | 'pending', error: any, value: T, instance?: ProviderInstance<T> };
+export type SuspensePromise<T = any> = Promise<T> & { status?: 'fulfilled' | 'rejected' | 'pending', error: any, value: T, instance?: ProviderInstance };
 
 export function createInjector(input: InjectorInput | Injector, options: InjectorOptions | undefined, parentInjector?: Injector, cacheKey?: string | symbol, isSuspense?: boolean, suspenseKey?: string | symbol | object): { injector: Injector | Promise<Injector>, isAsync: boolean } {
   let isAsync: boolean = false;
@@ -142,7 +142,8 @@ function getProviderSuspensePromise(
   ProviderInstance,
 ] {
   const session = ctx.current as Session;
-  const { instance, definition } = session.context as Required<Session['context']>;
+  const instance = session.instance as ProviderInstance
+  const definition = instance.definition;
 
   if (suspense !== undefined) {
     if (typeof suspense !== 'boolean') {

@@ -14,9 +14,9 @@ export function Config<T = undefined, NextValue = unknown>(token?: ProviderToken
           return undefined as any;
         }
   
-        const config = parent.context.definition?.annotations.config;
+        const config = parent.definition?.annotations.config;
         if (isProviderToken(config)) {
-          session.inject.token = config;
+          session.token = config;
           return next(session) as any
         }
         return config as  any
@@ -28,13 +28,13 @@ export function Config<T = undefined, NextValue = unknown>(token?: ProviderToken
   
       const forked = session.fork();
       forked.setFlag('dry-run');
-      forked.inject.token = token;
+      forked.token = token;
       return wait(
         next(forked),
         () => {
-          const config = forked.context.definition?.annotations.config;
+          const config = forked.definition?.annotations.config;
           if (isProviderToken(config)) {
-            session.inject.token = config;
+            session.token = config;
             return next(session);
           }
           return config as T

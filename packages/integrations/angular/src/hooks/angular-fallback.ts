@@ -10,7 +10,7 @@ import type { ProviderToken, InjectOptions } from '@angular/core';
 export function AngularFallback<NextValue, T>(token: ProviderToken<T>, flags: InjectOptions = {}) {
   return Hook(
     function angularFallbackHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<T | null> {
-      const ngInjector = session.context.injector.getSync(NG_INJECTOR);
+      const ngInjector = session.injector.getSync(NG_INJECTOR);
 
       return waitCallback(
         () => next(session),

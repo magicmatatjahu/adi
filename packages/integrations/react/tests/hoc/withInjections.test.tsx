@@ -4,6 +4,7 @@ import { Injectable, Optional, ProviderType, TransientScope } from "@adi/core";
 
 import { Module, withInjections } from "../../src";
 import { SuspenseError } from "../../src/errors";
+import { wait } from "../helpers";
 
 import type { FunctionComponent, JSXElementConstructor } from 'react';
 
@@ -94,7 +95,6 @@ describe('withInjections HOC', function() {
   });
 
   test('should not destroy instances when injection have not side effects', async function() {
-    jest.useFakeTimers();
     let onDestroyCalled = false;
 
     @Injectable()
@@ -159,14 +159,13 @@ describe('withInjections HOC', function() {
     expect(screen.queryByText('Child component is rendered!')).toBeNull();
 
     // wait for all timeouts
-    jest.runAllTimers();
+    await wait();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(false);
   });
 
   test('should try destroy instances when at least one injection has side effects', async function() {
-    jest.useFakeTimers();
     let onDestroyCalled = false;
 
     @Injectable({
@@ -233,8 +232,7 @@ describe('withInjections HOC', function() {
     expect(screen.queryByText('Child component is rendered!')).toBeNull();
 
     // wait for all timeouts
-    jest.runAllTimers();
-    await Promise.resolve();
+    await wait();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(true);
@@ -381,7 +379,7 @@ describe('withInjections HOC', function() {
     expect(screen.getByText('test')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(1);
@@ -392,7 +390,7 @@ describe('withInjections HOC', function() {
     expect(screen.getByText('testtest')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(2);
@@ -403,7 +401,7 @@ describe('withInjections HOC', function() {
     expect(screen.getByText('testtesttest')).toBeDefined();
 
     // wait
-    await Promise.resolve();
+    await wait();
 
     // check if instance is destroyed
     expect(onDestroyCalled).toEqual(3);

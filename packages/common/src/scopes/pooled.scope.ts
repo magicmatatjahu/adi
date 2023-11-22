@@ -36,7 +36,7 @@ export class PooledScope extends Scope<PooledScopeOptions> {
   }
 
   override getContext(session: Session, options: PooledScopeOptions): Context | Promise<Context> {
-    const definition = session.context.definition as ProviderDefinition;
+    const definition = session.definition!;
     const pool = this.getPool(definition, options);
     
     // get context from the beginning - pool should behaves as fifo queue, first in first out

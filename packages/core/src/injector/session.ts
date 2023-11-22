@@ -47,7 +47,7 @@ export class Session<T = any> {
   public injector: Injector
   public provider: ProviderRecord | undefined = undefined;
   public definition: ProviderDefinition | undefined = undefined;
-  public instance?: ProviderInstance | undefined = undefined;
+  public instance: ProviderInstance | undefined = undefined;
 
   // session related data
   private flags: SessionFlag = SessionFlag.NONE;

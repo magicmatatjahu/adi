@@ -28,7 +28,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
   override getContext(session: Session, options: LocalScopeOptions): Context | Promise<Context> {
     const parent = session.parent;
-    if (options.reuseContext === true && session.inject.context) {
+    if (options.reuseContext === true && session.ctx) {
       const { scope, options } = transientDef;
       return scope!.getContext(session, options!);
     } else if (!parent) {
@@ -107,10 +107,9 @@ export class LocalScope extends Scope<LocalScopeOptions> {
   }
 
   private retrieveInstance(session: Session, toToken?: ProviderToken, toScope?: string | symbol): ProviderInstance | undefined {
-    const context = session.context;
-    const isProviderToken = context.provider?.token === toToken;
-    const annotation = context.definition?.annotations.localScope;
-    const instance = context.instance;
+    const isProviderToken = session.provider?.token === toToken;
+    const annotation = session.definition?.annotations.localScope;
+    const instance = session.instance;
 
     // if annotations exists but scope hasn't any options
     if (toScope === undefined && toToken === undefined && annotation !== undefined) {

@@ -11,10 +11,10 @@ function findInjector(session: Session, next: NextInjectionHook, hostInjector: I
   return wait(
     next(forked),
     () => {
-      const injector = forked.context.injector;
+      const injector = forked.injector;
       if (injector === hostInjector) {
         // accept null or undefined injector in tree
-        session.context.injector = injector.parent!;
+        session.injector = injector.parent!;
         return findInjector(session, next, hostInjector);
       }
       return injector;
@@ -26,9 +26,9 @@ export function SkipSelf<NextValue>() {
   return Hook(
     function skipSelfHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
       return wait(
-        findInjector(session, next, session.context.injector),
+        findInjector(session, next, session.injector),
         injector => {
-          session.context.injector = injector;
+          session.injector = injector;
           return next(session);
         },
       );

@@ -1,8 +1,9 @@
-import { Injectable, Injector, Optional, Token, TransientScope } from '@adi/core';
+import { Injectable, Injector, Optional, Token, TransientScope, wait } from '@adi/core';
 import { Injectable as AngularInjectable, Component, inject as angularInject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { provideInjector, provide, inject } from '../../src'
+import { wait as waitTest } from '../helpers';
 
 describe('inject() function', () => {
   it('should work', async () => {
@@ -338,8 +339,8 @@ describe('inject() function', () => {
 
     fixture.destroy();
     
-    await Promise.resolve(process.nextTick)
-    await Promise.resolve(process.nextTick)
+    await waitTest();
+    await waitTest();
 
     expect(called).toEqual(2);
   });
@@ -390,8 +391,8 @@ describe('inject() function', () => {
 
     fixture.destroy();
     
-    await Promise.resolve(process.nextTick)
-    await Promise.resolve(process.nextTick)
+    await waitTest();
+    await waitTest();
 
     expect(called).toEqual(1);
   });

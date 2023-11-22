@@ -76,7 +76,7 @@ function assignOnDestroyHook(ctx: InjectionContext) {
   }
 
   destroyRef.onDestroy(() => {
-    const instance = ctx.current?.context?.instance
+    const instance = ctx.current?.instance
     instance && destroy(instance)
   });
 }
