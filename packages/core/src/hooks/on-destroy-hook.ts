@@ -28,7 +28,7 @@ export function OnDestroyHook<NextValue>(hook: ((value: NextValue) => void | Pro
       return wait(
         next(session),
         value => {
-          const instance = session.context.instance!;
+          const instance = session.instance!;
           const hooks = instance.meta[destroyHooksMetaKey] || (instance.meta[destroyHooksMetaKey] = []);
           hooks.push(resolver);
           return value;

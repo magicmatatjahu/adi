@@ -1,11 +1,10 @@
 import { Hook } from './hook';
 import { InjectionHookKind } from '../enums';
-import { wait } from '../utils';
 import { ADI_HOOK_DEF } from '../private';
 import { resolveProvider } from '../injector/resolver';
 
-import type { Injector, Session } from '../injector';
-import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, InjectionHook, InjectionHookContext, InjectionHookDefinition, NextInjectionHook, InjectionHookResult } from '../types';
+import type { Injector, Session, ProviderRecord, ProviderDefinition } from '../injector';
+import type { ProviderToken, InjectionHook, InjectionHookContext, InjectionHookDefinition, NextInjectionHook, InjectionHookResult } from '../types';
 
 export function isInjectionHook<T = any, R = any>(hooks: unknown): hooks is InjectionHook<T, R> {
   if (!hooks) return false;
@@ -36,7 +35,7 @@ export function runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook
 
 function __runInjectioHooksWithProviders(hooks: Array<{ hook: InjectionHook, provider: ProviderRecord | null }>, session: Session, index: number, ctx: Partial<InjectionHookContext>) {
   const { hook, provider } = hooks[++index];
-  session.context.injector = (session.context.provider = provider || undefined)?.host as Injector;
+  session.injector = (session.provider = provider || undefined)?.host as Injector;
   return hook(session, (s: Session) => __runInjectioHooksWithProviders(hooks, s, index, ctx), { ...ctx, current: hook } as InjectionHookContext);
 }
 
@@ -46,25 +45,23 @@ export function ExistingHook<NextValue, T>(token: ProviderToken<T>) {
       if (session.hasFlag('dry-run')) {
         return next(session) as T;
       }
-  
-      const { context, inject } = session;
-      context.provider = context.definition = undefined;
-      inject.token = token;
+      
+      session.token = token;
+      session.provider = session.definition = undefined;
       return resolveProvider(session);
     },
     { name: 'adi:hook:existing' }
   )
 }
 
-export function AliasHook<NextValue, T>(definition: ProviderDefinition<T>) {
+export function AliasHook<NextValue, T>(definition: ProviderDefinition) {
   return Hook(
     function aliasHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<T> {
       if (session.hasFlag('dry-run')) {
         return next(session) as T;
       }
   
-      const { context, inject } = session;
-      inject.token = (context.provider = (context.definition = definition).provider).token;
+      session.token = (session.provider = (session.definition = definition).provider).token;
       return resolveProvider(session);
     },
     { name: 'adi:hook:alias' }

@@ -50,16 +50,16 @@ describe('Injection hooks', function() {
     expect(calledTimes).toEqual(1);
   });
 
-  test('should not operate on original options but in the copy of the options', function () {
-    let lastOptions: any = undefined;
+  test('should not operate on original annotations but in the copy of the annotations', function () {
+    let lastAnnotations: any = undefined;
     let numberOfThisSameOptions = 0;
 
     const TestHook = Hook((session, next) => {
-      if (lastOptions === session.inject) {
+      if (lastAnnotations === session.annotations) {
         numberOfThisSameOptions++;
       }
       
-      lastOptions = session.inject;
+      lastAnnotations = session.annotations;
       const value = next(session);
       return value;
     });

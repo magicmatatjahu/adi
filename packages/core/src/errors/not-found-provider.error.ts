@@ -7,7 +7,7 @@ export class NotFoundProviderError extends ADIError<{ session: Session }> {
   error_code: Errors.NOT_FOUND_PROVIDER;
 
   createMessage(): string {
-    const token = this.ctx.session.inject.token;
+    const token = this.ctx.session.token;
 
     let name: string | undefined;
     if (typeof token === 'function' || isInjectionToken(token)) {

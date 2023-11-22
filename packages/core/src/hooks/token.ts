@@ -6,7 +6,7 @@ import type { InjectionHookResult, NextInjectionHook, ProviderToken } from '../t
 export function Token<NextValue, T>(token: ProviderToken<T>) {
   return Hook(
     function tokenHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue | T> {
-      session.inject.token = token;
+      session.token = token;
       return next(session);
     },
     { name: 'adi:token' }

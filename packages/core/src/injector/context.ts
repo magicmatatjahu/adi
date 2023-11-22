@@ -13,9 +13,9 @@ export class Context<D extends ContextData = ContextData> {
         session.setFlag('side-effect');
         const parent = session.parent;
         if (parent) {
-          return parent.context.instance?.context;
+          return parent.instance?.context;
         }
-        return session.context.instance?.context;
+        return session.instance?.context;
       }),
     ] 
   };

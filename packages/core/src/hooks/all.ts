@@ -3,8 +3,8 @@ import { compareOrder } from "../injector/metadata";
 import { filterDefinitions } from "../injector/provider";
 import { wait, waitAll } from "../utils";
 
-import type { Session } from '../injector/session';
-import type { InjectionHookResult, NextInjectionHook, ProviderRecord, ProviderDefinition } from '../types';
+import type { Session, ProviderRecord, ProviderDefinition } from '../injector';
+import type { InjectionHookResult, NextInjectionHook } from '../types';
 
 export interface AllHookOptions {
   filter?: 'all' | 'satisfies';
@@ -41,7 +41,7 @@ function hook(session: Session, next: NextInjectionHook, options: AllHookOptions
     () => {
       session.setFlag('side-effect');
       session.setFlag('collection');
-      const injector = forkedSession.context.injector;
+      const injector = forkedSession.injector;
 
       // if injector doesn't exist - token doesn't exist
       if (!injector) {
@@ -49,15 +49,14 @@ function hook(session: Session, next: NextInjectionHook, options: AllHookOptions
       }
 
       // TODO: Fix retrieved provider from injector, we should operate on providers from imported injector, not from host injector
-      const { context, inject } = forkedSession;
-      const provider = context.injector.providers.get(inject.token!);
+      const provider = injector.providers.get(forkedSession.token!);
       // TODO: Check typing for provider
       const definitions = customFilterDefinitions(provider as any, forkedSession, options);
 
       const values: any[] = [];
       definitions.forEach(definition => {
         const instanceSession = session.fork();
-        instanceSession.context.provider = (instanceSession.context.definition = definition).provider;
+        instanceSession.provider = (instanceSession.definition = definition).provider;
         values.push(next(instanceSession));
       })
       

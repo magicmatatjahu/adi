@@ -1,8 +1,8 @@
 import type { Injector } from '../injector/injector';
+import type { ProviderRecord, ProviderDefinition, ProviderInstance } from '../injector/provider';
 import type { Session } from '../injector/session';
 import type { ModuleImportType } from './module';
 import type { ProviderType } from './provider';
-import type { ProviderRecord, ProviderDefinition, ProviderInstance } from './provider-record';
 
 export interface OnProviderAddPayload { 
   original: ProviderType;

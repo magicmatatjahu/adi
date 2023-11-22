@@ -1,7 +1,6 @@
-import type { Context, Injector, Session } from '../injector'
+import type { Context, Injector, Session, ProviderInstance } from '../injector'
 import type { InjectionHook } from './hook'
 import type { ProviderToken, InferredProviderTokenType } from './provider-token'
-import type { ProviderInstance } from './provider-record'
 import type { ScopeDefinition } from './scope'
 import type { InjectionKind } from '../enums'
 
@@ -140,6 +139,7 @@ export interface InjectionMetadata {
 export interface InjectionAnnotations {
   named?: string | symbol | object;
   tagged?: Array<string | symbol | object>;
+  labelled?: Record<string | symbol, any>;
   [key: string | symbol]: any;
 }
 

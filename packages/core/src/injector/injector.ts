@@ -9,7 +9,8 @@ import { isPromiseLike } from '../utils';
 import { cacheMetaKey, scopedInjectorsMetaKey, scopedInjectorLabelMetaKey } from '../private';
 
 import type { RunInContextArgument } from './inject'
-import type { ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, InjectionContext, InjectFunctionResult, InferredProviderTokenType } from '../types';
+import type { ProviderToken, ProviderType, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, InjectionContext, InjectFunctionResult, InferredProviderTokenType } from '../types';
+import type { ProviderRecord } from './provider';
 import type { EventEmitter } from '../services/emitter.service';
 
 // TODO: Handle promises as input for injector

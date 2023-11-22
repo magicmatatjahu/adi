@@ -15,8 +15,8 @@ export const treeInjectorMetaKey = Symbol.for('adi:tree-injector');
 export const exportedToInjectorsMetaKey = Symbol.for('adi:exported-to-injectors');
 export const definitionInjectionMetadataMetaKey = Symbol.for('adi:definition-injection-metadata');
 export const instancesToDestroyMetaKey = Symbol.for('adi:instances-to-destroy');
-export const originalMethod = Symbol.for('adi:original-method');
-export const methodPatched = Symbol.for('adi:method-patched');
+export const originalMethodMetaKey = Symbol.for('adi:original-method');
+export const methodPatchedMetaKey = Symbol.for('adi:method-patched');
 export const OBJECT_REF = {};
 export const ARRAY_REF = {};
 

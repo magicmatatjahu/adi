@@ -17,7 +17,7 @@ export function Destroyable<NextValue>() {
         next(session),
         value => {
           session.setFlag('side-effect');
-          const destroy = () => destroyFn(session.context.instance!, { event: 'manually' });
+          const destroy = () => destroyFn(session.instance, { event: 'manually' });
 
           return {
             value,

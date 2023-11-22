@@ -27,9 +27,9 @@ describe('Session token', function() {
     expect(service).toBeInstanceOf(Service);
     expect(service.service).toBeInstanceOf(TestService);
     expect(service.session).toBeInstanceOf(Session);
-    expect(service.session.context.instance?.value).toEqual(service);
+    expect(service.session.instance?.value).toEqual(service);
     expect(service.service.session1).toBeInstanceOf(Session);
-    expect(service.service.session1.context.instance?.value).toEqual(service.service);
+    expect(service.service.session1.instance?.value).toEqual(service.service);
     expect(service.service.session1 === service.service.session2).toEqual(true);
   });
 
@@ -44,6 +44,6 @@ describe('Session token', function() {
 
     const session = injector.getSync<Session>('test')
     expect(session).toBeInstanceOf(Session);
-    expect(session.context.instance?.value).toEqual(session);
+    expect(session.instance?.value).toEqual(session);
   });
 });

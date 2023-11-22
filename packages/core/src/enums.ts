@@ -7,6 +7,13 @@ export enum ProviderKind {
   CUSTOM = 'custom'
 }
 
+export enum DefinitionStatus {
+  NONE = 0,
+  DEFAULT = 1,
+  SINGLE_INSTANCE = 2,
+  MULTIPLE_INSTANCES = 4,
+}
+
 export enum InstanceStatus {
   UNKNOWN = 1,
   PENDING = 2,

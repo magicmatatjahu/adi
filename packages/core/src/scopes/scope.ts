@@ -1,5 +1,5 @@
-import type { Context, Session } from '../injector';
-import type { ScopeInstance, ProviderInstance, DestroyContext } from '../types';
+import type { Context, Session, ProviderInstance } from '../injector';
+import type { DestroyContext } from '../types';
 
 export abstract class Scope<O> {
   public abstract get name(): string;

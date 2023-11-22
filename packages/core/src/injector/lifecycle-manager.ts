@@ -2,8 +2,10 @@ import { InjectorStatus, InstanceStatus } from '../enums';
 import { initHooksMetaKey, destroyHooksMetaKey, circularSessionsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey } from '../private';
 import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../utils';
 
-import type { Injector, Session } from '../injector';
-import type { ProviderRecord, ProviderDefinition, ProviderInstance, DestroyContext, CustomResolver } from '../types';
+import type { Injector } from './injector';
+import type { ProviderRecord, ProviderDefinition, ProviderInstance } from './provider';
+import type { Session } from './session';
+import type { DestroyContext, CustomResolver } from '../types';
 
 const resolvedInstances = new WeakMap<object, ProviderInstance>();
 const defaultDestroyCtx: DestroyContext = { event: 'default' }
@@ -18,14 +20,13 @@ export function processOnInitLifecycle(instance: ProviderInstance) {
 
     const circularSessions = session.annotations[circularSessionsMetaKey] as Array<Session>;
     circularSessions.push(session);
-    return waitSequence(circularSessions, (s: Session) => handleOnInitLifecycle(s, s.context.instance!));
+    return waitSequence(circularSessions, (s: Session) => handleOnInitLifecycle(s, s.instance!));
   }
   return handleOnInitLifecycle(session, instance);
 }
 
 function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
-  const { annotations, context } = session;
-  const emitter = context.injector.emitter;
+  const emitter = session.injector.emitter;
   const value = instance.value;
 
   // assign resolved value to provider instance for future destroying
@@ -33,7 +34,7 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
     resolvedInstances.set(value, instance)
   }
 
-  const hooks: undefined | Array<CustomResolver> = annotations[initHooksMetaKey];
+  const hooks: undefined | Array<CustomResolver> = session.annotations[initHooksMetaKey];
   if (!hooks) {
     emitter.emit('instance:create', { session, instance })
     if (hasOnInitLifecycle(value)) {
@@ -42,7 +43,7 @@ function handleOnInitLifecycle(session: Session, instance: ProviderInstance) {
     return;
   }
   
-  delete annotations[initHooksMetaKey];
+  delete session.annotations[initHooksMetaKey];
   if (hasOnInitLifecycle(value)) {
     hooks.push(() => value.onInit());
   }
@@ -73,7 +74,7 @@ async function processOnDestroyLifecycle(instance: ProviderInstance, ctx: Destro
   }
 
   delete meta[destroyHooksMetaKey];
-  const emitter = session.context.injector.emitter;
+  const emitter = session.injector.emitter;
   emitter.emit('instance:destroy', { session, instance });
 
   for (let i = 0, l = hooks.length; i < l; i++) {
@@ -135,13 +136,13 @@ async function destroyCollection(instances: Array<ProviderInstance> = [], ctx: D
 }
 
 export function destroyProvider(provider: ProviderRecord, ctx: DestroyContext) {
-  const injector = provider.host;
   const defs = provider.defs;
   provider.defs = [];
-  return waitSequence(defs, def => destroyDefinition(injector, def, ctx))
+  return waitSequence(defs, def => destroyDefinition(def, ctx))
 }
 
-export function destroyDefinition(injector: Injector, definition: ProviderDefinition, ctx: DestroyContext) {
+export function destroyDefinition(definition: ProviderDefinition, ctx: DestroyContext) {
+  const injector = definition.provider.host;
   injector.emitter.emit('provider:destroy', { definition });
 
   const instances = Array.from(definition.values.values());
@@ -153,7 +154,7 @@ export function destroyDefinition(injector: Injector, definition: ProviderDefini
 }
 
 function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
-  const children = instance.session.children.map(s => s.context.instance!);
+  const children = instance.session.children.map(s => s.instance!);
 
   children.forEach(child => child?.parents?.delete(instance));
   if (instance.links) {

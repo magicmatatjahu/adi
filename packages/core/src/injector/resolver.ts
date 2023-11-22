@@ -1,24 +1,23 @@
 import { setCurrentInjectionContext } from './inject';
-import { processOnInitLifecycle } from './lifecycle-manager';
+import { ProviderRecord, ProviderDefinition } from './provider';
 import { setInstanceContext } from './method-injection';
 import { compareOrder, convertInjection, convertInjections, createInjectionArgument, createInjectionMetadata, filterHooks, getTreeshakableProvider, parseInjectArguments } from './metadata';
-import { filterDefinitions, getOrCreateProviderInstance } from './provider';
+import { filterDefinitions } from './provider';
 import { Session } from './session';
-import { InjectionKind, InstanceStatus, InjectionHookKind, InjectorStatus } from '../enums';
+import { InjectionKind, InjectionHookKind, InjectorStatus } from '../enums';
 import { runInjectioHooks, runInjectioHooksWithProviders } from '../hooks/private';
-import { cacheMetaKey, circularSessionsMetaKey, treeInjectorMetaKey, definitionInjectionMetadataMetaKey } from '../private';
+import { cacheMetaKey, treeInjectorMetaKey } from '../private';
 import { NotFoundProviderError } from "../errors/not-found-provider.error";
-import { CircularReferenceError } from "../errors/circular-reference.error";
-import { getAllKeys, isClassProvider, wait, waitAll, noopCatch, isPromiseLike, PromisesHub } from '../utils';
+import { getAllKeys, wait, waitAll, noopCatch, isPromiseLike } from '../utils';
+import { injectableDefinitions } from './injectable';
 
 import type { Injector } from './injector'
 import type { 
-  ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, 
+  ProviderToken,
   Provide as ClassicProvider, InjectionHook, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, CustomResolver, CustomResolverOptions,
   InjectionArgument, InjectableDefinition,
   ProviderAnnotations, InjectionAnnotations, InjectionHookContext, InjectionContext,
 } from '../types'
-import { injectableDefinitions } from './injectable';
 
 const injectorHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.INJECTOR };
 const injectHookCtx: Partial<InjectionHookContext> = { kind: InjectionHookKind.INJECT };
@@ -61,7 +60,7 @@ export function optimizedInject<T>(injector: Injector, parentSession: Session | 
   }
 
   const { token, annotations, hooks, metadata } = argument;
-  const session = Session.create(token, annotations, metadata, injector, parentSession);
+  const session = Session.create({ token, annotations, metadata, injector }, parentSession);
   if (parentSession) {
     parentSession.children.push(session);
   }
@@ -95,15 +94,14 @@ export function resolve<T>(injector: Injector, session: Session, hooks: Array<In
 }
 
 export function resolveProvider<T>(session: Session): T | Promise<T> {
-  const context = session.context;
-  if (context.provider !== undefined) {
-    const provider = context.provider;
-    context.injector = provider.host;
+  if (session.provider !== undefined) {
+    const provider = session.provider;
+    session.injector = provider.host;
     return runInjectioHooks(filterHooks(provider.hooks, session), session, providerHookCtx, resolveDefinition);
   }
 
-  const token = session.inject.token as ProviderToken;
-  const injector = context.injector;
+  const token = session.token as ProviderToken;
+  const injector = session.injector;
   let maybeProviders = injector.providers.get(token);
   if (maybeProviders === undefined) {
     const treeshakable = getTreeshakableProvider(token as InjectableDefinition['token'], injector);
@@ -122,7 +120,7 @@ export function resolveProvider<T>(session: Session): T | Promise<T> {
 
   if (!imported) {
     if (self) {
-      session.context.provider = self;
+      session.provider = self;
       if (self.when(session)) {
         return runInjectioHooks(filterHooks(self.hooks, session), session, providerHookCtx, resolveDefinition);
       }
@@ -134,12 +132,11 @@ export function resolveProvider<T>(session: Session): T | Promise<T> {
 }
 
 function runProvidersHooks(session: Session, providers: Array<ProviderRecord>) {
-  const context = session.context;
-  session.meta[treeInjectorMetaKey] = context.injector;
+  session.data[treeInjectorMetaKey] = session.injector;
   const hooks: Array<{ hook: InjectionHook, provider: ProviderRecord, annotations: ProviderAnnotations }> = [];
 
   providers.forEach(provider => {
-    context.injector = (context.provider = provider).host;
+    session.injector = (session.provider = provider).host;
     if (provider.when(session)) {
       provider.hooks.forEach(hook => {
         hook.when(session) && hooks.push({ hook: hook.hook, provider, annotations: hook.annotations })
@@ -157,11 +154,10 @@ function runProvidersHooks(session: Session, providers: Array<ProviderRecord>) {
 
 function findDefinition(session: Session, providers: Array<ProviderRecord>) {
   let defaultDefinition: ProviderDefinition | undefined;
-  const context = session.context;
 
   for (let i = 0, l = providers.length; i < l; i++) {
-    const provider = context.provider = providers[i];
-    context.injector = provider.host;
+    const provider = session.provider = providers[i];
+    session.injector = provider.host;
     if (!provider.when(session)) {
       continue;
     }
@@ -173,37 +169,36 @@ function findDefinition(session: Session, providers: Array<ProviderRecord>) {
         continue;
       }
 
-      session.meta[treeInjectorMetaKey] = undefined;
-      context.definition = definition;
+      session.data[treeInjectorMetaKey] = undefined;
+      session.definition = definition;
       return resolveDefinition(session);
     }
     defaultDefinition = defaultDefinition || definition;
   }
 
   if (defaultDefinition) {
-    session.meta[treeInjectorMetaKey] = undefined;
-    context.definition = defaultDefinition;
+    session.data[treeInjectorMetaKey] = undefined;
+    session.definition = defaultDefinition;
     return resolveDefinition(session);
   }
 
-  session.context.injector = session.meta[treeInjectorMetaKey];
+  session.injector = session.data[treeInjectorMetaKey];
   return resolveFromParent(session);
 }
 
 export function resolveDefinition<T>(session: Session): T | Promise<T> {
-  const context = session.context;
-  let { definition } = context;
+  let definition = session.definition;
   if (definition) {
-    context.injector = (context.provider = definition.provider).host;
+    session.injector = (session.provider = definition.provider).host;
     return runInjectioHooks(definition.hooks, session, definitionHookCtx, resolveInstance);
   }
 
-  definition = context.definition = filterDefinitions(context.provider!, session);
+  definition = session.definition = filterDefinitions(session.provider!, session);
   if (!definition) {
     return resolveFromParent(session);
   }
 
-  context.injector = (context.provider = definition.provider).host;
+  session.injector = (session.provider = definition.provider).host;
   return runInjectioHooks(definition.hooks, session, definitionHookCtx, resolveInstance);
 }
 
@@ -214,57 +209,14 @@ export function resolveInstance<T>(session: Session): T | Promise<T> | undefined
   }
 
   return wait(
-    getOrCreateProviderInstance(session),
-    handleInstance,
+    session.definition!.instance(session),
+    instance => instance.resolve(session)
   )
-}
 
-function handleInstance(session: Session) {
-  const instance = session.context.instance!;
-  if (instance.status & InstanceStatus.RESOLVED) {
-    return instance.value;
-  }
-
-  // parallel or circular injection
-  if (instance.status > InstanceStatus.UNKNOWN) {
-    return resolveParallelInjection(session, instance);
-  }
-
-  instance.status |= InstanceStatus.PENDING;
-  return wait(
-    createInstance(session),
-    value => processInstance(value, instance),
-  );
-}
-
-function createInstance(session: Session) {
-  const { injector, definition } = session.context;
-  const { factory, meta } = definition!;
-  const previosuContext = setCurrentInjectionContext({ injector, session, metadata: meta[definitionInjectionMetadataMetaKey] });
-  try {
-    return factory.resolver(injector, session, factory.data)
-  } finally {
-    setCurrentInjectionContext(previosuContext);
-  }
-}
-
-function processInstance(value: any, instance: ProviderInstance) {
-  if (instance.status & InstanceStatus.CIRCULAR) {
-    value = Object.assign(instance.value, value);
-  }
-
-  instance.value = value;
-  return wait(
-    processOnInitLifecycle(instance),
-    () => {
-      instance.status |= InstanceStatus.RESOLVED;
-      // resolve pararell injection - if defined
-      if (instance.status & InstanceStatus.PARALLEL) {
-        PromisesHub.resolve(instance, value);
-      }
-      return value;
-    }
-  );
+  // return wait(
+  //   getOrCreateProviderInstance(session),
+  //   handleInstance,
+  // )
 }
 
 function processResult(result: any, session: Session, argument: InjectionArgument, ctx?: Partial<InjectionContext>, cacheToken?: ProviderToken | InjectionArgument) {
@@ -277,7 +229,7 @@ function processResult(result: any, session: Session, argument: InjectionArgumen
     // saveToCache(session.context.injector, cacheToken as any, result); 
   } else if (ctx?.toDestroy) {
     // add instance to destroy
-    ctx.toDestroy.push(session.context.instance!);
+    ctx.toDestroy.push(session.instance!);
   }
 
   session.setFlag('resolved');
@@ -285,96 +237,13 @@ function processResult(result: any, session: Session, argument: InjectionArgumen
 }
 
 function resolveFromParent<T>(session: Session): T | Promise<T> {
-  const context = session.context;
-  const injector = context.injector.parent as Injector;
+  const injector = session.injector.parent as Injector;
   if (injector === null) {
     throw new NotFoundProviderError({ session });
   }
-  context.injector = injector!;
-  context.provider = context.definition = context.instance = undefined;
+  session.injector = injector!;
+  session.provider = session.definition = session.instance = undefined;
   return resolveProvider(session);
-}
-
-function resolveParallelInjection(session: Session, instance: ProviderInstance) {
-  // check circular injection
-  let tempSession: Session | undefined = session;
-  while (tempSession) {
-    // case when injection is performed by Injector.create.get() call - parallel injection
-    if (!tempSession) {
-      break;
-    }
-
-    // found circular references
-    if (instance === (tempSession = tempSession.parent)?.context.instance) {
-      return handleCircularInjection(session, instance);
-    }
-  }
-
-  // otherwise parallel injection detected (in async resolution)
-  instance.status |= InstanceStatus.PARALLEL;
-  return PromisesHub.create(instance);
-}
-
-function handleCircularInjection<T>(session: Session, instance: ProviderInstance<T>): T {
-  // if circular injection detected return empty prototype instance
-  if (instance.status & InstanceStatus.CIRCULAR) {
-    return instance.value;
-  }
-
-  const proto = getPrototype(instance);
-  if (!proto) {
-    throw new CircularReferenceError({ session });
-  }
-  instance.status |= InstanceStatus.CIRCULAR;
-
-  // save sessions to perform initialization of dependencies in proper order
-  const circularSessions: Array<Session> = [];
-  session.setFlag('circular');
-  let tempSession: Session | undefined = session.parent;
-  while (tempSession) { 
-    tempSession.setFlag('circular');
-    const annotations = tempSession.annotations;
-
-    if (instance === tempSession.context.instance) { // found circular references
-      const currentSession = tempSession;
-      
-      tempSession = tempSession.parent;
-      if (tempSession?.hasFlag('circular')) { // maybe circular injection is deeper
-        while (tempSession) {
-          const parent = tempSession.parent;
-          if (!parent || !parent.hasFlag('circular')) { // reassign the circular references to the deeper context
-            const sessions = tempSession.annotations[circularSessionsMetaKey];
-            const index = (sessions).indexOf(currentSession);
-            sessions.splice(index, 0, ...circularSessions);
-            break;
-          }
-          tempSession = parent;
-        }
-      } else {
-        annotations[circularSessionsMetaKey] = circularSessions;
-      }
-      break;
-    }
-
-    const sessions = annotations[circularSessionsMetaKey];
-    if (sessions) {
-      circularSessions.unshift(...sessions);
-      delete annotations[circularSessionsMetaKey];
-    }
-    circularSessions.push(tempSession);
-    tempSession = tempSession.parent;
-  }
-
-  return instance.value = Object.create(proto); // create object from prototype (only classes)
-}
-
-function getPrototype<T>(instance: ProviderInstance<T>): Object | undefined {
-  const provider = instance.definition.original;
-  if (typeof provider === 'function') {
-    return provider.prototype;
-  } else if (isClassProvider(provider)) {
-    return provider.useClass.prototype;
-  }
 }
 
 export function injectArray(injector: Injector, dependencies: Array<InjectionArgument | undefined>, session?: Session): Array<any> | Promise<Array<any>> {
@@ -458,12 +327,12 @@ export function createCustomResolver<T>(options: CustomResolverOptions<T>): Cust
       if (asStandalone) {
         const definition = injectableDefinitions.ensure(clazz);
         const inject = definition.injections;
-        return (session: Session) => resolveClass(session.context.injector, session, { class: clazz, inject });
+        return (session: Session) => resolveClass(session.injector, session, { class: clazz, inject });
       }
 
       const metadata = createInjectionMetadata({ kind: InjectionKind.CUSTOM, target: clazz });
       const argument = createInjectionArgument(clazz, undefined, undefined, metadata)
-      return (session: Session) => optimizedInject(session.context.injector, session, argument);
+      return (session: Session) => optimizedInject(session.injector, session, argument);
     }
     case 'function': 
     default: {
@@ -475,7 +344,7 @@ export function createCustomResolver<T>(options: CustomResolverOptions<T>): Cust
       const metadata = createInjectionMetadata({ kind: InjectionKind.FUNCTION, function: handler })
       const converted = convertInjections(inject, metadata);
       return (session: Session, ...args: any[]) => {
-        const injector = session.context.injector;
+        const injector = session.injector;
         const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
         return wait(
           injectArray(injector, converted, session),

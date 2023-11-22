@@ -1,50 +1,9 @@
-import type { Context } from '../injector/context';
 import type { Injector } from '../injector/injector';
 import type { Session } from '../injector/session';
 import type { InjectionHook } from './hook';
 import type { InjectionArgument, InjectionArguments, InjectionItem } from './injection';
-import type { ProviderToken } from './provider-token';
-import type { ProviderType, ConstraintDefinition, ProviderAnnotations, ProviderDefinitionAnnotations, ProviderHookAnnotations } from './provider';
-import type { ScopeDefinition } from './scope';
+import type { ConstraintDefinition, ProviderHookAnnotations } from './provider';
 import type { ClassType } from './types';
-import type { ProviderKind, InstanceStatus } from '../enums';
-
-export interface ProviderRecord<T = any> {
-  token: ProviderToken<T>;
-  host: Injector;
-  when: ConstraintDefinition;
-  hooks: Array<InjectionHookRecord>;
-  defs: ProviderDefinition[];
-  annotations: ProviderAnnotations;
-  meta: ProviderDefinitionMetadata;
-}
-
-export interface ProviderDefinition<T = any> {
-  provider: ProviderRecord<T>;
-  original: ProviderType,
-  name: string | symbol | object | undefined;
-  kind: ProviderKind;
-  factory: FactoryDefinition;
-  scope: ScopeDefinition;
-  when: ConstraintDefinition | undefined;
-  hooks: Array<InjectionHook<any, any>>;
-  annotations: ProviderDefinitionAnnotations;
-  values: Map<Context, ProviderInstance<T>>;
-  default: boolean;
-  meta: ProviderRecordMetadata;
-}
-
-export interface ProviderInstance<T = any> {
-  definition: ProviderDefinition;
-  context: Context,
-  value: T;
-  status: InstanceStatus;
-  scope: ScopeDefinition;
-  session: Session;
-  parents?: Set<ProviderInstance>;
-  links?: Set<ProviderInstance>;
-  meta: ProviderInstanceMetadata;
-}
 
 export interface InjectionHookRecord {
   kind: 'injector' | 'provider';

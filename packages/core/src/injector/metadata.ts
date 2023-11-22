@@ -1,6 +1,6 @@
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { patchMethod } from './method-injection';
-import { getOrCreateProvider } from './provider';
+import { ProviderRecord } from './provider';
 import { resolveClass, resolveFactory, resolveClassicProvider, resolveValue, removeCache } from './resolver';
 import { INITIALIZERS } from '../constants';
 import { when, whenExported, whenComponent } from '../constraints';
@@ -12,9 +12,10 @@ import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactory
 import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ARGUMENT, scopedInjectorsMetaKey } from '../private';
 
 import type { Injector } from './injector';
+import type { ProviderDefinition } from './provider';
 import type { Session } from './session';
 import type { 
-  ProviderToken, ProviderType, ProviderRecord, ProviderDefinition, ProviderAnnotations, ProviderHookAnnotations,
+  ProviderToken, ProviderType, ProviderAnnotations, ProviderHookAnnotations,
   InjectionHook, InjectionHookRecord, ConstraintDefinition,
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, ParsedInjectionItem, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
@@ -45,7 +46,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
   let definitionName: string | symbol | object | undefined;
   let injectionMetadata: InjectionMetadata | undefined;
   let annotations: ProviderAnnotations;
-  let defs: ProviderDefinition[];
 
   if (typeof original === "function") {
     const injectableDefinition = ensureInjectable(original);
@@ -55,12 +55,11 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
 
     const { options, injections } = injectableDefinition;
     token = original;
-    provider = getOrCreateProvider(injector, original);
+    provider = ProviderRecord.get(original, injector);
     annotations = options.annotations || {};
     definitionName = options.name;
     
-    defs = provider.defs;
-    if (checkExistingDefinition(defs, definitionName)) {
+    if (checkExistingDefinition(provider.defs, definitionName)) {
       return;
     }
 
@@ -76,7 +75,16 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     const factory = { resolver: resolveClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
     const scope = getScopeDefinition(options.scope || DefaultScope)
-    definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
+    definition = provider.definition({
+      original,
+      kind: ProviderKind.CLASS, 
+      factory, 
+      scope, 
+      hooks, 
+      annotations,
+      when: undefined,
+      name: definitionName,
+    });
   } else if (isInjectionToken(original)) {
     const injectableDefinition = ensureInjectable(original);
     if (!injectableDefinition) {
@@ -84,7 +92,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     token = original;
-    // `provide` should exist in definition
     const provide = (injectableDefinition as any).provide;
     if (provide) {
       return processProvider(injector, provide as ProviderType)
@@ -111,9 +118,8 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
       return { original };
     }
 
-    provider = getOrCreateProvider(injector, token);
-    defs = provider.defs;
-    if (checkExistingDefinition(defs, definitionName)) {
+    provider = ProviderRecord.get(token, injector);
+    if (checkExistingDefinition(provider.defs, definitionName)) {
       return;
     }
 
@@ -178,7 +184,16 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     const scopeDef = getScopeDefinition(scope || DefaultScope)
-    definition = { provider, original, name: definitionName, kind, factory: factory!, scope: scopeDef, when, hooks, annotations, values: new Map(), default: when === undefined, meta: {} };
+    definition = provider.definition({
+      original,
+      kind: ProviderKind.CLASS, 
+      factory: factory!, 
+      scope: scopeDef, 
+      hooks, 
+      annotations,
+      when,
+      name: definitionName,
+    });
   }
 
   if (injectionMetadata) {
@@ -192,8 +207,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
 
   removeCache(injector, token);
   handleAnnotations(provider, definition, annotations);
-  defs.push(definition);
-  defs.sort(compareOrder);
   return { original, provider, definition };
 }
 
@@ -207,10 +220,6 @@ function handleAnnotations(provider: ProviderRecord, definition?: ProviderDefini
   }
 
   if (definition) {
-    if (typeof annotations.order !== 'number') {
-      annotations.order = 0;
-    }
-
     if (annotations.eager) {
       processProvider(provider.host, {
         provide: INITIALIZERS, 

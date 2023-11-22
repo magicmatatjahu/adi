@@ -22,7 +22,7 @@ describe('Ref injection hook', function() {
     expect(service.serviceB).toBeInstanceOf(ServiceB);
   });
 
-  test('should wrap reference to function and forward it (circular ref case)', function() {
+  test('should wrap reference to function and forward it (circular ref case)', async function() {
     @Injectable()
     class ServiceA {
       constructor(

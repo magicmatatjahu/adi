@@ -3,8 +3,8 @@ import { Scope } from "./scope";
 import { InjectorStatus } from "../enums";
 import { Context } from "../injector";
 
-import type { Injector, Session } from "../injector";
-import type { ProviderInstance, DestroyContext } from "../types";
+import type { Injector, Session, ProviderInstance } from "../injector";
+import type { DestroyContext } from "../types";
 
 export interface SingletonScopeOptions {
   perInjector?: boolean;
@@ -29,7 +29,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
       return context;
     }
     
-    const context = session.inject.context;
+    const context = session.ctx;
     if (context && context !== Context.STATIC) {
       throw new Error("Cannot recreate provider with singleton scope");
     }

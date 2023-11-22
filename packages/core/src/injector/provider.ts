@@ -1,82 +1,230 @@
-import { Context } from './context';
 import { when } from '../constraints';
-import { wait } from '../utils';
+import { Context } from './context';
+import { InstanceStatus, ProviderKind } from '../enums';
+import { destroyProvider, destroyDefinition, destroy, processOnInitLifecycle } from './lifecycle-manager';
 import { resolveScope } from '../scopes';
+import { PromisesHub, isClassProvider, wait } from '../utils';
+import { setCurrentInjectionContext } from './inject';
+import { definitionInjectionMetadataMetaKey, circularSessionsMetaKey } from '../private';
+import { CircularReferenceError } from '../errors/circular-reference.error';
+import { compareOrder } from './metadata';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ProviderRecord, ProviderDefinition, ProviderInstance, ScopeDefinition } from '../types';
+import type { ProviderToken, ScopeDefinition, ConstraintDefinition, InjectionHookRecord, ProviderInstanceMetadata, ProviderType, FactoryDefinition, InjectionHook, ProviderDefinitionAnnotations, ProviderRecordMetadata } from '../types';
 
-export function getOrCreateProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
-  let provider = host.providers.get(token);
-  if (provider === undefined) {
-    provider = { 
-      self: createProvider(host, token),
-      imported: undefined
-    };
-    host.providers.set(token, provider);
-  }
-  return (provider.self || (provider.self = createProvider(host, token)));
+export type ProviderDefinitionInput = {
+  original: ProviderType,
+  kind: ProviderKind,
+  factory: FactoryDefinition,
+  scope: ScopeDefinition,
+  when?: ConstraintDefinition,
+  hooks: Array<InjectionHook>,
+  annotations: ProviderDefinitionAnnotations,
+  name: string | symbol | object | undefined;
 }
 
-function createProvider<T>(host: Injector, token: ProviderToken<T>): ProviderRecord<T> {
-  return {
-    token,
-    host,
-    hooks: [],
-    defs: [],
-    when: when.always,
-    annotations: {},
-    meta: {},
+export class ProviderRecord {
+  static for(key: ProviderToken | string | symbol, provider: ProviderType) {
+
   }
-}
 
-export function getOrCreateProviderInstance(session: Session) {
-  const definition = session.context.definition!;
-
-  let scopeDefinition = definition.scope;
-  const scope = wait(
-    resolveScope(scopeDefinition, session),
-    result => {
-      const customScope = session.inject.scope;
-      if (customScope && result.scope.canBeOverrided(session, result.options)) {
-        scopeDefinition = customScope;
-        return resolveScope(customScope, session);
-      }
-      return result;
+  static get(token: ProviderToken, host: Injector) {
+    let provider = host.providers.get(token);
+    if (!provider) {
+      provider = { 
+        self: new this(host, token),
+        imported: undefined
+      };
+      host.providers.set(token, provider);
     }
-  )
+    return (provider.self || (provider.self = new this(host, token)));
+  }
 
-  return wait(
-    wait(scope, result => result.scope.getContext(session, result.options)),
-    ctx => getProviderInstance(session, ctx || Context.STATIC, scopeDefinition)
-  )
+  public hooks: InjectionHookRecord[] = [];
+  public defs: ProviderDefinition[] = [];
+  public when: ConstraintDefinition = when.always;
+  public annotations = {};
+  public meta = {};
+
+  protected constructor(
+    public host: Injector,
+    public token: ProviderToken,
+  ) {}
+
+  definition(input: ProviderDefinitionInput): ProviderDefinition {
+    return ProviderDefinition.create(this, input)
+  }
+
+  filter(session: Session): ProviderDefinition | undefined;
+  filter(session: Session, filter: 'all' | 'satisfies' | undefined): Array<ProviderDefinition>;
+  filter(session: Session, filter?: 'all' | 'satisfies' | undefined): ProviderDefinition | Array<ProviderDefinition> | undefined {
+    if (filter) {
+      return filterProviderDefinitions(this.defs, session, filter);
+    }
+    return __filterDefinition(this.defs, session);
+  }
+
+  destroy(): Promise<void> {
+    return destroyProvider(this, { event: 'manually' });
+  }
 }
 
-function getProviderInstance(session: Session, context: Context, scope: ScopeDefinition): Session {
-  const definition = session.context.definition!;
-  let instance: ProviderInstance | undefined = definition.values.get(context);
-  if (!instance) {
-    instance = {
-      definition,
-      context,
-      session,
-      value: undefined,
-      status: 1,
-      scope,
-      meta: {},
-      parents: undefined,
-    };
-    definition.values.set(context, instance);
+export class ProviderDefinition {
+  public default: boolean;
+  public values: Map<Context, ProviderInstance> = new Map();
+  public meta: ProviderRecordMetadata = {};
+
+  static create(provider: ProviderRecord, input: ProviderDefinitionInput) {
+    const annotations = input.annotations;
+    const definition = new this(
+      provider,
+      input.original,
+      input.kind,
+      input.factory,
+      input.scope,
+      input.when,
+      input.hooks,
+      annotations,
+      input.name,
+    )
+    
+    const defs = provider.defs;
+    if (typeof annotations.order !== 'number') {
+      annotations.order = 0;
+    }
+
+    defs.push(definition);
+    defs.sort(compareOrder);
+
+    return definition;
   }
 
-  let parentInstance: Session | ProviderInstance | undefined = session.parent;
-  if (parentInstance && (parentInstance = (parentInstance as Session).context.instance)) {
-    (instance.parents || (instance.parents = new Set())).add(parentInstance);
+  protected constructor(
+    public provider: ProviderRecord,
+    public original: ProviderType,
+    public kind: ProviderKind,
+    public factory: FactoryDefinition,
+    public scope: ScopeDefinition,
+    public when: ConstraintDefinition | undefined,
+    public hooks: Array<InjectionHook>,
+    public annotations: ProviderDefinitionAnnotations,
+    public name: string | symbol | object | undefined,
+  ) {
+    this.default = when === undefined
   }
 
-  session.context.instance = instance;
-  return session;
+  instance(session: Session): ProviderInstance | Promise<ProviderInstance> {
+    let scopeDefinition = this.scope;
+    const scope = wait(
+      resolveScope(scopeDefinition, session),
+      result => {
+        const customScope = session.scope;
+        if (customScope && result.scope.canBeOverrided(session, result.options)) {
+          scopeDefinition = customScope;
+          return resolveScope(customScope, session);
+        }
+        return result;
+      }
+    )
+  
+    return wait(
+      wait(scope, result => result.scope.getContext(session, result.options)),
+      ctx => ProviderInstance.get(this, ctx || Context.STATIC, scopeDefinition, session)
+    )
+  }
+
+  destroy(): Promise<void> {
+    return destroyDefinition(this, { event: 'manually' });
+  }
+}
+
+export class ProviderInstance {
+  public value: any = undefined;
+  public status: InstanceStatus = InstanceStatus.UNKNOWN;
+  public parents: Set<ProviderInstance> | undefined = undefined;
+  public links?: Set<ProviderInstance> | undefined = undefined;
+  public meta: ProviderInstanceMetadata = {};
+
+  static get(
+    definition: ProviderDefinition,
+    context: Context,
+    scope: ScopeDefinition,
+    session: Session,
+  ): ProviderInstance {
+    let instance: ProviderInstance | undefined = definition.values.get(context);
+    if (!instance) {
+      instance = new ProviderInstance(definition, context, scope, session)
+      definition.values.set(context, instance);
+    }
+  
+    // link parent instances
+    let temp: Session | ProviderInstance | undefined = session.parent;
+    if (temp && (temp = (temp as Session).instance)) {
+      (instance.parents || (instance.parents = new Set())).add(temp);
+    }
+
+    return session.instance = instance;
+  }
+
+  protected constructor(
+    public definition: ProviderDefinition,
+    public context: Context,
+    public scope: ScopeDefinition,
+    public session: Session,
+  ) {}
+
+  resolve(session: Session) {
+    if (this.status & InstanceStatus.RESOLVED) {
+      return this.value;
+    }
+  
+    // parallel or circular injection
+    if (this.status > InstanceStatus.UNKNOWN) {
+      return resolveParallelInjection(this, session);
+    }
+  
+    this.status |= InstanceStatus.PENDING;
+    return wait(
+      this.create(),
+      value => this.process(value),
+    );
+  }
+
+  destroy(): Promise<void> {
+    return destroy(this, { event: 'manually' });
+  }
+
+  protected create() {
+    const session = this.session
+    const injector = session.injector
+    const { factory, meta } = this.definition;
+    const previosuContext = setCurrentInjectionContext({ injector, session, metadata: meta[definitionInjectionMetadataMetaKey] });
+    try {
+      return factory.resolver(injector, session, factory.data)
+    } finally {
+      setCurrentInjectionContext(previosuContext);
+    }
+  }
+
+  protected process(value: any) {
+    if (this.status & InstanceStatus.CIRCULAR) {
+      value = Object.assign(this.value, value);
+    }
+  
+    this.value = value;
+    return wait(
+      processOnInitLifecycle(this),
+      () => {
+        this.status |= InstanceStatus.RESOLVED;
+        // resolve pararell injection - if defined
+        if (this.status & InstanceStatus.PARALLEL) {
+          PromisesHub.resolve(this, value);
+        }
+        return value;
+      }
+    );
+  }
 }
 
 export function filterDefinitions(provider: ProviderRecord, session: Session): ProviderDefinition | undefined;
@@ -89,11 +237,10 @@ export function filterDefinitions(provider: ProviderRecord, session: Session, fi
 }
 
 function __filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
-  const context = session.context;
   let defaultDefinition: ProviderDefinition | undefined;
 
   for (let i = definitions.length - 1; i > -1; i--) {
-    const definition = context.definition = definitions[i];
+    const definition = session.definition = definitions[i];
 
     if (!definition.when) {
       defaultDefinition = defaultDefinition || definition;
@@ -109,7 +256,7 @@ function __filterDefinition(definitions: Array<ProviderDefinition>, session: Ses
     }
   }
 
-  return context.definition = defaultDefinition;
+  return session.definition = defaultDefinition;
 }
 
 function filterProviderDefinitions(definitions: Array<ProviderDefinition>, session: Session, mode: 'all' | 'satisfies' = 'satisfies'): Array<ProviderDefinition> {
@@ -117,9 +264,8 @@ function filterProviderDefinitions(definitions: Array<ProviderDefinition>, sessi
   const defaults: Array<ProviderDefinition> = [];
   const all: Array<ProviderDefinition> = [];
   
-  const context = session.context;
   definitions.forEach(definition => {
-    context.definition = definition;
+    session.definition = definition;
     if (!definition.when) {
       defaults.push(definition);
       all.push(definition);
@@ -132,10 +278,92 @@ function filterProviderDefinitions(definitions: Array<ProviderDefinition>, sessi
       all.push(definition);
     }
   });
-  context.definition = undefined;
+  session.definition = undefined;
 
   if (mode === 'satisfies') {
     return constraints.length ? constraints : defaults;
   }
   return all;
+}
+
+function resolveParallelInjection(instance: ProviderInstance, session: Session): Object | Promise<Object> {  
+  // check circular injection
+  let tempSession: Session | undefined = session;
+  while (tempSession) {
+    // case when injection is performed by Injector.create.get() call - parallel injection
+    if (!tempSession) {
+      break;
+    }
+
+    // found circular references
+    if (instance === (tempSession = tempSession.parent)?.instance) {
+      return handleCircularInjection(instance, session);
+    }
+  }
+
+  // otherwise parallel injection detected (in async resolution)
+  instance.status |= InstanceStatus.PARALLEL;
+  return PromisesHub.create(instance);
+}
+
+function handleCircularInjection(instance: ProviderInstance, session: Session): Object {
+  // if circular injection detected return empty prototype instance
+  if (instance.status & InstanceStatus.CIRCULAR) {
+    return instance.value;
+  }
+
+  const proto = getPrototype(instance);
+  if (!proto) {
+    throw new CircularReferenceError({ session });
+  }
+  instance.status |= InstanceStatus.CIRCULAR;
+
+  // save sessions to perform initialization of dependencies in proper order
+  const circularSessions: Array<Session> = [];
+  session.setFlag('circular');
+  let tempSession: Session | undefined = session.parent;
+  while (tempSession) { 
+    tempSession.setFlag('circular');
+    const annotations = tempSession.annotations;
+
+    if (instance === tempSession.instance) { // found circular references
+      const currentSession = tempSession;
+      
+      tempSession = tempSession.parent;
+      if (tempSession?.hasFlag('circular')) { // maybe circular injection is deeper
+        while (tempSession) {
+          const parent = tempSession.parent;
+          if (!parent || !parent.hasFlag('circular')) { // reassign the circular references to the deeper context
+            const sessions = tempSession.annotations[circularSessionsMetaKey];
+            const index = (sessions).indexOf(currentSession);
+            sessions.splice(index, 0, ...circularSessions);
+            break;
+          }
+          tempSession = parent;
+        }
+      } else {
+        annotations[circularSessionsMetaKey] = circularSessions;
+      }
+      break;
+    }
+
+    const sessions = annotations[circularSessionsMetaKey];
+    if (sessions) {
+      circularSessions.unshift(...sessions);
+      delete annotations[circularSessionsMetaKey];
+    }
+    circularSessions.push(tempSession);
+    tempSession = tempSession.parent;
+  }
+
+  return instance.value = Object.create(proto); // create object from prototype (only classes)
+}
+
+function getPrototype(instance: ProviderInstance): Object | undefined {
+  const provider = instance.definition.original;
+  if (typeof provider === 'function') {
+    return provider.prototype;
+  } else if (isClassProvider(provider)) {
+    return provider.useClass.prototype;
+  }
 }

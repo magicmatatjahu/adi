@@ -4,7 +4,8 @@ import { patchMethod, setInstanceContext } from './method-injection';
 import { waitCallback, noopThen, noopCatch } from '../utils';
 
 import type { Session } from './session';
-import type { ProviderToken, InjectionHook, InjectionAnnotations, InferredProviderTokenType, InjectFunctionResult, InjectionContext, ProviderInstance } from '../types';
+import type { ProviderInstance } from './provider';
+import type { ProviderToken, InjectionHook, InjectionAnnotations, InferredProviderTokenType, InjectFunctionResult, InjectionContext } from '../types';
 
 export interface RunInContextArgument {
   inject: typeof inject,

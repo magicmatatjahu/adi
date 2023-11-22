@@ -1,9 +1,12 @@
 import { INJECTABLE_DEF } from '../constants';
 import { SessionFlag } from '../enums';
 import { Hook } from '../hooks';
+import { createInjectionMetadata } from './metadata';
 
+import type { Context } from './context'; 
 import type { Injector } from './injector'; 
-import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations, InjectionAnnotations, InjectableDef } from '../types';
+import type { ProviderRecord, ProviderDefinition, ProviderInstance } from './provider';
+import type { ProviderToken, InjectionAnnotations, InjectionMetadata, InjectableDef, ScopeDefinition, SessionInput, SessionData } from '../types';
 
 const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
@@ -28,55 +31,50 @@ export class Session<T = any> {
     ] 
   }
 
-  // TODO: Fix type for metadata argument
-  static create<T>(token: ProviderToken<T> | undefined, annotations: InjectionAnnotations = {}, metadata: InjectionMetadata | undefined = {} as any, injector: Injector, parentSession?: Session): Session {
-    const injections: SessionInjection = {
-      inject: { token, context: undefined, scope: undefined, annotations },
-      metadata,
-    };
-    const session = new Session(injections, { injector, provider: undefined, definition: undefined, instance: undefined }, parentSession);
-    return session;
+  static create<T>(input: SessionInput, parent?: Session): Session {
+    return new Session(input, parent || undefined);
   }
 
-  private flags: SessionFlag = SessionFlag.NONE;
+  // injection data
+  public token: ProviderToken<T> | undefined = undefined;
+  public ctx: Context | undefined = undefined;
+  public scope: ScopeDefinition | undefined = undefined;
+  public annotations: InjectionAnnotations;
+  public readonly metadata: InjectionMetadata;
+
+  // injection context
   public host: Injector
+  public injector: Injector
+  public provider: ProviderRecord | undefined = undefined;
+  public definition: ProviderDefinition | undefined = undefined;
+  public instance?: ProviderInstance | undefined = undefined;
+
+  // session related data
+  private flags: SessionFlag = SessionFlag.NONE;
+  public readonly children: Array<Session> = [];
+  public readonly data: SessionData = {};
   public result: any;
   public deep: number;
 
-  public readonly meta: Record<string | symbol, any> = {};
-  public readonly children: Array<Session> = [];
-
-  public readonly inject = this.injection.inject;
-  public readonly metadata = this.injection.metadata;
-
-  constructor(
-    public readonly injection: SessionInjection<T>,
-    public readonly context: SessionContext<T>,
-    public readonly parent?: Session,
-    public readonly annotations: SessionAnnotations = {},
+  private constructor(
+    input: SessionInput,
+    public readonly parent: Session | undefined,
   ) {
-    // possible stackoverflow
-    // e.g. transient instance can have circular reference to the another transient instance which will end with infinite injection
-    // TODO: Add warning, not throw error
-    // if (
-    //   (this.deep = parent ? parent.deep + 1 : 0) > ADI.config.stackoveflowDeep
-    // ) {
-    //   // console.warn()
-    // }
-    this.host = context.injector;
+    this.host = this.injector = input.injector;
+    this.token = input.token;
+    const metadata = this.metadata = input.metadata || { ...createInjectionMetadata() };
+    this.annotations = { ...metadata.annotations || {}, ...input.annotations || {} };
   }
 
   fork(): Session {
-    const { inject, metadata } = this.injection;
-    const forked = new Session({ inject: { ...inject, annotations: { ...inject.annotations } }, metadata }, { ...this.context }, this.parent, { ...this.annotations });
+    const { token, metadata, annotations, injector, parent, ...rest } = this;
+    const forked = Object.assign(new Session({ token, metadata, annotations, injector }, parent), rest);
     (forked.children as any) = [...forked.children];
     return forked;
   }
 
   apply(forked: Session) {
-    (this.injection as any) = forked.injection;
-    (this.context as any) = forked.context;
-    (this.annotations as any) = forked.annotations;
+    Object.assign(this, forked);
   }
 
   setFlag(flag: FlagsType) {

@@ -1,4 +1,6 @@
-import { Injector, Injectable, Context, Scope, Session, DestroyContext, ProviderInstance, Inject, Scoped, SingletonScope } from "../../src";
+import { Injector, Injectable, Context, Scope, Session, DestroyContext, Inject, Scoped, SingletonScope } from "../../src";
+
+import type { ProviderInstance } from '../../src/injector'
 
 describe('Scope as provider', function () {
   test('should work', function () {
@@ -15,7 +17,7 @@ describe('Scope as provider', function () {
         return Context.create()
       }
 
-      public override shouldDestroy(instance: ProviderInstance<any>, options: any, context: DestroyContext) {
+      public override shouldDestroy(instance: ProviderInstance, options: any, context: DestroyContext) {
         called.push('shouldDestroy')
         return false;
       }
@@ -66,7 +68,7 @@ describe('Scope as provider', function () {
         return Context.create()
       }
 
-      public override shouldDestroy(instance: ProviderInstance<any>, options: any, context: DestroyContext) {
+      public override shouldDestroy(instance: ProviderInstance, options: any, context: DestroyContext) {
         called.push('shouldDestroy')
         return false;
       }

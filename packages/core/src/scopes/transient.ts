@@ -3,8 +3,8 @@ import { Scope } from "./scope";
 import { Context } from "../injector";
 import { InjectionKind } from "../enums";
 
-import type { Session } from "../injector";
-import type { ProviderInstance, InjectionMetadata, DestroyContext } from "../types";
+import type { Session, ProviderInstance } from "../injector";
+import type { InjectionMetadata, DestroyContext } from "../types";
 
 export interface TransientScopeOptions {
   reuseContext?: boolean;
@@ -21,7 +21,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
   override getContext(session: Session, options: TransientScopeOptions): Context {
     // TODO: Handle cicular references between providers with transient scope 
 
-    let context = options.reuseContext && session.inject.context;
+    let context = options.reuseContext && session.ctx;
     if (!context) {
       context = Context.create();
       this.contexts.set(context, session.metadata);

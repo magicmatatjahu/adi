@@ -3,13 +3,13 @@ import { Hook } from "./hook";
 import type { Session } from '../injector/session';
 import type { InjectionHookResult, NextInjectionHook } from '../types';
 
-export function Tagged<NextValue>(tags: Array<string | symbol>) {
+export function Labelled<NextValue>(labels: Record<string | symbol, any>) {
   return Hook(
     function taggedHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
-      const currentTags = session.annotations.tagged || [];
-      currentTags.push(...tags);
+      const currentLabels = session.annotations.labelled || [];
+      Object.assign(currentLabels, labels)
       return next(session);
     },
-    { name: 'adi:tagged' }
+    { name: 'adi:labelled' }
   )
 }

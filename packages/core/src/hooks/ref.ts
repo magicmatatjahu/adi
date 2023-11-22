@@ -11,7 +11,7 @@ export function Ref<NextValue, T>(ref: () => ProviderToken<T> | Promise<Provider
       return wait(
         token === undefined ? ref() : token,
         result => {
-          session.inject.token = token = result;
+          session.token = token = result;
           return next(session) as T;
         }
       );

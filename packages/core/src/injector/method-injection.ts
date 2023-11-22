@@ -2,12 +2,13 @@ import { optimizedInject } from './resolver';
 import { setCurrentInjectionContext, exitFromInjectionContext } from './inject';
 import { createInjectionMetadata } from './metadata';
 import { InjectionKind } from '../enums';
-import { methodPatched, originalMethod } from '../private';
+import { methodPatchedMetaKey, originalMethodMetaKey } from '../private';
 import { noopThen, noopCatch, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from "./injector";
+import type { ProviderInstance } from "./provider";
 import type { Session } from "./session";
-import type { ClassType, InjectionArgument, InjectionContext, InjectionMetadata, ProviderInstance } from "../types";
+import type { ClassType, InjectionArgument, InjectionContext, InjectionMetadata } from "../types";
 
 type RegistryItem = {
   injector: Injector;
@@ -33,7 +34,7 @@ export function patchMethods(target: ClassType, methodNames: Array<string | symb
 
 export function patchMethod(target: ClassType, methodName: string | symbol) {
   const originalMethod = target.prototype[methodName]
-  if (originalMethod[methodPatched]) {
+  if (originalMethod[methodPatchedMetaKey]) {
     return originalMethod;
   }
 
@@ -77,8 +78,8 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
     );
   }
 
-  adiPatchedMethod[originalMethod] = originalMethod;
-  adiPatchedMethod[methodPatched] = true;
+  adiPatchedMethod[originalMethodMetaKey] = originalMethod;
+  adiPatchedMethod[methodPatchedMetaKey] = true;
   target.prototype.method = adiPatchedMethod;
   return adiPatchedMethod;
 }

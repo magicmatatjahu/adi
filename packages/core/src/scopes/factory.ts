@@ -69,7 +69,7 @@ export function resolveScope<O>(def: ScopeDefinition<O>, session: Session) {
     }
   }
 
-  const injector = session.context.injector;
+  const injector = session.injector;
   const { provider, options } = def;
   const parentMetadata = session.metadata;
   const metadata = createInjectionMetadata({ 

@@ -9,7 +9,8 @@ import { createDefinition, wait, waitSequence, resolveRef, isInjectionToken, Pro
 import { ADI_MODULE_DEF, exportedToInjectorsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey } from '../private';
 import { EventEmitter } from '../services/emitter.service';
 
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput, InjectorScope, InjectorOptions, ModuleDef } from "../types";
+import type { ProviderRecord } from './provider';
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, InjectorInput, InjectorScope, InjectorOptions, ModuleDef } from "../types";
 import type { InjectionToken, ModuleToken } from '../tokens';
 
 type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference<any> | Promise<any>>;
