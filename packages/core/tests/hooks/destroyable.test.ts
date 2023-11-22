@@ -64,4 +64,132 @@ describe('Destroyable injection hook', function () {
     service.testService2.destroy();
     expect(destroyTimes).toEqual(0);
   });
+  
+  test('should work with "using" statement - sync case', async function () {
+    const destroyLabels: string[] = [];
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      onDestroy() {
+        destroyLabels.push('onDestroy')
+      }
+
+      [Symbol.dispose]() {
+        destroyLabels.push('dispose')
+      }
+
+      [Symbol.asyncDispose]() {
+        destroyLabels.push('asyncDispose')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+    ])
+
+    function destroy() {
+      using service = injector.getSync(Service, Destroyable())
+    }
+    
+    expect(destroyLabels).toEqual([]);
+    destroy();
+    await wait();
+    expect(destroyLabels).toEqual(['dispose', 'asyncDispose', 'onDestroy']);
+    destroy();
+    await wait();
+    expect(destroyLabels).toEqual(['dispose', 'asyncDispose', 'onDestroy', 'dispose', 'asyncDispose', 'onDestroy']);
+  })
+
+  test('should work with "using" statement - async case', async function () {
+    const destroyLabels: string[] = [];
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      onDestroy() {
+        destroyLabels.push('onDestroy')
+      }
+
+      [Symbol.dispose]() {
+        destroyLabels.push('dispose')
+      }
+
+      [Symbol.asyncDispose]() {
+        destroyLabels.push('asyncDispose')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+    ])
+
+    async function destroy() {
+      await using service = injector.getSync(Service, Destroyable())
+    }
+    
+    expect(destroyLabels).toEqual([]);
+    await destroy();
+    expect(destroyLabels).toEqual(['dispose', 'asyncDispose', 'onDestroy']);
+    await destroy();
+    expect(destroyLabels).toEqual(['dispose', 'asyncDispose', 'onDestroy', 'dispose', 'asyncDispose', 'onDestroy']);
+  })
+
+  test('should work with "using" statement - sync case without dispose methods', async function () {
+    const destroyLabels: string[] = [];
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      onDestroy() {
+        destroyLabels.push('onDestroy')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+    ])
+
+    function destroy() {
+      using service = injector.getSync(Service, Destroyable())
+    }
+    
+    expect(destroyLabels).toEqual([]);
+    destroy();
+    await wait();
+    expect(destroyLabels).toEqual(['onDestroy']);
+    destroy();
+    await wait();
+    expect(destroyLabels).toEqual(['onDestroy', 'onDestroy']);
+  })
+
+  test('should work with "using" statement - async case without dispose methods', async function () {
+    const destroyLabels: string[] = [];
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      onDestroy() {
+        destroyLabels.push('onDestroy')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+    ])
+
+    async function destroy() {
+      await using service = injector.getSync(Service, Destroyable())
+    }
+    
+    expect(destroyLabels).toEqual([]);
+    await destroy();
+    expect(destroyLabels).toEqual(['onDestroy']);
+    await destroy();
+    expect(destroyLabels).toEqual(['onDestroy', 'onDestroy']);
+  })
 });

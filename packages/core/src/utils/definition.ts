@@ -3,12 +3,16 @@ const storage = new Map<string | symbol, WeakMap<object, Record<string | symbol,
 function get<T extends object>(subStorage: WeakMap<object, Record<string | symbol, any>>, target: object): T | undefined;
 function get<T extends object>(subStorage: WeakMap<object, Record<string | symbol, any>>, target: object, factory: () => T): T;
 function get<T extends object>(subStorage: WeakMap<object, Record<string | symbol, any>>, target: object, factory?: () => T): T | undefined {
-  let metadata = subStorage.get(target) as T | undefined;
-  if (metadata || !factory) {
+  try {
+    let metadata = subStorage.get(target) as T | undefined;
+    if (metadata || !factory) {
+      return metadata;
+    }
+    subStorage.set(target, metadata = factory());
     return metadata;
+  } catch(err: unknown) {
+    return factory?.();
   }
-  subStorage.set(target, metadata = factory());
-  return metadata;
 }
 
 export function createDefinition<T extends object>(metadataKey: string | symbol, factory: () => T) {

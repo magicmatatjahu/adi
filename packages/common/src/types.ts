@@ -37,7 +37,7 @@ declare module '@adi/core' {
     useRegistry?: never;
   }
 
-  export interface ClassFactoryProvider {
+  export interface ClassicProvider {
     imports?: Array<ModuleImportType>;
     providers?: Array<ProviderType>;
     useRegistry?: never;

@@ -2,12 +2,12 @@ import { optimizedInject } from './resolver';
 import { setCurrentInjectionContext, exitFromInjectionContext } from './inject';
 import { createInjectionMetadata } from './metadata';
 import { InjectionKind } from '../enums';
-import { methodPatched, originalMethodDescriptor } from '../private';
+import { methodPatched, originalMethod } from '../private';
 import { noopThen, noopCatch, waitAll, waitCallback } from '../utils';
 
 import type { Injector } from "./injector";
 import type { Session } from "./session";
-import type { ClassType, InjectionArgument, InjectionMetadata, ProviderInstance } from "../types";
+import type { ClassType, InjectionArgument, InjectionContext, InjectionMetadata, ProviderInstance } from "../types";
 
 type RegistryItem = {
   injector: Injector;
@@ -56,10 +56,11 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
     const toDestroy: ProviderInstance[] = [];
 
     if (inject) {
+      const injectionCtx: Partial<InjectionContext> = { toDestroy }
       let dependency: InjectionArgument | undefined = undefined;
       for (let i = 0, l = inject.length; i < l; i++) {
         if (args[i] === undefined && (dependency = inject[i])) {
-          args[i] = optimizedInject(injector, session, dependency, { toDestroy })
+          args[i] = optimizedInject(injector, session, dependency, injectionCtx)
         }
       }
     }
@@ -76,7 +77,7 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
     );
   }
 
-  adiPatchedMethod[originalMethodDescriptor] = descriptor;
+  adiPatchedMethod[originalMethod] = originalMethod;
   adiPatchedMethod[methodPatched] = true;
   target.prototype.method = adiPatchedMethod;
   return adiPatchedMethod;

@@ -22,7 +22,7 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
       const hostInjector = session.host;
       let context = this.perInjectors.get(hostInjector) as Context;
       if (context === undefined) {
-        context = Context.create(Context.STATIC.get());
+        context = Context.create(Context.STATIC.data);
         this.perInjectors.set(hostInjector, context);
         this.perInjectors.set(context, hostInjector);
       }

@@ -7,5 +7,5 @@ export interface OnDestroy {
 }
 
 export interface DestroyContext {
-  event: 'default' | 'injector' | 'manually';
+  event: 'default' | 'injector' | 'manually' | 'dispose';
 }

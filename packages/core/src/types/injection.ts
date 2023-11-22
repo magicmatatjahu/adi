@@ -1,5 +1,3 @@
-import { instancesToDestroyMetaKey } from '../private';
-
 import type { Context, Injector, Session } from '../injector'
 import type { InjectionHook } from './hook'
 import type { ProviderToken, InferredProviderTokenType } from './provider-token'

@@ -2,13 +2,14 @@ import { ADI } from '../adi';
 import { Injector } from './injector';
 import { concatConstraints } from './metadata';
 import { whenExported } from '../constraints';
-import { INITIALIZERS, INJECTOR_OPTIONS, MODULE_REF } from '../constants';
+import { INITIALIZERS, INJECTOR_OPTIONS, MODULE_DEF, MODULE_REF } from '../constants';
 import { InjectorStatus } from '../enums';
 import { All, Optional } from '../hooks';
-import { createDefinition, wait, waitSequence, resolveRef, isInjectionToken, PromisesHub, isPromiseLike, isModuleToken, isExtendedModule } from '../utils';
+import { createDefinition, wait, waitSequence, resolveRef, isInjectionToken, PromisesHub, isModuleToken, isExtendedModule } from '../utils';
 import { ADI_MODULE_DEF, exportedToInjectorsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey } from '../private';
+import { EventEmitter } from '../services/emitter.service';
 
-import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput, InjectorScope, InjectorOptions } from "../types";
+import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, ProviderRecord, InjectorInput, InjectorScope, InjectorOptions, ModuleDef } from "../types";
 import type { InjectionToken, ModuleToken } from '../tokens';
 
 type ExtractedModuleImportType = Exclude<ModuleImportType, ForwardReference<any> | Promise<any>>;
@@ -39,23 +40,9 @@ export const moduleDefinitions = createDefinition<ModuleMetadata>(ADI_MODULE_DEF
 
 export function moduleMixin(token: ClassType, metadata?: ModuleMetadata): ModuleMetadata {
   const definition = moduleDefinitions.ensure(token);
+  Object.assign(definition, token[MODULE_DEF] || {});
   Object.assign(definition, metadata || {});
   return definition;
-}
-
-export function ModuleMixin(metadata: ModuleMetadata): ClassType;
-export function ModuleMixin(token: ClassType, metadata: ModuleMetadata): ClassType;
-export function ModuleMixin(tokenOrMetadata: ClassType | ModuleMetadata, metadata?: ModuleMetadata): ClassType {
-  let clazz: ClassType;
-  if (typeof tokenOrMetadata === 'function') {
-    clazz = tokenOrMetadata;
-  } else {
-    clazz = class ModuleMixin {};
-    metadata = tokenOrMetadata;
-  }
-
-  moduleMixin(clazz, metadata);
-  return clazz;
 }
 
 function moduleFactory(): ModuleMetadata {
@@ -132,12 +119,15 @@ export function createInjector(
   }
 
   const injector = new (injectorTypeOf as any)(input, options, parent);
+  const emitter = injector.emitter = new EventEmitter(injector)
   injector.provide(
     { provide: Injector, useValue: injector }, 
+    { provide: EventEmitter, useValue: emitter },
     { provide: INJECTOR_OPTIONS, useValue: options }, 
     { provide: INITIALIZERS, hooks: [All({ imported: false }), Optional()] },
     ...providers
   );
+  
   if (options.initialize) {
     initModule(injector, input as any);
   }
@@ -624,7 +614,7 @@ function initInjector(compiled?: CompiledModule) {
 
   injector.status |= InjectorStatus.INITIALIZED;
   const { input, proxy } = compiled;
-  ADI.emit('module:add', { original: input }, { injector });
+  injector.emitter.emit('module:add', { original: input });
 
   return wait(
     injector.get(INITIALIZERS),

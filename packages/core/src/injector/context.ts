@@ -1,28 +1,44 @@
-import { getDeepProperty } from '../utils';
+import { INJECTABLE_DEF } from '../constants';
+import { Hook } from '../hooks';
 
-import type { Path, PathValue } from '../types/private';
-import type { ContextOptions } from '../types';
+import type { ContextData, ContextOptions, ContextMetadata, InjectableDef } from '../types';
 
-// TODO: Add .for() method simialr like Symbol.for()
-export class Context<D extends Record<string | symbol, unknown> = Record<string | symbol, unknown>> {
-  static STATIC = Context.create(undefined, { name: 'adi:static' });
+const contextsRegistry: Map<string | symbol, Context> = new Map();
 
-  static create<T extends Record<string | symbol, unknown> = Record<string | symbol, unknown>>(data: T = {} as T, options?: ContextOptions, meta?: Record<string | symbol, any>): Context<T> {
-    return new this(data, options, meta);
+export class Context<D extends ContextData = ContextData> {
+  static [INJECTABLE_DEF]: InjectableDef = {
+    provideIn: 'any',
+    hooks: [
+      Hook(session => {
+        session.setFlag('side-effect');
+        const parent = session.parent;
+        if (parent) {
+          return parent.context.instance?.context;
+        }
+        return session.context.instance?.context;
+      }),
+    ] 
+  };
+
+  static STATIC = this.for('adi:static');
+  static DYNAMIC = this.for('adi:dynamic');
+
+  static create<T extends ContextData>(data: ContextData = {} as T, options?: ContextOptions, meta?: ContextMetadata): Context<T> {
+    return new this(data as any, options, meta);
+  }
+
+  static for(name: string | symbol): Context {
+    let ctx = contextsRegistry.get(name);
+    if (!ctx) {
+      const options = typeof name === 'string' ? { name } : undefined;
+      contextsRegistry.set(name, ctx = this.create(undefined, options));
+    }
+    return ctx;
   }
 
   protected constructor(
-    private readonly data: D = {} as D,
-    private readonly options?: ContextOptions,
-    public readonly meta: Record<string | symbol, any> = {},
+    public readonly data: D = {} as D,
+    protected readonly options?: ContextOptions,
+    public readonly meta: ContextMetadata = {},
   ) {}
-
-  get(): D;
-  get<T = D, P extends Path<T> = any, PV = PathValue<T, P>>(path: P): PV;
-  get<T = D, P extends Path<T> = any, PV = PathValue<T, P>>(path?: P): PV | D {
-    if (typeof path !== 'string') {
-      return this.data as D;
-    }
-    return getDeepProperty(this.data, path) as PV;
-  }
 }

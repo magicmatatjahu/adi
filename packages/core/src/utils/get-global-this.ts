@@ -1,4 +1,4 @@
-let __global: any;
+let __global: typeof globalThis;
 export function getGlobalThis() {
   if (__global) return __global;
   // @ts-ignore

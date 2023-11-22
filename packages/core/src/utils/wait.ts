@@ -133,7 +133,7 @@ export function waitSequence<T, D, R, C>(
   thenAction: (value: Array<D>) => R | Promise<R> = noopThen,
   catchAction: (err: unknown) => C | Promise<C> | never = noopCatch,
 ): R | Promise<R> | C | Promise<C> | never {
-  if (!data.length) return thenAction([]);
+  if (data.length === 0) return thenAction([]);
   return __waitSequence(data, action, thenAction, catchAction, [], -1);
 }
 

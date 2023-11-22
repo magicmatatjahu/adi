@@ -1,12 +1,13 @@
 import { Hook } from "./hook";
+import { Context } from '../injector/context';
 
-import type { Context, Session } from '../injector';
+import type { Session } from '../injector';
 import type { InjectionHookResult, NextInjectionHook } from '../types';
 
-export function Ctx<NextValue>(context: Context) {
+export function Ctx<NextValue>(context: Context | string | symbol) {
   return Hook(
     function contextHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<NextValue> {
-      session.inject.context = context;
+      session.inject.context = context instanceof Context ? context : Context.for(context);
       return next(session);
     },
     { name: 'adi:context' }

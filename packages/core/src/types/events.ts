@@ -45,9 +45,9 @@ export interface EventContext {
 
 export type EventKind = keyof Events;
 
-export type EventHandler<K extends EventKind, T = void> = (payload: Events[K], ctx: EventContext) => T;
+export type EventListener<K extends EventKind, T = void> = (payload: Events[K], ctx: EventContext) => T;
 
-export type EventHandlerRef = {
+export type EventListenerRef = {
   unsubscribe: () => void;
 }
 

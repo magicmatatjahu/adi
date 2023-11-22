@@ -1,21 +1,34 @@
 import { createInjectionArgument, overrideInjections } from './metadata';
 import { patchMethods } from './method-injection';
-import { InjectionKind } from '../enums';
+import { applyDisposableInterfaces } from './lifecycle-manager';
+import { INJECTABLE_DEF } from '../constants';
+import { InjectableStatus, InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
 import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
-import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionArgument, InjectionItem } from "../types";
+import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionArgument, InjectionItem, InjectableDef, DestroyContext } from "../types";
+import { destroy } from './lifecycle-manager';
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 
 export function injectableMixin(token: InjectableDefinition['token'], injections?: Injections | Array<InjectionItem>, options?: InjectableOptions): InjectableDefinition {
   const definition = injectableDefinitions.ensure(token);
-  if (definition.init) {
+  if (definition.status & InjectableStatus.DEFINITION_RESOLVED) {
     return definition;
   }
-  definition.init = true;
-
+  definition.status |= InjectableStatus.DEFINITION_RESOLVED;
   definition.token = token;
+  const isClass = typeof token === 'function';
+
+  const staticDef = token[INJECTABLE_DEF] as InjectableDef | undefined;
+  if (staticDef) {
+    const { injections: staticInjections, ...rest } = staticDef;
+    definition.options = Object.assign(definition.options, rest);
+    if (isClass) {
+      definition.injections = overrideInjections(definition.injections, staticInjections, token);
+    }
+  }
+
   if (options) {
     options = definition.options = Object.assign(definition.options, options);
     if (options.hooks) {
@@ -23,7 +36,7 @@ export function injectableMixin(token: InjectableDefinition['token'], injections
     }
   }
 
-  if (typeof token === 'function') {
+  if (isClass) {
     const reflectedTypes = Reflection.getOwnMetadata("design:paramtypes", token) || [];
     mergeParameters(token, definition.injections.parameters, reflectedTypes);
 
@@ -37,21 +50,19 @@ export function injectableMixin(token: InjectableDefinition['token'], injections
 
     const methodNames = getAllKeys(definition.injections.methods);
     patchMethods(token as ClassType, methodNames);
+    const prototype = (token as ClassType).prototype;
+    if (prototype) {
+      applyDisposableInterfaces(prototype)
+    }
   }
 
   return definition;
 }
 
-export function InjectableMixin<TBase extends ClassType>(input: { injections?: Injections | Array<InjectionItem>, options?: InjectableOptions }, Base?: TBase): ClassType {
-  const clazz = Base ? class InjectableMixin extends Base {} : class InjectableMixin {};
-  injectableMixin(clazz, input.injections, input.options);
-  return clazz;
-}
-
 function injectableFactory(): InjectableDefinition {
   return {
     token: undefined as any,
-    init: false,
+    status: 0,
     options: {},
     injections: {
       parameters: [],

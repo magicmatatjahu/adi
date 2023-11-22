@@ -1,5 +1,4 @@
 export * from './context';
-export * from './event-emitter';
 export { inject, injectMethod, runInInjectionContext } from './inject';
 export { injectableMixin, injectableDefinitions } from './injectable';
 export * from './injector';

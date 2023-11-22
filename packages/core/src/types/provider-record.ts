@@ -5,7 +5,7 @@ import type { InjectionHook } from './hook';
 import type { InjectionArgument, InjectionArguments, InjectionItem } from './injection';
 import type { ProviderToken } from './provider-token';
 import type { ProviderType, ConstraintDefinition, ProviderAnnotations, ProviderDefinitionAnnotations, ProviderHookAnnotations } from './provider';
-import type { ScopeDefinition, ScopeType } from './scope';
+import type { ScopeDefinition } from './scope';
 import type { ClassType } from './types';
 import type { ProviderKind, InstanceStatus } from '../enums';
 

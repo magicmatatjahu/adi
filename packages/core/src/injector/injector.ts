@@ -10,6 +10,7 @@ import { cacheMetaKey, scopedInjectorsMetaKey, scopedInjectorLabelMetaKey } from
 
 import type { RunInContextArgument } from './inject'
 import type { ProviderToken, ProviderType, ProviderRecord, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, InjectionContext, InjectFunctionResult, InferredProviderTokenType } from '../types';
+import type { EventEmitter } from '../services/emitter.service';
 
 // TODO: Handle promises as input for injector
 export class Injector<T = any> {
@@ -57,6 +58,7 @@ export class Injector<T = any> {
   }
 
   public status: InjectorStatus = InjectorStatus.NONE;
+  public emitter: EventEmitter;
   public readonly imports = new Map<InjectorInput<any>, Injector<any>>();
   public readonly providers = new Map<ProviderToken<any>, { self?: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
   public readonly hooks: Array<InjectionHookRecord> = [];

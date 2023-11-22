@@ -30,10 +30,9 @@ export enum InjectionKind {
   CUSTOM = 'custom',
 }
 
-export enum InjectableStatus {
+export const enum InjectableStatus {
   NONE = 0,
-  INITIALIZED = 1,
-  ONLY_CONSTRUCTOR_DEPS = 2,
+  DEFINITION_RESOLVED = 1,
 }
 
 export enum InjectorStatus {
@@ -49,12 +48,11 @@ export enum SessionFlag {
   NONE = 0,
   RESOLVED = 1,
   SIDE_EFFECTS = 2,
-  DYNAMIC = 4,
-  ASYNC = 8,
-  DYNAMIC_SCOPE = 16,
-  DRY_RUN = 32,
-  PARALLEL = 64,
-  CIRCULAR = 128,
+  ASYNC = 4,
+  COLLECTION = 8,
+  DRY_RUN = 16,
+  PARALLEL = 32,
+  CIRCULAR = 64,
 }
 
 export enum InjectionHookKind {
@@ -66,6 +64,7 @@ export enum InjectionHookKind {
 
 export enum ProvideIn {
   CORE = 'core',
-  ANY = 'any',
   ROOT = 'root',
+  ANY = 'any',
+  ANYWHERE = 'any',
 }

@@ -31,4 +31,32 @@ describe('Ctx injection hook', function () {
     expect(service.service2).toBeInstanceOf(TestService);
     expect(service.service2.ctx).toEqual(secondCtx);
   });
+
+  test('should use context from global registry', function () {
+    @Injectable()
+    class TestService {
+      constructor(
+        readonly ctx: Context,
+      ) {}
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(Ctx('some-context')) readonly service1: TestService,
+        @Inject(Ctx('another-context')) readonly service2: TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+    ])
+
+    const service = injector.getSync(Service)
+    expect(service.service1).toBeInstanceOf(TestService);
+    expect(service.service1.ctx).toEqual(Context.for('some-context'));
+    expect(service.service2).toBeInstanceOf(TestService);
+    expect(service.service2.ctx).toEqual(Context.for('another-context'));
+  });
 });

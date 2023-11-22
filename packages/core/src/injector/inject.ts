@@ -79,8 +79,9 @@ export function runInInjectionContext<R>(fn: (arg: RunInContextArgument) => R, c
 
   const toDestroy = ctx.toDestroy = []
   const previosuContext = setCurrentInjectionContext(ctx);
+  const arg: RunInContextArgument = { inject: nearestInject };
   return waitCallback(
-    () => fn({ inject: nearestInject }),
+    () => fn(arg),
     noopThen,
     noopCatch,
     () => exitFromInjectionContext(toDestroy, previosuContext),

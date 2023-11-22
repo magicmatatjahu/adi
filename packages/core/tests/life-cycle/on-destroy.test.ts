@@ -1,4 +1,4 @@
-import { Injector, Injectable, Inject, OnDestroyHook, Destroyable, Ref, TransientScope } from "../../src";
+import { Injector, Injectable, Inject, OnDestroyHook, Destroyable, Ref, TransientScope, destroy } from "../../src";
 import { wait } from '../helpers';
 
 import type { OnDestroy, DestroyableType } from '../../src';
@@ -447,4 +447,343 @@ describe('onDestroy', function() {
     await wait();
     expect(onDestroyOrder).toEqual(['ZeroService', 'ServiceA', 'ServiceB', 'DeepService']);
   });
+
+  test('should work with standalone function', async function() {
+    const order: string[] = [];
+
+    function hook(pushValue: string) {
+      return function() {
+        order.push(pushValue);
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      hooks: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
+    })
+    class TestService implements OnDestroy {
+      onDestroy() {
+        order.push('class onDestroy');
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      constructor(
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        hooks: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
+      }
+    ])
+
+    const service = injector.getSync(Service)
+    expect(service).toBeInstanceOf(Service);
+    expect(order).toEqual([]);
+
+    await destroy(service);
+    expect(order).toEqual(["class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+
+    await destroy(service);
+    expect(order).toEqual(["class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+  });
+
+  test('should work with "using" statement - long living instance case', async function() {
+    const order: string[] = [];
+
+    function hook(pushValue: string) {
+      return function() {
+        order.push(pushValue);
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      hooks: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
+    })
+    class TestService implements OnDestroy {
+      onDestroy() {
+        order.push('class onDestroy');
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        hooks: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
+      }
+    ])
+
+    function testFn() {
+      using service = injector.getSync(Service) as any
+    }
+
+    const service = injector.getSync(Service)
+    expect(service).toBeInstanceOf(Service);
+    expect(order).toEqual([]);
+
+    testFn()
+    await wait()
+    expect(order).toEqual([]);
+  })
+
+  test('should work with "using" statement - sync case', async function() {
+    const order: string[] = [];
+
+    function hook(pushValue: string) {
+      return function() {
+        order.push(pushValue);
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      hooks: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
+    })
+    class TestService implements OnDestroy {
+      onDestroy() {
+        order.push('class onDestroy');
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      constructor(
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        hooks: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
+      }
+    ])
+
+    function testFn() {
+      using service = injector.getSync(Service) as any
+    }
+
+    const service = injector.getSync(Service)
+    expect(service).toBeInstanceOf(Service);
+    expect(order).toEqual([]);
+
+    testFn()
+    await wait()
+    expect(order).toEqual(["class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+  })
+
+  test('should work with "using" statement - async case', async function() {
+    const order: string[] = [];
+
+    function hook(pushValue: string) {
+      return function() {
+        order.push(pushValue);
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      hooks: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
+    })
+    class TestService implements OnDestroy {
+      onDestroy() {
+        order.push('class onDestroy');
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      constructor(
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
+      ) {}
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        hooks: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
+      }
+    ])
+
+    async function testFn() {
+      await using service = injector.get(Service) as any
+    }
+
+    const service = injector.getSync(Service)
+    expect(service).toBeInstanceOf(Service);
+    expect(order).toEqual([]);
+
+    await testFn()
+    expect(order).toEqual(["class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+  })
+
+  test('should work with "using" statement - do not call twice dispose methods', async function() {
+    const order: string[] = [];
+  
+    function hook(pushValue: string) {
+      return function() {
+        order.push(pushValue);
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      hooks: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
+    })
+    class TestService implements OnDestroy {
+      onDestroy() {
+        order.push('class onDestroy');
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      constructor(
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
+      ) {}
+
+      [Symbol.asyncDispose]() {
+        order.push('asyncDispose onDestroy')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        hooks: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
+      }
+    ])
+
+    async function testFn() {
+      await using service = injector.get(Service) as any
+    }
+
+    const service = injector.getSync(Service)
+    expect(service).toBeInstanceOf(Service);
+    expect(order).toEqual([]);
+
+    await testFn()
+    expect(order).toEqual(["asyncDispose onDestroy", "class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+  })
+
+  test('should use dispose methods using destroy method', async function() {
+    const order: string[] = [];
+  
+    function hook(pushValue: string) {
+      return function() {
+        order.push(pushValue);
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      hooks: OnDestroyHook({
+        onDestroy: hook('definition onDestroy'),
+      }),
+    })
+    class TestService implements OnDestroy {
+      onDestroy() {
+        order.push('class onDestroy');
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+    })
+    class Service {
+      constructor(
+        @Inject(OnDestroyHook({
+          onDestroy: hook('injection onDestroy'),
+        })) readonly testService1: TestService,
+      ) {}
+
+      [Symbol.dispose]() {
+        order.push('dispose onDestroy')
+      }
+      [Symbol.asyncDispose]() {
+        order.push('asyncDispose onDestroy')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      {
+        provide: TestService,
+        hooks: OnDestroyHook({
+          onDestroy: hook('provider onDestroy'),
+        }),
+      }
+    ])
+
+    const service = injector.getSync(Service)
+    expect(service).toBeInstanceOf(Service);
+    expect(order).toEqual([]);
+    
+    await destroy(service);
+    expect(order).toEqual(["dispose onDestroy", "asyncDispose onDestroy", "class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+
+    await destroy(service);
+    expect(order).toEqual(["dispose onDestroy", "asyncDispose onDestroy", "class onDestroy", "definition onDestroy", "provider onDestroy", "injection onDestroy"]);
+  })
 });

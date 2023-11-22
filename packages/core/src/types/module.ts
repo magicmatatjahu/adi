@@ -5,6 +5,8 @@ import type { InjectorOptions } from './injector';
 import type { ProviderType } from './provider';
 import type { ClassType } from './types';
 
+export interface ModuleDef extends ModuleMetadata {}
+
 export type ModuleImportType<T = any> = 
   | ClassType<T>
   | ModuleToken

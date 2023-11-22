@@ -1,12 +1,7 @@
-import { Injector, Injectable, Context, Inject, Hook, Token, TransientScope } from "../../src";
+import { Injector, Injectable, Context, Inject, Hook, Token, New, TransientScope } from "../../src";
 import { getScopeDefinition } from "../../src/scopes";
 
 describe('Context token', function() {
-  const New = Hook((session, next) => {
-    session.inject.scope = getScopeDefinition(TransientScope);
-    return next(session);
-  });
-
   test('should work in simple case', function() {
     @Injectable()
     class TestService {
@@ -52,7 +47,7 @@ describe('Context token', function() {
     class Service {
       constructor(
         readonly service: TestService,
-        @Inject(New) readonly newService: TestService,
+        @Inject(New()) readonly newService: TestService,
         readonly context: Context,
       ) {}
     }
@@ -87,7 +82,7 @@ describe('Context token', function() {
       {
         provide: 'test',
         useFactory(context1: Context, context2: Context) { return [context1, context2] },
-        inject: ['context', [Token('context'), New]],
+        inject: ['context', [Token('context'), New()]],
       },
     ])
 

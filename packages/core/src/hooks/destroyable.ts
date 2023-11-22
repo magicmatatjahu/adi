@@ -1,5 +1,5 @@
 import { Hook } from "./hook";
-import { destroy } from "../injector";
+import { destroy as destroyFn } from "../injector";
 import { wait } from "../utils";
 
 import type { Session } from '../injector/session';
@@ -8,7 +8,7 @@ import type { InjectionHookResult, NextInjectionHook } from '../types';
 export type DestroyableType<T> = {
   value: T;
   destroy: () => Promise<void>;
-}
+} & Disposable & AsyncDisposable;
 
 export function Destroyable<NextValue>() {
   return Hook(
@@ -17,9 +17,13 @@ export function Destroyable<NextValue>() {
         next(session),
         value => {
           session.setFlag('side-effect');
+          const destroy = () => destroyFn(session.context.instance!, { event: 'manually' });
+
           return {
             value,
-            destroy: () => destroy(session.context.instance!, { event: 'manually' }),
+            destroy,
+            [Symbol.dispose]: destroy,
+            [Symbol.asyncDispose]: destroy,
           }
         }
       );

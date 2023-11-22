@@ -56,7 +56,7 @@ export function inject<T = any>(ctx: InjectionContext, token: ProviderToken<T> |
 
 export function optimizedInject<T>(injector: Injector, parentSession: Session | undefined, argument: InjectionArgument, ctx?: Partial<InjectionContext>, cacheToken?: ProviderToken): T | Promise<T> {
   const cached = getFromCache<T>(injector, argument);
-  if (cached !== undefined) {
+  if (cached) {
     return cached;
   }
 
@@ -267,14 +267,14 @@ function processInstance(value: any, instance: ProviderInstance) {
   );
 }
 
-function processResult(result: any, session: Session, argument: InjectionArgument, ctx?: Partial<InjectionContext>, cacheToken?: ProviderToken) {
+function processResult(result: any, session: Session, argument: InjectionArgument, ctx?: Partial<InjectionContext>, cacheToken?: ProviderToken | InjectionArgument) {
   if (session.hasFlag('side-effect') === false) {
     // try to cache
-    // const hasSingleArgument = cacheKey !== undefined && argument.token === cacheKey
+    // const hasSingleArgument = cacheToken !== undefined && argument.token === cacheToken
     // if (hasSingleArgument === false) {
-    //   cacheKey = argument;
+    //   cacheToken = argument;
     // }
-    // saveToCache(session.context.injector, cacheKey, result); 
+    // saveToCache(session.context.injector, cacheToken as any, result); 
   } else if (ctx?.toDestroy) {
     // add instance to destroy
     ctx.toDestroy.push(session.context.instance!);
@@ -411,11 +411,11 @@ function injectMethods<T>(injector: Injector, instance: T, injections: Record<st
     return;
   }
 
-  // we need to pass injections because they can be overwritten by overwritten plugin from @adi/common
+  // pass injections because they can be overwritten by "overwrite" plugin from @adi/common
   setInstanceContext(instance, { injector, session, injections })
 }
 
-export function resolverClass<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | Promise<T> {
+export function resolveClass<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | Promise<T> {
   const { class: clazz, inject } = data;
 
   // TODO: optimize when there are only constructor parameters
@@ -432,7 +432,7 @@ export function resolverClass<T>(injector: Injector, session: Session, data: Fac
   );
 }
 
-export function resolverFactory<T>(injector: Injector, session: Session, data: FactoryDefinitionFactory<T>['data']): T | Promise<T> {
+export function resolveFactory<T>(injector: Injector, session: Session, data: FactoryDefinitionFactory<T>['data']): T | Promise<T> {
   const { factory, inject } = data;
   return wait(
     injectArray(injector, inject, session),
@@ -442,12 +442,12 @@ export function resolverFactory<T>(injector: Injector, session: Session, data: F
 
 export function resolveClassicProvider<T>(injector: Injector, session: Session, data: FactoryDefinitionClass<T>['data']): T | undefined | Promise<T | undefined> {
   return wait(
-    resolverClass(injector, session, data) as ClassicProvider,
+    resolveClass(injector, session, data) as ClassicProvider,
     provider => provider.provide(),
   );
 }
 
-export function resolverValue<T>(_: Injector, __: Session, data: FactoryDefinitionValue<T>['data']): T {
+export function resolveValue<T>(_: Injector, __: Session, data: FactoryDefinitionValue<T>['data']): T {
   return data;
 }
 
@@ -458,7 +458,7 @@ export function createCustomResolver<T>(options: CustomResolverOptions<T>): Cust
       if (asStandalone) {
         const definition = injectableDefinitions.ensure(clazz);
         const inject = definition.injections;
-        return (session: Session) => resolverClass(session.context.injector, session, { class: clazz, inject });
+        return (session: Session) => resolveClass(session.context.injector, session, { class: clazz, inject });
       }
 
       const metadata = createInjectionMetadata({ kind: InjectionKind.CUSTOM, target: clazz });

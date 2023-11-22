@@ -1,11 +1,10 @@
-import { ADI } from '../adi';
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { patchMethod } from './method-injection';
 import { getOrCreateProvider } from './provider';
-import { resolverClass, resolverFactory, resolveClassicProvider, resolverValue, removeCache } from './resolver';
+import { resolveClass, resolveFactory, resolveClassicProvider, resolveValue, removeCache } from './resolver';
 import { INITIALIZERS } from '../constants';
 import { when, whenExported, whenComponent } from '../constraints';
-import { ProviderKind, InjectionKind, InjectorStatus } from '../enums';
+import { ProviderKind, InjectionKind, InjectorStatus, InjectableStatus } from '../enums';
 import { isInjectionHook, ExistingHook, AliasHook } from '../hooks/private';
 import { InjectionToken } from '../tokens';
 import { DefaultScope, getScopeDefinition } from '../scopes';
@@ -19,7 +18,7 @@ import type {
   InjectionHook, InjectionHookRecord, ConstraintDefinition,
   InjectionItem, PlainInjectionItem, Injections, InjectionAnnotations, InjectionMetadata, InjectionArgument, InjectionArguments, ParsedInjectionItem, InjectableDefinition,
   FactoryDefinition, FactoryDefinitionClass, FactoryDefinitionFactory, FactoryDefinitionValue, InjectorScope, ClassProvider,
-  OnProviderAddPayload, ScopeType, ClassType, ClassTypeProvider,
+  OnProviderAddPayload, ScopeType, ClassType,
 } from '../types';
 
 export function processProviders<T>(host: Injector, providers: Array<ProviderType<T>>): Array<OnProviderAddPayload | undefined> {
@@ -31,7 +30,7 @@ export function processProviders<T>(host: Injector, providers: Array<ProviderTyp
     }
   });
 
-  ADI.emitAll('provider:add', processed, { injector: host });
+  host.emitter.emitAll('provider:add', processed);
   return processed;
 }
 
@@ -74,7 +73,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     }
 
     injectionMetadata = { kind: InjectionKind.UNKNOWN, target: original };
-    const factory = { resolver: resolverClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
+    const factory = { resolver: resolveClass, data: { class: original, inject: injections } } as FactoryDefinitionClass;
 
     const scope = getScopeDefinition(options.scope || DefaultScope)
     definition = { provider, original, name: definitionName, kind: ProviderKind.CLASS, factory, scope, when: undefined, hooks, annotations, values: new Map(), default: true, meta: {} };
@@ -137,11 +136,11 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
         const fac = original.useFactory;
         injectionMetadata = { kind: InjectionKind.FACTORY, function: fac };
         const inject = convertInjections(original.inject || [], injectionMetadata);
-        factory = { resolver: resolverFactory, data: { factory: fac, inject } } as FactoryDefinitionFactory;
+        factory = { resolver: resolveFactory, data: { factory: fac, inject } } as FactoryDefinitionFactory;
       }
     } else if (isValueProvider(original)) {
       kind = ProviderKind.VALUE;
-      factory = { resolver: resolverValue, data: original.useValue } as FactoryDefinitionValue;
+      factory = { resolver: resolveValue, data: original.useValue } as FactoryDefinitionValue;
     } else if (isClassProvider(original)) {
       kind = ProviderKind.CLASS;
       const clazz = original.useClass;
@@ -154,7 +153,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
 
       injectionMetadata = { kind: InjectionKind.PARAMETER, target: clazz };
       const inject = overrideInjections(definition?.injections || createClassInjections(), original.inject, clazz);
-      factory = { resolver: resolverClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
+      factory = { resolver: resolveClass, data: { class: clazz, inject } } as FactoryDefinitionClass;
     } else if (isExistingProvider(original)) {
       kind = ProviderKind.ALIAS;
       scope = DefaultScope;
@@ -283,8 +282,8 @@ export function compareOrder(a: { annotations: ProviderAnnotations }, b: { annot
 }
 
 function ensureInjectable(token: InjectableDefinition['token']): InjectableDefinition | undefined {
-  const definition = injectableDefinitions.get(token)
-  if (definition && !definition.init) {
+  const definition = injectableDefinitions.ensure(token)
+  if ((definition.status & InjectableStatus.DEFINITION_RESOLVED) === 0) {
     injectableMixin(token);
   }
   return definition;

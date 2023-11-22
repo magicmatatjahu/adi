@@ -14,7 +14,7 @@
     "sourceMap": true,
     "allowJs": true,
     "outDir": "lib",
-    "lib": ["es7"]
+    "lib": ["es7", "esnext.disposable"]
   },
   "exclude": ["node_modules"]
 }

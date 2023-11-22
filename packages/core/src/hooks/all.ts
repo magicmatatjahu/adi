@@ -40,6 +40,7 @@ function hook(session: Session, next: NextInjectionHook, options: AllHookOptions
     next(forkedSession),
     () => {
       session.setFlag('side-effect');
+      session.setFlag('collection');
       const injector = forkedSession.context.injector;
 
       // if injector doesn't exist - token doesn't exist

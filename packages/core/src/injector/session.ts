@@ -1,22 +1,33 @@
+import { INJECTABLE_DEF } from '../constants';
 import { SessionFlag } from '../enums';
+import { Hook } from '../hooks';
 
 import type { Injector } from './injector'; 
-import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations, InjectionAnnotations } from '../types';
+import type { ProviderToken, InjectionMetadata, SessionInjection, SessionContext, SessionAnnotations, InjectionAnnotations, InjectableDef } from '../types';
 
 const sessionFlags = {
   'resolved': SessionFlag.RESOLVED,
   'side-effect': SessionFlag.SIDE_EFFECTS,
-  'dynamic': SessionFlag.DYNAMIC,
   'async': SessionFlag.ASYNC,
-  'dynamic-scope': SessionFlag.DYNAMIC_SCOPE,
+  'collection': SessionFlag.COLLECTION,
   'dry-run': SessionFlag.DRY_RUN,
-  'parallel': SessionFlag.CIRCULAR,
-  'circular': SessionFlag.PARALLEL,
+  'parallel': SessionFlag.PARALLEL,
+  'circular': SessionFlag.CIRCULAR,
 }
 
 type FlagsType = keyof typeof sessionFlags;
 
 export class Session<T = any> {
+  static [INJECTABLE_DEF]: InjectableDef = {
+    provideIn: 'any',
+    hooks: [
+      Hook(session => {
+        session.setFlag('side-effect');
+        return session.parent || session;
+      }),
+    ] 
+  }
+
   // TODO: Fix type for metadata argument
   static create<T>(token: ProviderToken<T> | undefined, annotations: InjectionAnnotations = {}, metadata: InjectionMetadata | undefined = {} as any, injector: Injector, parentSession?: Session): Session {
     const injections: SessionInjection = {

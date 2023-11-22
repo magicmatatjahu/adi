@@ -13,7 +13,7 @@ export type ProviderType<T = any> =
   | TokenProvider<T>
   | ClassProvider<T>
   | FactoryProvider<T>
-  | ClassFactoryProvider<T>
+  | ClassicProvider<T>
   | ValueProvider<T>
   | ExistingProvider<T>
   | HookProvider<T>
@@ -22,7 +22,7 @@ export type ProviderType<T = any> =
 export type ObjectProvider<T = any> = 
   | ClassProvider<T>
   | FactoryProvider<T>
-  | ClassFactoryProvider<T>
+  | ClassicProvider<T>
   | ValueProvider<T>
   | ExistingProvider<T>
   | CustomProvider<T>;
@@ -30,10 +30,24 @@ export type ObjectProvider<T = any> =
 export type OverwriteProvider<T = any> = 
   | Omit<ClassProvider<T>, 'provide'> 
   | Omit<FactoryProvider<T>, 'provide'> 
-  | Omit<ClassFactoryProvider<T>, 'provide'> 
+  | Omit<ClassicProvider<T>, 'provide'> 
   | Omit<ValueProvider<T>, 'provide'>
   | Omit<ExistingProvider<T>, 'provide'>
   | Omit<CustomProvider<T>, 'provide'>;
+
+export interface ProviderRegistry {
+  sugar: ClassTypeProvider 
+  injectionToken: InjectionToken;
+  class: ClassProvider
+  factory: FactoryProvider
+  classic: ClassicProvider
+  alias: ExistingProvider
+  value: ValueProvider
+  token: TokenProvider 
+  hook: HookProvider
+}
+
+export type ProviderKinds = ProviderRegistry[keyof ProviderRegistry]
 
 export interface ClassTypeProvider<T = any> extends ClassType<T> {}
 
@@ -82,7 +96,7 @@ export interface FactoryProvider<T = any> {
   useExisting?: never;
 }
 
-export interface ClassFactoryProvider<T = any> {
+export interface ClassicProvider<T = any> {
   provide: ProviderToken<T>;
   useFactory: ClassType<Provide>;
   name?: string | symbol | object;
