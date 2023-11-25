@@ -40,7 +40,6 @@ function hook(session: Session, next: NextInjectionHook, options: AllHookOptions
     next(forkedSession),
     () => {
       session.setFlag('side-effect');
-      session.setFlag('collection');
       const injector = forkedSession.injector;
 
       // if injector doesn't exist - token doesn't exist
@@ -52,14 +51,18 @@ function hook(session: Session, next: NextInjectionHook, options: AllHookOptions
       const provider = injector.providers.get(forkedSession.token!);
       // TODO: Check typing for provider
       const definitions = customFilterDefinitions(provider as any, forkedSession, options);
+      session.setFlag('collection');
 
       const values: any[] = [];
+      const sessions: Session[] = [];
       definitions.forEach(definition => {
         const instanceSession = session.fork();
         instanceSession.provider = (instanceSession.definition = definition).provider;
+        sessions.push(instanceSession);
         values.push(next(instanceSession));
       })
       
+      session.children.push(...sessions);
       return waitAll(values);
     },
   );

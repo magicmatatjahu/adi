@@ -37,7 +37,7 @@ export function createInjector(input: InjectorInput | Injector, options: Injecto
   } else if (injector) {
     injector = (injector as Injector).init()
   } else if (hasCacheKey) {
-    injector = parent.of(cacheKey, input as InjectorInput, { ...options || {}, exporting: false }).init();
+    injector = parent.of(cacheKey, input as InjectorInput, { ...options || {}, destroy: false, exporting: false }).init();
   } else {
     injector = Injector.create(input as InjectorInput, { ...options || {}, exporting: false }, parent).init();
   }

@@ -1,5 +1,4 @@
 import { Context, createScope, Scope, SingletonScope, TransientScope, resolveRef } from '@adi/core';
-import { InstanceStatus } from '@adi/core/lib/enums';
 import { getScopeDefinition } from '@adi/core/lib/scopes';
 
 import type { Session, ProviderToken, ProviderInstance, DestroyContext, ForwardReference } from '@adi/core';
@@ -8,8 +7,8 @@ const singletonDef = getScopeDefinition(SingletonScope)
 const transientDef = getScopeDefinition(TransientScope)
 
 export interface LocalScopeOptions {
-  toToken?: ProviderToken | ForwardReference;
-  toScope?: string | symbol;
+  to?: ProviderToken | ForwardReference;
+  scope?: string | symbol;
   /**
    * 1 - nearest
    * Number.POSITIVE_INFINITY - farthest
@@ -23,7 +22,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
   protected contexts = new WeakMap<Context | ProviderInstance, Context | ProviderInstance>();
 
   override get name(): string {
-    return "adi:local";
+    return "adi:scope:local";
   }
 
   override getContext(session: Session, options: LocalScopeOptions): Context | Promise<Context> {
@@ -41,8 +40,8 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     let instance: ProviderInstance | undefined;
     const depth = options.depth || 'nearest';
-    const toToken = resolveRef(options.toToken) as ProviderToken;
-    const toScope = options.toScope;
+    const toToken = resolveRef(options.to) as ProviderToken;
+    const toScope = options.scope;
     if (depth === 'nearest') {
       instance = this.retrieveInstanceByDepth(parent, 1, toToken, toScope);
     } else if (depth === 'farthest') {
@@ -76,7 +75,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     // when no parent and only when local instance is previously destroyed
     const localInstance = this.contexts.get(context) as ProviderInstance;
     if (!instance.parents?.size) {
-      if (localInstance.status & InstanceStatus.DESTROYED) {
+      if (localInstance.status & 4) {
         this.contexts.delete(context);
         this.contexts.delete(localInstance);
         return true;
@@ -126,8 +125,8 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 }
 
 export default createScope<LocalScopeOptions>(new LocalScope(), {
-  toToken: undefined,
-  toScope: undefined,
+  to: undefined,
+  scope: undefined,
   depth: 'nearest',
   reuseContext: true,
   canBeOverrided: true,

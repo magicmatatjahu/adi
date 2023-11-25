@@ -1,5 +1,6 @@
 import { INJECTABLE_DEF } from '../constants';
 import { Hook } from '../hooks';
+import { DynamicScope } from '../scopes';
 
 import type { ContextData, ContextOptions, ContextMetadata, InjectableDef } from '../types';
 
@@ -41,4 +42,17 @@ export class Context<D extends ContextData = ContextData> {
     protected readonly options?: ContextOptions,
     public readonly meta: ContextMetadata = {},
   ) {}
+}
+
+export abstract class DynamicContext {
+  static [INJECTABLE_DEF]: InjectableDef = {
+    provideIn: 'any',
+    scope: DynamicScope,
+    hooks: [
+      Hook(session => {
+        session.setFlag('side-effect');
+        return session.data.ctx;
+      }),
+    ] 
+  };
 }

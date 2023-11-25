@@ -5,13 +5,17 @@ import { destroyProvider, destroyDefinition, destroy, processOnInitLifecycle } f
 import { resolveScope } from '../scopes';
 import { PromisesHub, isClassProvider, wait } from '../utils';
 import { setCurrentInjectionContext } from './inject';
+import { applyDynamicContext } from './dynamic-context';
 import { definitionInjectionMetadataMetaKey, circularSessionsMetaKey } from '../private';
 import { CircularReferenceError } from '../errors/circular-reference.error';
 import { compareOrder } from './metadata';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
-import type { ProviderToken, ScopeDefinition, ConstraintDefinition, InjectionHookRecord, ProviderInstanceMetadata, ProviderType, FactoryDefinition, InjectionHook, ProviderDefinitionAnnotations, ProviderRecordMetadata } from '../types';
+import type { Scope } from '../scopes/scope';
+import type { ProviderToken, ScopeDefinition, ConstraintDefinition, InjectionHookRecord, ProviderInstanceMetadata, ProviderType, FactoryDefinition, InjectionHook, ProviderDefinitionAnnotations, ProviderRecordMetadata, DynamicScopeContext } from '../types';
+
+export const resolvedInstances = new WeakMap<object, ProviderInstance>();
 
 export type ProviderDefinitionInput = {
   original: ProviderType,
@@ -129,13 +133,21 @@ export class ProviderDefinition {
     )
   
     return wait(
-      wait(scope, result => result.scope.getContext(session, result.options)),
+      wait(scope, scopeDef => this.getContext(scopeDef, session)),
       ctx => ProviderInstance.get(this, ctx || Context.STATIC, scopeDefinition, session)
     )
   }
 
   destroy(): Promise<void> {
     return destroyDefinition(this, { event: 'manually' });
+  }
+
+  protected getContext(scopeDef: { scope: Scope<any>; options?: any; }, session: Session): Context | Promise<Context> {
+    const { scope, options } = scopeDef;
+    if (scope.isDynamic === false || session.hasFlag('dynamic-scope')) {
+      return scope.getContext(session, options)
+    }
+    return Context.DYNAMIC;
   }
 }
 
@@ -152,6 +164,16 @@ export class ProviderInstance {
     scope: ScopeDefinition,
     session: Session,
   ): ProviderInstance {
+    if (context === Context.DYNAMIC) {
+      const instance = session.instance = new ProviderInstance(definition, context, scope, session)
+      instance.value = {}
+      instance.status |= InstanceStatus.RESOLVED;
+      instance.status |= InstanceStatus.DYNAMIC;
+      session.setFlag('side-effect')
+      applyDynamicContext(instance, session)
+      return instance;
+    }
+    
     let instance: ProviderInstance | undefined = definition.values.get(context);
     if (!instance) {
       instance = new ProviderInstance(definition, context, scope, session)
@@ -217,10 +239,17 @@ export class ProviderInstance {
       processOnInitLifecycle(this),
       () => {
         this.status |= InstanceStatus.RESOLVED;
+
+        // assign resolved value to provider instance for future processing
+        if (typeof value === 'object' && value) {
+          resolvedInstances.set(value, this)
+        }
+
         // resolve pararell injection - if defined
         if (this.status & InstanceStatus.PARALLEL) {
           PromisesHub.resolve(this, value);
         }
+
         return value;
       }
     );

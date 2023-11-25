@@ -20,7 +20,6 @@ export class TransientScope extends Scope<TransientScopeOptions> {
 
   override getContext(session: Session, options: TransientScopeOptions): Context {
     // TODO: Handle cicular references between providers with transient scope 
-
     let context = options.reuseContext && session.ctx;
     if (!context) {
       context = Context.create();
@@ -39,7 +38,7 @@ export class TransientScope extends Scope<TransientScopeOptions> {
       return destroyCtx.event === 'injector' && noParents;
     }
 
-    // with no parents
+    // with no parents and in method injection
     if (noParents || instance.session.metadata.kind === InjectionKind.METHOD) {
       this.contexts.delete(context);
       return true;

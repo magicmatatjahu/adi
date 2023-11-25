@@ -32,7 +32,7 @@ export class PooledScope extends Scope<PooledScopeOptions> {
   protected pools = new WeakMap<ProviderDefinition, PoolContext>();
 
   override get name(): string {
-    return "adi:pooled";
+    return "adi:scope:pooled";
   }
 
   override getContext(session: Session, options: PooledScopeOptions): Context | Promise<Context> {

@@ -65,18 +65,6 @@ export interface InjectionContext {
   toDestroy?: ProviderInstance[]
 }
 
-export interface InjectionReflection {
-  session?: Session;
-  argument?: InjectionArgument;
-  toDestroy?: ProviderInstance[]
-}
-
-export interface InjectionCache {
-  session?: Session;
-  argument?: InjectionArgument
-  toDestroy?: ProviderInstance[]
-}
-
 export type InjectionItem<T = any> = 
   | ProviderToken<T>
   | InjectionHook<any, any>
@@ -138,8 +126,8 @@ export interface InjectionMetadata {
 
 export interface InjectionAnnotations {
   named?: string | symbol | object;
-  tagged?: Array<string | symbol | object>;
-  labelled?: Record<string | symbol, any>;
+  tags?: Array<string | symbol | object>;
+  labels?: Record<string | symbol, any>;
   [key: string | symbol]: any;
 }
 

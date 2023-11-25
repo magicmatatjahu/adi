@@ -15,7 +15,7 @@ export class InstanceScope extends Scope<InstanceScopeOptions> {
   protected contexts = new WeakMap<Context | ProviderInstance, Context | ProviderInstance>();
 
   override get name(): string {
-    return "adi:instance";
+    return "adi:scope:instance";
   }
 
   override getContext(session: Session, options: InstanceScopeOptions): Context | Promise<Context> {

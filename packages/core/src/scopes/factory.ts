@@ -77,6 +77,7 @@ export function resolveScope<O>(def: ScopeDefinition<O>, session: Session) {
     target: parentMetadata.target, 
     function: parentMetadata.function,
   })
+  
   return wait(
     inject({ injector, metadata, session: session.parent }, provider),
     instance => ({ scope: instance, options })

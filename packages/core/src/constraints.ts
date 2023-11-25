@@ -16,7 +16,7 @@ export function tagged(tags: InjectionAnnotations['tagged'] = [], options?: { mo
   }
 
   return (session) => {
-    const currentTags = session.annotations.tagged || [];
+    const currentTags = session.annotations.tags || [];
     return mode == 'partially' ? currentTags.some(includeTag) : currentTags.every(includeTag);
   }
 }
@@ -28,7 +28,7 @@ export function labelled(labels: InjectionAnnotations['labelled'] = [], options?
   }
 
   return (session) => {
-    const entries = Object.entries(session.annotations.labelled || {})
+    const entries = Object.entries(session.annotations.labels || {})
     return mode == 'partially' ? entries.some(includeLabel) : entries.every(includeLabel);
   }
 }

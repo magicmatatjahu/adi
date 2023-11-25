@@ -17,7 +17,8 @@ export interface InjectorOptions {
   importing?: boolean;
   exporting?: boolean;
   initialize?: boolean;
-  destroy?: boolean
+  dispose?: boolean;
+  destroy?: boolean;
   recreate?: boolean;
 }
 

@@ -8,6 +8,7 @@ import { All, Optional } from '../hooks';
 import { createDefinition, wait, waitSequence, resolveRef, isInjectionToken, PromisesHub, isModuleToken, isExtendedModule } from '../utils';
 import { ADI_MODULE_DEF, exportedToInjectorsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey } from '../private';
 import { EventEmitter } from '../services/emitter.service';
+import { destroyInjector } from './lifecycle-manager';
 
 import type { ProviderRecord } from './provider';
 import type { ClassType, ExtendedModule, ModuleMetadata, ModuleImportType, ModuleExportType, ForwardReference, ProviderToken, ProviderType, ExportedModule, ExportedProvider, InjectorInput, InjectorScope, InjectorOptions, ModuleDef } from "../types";
@@ -113,6 +114,7 @@ export function createInjector(
     importing: true,
     exporting: true,
     initialize: true,
+    dispose: true,
     destroy: true,
     ...inputOptions || {},
     ...options,
@@ -169,6 +171,7 @@ export function createScopedInjector(
   }
 
   const injector = Injector.create(input || [], { exporting: false, ...options || {} }, parent);
+  injector.status |= InjectorStatus.SCOPED;
   if (label !== undefined) {
     injector.meta[scopedInjectorLabelMetaKey] = label
     if (!scopedInjectors) {
@@ -614,6 +617,8 @@ function initInjector(compiled?: CompiledModule) {
   }
 
   injector.status |= InjectorStatus.INITIALIZED;
+  injector.status |= InjectorStatus.ACTIVE;
+
   const { input, proxy } = compiled;
   injector.emitter.emit('module:add', { original: input });
 

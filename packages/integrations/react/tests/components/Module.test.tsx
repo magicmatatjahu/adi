@@ -448,7 +448,7 @@ describe('Module component', function() {
     await Promise.resolve();
     
     // check if injector is destroyed
-    expect((injector!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
+    expect((injector!.status & 8) > 0).toEqual(true);
   });
 
   test('should not persist module when input is changed', async function() {
@@ -534,9 +534,9 @@ describe('Module component', function() {
     await Promise.resolve();
     
     // check if injector is destroyed
-    expect((injector1!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
-    expect((injector2!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
-    expect((injector3!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+    expect((injector1!.status & 8) > 0).toEqual(true);
+    expect((injector2!.status & 8) > 0).toEqual(true);
+    expect((injector3!.status & 8) > 0).toEqual(false);
   });
 
   test('should not destroy injector if cache is set', async function() {
@@ -613,8 +613,8 @@ describe('Module component', function() {
     await Promise.resolve();
     
     // check if injector is not destroyed
-    expect((injector1!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
-    expect((injector2!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+    expect((injector1!.status & 8) > 0).toEqual(false);
+    expect((injector2!.status & 8) > 0).toEqual(false);
   });
 
   test('should destroy injector if cache is set but parent injector is destroyed', async function() {
@@ -647,7 +647,7 @@ describe('Module component', function() {
       );
     };
 
-    const TestComponent: FunctionComponent<PropsWithChildren> = ({ children }) => {
+    const TestComponent: FunctionComponent<PropsWithChildren> = () => {
       const [renderModule, setRenderModule] = useState(false);
 
       return (
@@ -693,7 +693,7 @@ describe('Module component', function() {
     await wait(5);
     
     // check if injector is not destroyed
-    expect((injector1!.status & InjectorStatus.DESTROYED) > 0).toEqual(true);
-    expect((injector2!.status & InjectorStatus.DESTROYED) > 0).toEqual(false);
+    expect((injector1!.status & 8) > 0).toEqual(true);
+    expect((injector2!.status & 8) > 0).toEqual(false);
   });
 });

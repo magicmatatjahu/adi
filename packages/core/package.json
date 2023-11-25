@@ -37,5 +37,8 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:types": "tsc -p tsconfig.types.json",
     "test": "jest --runInBand"
+  },
+  "dependencies": {
+    "awilix": "^9.0.0"
   }
 }

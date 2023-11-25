@@ -1,8 +1,7 @@
 import { ADI_SCOPE_DEF } from '../private';
 
+import type { ProviderDefinition, ProviderInstance, Session } from '../injector';
 import type { Scope } from '../scopes'
-import type { InjectionAnnotations } from './injection'
-import type { InjectionHook } from './hook'
 import type { ClassType } from './types'
 import type { ProviderToken } from './provider-token';
 
@@ -41,3 +40,10 @@ export type ScopeType<O = any> =
     scope: ProviderToken<Scope<O>>;
     options?: O;
   };
+
+export type DynamicScopeContext = {
+  ref: object;
+  instance: ProviderInstance
+  definition: ProviderDefinition
+  session: Session;
+}

@@ -1,6 +1,6 @@
 import { Injector, waitAll } from '@adi/core';
 import { getAllKeys, isPromiseLike, wait } from '@adi/core/lib/utils';
-import { convertInjection, createInjectionMetadata, optimizedInject } from '@adi/core/lib/injector';
+import { convertInjection, createInjectionMetadata, injectArgument } from '@adi/core/lib/injector';
 import { InjectionKind } from '@adi/core/lib/enums';
 import { Injector as NgInjector, Directive, Input, inject, ViewContainerRef, TemplateRef, ChangeDetectorRef } from '@angular/core'
 
@@ -141,7 +141,7 @@ export class ADIInjectDirective<T extends { [key: string]: InjectionItem }> impl
     properties.forEach(prop => {
       injections.push(
         wait(
-          optimizedInject(injector, undefined, convertInjection(providers[prop as string], metadata)),
+          injectArgument(injector, convertInjection(providers[prop as string], metadata)),
           value => values[prop] = value,
         )
       );

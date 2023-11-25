@@ -1,7 +1,7 @@
 import { injectableDefinitions, injectableMixin } from './injectable';
 import { patchMethod } from './method-injection';
 import { ProviderRecord } from './provider';
-import { resolveClass, resolveFactory, resolveClassicProvider, resolveValue, removeCache } from './resolver';
+import { resolveClass, resolveFactory, resolveClassicProvider, resolveValue } from './resolver';
 import { INITIALIZERS } from '../constants';
 import { when, whenExported, whenComponent } from '../constraints';
 import { ProviderKind, InjectionKind, InjectorStatus, InjectableStatus } from '../enums';
@@ -10,6 +10,7 @@ import { InjectionToken } from '../tokens';
 import { DefaultScope, getScopeDefinition } from '../scopes';
 import { createArray, getAllKeys, isClassProvider, isExistingProvider, isFactoryProvider, isClassFactoryProvider, isValueProvider, isInjectionToken } from '../utils';
 import { exportedToInjectorsMetaKey, definitionInjectionMetadataMetaKey, ADI_INJECTION_ARGUMENT, scopedInjectorsMetaKey } from '../private';
+import { clearCache } from './cache';
 
 import type { Injector } from './injector';
 import type { ProviderDefinition } from './provider';
@@ -30,7 +31,8 @@ export function processProviders<T>(host: Injector, providers: Array<ProviderTyp
       processed.push(result);
     }
   });
-
+  
+  clearCache(host);
   host.emitter.emitAll('provider:add', processed);
   return processed;
 }
@@ -186,7 +188,7 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     const scopeDef = getScopeDefinition(scope || DefaultScope)
     definition = provider.definition({
       original,
-      kind: ProviderKind.CLASS, 
+      kind, 
       factory: factory!, 
       scope: scopeDef, 
       hooks, 
@@ -205,7 +207,6 @@ export function processProvider<T>(injector: Injector, original: ProviderType<T>
     concatConstraints(definition, whenExported);
   }
 
-  removeCache(injector, token);
   handleAnnotations(provider, definition, annotations);
   return { original, provider, definition };
 }
@@ -323,11 +324,10 @@ function isProviderInInjectorScope(scopes: Array<InjectorScope>, provideIn: Arra
 }
 
 export function parseInjectArguments<T>(token?: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, hooks: Array<InjectionHook> = []): ParsedInjectionItem {
-  let injectionArgument: ParsedInjectionItem | undefined
   if (token === undefined) {
     return createPlainInjectionItem(undefined);
-  } else if (injectionArgument = (token as InjectionToken)[ADI_INJECTION_ARGUMENT]) {
-    return injectionArgument as ParsedInjectionItem
+  } else if (isStandaloneInjectionArgument(token)) {
+    return (token as InjectionToken)[ADI_INJECTION_ARGUMENT] as ParsedInjectionItem
   } else if (isInjectionHook(token)) {
     hooks = [token, annotations, ...hooks] as InjectionHook[];
     token = undefined;
@@ -354,6 +354,10 @@ export function parseInjectionItem<T>(item?: InjectionItem): PlainInjectionItem<
   }
   // plain injection case
   return item || { token: undefined, annotations: {}, hooks: [] };
+}
+
+export function isStandaloneInjectionArgument(value: any) {
+  return value[ADI_INJECTION_ARGUMENT] !== undefined;
 }
 
 export function convertInjection<T>(injectionItem: InjectionItem<T> | undefined, metadata: Partial<InjectionMetadata>): InjectionArgument<T> {

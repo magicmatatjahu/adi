@@ -9,11 +9,14 @@ import type { ProviderRecord, ProviderDefinition, ProviderInstance } from './pro
 import type { ProviderToken, InjectionAnnotations, InjectionMetadata, InjectableDef, ScopeDefinition, SessionInput, SessionData } from '../types';
 
 const sessionFlags = {
+  'none': SessionFlag.NONE,
   'resolved': SessionFlag.RESOLVED,
   'side-effect': SessionFlag.SIDE_EFFECTS,
+  'dynamic': SessionFlag.DYNAMIC,
   'async': SessionFlag.ASYNC,
   'collection': SessionFlag.COLLECTION,
   'dry-run': SessionFlag.DRY_RUN,
+  'dynamic-scope': SessionFlag.DYNAMIC_SCOPE,
   'parallel': SessionFlag.PARALLEL,
   'circular': SessionFlag.CIRCULAR,
 }
@@ -53,6 +56,7 @@ export class Session<T = any> {
   private flags: SessionFlag = SessionFlag.NONE;
   public readonly children: Array<Session> = [];
   public readonly data: SessionData = {};
+  public dynamicCtx: object | undefined;
   public result: any;
   public deep: number;
 
@@ -64,6 +68,7 @@ export class Session<T = any> {
     this.token = input.token;
     const metadata = this.metadata = input.metadata || { ...createInjectionMetadata() };
     this.annotations = { ...metadata.annotations || {}, ...input.annotations || {} };
+    this.dynamicCtx = parent?.dynamicCtx;
   }
 
   fork(): Session {
@@ -73,8 +78,19 @@ export class Session<T = any> {
     return forked;
   }
 
-  apply(forked: Session) {
+  apply(forked: Session): void {
     Object.assign(this, forked);
+  }
+
+  replace(session: Session): void {
+    const parent = this.parent;
+    if (parent) {
+      const children = parent.children;
+      const indexOf = children.indexOf(this);
+      if (indexOf > -1) {
+        children.splice(indexOf, 1, session);
+      } 
+    }
   }
 
   setFlag(flag: FlagsType) {

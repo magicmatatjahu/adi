@@ -7,21 +7,21 @@ export enum ProviderKind {
   CUSTOM = 'custom'
 }
 
-export enum DefinitionStatus {
+export const enum DefinitionStatus {
   NONE = 0,
-  DEFAULT = 1,
-  SINGLE_INSTANCE = 2,
-  MULTIPLE_INSTANCES = 4,
+  IS_DEFAULT = 1,
 }
 
-export enum InstanceStatus {
-  UNKNOWN = 1,
-  PENDING = 2,
-  RESOLVED = 8,
-  DESTROYED = 16,
-  DEFINITION_DESTROYED = 32,
-  PARALLEL = 64,
-  CIRCULAR = 128,
+export const enum InstanceStatus {
+  UNKNOWN = 0,
+  PENDING = 1,
+  RESOLVED = 1 << 1,
+  DESTROYED = 1 << 2,
+  DEFINITION_DESTROYED = 1 << 3,
+  DYNAMIC = 1 << 4,
+  HAS_DYNAMIC = 1 << 5,
+  PARALLEL = 1 << 6,
+  CIRCULAR = 1 << 7,
 }
 
 export enum InjectionKind {
@@ -42,24 +42,28 @@ export const enum InjectableStatus {
   DEFINITION_RESOLVED = 1,
 }
 
-export enum InjectorStatus {
+export const enum InjectorStatus {
   NONE = 0,
   PENDING = 1,
-  INITIALIZED = 2,
-  DESTROYED = 4,
-  HAS_HOOKS = 8,
-  PROXY = 16,
+  INITIALIZED = 1 << 1,
+  ACTIVE = 1 << 2,
+  DESTROYED = 1 << 3,
+  HAS_HOOKS = 1 << 4,
+  SCOPED = 1 << 5,
+  PROXY = 1 << 6,
 }
 
-export enum SessionFlag {
+export const enum SessionFlag {
   NONE = 0,
   RESOLVED = 1,
-  SIDE_EFFECTS = 2,
-  ASYNC = 4,
-  COLLECTION = 8,
-  DRY_RUN = 16,
-  PARALLEL = 32,
-  CIRCULAR = 64,
+  SIDE_EFFECTS = 1 << 1,
+  DYNAMIC = 1 << 2,
+  ASYNC = 1 << 3,
+  COLLECTION = 1 << 4,
+  DRY_RUN = 1 << 5,
+  DYNAMIC_SCOPE = 1 << 6,
+  PARALLEL = 1 << 7,
+  CIRCULAR = 1 << 8,
 }
 
 export enum InjectionHookKind {

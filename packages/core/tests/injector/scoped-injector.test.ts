@@ -109,4 +109,45 @@ describe('scoped injector', function() {
     expect(service === scopedService2).toEqual(false);
     expect(scopedService1 === scopedService2).toEqual(true);
   });
+
+  it('should work with the "using" statement', async function() {
+    let calls = 0;
+
+    @Injectable()
+    class Service {
+      onDestroy() {
+        calls++;
+      }
+    }
+
+    const injector = Injector.create()
+
+    async function testing() {
+      await using scoped = injector.of([
+        Service
+      ]);
+      await scoped.get(Service)
+    }
+  
+    await testing();
+    await testing();
+    await testing();
+    expect(calls).toEqual(3);
+  });
+
+  it('should not destroy with "destroy: false" option', async function() {
+    const injector = Injector.create([]);
+    const scoped = injector.of('some-label')
+  
+    await scoped.destroy();
+    expect(scoped.status & InjectorStatus.DESTROYED).toEqual(InjectorStatus.DESTROYED);
+  });
+
+  it('should not destroy with "destroy: false" option', async function() {
+    const injector = Injector.create([]);
+    const scoped = injector.of('some-label', [], { destroy: false })
+  
+    await scoped.destroy();
+    expect(scoped.status & InjectorStatus.DESTROYED).toEqual(0);
+  });
 });

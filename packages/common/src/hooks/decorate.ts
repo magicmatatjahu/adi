@@ -86,8 +86,9 @@ export function Decorate<NextValue = unknown, T = any>(options: DecorateHookOpti
             return;
           }
   
+          const sessionInstanceMeta = sessionInstance.meta;
           // if it has been decorated before, return value.
-          if (sessionInstance.meta[decorateKey]) {
+          if (sessionInstanceMeta[decorateKey]) {
             return decorated;
           }
   
@@ -112,12 +113,12 @@ export function Decorate<NextValue = unknown, T = any>(options: DecorateHookOpti
           return wait(
             resolver(forked, decorated),
             value => {
-              // possible problem with async resolution - check again
-              if (sessionInstance.meta[decorateKey]) {
+              // possible async resolution
+              if (sessionInstanceMeta[decorateKey]) {
                 return value;
               }
   
-              sessionInstance.meta[decorateKey] = true;
+              sessionInstanceMeta[decorateKey] = true;
               if (isClass) {
                 reassignSession(session, forked, sessionInstance);
               }

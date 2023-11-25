@@ -3,6 +3,9 @@ import type { DestroyContext } from '../types';
 
 export abstract class Scope<O> {
   public abstract get name(): string;
+  public get isDynamic(): boolean {
+    return false
+  }
 
   public abstract getContext(
     session: Session,

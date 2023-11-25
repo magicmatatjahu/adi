@@ -3,7 +3,7 @@ import { waitAll } from "@adi/core";
 
 import { createInjectionMetadata } from "@adi/core/lib/injector";
 import { convertInjection } from "@adi/core/lib/injector/metadata";
-import { optimizedInject } from "@adi/core/lib/injector/resolver";
+import { injectArgument } from "@adi/core/lib/injector/resolver";
 import { getAllKeys, wait, isPromiseLike } from "@adi/core/lib/utils";
 import { InjectionKind } from "@adi/core/lib/enums";
 
@@ -92,7 +92,7 @@ function injectMap(injector: Injector, injections: Record<string | symbol, Injec
       }
   
       if (instance === undefined) {
-        instance = optimizedInject(injector, undefined, argument, ctx);
+        instance = injectArgument(injector, argument, undefined, ctx);
         if (ctx.current?.hasFlag('async')) {
           if (suspense) {
             instance = handleProviderSuspense(injector, ctx, suspense, instance as SuspensePromise);
@@ -110,7 +110,7 @@ function injectMap(injector: Injector, injections: Record<string | symbol, Injec
 
   getAllKeys(args).forEach(key => {
     const argument = args[key];
-    const injection = instances[key] = optimizedInject(injector, undefined, argument, ctx);
+    const injection = instances[key] = injectArgument(injector, argument, undefined, ctx);
 
     if (isPromiseLike(injection)) {
       asyncOperations.push(

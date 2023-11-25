@@ -1,4 +1,4 @@
-import { optimizedInject } from './resolver';
+import { injectArgument } from './resolver';
 import { setCurrentInjectionContext, exitFromInjectionContext } from './inject';
 import { createInjectionMetadata } from './metadata';
 import { InjectionKind } from '../enums';
@@ -61,7 +61,7 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
       let dependency: InjectionArgument | undefined = undefined;
       for (let i = 0, l = inject.length; i < l; i++) {
         if (args[i] === undefined && (dependency = inject[i])) {
-          args[i] = optimizedInject(injector, session, dependency, injectionCtx)
+          args[i] = injectArgument(injector, dependency, session, injectionCtx)
         }
       }
     }
@@ -80,6 +80,5 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
 
   adiPatchedMethod[originalMethodMetaKey] = originalMethod;
   adiPatchedMethod[methodPatchedMetaKey] = true;
-  target.prototype.method = adiPatchedMethod;
-  return adiPatchedMethod;
+  return target.prototype.method = adiPatchedMethod;
 }

@@ -1,3 +1,4 @@
+import { resolveDynamicInstance, dynamicContext } from './dynamic-context';
 import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
 import { inject } from './resolver';
@@ -8,13 +9,14 @@ import { InjectionKind, InjectorStatus } from '../enums';
 import { isPromiseLike } from '../utils';
 import { cacheMetaKey, scopedInjectorsMetaKey, scopedInjectorLabelMetaKey } from '../private';
 
+import type{ CacheEntry, CacheToken } from './cache';
 import type { RunInContextArgument } from './inject'
-import type { ProviderToken, ProviderType, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, InjectionContext, InjectFunctionResult, InferredProviderTokenType } from '../types';
+import type { ProviderToken, ProviderType, InjectionHook, InjectionAnnotations, InjectorInput, InjectorOptions, InjectionHookRecord, InjectionContext, InjectFunctionResult, InferredProviderTokenType, InjectionArgument } from '../types';
 import type { ProviderRecord } from './provider';
 import type { EventEmitter } from '../services/emitter.service';
 
 // TODO: Handle promises as input for injector
-export class Injector<T = any> {
+export class Injector<T = any> implements Disposable, AsyncDisposable {
   static create<T, P>(): Injector<T>
   static create<T, P>(
     input: InjectorInput<T> | undefined,
@@ -64,7 +66,7 @@ export class Injector<T = any> {
   public readonly providers = new Map<ProviderToken<any>, { self?: ProviderRecord | null, imported?: Array<ProviderRecord> }>();
   public readonly hooks: Array<InjectionHookRecord> = [];
   public readonly meta: Record<string | symbol, any> = {
-    [cacheMetaKey]: new Map<any, any>(),
+    [cacheMetaKey]: new Map<CacheToken, CacheEntry>(),
     [scopedInjectorsMetaKey]: undefined,
     [scopedInjectorLabelMetaKey]: undefined,
   };
@@ -131,10 +133,10 @@ export class Injector<T = any> {
   get(...hooks: InjectionHook[]): InjectFunctionResult<unknown>;
 
   get<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: InjectionHook[]): InjectFunctionResult<T> {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
-      return undefined as T;
+    if (this.status & InjectorStatus.ACTIVE) {
+      return inject({ ...this.injectionCtx }, token, annotations, hooks)
     }
-    return inject({ ...this.injectionCtx }, token, annotations, hooks)
+    return undefined as T
   }
 
   getSync<T>(token: ProviderToken<T>): InferredProviderTokenType<T>;
@@ -185,7 +187,14 @@ export class Injector<T = any> {
   getSync(...hooks: InjectionHook[]): unknown;
 
   getSync<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: InjectionHook[]): T {
-    return this.get(token as any, annotations as any, ...hooks) as T
+    if (this.status & InjectorStatus.ACTIVE) {
+      return inject({ ...this.injectionCtx }, token, annotations, hooks) as T
+    }
+    return undefined as T
+  }
+
+  resolve<T>(ref: T, data: { ctx: object }): T | Promise<T> {
+    return resolveDynamicInstance<T>(ref, data.ctx)
   }
 
   provide(...providers: ProviderType[]): void {
@@ -194,10 +203,10 @@ export class Injector<T = any> {
   }
 
   run<R>(fn: (arg: RunInContextArgument) => R): R {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
-      return undefined as R;
+    if (this.status & InjectorStatus.ACTIVE) {
+      return runInInjectionContext(fn, { ...this.injectionCtx });
     }
-    return runInInjectionContext(fn, { ...this.injectionCtx });
+    return undefined as R
   }
 
   of(): Injector;
@@ -207,10 +216,10 @@ export class Injector<T = any> {
   of<T>(input: InjectorInput<T>, options: InjectorOptions): Injector<T>;
   of<T>(label: string | symbol, input: InjectorInput<T>, options: InjectorOptions): Injector<T>;
   of<T>(inputOrLabel?: string | symbol | InjectorInput, maybeInput?: InjectorInput<T>, maybeOptions?: InjectorOptions): Injector<T> {
-    if (this.status & InjectorStatus.DESTROYED || !(this.status & InjectorStatus.INITIALIZED)) {
-      return undefined as unknown as Injector;
+    if (this.status & InjectorStatus.ACTIVE) {
+      return createScopedInjector(this, inputOrLabel, maybeInput, maybeOptions)
     }
-    return createScopedInjector(this, inputOrLabel, maybeInput, maybeOptions)
+    return undefined as unknown as Injector
   }
 
   import<T>(input: InjectorInput<T> | Promise<InjectorInput<T>>): Injector<T> | Promise<Injector<T>> {
@@ -226,5 +235,17 @@ export class Injector<T = any> {
 
   destroy(): Promise<void> {
     return destroyInjector(this, { event: 'manually' })
+  }
+
+  [Symbol.dispose]() {
+    if (this.options.dispose) {
+      return this.destroy();
+    }
+  }
+
+  async [Symbol.asyncDispose]() {
+    if (this.options.dispose) {
+      return this.destroy();
+    }
   }
 }

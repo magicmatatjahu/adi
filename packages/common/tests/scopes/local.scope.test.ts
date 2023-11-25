@@ -5,9 +5,9 @@ import { InstanceScope, LocalScope } from "../../src/scopes"
 import { wait } from "../helpers";
 
 describe('Local scope', function () {
-  test('should inject shared service in the given scope (using toScope option) - nearest case', function () {
+  test('should inject shared service in the given scope (using scope option) - nearest case', function () {
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class SharedService {}
 
@@ -106,9 +106,9 @@ describe('Local scope', function () {
     expect(service2.shared1 === service1.betweenService2.betweenService.newService.shared1).toEqual(false);
   });
 
-  test('should inject shared service in the given scope (using toScope option) - farthest case', function () {
+  test('should inject shared service in the given scope (using scope option) - farthest case', function () {
     @Injectable({
-      scope: LocalScope({ toScope: 'test', depth: 'farthest' }),
+      scope: LocalScope({ scope: 'test', depth: 'farthest' }),
     })
     class SharedService {}
 
@@ -207,9 +207,9 @@ describe('Local scope', function () {
     expect(service2.shared1 === service1.betweenService2.betweenService.newService.shared1).toEqual(false);
   });
 
-  test('should inject shared service in the given scope (using toScope option) - custom depth case', function () {
+  test('should inject shared service in the given scope (using scope option) - custom depth case', function () {
     @Injectable({
-      scope: LocalScope({ toScope: 'test', depth: 2 }),
+      scope: LocalScope({ scope: 'test', depth: 2 }),
     })
     class SharedService {}
 
@@ -309,9 +309,9 @@ describe('Local scope', function () {
     expect(service2.shared1 === service1.betweenService2.betweenService.newService.shared1).toEqual(false);
   });
 
-  test('should inject shared service in the given scope (using toToken option)', function () {
+  test('should inject shared service in the given scope (using to option)', function () {
     @Injectable({
-      scope: LocalScope({ toToken: ref(() => ServiceBetween) }),
+      scope: LocalScope({ to: ref(() => ServiceBetween) }),
     })
     class SharedService {}
 
@@ -408,7 +408,7 @@ describe('Local scope', function () {
     expect(service1.between1.shared1 === service1.between2.shared1).toEqual(false);
   });
 
-  test('should behaves as Singleton scope if any ancestor has not defined the toScope and toToken options', function () {
+  test('should behaves as Singleton scope if any ancestor has not defined the scope and to options', function () {
     @Injectable({
       scope: LocalScope,
     })
@@ -547,7 +547,7 @@ describe('Local scope', function () {
     let destroyOrder: string[] = [];
 
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class LocalService implements OnDestroy {
       onDestroy() {
@@ -594,7 +594,7 @@ describe('Local scope', function () {
     let destroyTimes: number = 0;
 
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class LocalService implements OnDestroy {
       onDestroy() {
@@ -661,7 +661,7 @@ describe('Local scope', function () {
     let destroyOrder: string[] = [];
 
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class LocalService implements OnDestroy {
       onDestroy() {
@@ -706,7 +706,7 @@ describe('Local scope', function () {
     let destroyTimes: number = 0;
 
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class LocalService implements OnDestroy {
       onDestroy() {
@@ -746,7 +746,7 @@ describe('Local scope', function () {
     const localCtx = Context.create(undefined, { name: 'Local ctx' });
 
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class LocalService implements OnDestroy {
       onDestroy() {
@@ -805,7 +805,7 @@ describe('Local scope', function () {
     let destroyOrder: string[] = [];
 
     @Injectable({
-      scope: LocalScope({ toScope: 'test' }),
+      scope: LocalScope({ scope: 'test' }),
     })
     class LocalService implements OnDestroy {
       onDestroy() {
