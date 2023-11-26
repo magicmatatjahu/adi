@@ -1,12 +1,13 @@
 import { resolvedInstances } from './provider';
+import { dynamicContexts } from './dynamic-context';
 import { InjectorStatus, InstanceStatus } from '../enums';
-import { initHooksMetaKey, destroyHooksMetaKey, disposePatchedMetaKey, circularSessionsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey, dynamicInstancesToDestroyMetaKey } from '../private';
+import { initHooksMetaKey, destroyHooksMetaKey, disposePatchedMetaKey, circularSessionsMetaKey, scopedInjectorLabelMetaKey, scopedInjectorsMetaKey, dynamicContextMetaKey } from '../private';
 import { waitSequence, hasOnInitLifecycle, hasOnDestroyLifecycle } from '../utils';
 
 import type { Injector } from './injector';
 import type { ProviderRecord, ProviderDefinition, ProviderInstance } from './provider';
 import type { Session } from './session';
-import type { DestroyContext, InjectorDestroyContext, CustomResolver } from '../types';
+import type { DestroyContext, InjectorDestroyContext, CustomResolver, OnDestroyOptions } from '../types';
 
 const defaultDestroyCtx: DestroyContext = { event: 'default' }
 const defaultinjectorDestroyCtx: InjectorDestroyContext = { event: 'default' }
@@ -81,26 +82,36 @@ async function processOnDestroyLifecycle(instance: ProviderInstance, ctx: Destro
 export async function destroy(instance: any, ctx?: DestroyContext): Promise<void>;
 export async function destroy(instance: ProviderInstance, ctx?: DestroyContext): Promise<void>;
 export async function destroy(instances: Array<ProviderInstance>, ctx?: DestroyContext): Promise<void>;
-export async function destroy(instance: ProviderInstance | Array<ProviderInstance> | any, ctx: DestroyContext = defaultDestroyCtx): Promise<void> {
-  const possibleRef = resolvedInstances.get(instance)
-  if (possibleRef) {
-    return destroyInstance(possibleRef, ctx);
+export async function destroy(instance: ProviderInstance | Array<ProviderInstance>, ctx: DestroyContext = defaultDestroyCtx): Promise<void> {
+  const possibleInstance = resolvedInstances.get(instance)
+  if (possibleInstance) {
+    return destroyInstance(possibleInstance, ctx, instance);
   } else if (Array.isArray(instance)) {
     return destroyCollection(instance, ctx);
   }
   return destroyInstance(instance, ctx);
 }
 
-async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext) {
+export function onDestroy<T extends object>(ref: T, handler: ((value: T) => void | Promise<void>) | OnDestroyOptions<T>) {
+  const possibleRef = resolvedInstances.get(ref)
+  if (possibleRef) {
+    return possibleRef.onDestroy(handler);
+  }
+  return { cancel: () => void 0 };
+}
+
+async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext, possibleValue?: any) {
   if (!instance || (instance.status & InstanceStatus.DESTROYED)) {
     return;
   }
-  const { scope: { scope, options }, definition, context, meta } = instance;
+  const { scope: { scope, options }, definition, context } = instance;
 
-  if (instance.status & InstanceStatus.HAS_DYNAMIC) {
-    const dynamicInstances = meta[dynamicInstancesToDestroyMetaKey];
-    meta[dynamicInstancesToDestroyMetaKey] = [];
-    await destroyCollection(dynamicInstances, ctx)
+  if (instance.status & InstanceStatus.HAS_DYNAMIC && possibleValue) {
+    const dynamicContext = possibleValue[dynamicContextMetaKey];
+    const shared = dynamicContexts.get(dynamicContext);
+    if (shared) {
+      await destroyCollection(shared.toDestroy, ctx)
+    }
   }
 
   const shouldDestroy = await scope!.shouldDestroy(instance, options, ctx) || shouldForceDestroy(instance);
@@ -139,12 +150,7 @@ export function destroyDefinition(definition: ProviderDefinition, ctx: DestroyCo
 
 function destroyChildren(instance: ProviderInstance, ctx: DestroyContext) {
   const children = instance.session.children.map(s => s.instance!);
-
   children.forEach(child => child?.parents?.delete(instance));
-  if (instance.links) {
-    children.push(...Array.from(instance.links));
-  }
-
   return destroyCollection(children, ctx);
 }
 
@@ -178,7 +184,6 @@ export function applyDisposableInterfaces(target: object, instance?: ProviderIns
     await destroy(instance || this, disposeDestroyCtx);
   }
 }
-
 
 export async function destroyInjector(injector: Injector, ctx: InjectorDestroyContext = defaultinjectorDestroyCtx, force: boolean = false) {
   if (injector.status & InjectorStatus.DESTROYED || (!force && !injector.options.destroy)) {

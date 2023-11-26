@@ -58,63 +58,6 @@ describe('Singleton scope', function () {
     expect(instance === undefined).toEqual(true);
   });
 
-  test('should create another instance per injector', function () {
-    @Injectable({
-      scope: SingletonScope({ perInjector: true }),
-    })
-    class TestService {}
-
-    @Injectable()
-    class Service1 {
-      constructor(
-        readonly service: TestService,
-      ) {}
-    }
-
-    @Injectable()
-    class Service2 {
-      constructor(
-        readonly service: TestService,
-      ) {}
-    }
-
-    @Injectable()
-    class ChildService1 {
-      constructor(
-        readonly service: TestService,
-      ) {}
-    }
-
-    @Injectable()
-    class ChildService2 {
-      constructor(
-        readonly service: TestService,
-      ) {}
-    }
-
-    const parentInjector = Injector.create([
-      Service1,
-      Service2,
-      TestService,
-    ])
-    const childInjector = Injector.create([
-      ChildService1,
-      ChildService2,
-    ], parentInjector)
-
-    const service1 = parentInjector.getSync(Service1)
-    const service2 = parentInjector.getSync(Service2)
-    expect(service1.service).toBeInstanceOf(TestService);
-    expect(service2.service).toBeInstanceOf(TestService);
-    expect(service1.service === service2.service).toEqual(true);
-    const childService1 = childInjector.getSync(ChildService1)
-    const childService2 = childInjector.getSync(ChildService2)
-    expect(childService1.service).toBeInstanceOf(TestService);
-    expect(childService2.service).toBeInstanceOf(TestService);
-    expect(childService1.service === childService2.service).toEqual(true);
-    expect(service1.service === childService1.service).toEqual(false);
-  });
-
   test('should destroy on injector event' , async function() {
     let destroyOrder: string[] = [];
 
@@ -268,56 +211,5 @@ describe('Singleton scope', function () {
 
     await injector.destroy();
     expect(destroyOrder).toEqual(['ChildModule', 'Transient', 'Singleton', 'MainModule']);
-  });
-
-  test('should destroy instance per injector after destroying the module where new instance is used' , async function() {
-    let destroyOrder: string[] = [];
-
-    @Injectable({
-      scope: SingletonScope({ perInjector: true }),
-    })
-    class Singleton {
-      onDestroy() {
-        destroyOrder.push('Singleton');
-      }
-    }
-
-    @Module()
-    class ChildModule {
-      constructor(
-        readonly service: Singleton,
-      ) {}
-
-      onDestroy() {
-        destroyOrder.push('ChildModule');
-      }
-    }
-
-    @Module({
-      imports: [
-        ChildModule,
-      ],
-      providers: [
-        Singleton,
-      ]
-    })
-    class MainModule {
-      constructor(
-        readonly service: Singleton,
-      ) {}
-
-      onDestroy() {
-        destroyOrder.push('MainModule');
-      }
-    }
-
-    const injector = Injector.create(MainModule)
-    const childInjector = injector.imports.get(ChildModule) as Injector;
-
-    await childInjector.destroy();
-    expect(destroyOrder).toEqual(['ChildModule', 'Singleton']);
-
-    await injector.destroy();
-    expect(destroyOrder).toEqual(['ChildModule', 'Singleton', 'MainModule', 'Singleton']);
   });
 });

@@ -1,6 +1,7 @@
-import { ADI, Injector, Injectable } from "@adi/core";
+import { ADI, Injector, Injectable, destroy, TransientScope } from "@adi/core";
+import { resolvedInstances } from "@adi/core/lib/injector/provider";
 
-import { injectorProviderPlugin } from "../../../src/plugins/injector-provider.plugin";
+import { injectorProviderPlugin, providerInjectorMetaKey } from "../../../src/plugins/injector-provider.plugin";
 
 describe('Injector provider plugin', function () {
   const plugin = injectorProviderPlugin();
@@ -92,5 +93,44 @@ describe('Injector provider plugin', function () {
     expect(service).toBeInstanceOf(Service);
     expect(service.testService).toBeInstanceOf(TestService);
     expect(() => injector.get(TestService)).toThrow();
+  });
+
+  test('should destroy injector when provider instance is destroyed', async function () {
+    const calls: string[] = [];
+
+    @Injectable()
+    class TestService {
+      onDestroy() {
+        calls.push('TestService')
+      }
+    }
+
+    @Injectable({
+      scope: TransientScope,
+      providers: [
+        TestService,
+      ]
+    })
+    class Service {
+      constructor(
+        public testService: TestService,
+      ) {}
+
+      onDestroy() {
+        calls.push('Service')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+    ]).init() as Injector;
+    
+    const service = injector.get(Service) as Service;
+    const instance = resolvedInstances.get(service)
+    const subInjector = instance?.meta[providerInjectorMetaKey] as Injector;
+    
+    await destroy(instance)
+    expect(calls).toEqual(['Service', 'TestService']);
+    expect((subInjector.status & 8) > 0).toEqual(true)
   });
 });

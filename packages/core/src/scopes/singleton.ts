@@ -1,34 +1,18 @@
 import { createScope } from "./factory";
 import { Scope } from "./scope";
-import { InjectorStatus } from "../enums";
 import { Context } from "../injector";
 
-import type { Injector, Session, ProviderInstance } from "../injector";
+import type { Session, ProviderInstance } from "../injector";
 import type { DestroyContext } from "../types";
 
-export interface SingletonScopeOptions {
-  perInjector?: boolean;
-}
+export interface SingletonScopeOptions {}
 
 export class SingletonScope extends Scope<SingletonScopeOptions> {
-  protected perInjectors = new WeakMap<Injector | Context, Injector | Context>();
-
   override get name(): string {
     return "adi:scope:singleton";
   }
 
-  override getContext(session: Session, options: SingletonScopeOptions): Context {
-    if (options.perInjector) {
-      const hostInjector = session.host;
-      let context = this.perInjectors.get(hostInjector) as Context;
-      if (context === undefined) {
-        context = Context.create(Context.STATIC.data);
-        this.perInjectors.set(hostInjector, context);
-        this.perInjectors.set(context, hostInjector);
-      }
-      return context;
-    }
-    
+  override getContext(session: Session, options: SingletonScopeOptions): Context {    
     const context = session.ctx;
     if (context && context !== Context.STATIC) {
       throw new Error("Cannot recreate provider with singleton scope");
@@ -36,21 +20,8 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
     return Context.STATIC;
   }
 
-  override shouldDestroy(instance: ProviderInstance, options: SingletonScopeOptions, ctx: DestroyContext): boolean {
-    const noParents = !instance.parents?.size;
-    
-    if (!options.perInjector) {
-      return ctx.event === 'injector' && noParents;
-    }
-    
-    const context = instance.context;
-    const injector = this.perInjectors.get(context) as Injector;
-    if (injector && injector.status & InjectorStatus.DESTROYED && noParents) {
-      this.perInjectors.delete(context);
-      this.perInjectors.delete(injector);
-      return true;
-    }
-    return false;
+  override shouldDestroy(instance: ProviderInstance, _: SingletonScopeOptions, ctx: DestroyContext): boolean {
+    return ctx.event === 'injector' && !instance.parents?.size;
   };
 
   override canBeOverrided(): boolean {
@@ -58,4 +29,4 @@ export class SingletonScope extends Scope<SingletonScopeOptions> {
   }
 }
 
-export default createScope<SingletonScopeOptions>(new SingletonScope(), { perInjector: false });
+export default createScope<SingletonScopeOptions>(new SingletonScope(), {});

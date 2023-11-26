@@ -7,7 +7,6 @@ import { ADI_INJECTABLE_DEF } from '../private';
 import { createArray, createDefinition, getAllKeys, isExtended, Reflection } from '../utils';
 
 import type { ClassType, AbstractClassType, InjectableDefinition, InjectableOptions, Injections, InjectionArguments, InjectionArgument, InjectionItem, InjectableDef, DestroyContext } from "../types";
-import { destroy } from './lifecycle-manager';
 
 export const injectableDefinitions = createDefinition<InjectableDefinition>(ADI_INJECTABLE_DEF, injectableFactory);
 

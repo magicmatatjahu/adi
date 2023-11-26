@@ -58,7 +58,6 @@ export class Session<T = any> {
   public readonly data: SessionData = {};
   public dynamicCtx: object | undefined;
   public result: any;
-  public deep: number;
 
   private constructor(
     input: SessionInput,

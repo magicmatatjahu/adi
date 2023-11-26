@@ -58,7 +58,7 @@ describe('Dynamic scope', function () {
     expect(proxy.service.deepService).toBeInstanceOf(DeepTestService);
   });
 
-  test('should work with additional service between dynamic services', async function () {
+  test('should work with additional transient service between dynamic services', async function () {
     @Injectable({
       scope: DynamicScope,
     })
@@ -197,7 +197,90 @@ describe('Dynamic scope', function () {
     expect(proxy1.service.transientService1.transientService2.deepService.ref === proxy2.service.transientService1.transientService2.deepService.ref).toEqual(false);
   });
 
-  test('should work with singletons between dynamic services', async function () {
+  test.skip('should work with singletons between dynamic services - simple case', async function () {
+    const services: any[] = [];
+
+    @Injectable({
+      scope: DynamicScope,
+    })
+    class DeepTestService {
+      public ref = {}
+    }
+
+    @Injectable()
+    class SingletonService2 {
+      public ref = {}
+
+      constructor(
+        public deepService: DeepTestService
+      ) {
+        // in constructor we still operate on original reference to service, not proxied, so array should containts only one element
+        services.push(this);
+      }
+    }
+
+    @Injectable()
+    class SingletonService1 {
+      public ref = {}
+
+      constructor(
+        public singletonService: SingletonService2
+      ) {
+        // in constructor we still operate on original reference to service, not proxied, so array should containts only one element
+        services.push(this);
+      }
+    }
+
+    @Injectable()
+    class Service {
+      public ref = {}
+
+      constructor(
+        public singletonService: SingletonService1,
+      ) {
+        // in constructor we still operate on original reference to service, not proxied, so array should containts only one element
+        services.push(this);
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      SingletonService1,
+      SingletonService2,
+      DeepTestService,
+    ])
+
+    const service = injector.getSync(Service)
+    const proxy1 = await injector.resolve(service, { ctx: {} })
+    const proxy2 = await injector.resolve(service, { ctx: {} })
+
+    expect(proxy1.singletonService).toBeInstanceOf(SingletonService1);
+    expect(proxy1.singletonService.singletonService).toBeInstanceOf(SingletonService2);
+    expect(proxy1.singletonService.singletonService.deepService).toBeInstanceOf(DeepTestService);
+    expect(proxy2.singletonService).toBeInstanceOf(SingletonService1);
+    expect(proxy2.singletonService.singletonService).toBeInstanceOf(SingletonService2);
+    expect(proxy2.singletonService.singletonService.deepService).toBeInstanceOf(DeepTestService);
+
+    expect(proxy1 === proxy2).toEqual(false); // proxies
+    expect(proxy1.ref === proxy2.ref).toEqual(true);
+    expect(proxy1.singletonService === proxy2.singletonService).toEqual(false);
+    expect(proxy1.singletonService.ref === proxy2.singletonService.ref).toEqual(true);
+    expect(proxy1.singletonService.singletonService === proxy2.singletonService.singletonService).toEqual(false);
+    expect(proxy1.singletonService.singletonService.ref === proxy2.singletonService.singletonService.ref).toEqual(true);
+    expect(proxy1.singletonService.singletonService.deepService === proxy2.singletonService.singletonService.deepService).toEqual(false);
+    expect(proxy1.singletonService.singletonService.deepService.ref === proxy2.singletonService.singletonService.deepService.ref).toEqual(true);
+
+    // create additional 5 dynamic context to check if singleton services preserve instances between calls
+    await injector.resolve(service, { ctx: {} })
+    await injector.resolve(service, { ctx: {} })
+    await injector.resolve(service, { ctx: {} })
+    await injector.resolve(service, { ctx: {} })
+    await injector.resolve(service, { ctx: {} })
+
+    expect(services.length).toEqual(3);
+  })
+
+  test('should work with singletons between dynamic services - complex case', async function () {
     const services: any[] = [];
     const normalServices: any[] = [];
 
@@ -393,7 +476,6 @@ describe('Dynamic scope', function () {
     expect(calls).toEqual(['TestService', 'DeepTestService'])
   })
 
-
   test('should work with destroy - complex case with different scopes', async function () {
     const calls: string[] = [];
 
@@ -469,4 +551,84 @@ describe('Dynamic scope', function () {
     await destroy(proxy)
     expect(calls).toEqual(['TestService', 'TransientService', 'DeepTestService'])
   })
+
+  test('should not preserve instances using dynamic context reference after destroying', async function () {
+    const calls: string[] = [];
+
+    @Injectable({
+      scope: DynamicScope,
+    })
+    class DeepTestService {
+      public ref = {}
+
+      onDestroy() {
+        calls.push('DeepTestService')
+      }
+    }
+
+    @Injectable({
+      scope: DynamicScope,
+    })
+    class TestService {
+      public ref = {}
+
+      constructor(
+        readonly deepService: DeepTestService
+      ) {}
+
+      onDestroy() {
+        calls.push('TestService')
+      }
+    }
+
+    @Injectable()
+    class Service {
+      constructor(
+        readonly service: TestService,
+      ) {}
+
+      onDestroy() {
+        calls.push('Service')
+      }
+    }
+
+    const injector = Injector.create([
+      Service,
+      TestService,
+      DeepTestService,
+    ])
+
+    const service = injector.getSync(Service)
+    const ctx = {}
+
+    let proxy1 = await injector.resolve(service, { ctx })
+    let proxy2 = await injector.resolve(service, { ctx })
+
+    expect(proxy1.service).toBeInstanceOf(TestService);
+    expect(proxy1.service.deepService).toBeInstanceOf(DeepTestService);
+    expect(proxy2.service).toBeInstanceOf(TestService);
+    expect(proxy2.service.deepService).toBeInstanceOf(DeepTestService);
+
+    expect(proxy1.service.ref === proxy2.service.ref).toEqual(true);
+    expect(proxy1.service.deepService.ref === proxy2.service.deepService.ref).toEqual(true);
+
+    await destroy(proxy1)
+    await destroy(proxy2)
+    expect(calls).toEqual(['TestService', 'DeepTestService'])
+
+    proxy1 = await injector.resolve(service, { ctx })
+    proxy2 = await injector.resolve(service, { ctx })
+
+    expect(proxy1.service).toBeInstanceOf(TestService);
+    expect(proxy1.service.deepService).toBeInstanceOf(DeepTestService);
+    expect(proxy2.service).toBeInstanceOf(TestService);
+    expect(proxy2.service.deepService).toBeInstanceOf(DeepTestService);
+
+    expect(proxy1.service.ref === proxy2.service.ref).toEqual(true);
+    expect(proxy1.service.deepService.ref === proxy2.service.deepService.ref).toEqual(true);
+
+    await destroy(proxy1)
+    await destroy(proxy2)
+    expect(calls).toEqual(['TestService', 'DeepTestService', 'TestService', 'DeepTestService'])
+  });
 });

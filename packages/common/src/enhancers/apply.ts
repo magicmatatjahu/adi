@@ -24,10 +24,10 @@ export function injectEnhancers(provDefinition: ProviderDefinition) {
   const enhancers = injectableDef?.options?.annotations?.enhancers;
 
   applyGlobalEnhancers(definition, enhancers);
-  const resolver = factory.resolver;
+  const originalResolver = factory.resolver;
   factory.resolver = (injector: Injector, session: Session, data: any) => {
     return wait(
-      resolver(injector, session, data),
+      originalResolver(injector, session, data),
       result => applyAllEnhancers(result, session, definition),
     )
   }

@@ -3,9 +3,6 @@ import type { DestroyContext } from '../types';
 
 export abstract class Scope<O> {
   public abstract get name(): string;
-  public get isDynamic(): boolean {
-    return false
-  }
 
   public abstract getContext(
     session: Session,
@@ -23,5 +20,12 @@ export abstract class Scope<O> {
     options: O,
   ): boolean {
     return true;
+  }
+
+  public isDynamic(
+    session: Session, 
+    options: O
+  ): boolean {
+    return false
   }
 }

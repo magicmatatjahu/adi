@@ -1,9 +1,8 @@
-
 import { Context } from "../injector";
 import { createScope } from "./factory";
 import { Scope } from "./scope";
 
-import type { Session } from "../injector";
+import type { ProviderInstance, Session } from "../injector";
 
 export interface DynamicScopeOptions {
   canBeOverrided?: boolean;
@@ -14,10 +13,6 @@ export class DynamicScope extends Scope<DynamicScopeOptions> {
 
   override get name(): string {
     return "adi:scope:dynamic";
-  }
-
-  override get isDynamic(): boolean {
-    return true
   }
 
   override getContext(session: Session): Context {
@@ -37,12 +32,17 @@ export class DynamicScope extends Scope<DynamicScopeOptions> {
     return ctx;
   }
 
-  override shouldDestroy(): boolean {
+  override shouldDestroy(instance: ProviderInstance): boolean {
+    this.contexts.delete(instance.session.dynamicCtx || {});
     return true;
   };
 
   override canBeOverrided(_: Session, options: DynamicScopeOptions): boolean {
     return options.canBeOverrided as boolean;
+  }
+
+  override isDynamic(): boolean {
+    return true
   }
 }
 

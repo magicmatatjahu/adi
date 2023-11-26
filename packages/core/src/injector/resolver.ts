@@ -4,7 +4,7 @@ import { setInstanceContext } from './method-injection';
 import { compareOrder, convertInjection, convertInjections, createInjectionArgument, createInjectionMetadata, filterHooks, getTreeshakableProvider, parseInjectArguments } from './metadata';
 import { filterDefinitions } from './provider';
 import { Session } from './session';
-import { InjectionKind, InjectionHookKind, InjectorStatus, InstanceStatus } from '../enums';
+import { InjectionKind, InjectionHookKind, InjectorStatus } from '../enums';
 import { runInjectioHooks, runInjectioHooksWithProviders } from '../hooks/private';
 import { treeInjectorMetaKey } from '../private';
 import { NotFoundProviderError } from "../errors/not-found-provider.error";

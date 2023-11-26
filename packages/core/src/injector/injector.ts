@@ -1,4 +1,4 @@
-import { resolveDynamicInstance, dynamicContext } from './dynamic-context';
+import { resolveDynamicInstance } from './dynamic-context';
 import { runInInjectionContext } from './inject';
 import { destroyInjector } from './lifecycle-manager';
 import { inject } from './resolver';

@@ -1,12 +1,12 @@
 import { resolvedInstances } from './provider';
 import { InstanceStatus } from '../enums';
-import { dynamicInstancesMetaKey, dynamicInstancesToDestroyMetaKey } from '../private';
+import { dynamicInstancesMetaKey, dynamicContextMetaKey } from '../private';
 import { wait, waitAll } from '../utils';
 
 import type { ProviderInstance } from "./provider";
 import type { Session } from "./session";
 
-export const dynamicContext = new WeakMap<object, { proxies: Map<object, any>, toDestroy: ProviderInstance[] }>();
+export const dynamicContexts = new WeakMap<object, { proxies: Map<object, any>, toDestroy: ProviderInstance[] }>();
 
 export function applyDynamicContext(instance: ProviderInstance, session: Session): void {
   const acc: ProviderInstance[] = []
@@ -37,10 +37,9 @@ export function resolveDynamicInstance<T>(ref: any, ctx: object): T {
     return ref;
   }
 
-  let sharedCtx = dynamicContext.get(ctx);
+  let sharedCtx = dynamicContexts.get(ctx);
   if (!sharedCtx) {
-    const toDestroy = instance.meta[dynamicInstancesToDestroyMetaKey] = [];
-    dynamicContext.set(ctx, sharedCtx = { proxies: new Map(), toDestroy })
+    dynamicContexts.set(ctx, sharedCtx = { proxies: new Map(), toDestroy: [] })
   }
 
   return resolveProxy(ref, instance, ctx, sharedCtx.proxies, sharedCtx.toDestroy)
@@ -85,6 +84,7 @@ export function resolveProxy<T>(ref: any, instance: ProviderInstance, ctx: objec
   })
 
   const proxy = createProxy(ref, proxies);
+  proxy[dynamicContextMetaKey] = ctx;
   resolvedInstances.set(proxy, instance)
   return waitAll(injections, () => proxy);
 }

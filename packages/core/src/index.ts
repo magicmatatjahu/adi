@@ -12,7 +12,7 @@ export { ADI } from './adi';
 export { INJECTABLE_DEF, MODULE_DEF, MODULE_REF, INITIALIZERS, INJECTOR_OPTIONS } from './constants';
 export { when } from './constraints';
 
-export type { DestroyableType, OnInitHookOptions, OnDestroyHookOptions } from './hooks';
+export type { DestroyableType, OnInitHookOptions } from './hooks';
 export type { DefaultScopeOptions, SingletonScopeOptions, TransientScopeOptions, DynamicScopeOptions } from './scopes';
 export type { ProviderRecord, ProviderDefinition, ProviderInstance } from './injector';
 export * from './types';

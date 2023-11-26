@@ -6,14 +6,15 @@ import { resolveScope } from '../scopes';
 import { PromisesHub, isClassProvider, wait } from '../utils';
 import { setCurrentInjectionContext } from './inject';
 import { applyDynamicContext } from './dynamic-context';
-import { definitionInjectionMetadataMetaKey, circularSessionsMetaKey } from '../private';
+import { definitionInjectionMetadataMetaKey, circularSessionsMetaKey, destroyHooksMetaKey } from '../private';
 import { CircularReferenceError } from '../errors/circular-reference.error';
+import { createCustomResolver } from './resolver';
 import { compareOrder } from './metadata';
 
 import type { Injector } from './injector';
 import type { Session } from './session';
 import type { Scope } from '../scopes/scope';
-import type { ProviderToken, ScopeDefinition, ConstraintDefinition, InjectionHookRecord, ProviderInstanceMetadata, ProviderType, FactoryDefinition, InjectionHook, ProviderDefinitionAnnotations, ProviderRecordMetadata, DynamicScopeContext } from '../types';
+import type { ProviderToken, ScopeDefinition, ConstraintDefinition, InjectionHookRecord, ProviderInstanceMetadata, ProviderType, FactoryDefinition, InjectionHook, ProviderDefinitionAnnotations, ProviderRecordMetadata, OnDestroyOptions, CustomResolver } from '../types';
 
 export const resolvedInstances = new WeakMap<object, ProviderInstance>();
 
@@ -144,10 +145,10 @@ export class ProviderDefinition {
 
   protected getContext(scopeDef: { scope: Scope<any>; options?: any; }, session: Session): Context | Promise<Context> {
     const { scope, options } = scopeDef;
-    if (scope.isDynamic === false || session.hasFlag('dynamic-scope')) {
-      return scope.getContext(session, options)
+    if (scope.isDynamic(session, options) === true && session.hasFlag('dynamic-scope') === false) {
+      return Context.DYNAMIC;
     }
-    return Context.DYNAMIC;
+    return scope.getContext(session, options)
   }
 }
 
@@ -155,7 +156,6 @@ export class ProviderInstance {
   public value: any = undefined;
   public status: InstanceStatus = InstanceStatus.UNKNOWN;
   public parents: Set<ProviderInstance> | undefined = undefined;
-  public links?: Set<ProviderInstance> | undefined = undefined;
   public meta: ProviderInstanceMetadata = {};
 
   static get(
@@ -211,6 +211,21 @@ export class ProviderInstance {
       this.create(),
       value => this.process(value),
     );
+  }
+
+  onDestroy<T>(handler: ((value: T) => void | Promise<void>) | OnDestroyOptions<T>): { cancel(): void } {
+    const resolver: CustomResolver = createCustomResolver({ kind: 'function', handler: (handler as OnDestroyOptions).onDestroy || handler, inject: (handler as OnDestroyOptions<T>).inject });
+    const meta = this.meta
+    const hooks: CustomResolver[] = meta[destroyHooksMetaKey] || (meta[destroyHooksMetaKey] = []);
+    hooks.push(resolver);
+
+    return {
+      cancel() {
+        const indexOf = hooks.indexOf(resolver);
+        if (indexOf === -1) return;
+        hooks.splice(indexOf, 1);
+      }
+    }
   }
 
   destroy(): Promise<void> {

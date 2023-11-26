@@ -40,7 +40,7 @@ export function portalPlugin(options?: PortalPluginOptions): Plugin {
           return;
         }
   
-        const resolver = factory.resolver;
+        const originalResolver = factory.resolver;
         factory.resolver = (injector: Injector, session: Session, data: any) => {
           let portalInjector = session.data[PORTAL_KEY] as { injector: Injector | undefined, deep: boolean };
 
@@ -58,7 +58,7 @@ export function portalPlugin(options?: PortalPluginOptions): Plugin {
             }
           }
 
-          return resolver(injector, session, data);
+          return originalResolver(injector, session, data);
         }
       })
     }

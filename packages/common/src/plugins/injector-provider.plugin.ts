@@ -1,17 +1,9 @@
-import { Injector, Session, wait, OnDestroyHook } from '@adi/core';
+import { Injector, wait } from '@adi/core';
 import { injectableDefinitions } from '@adi/core/lib/injector';
 
 import type { Plugin, ModuleImportType, ProviderType, InjectionToken } from '@adi/core';
 
-const providerInjectorMetaKey = 'adi:key:provider-injector';
-
-const DestroyInjectorHook = OnDestroyHook({
-  onDestroy(_: any, session: Session) {
-    const hostInjector: Injector = session.instance?.meta[providerInjectorMetaKey];
-    return hostInjector && hostInjector.destroy();
-  },
-  inject: [Session]
-});
+export const providerInjectorMetaKey = Symbol.for('adi:key:provider-injector');
 
 export function injectorProviderPlugin(): Plugin {
   return {
@@ -44,19 +36,20 @@ export function injectorProviderPlugin(): Plugin {
           providers = (original as Exclude<ProviderType, InjectionToken>).providers;
         }
       
-        if (imports || providers) {
-          // add destroy hook to destroy Injector.create 
-          definition.hooks.push(DestroyInjectorHook);
-          
+        if (imports || providers) {          
           imports = imports || [];
           providers = providers || [];
-          const resolver = factory.resolver;
+
+          const originalResolver = factory.resolver;
           factory.resolver = (injector, session, data) => {
+            const instance = session.instance!;
+            instance.onDestroy(() => instance.meta[providerInjectorMetaKey]?.destroy());
+
             return wait(
               Injector.create({ imports, providers }, { exporting: false }, injector).init(),
-              newInjector => {
-                session.instance!.meta[providerInjectorMetaKey] = newInjector;
-                return resolver(newInjector, session, data);
+              subInjector => {
+                instance.meta[providerInjectorMetaKey] = subInjector;
+                return originalResolver(subInjector, session, data);
               },
             );
           }

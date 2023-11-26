@@ -23,15 +23,15 @@ export function overridesPlugin(): Plugin {
         }
   
         const target = (data as FactoryDefinitionClass['data']).class || (data as FactoryDefinitionFactory['data']).factory;
-        const resolver = factory.resolver;
+        const originalResolver = factory.resolver;
         factory.resolver = (injector: Injector, session: Session, data: any) => {
           const overrides = session.data[OVERRIDE_KEY] as Array<InjectionItem | undefined> | Injections | undefined;
           if (!overrides) {
-            return resolver(injector, session, data);
+            return originalResolver(injector, session, data);
           }
 
           const inject = overrideInjections(originalInject, overrides, target);
-          return resolver(injector, session, { ...data, inject });
+          return originalResolver(injector, session, { ...data, inject });
         }
       })
     }

@@ -1,15 +1,16 @@
-import { resolveDynamicInstance, dynamicContext } from "./dynamic-context";
+import { resolveDynamicInstance } from "./dynamic-context";
 import { InstanceStatus } from "../enums";
 import { cacheMetaKey } from "../private";
 
 import type { Injector } from "./injector";
 import type { Session } from "./session";
+import type { ProviderInstance } from "./provider";
 import type { InjectionArgument, ProviderToken } from "../types";
 
 export type CacheToken = ProviderToken | InjectionArgument;
 export type CacheEntry = {
   hasDynamic: boolean;
-  value: any;
+  instance: ProviderInstance;
 }
 
 export function getFromCache<T>(injector: Injector, key: CacheToken, session?: Session): T | undefined {
@@ -18,16 +19,18 @@ export function getFromCache<T>(injector: Injector, key: CacheToken, session?: S
     return;
   }
 
-  const { hasDynamic, value } = cached;
+  const { hasDynamic, instance } = cached;
   if (hasDynamic) {
-    return resolveDynamicInstance(value, session?.dynamicCtx!);
+    return resolveDynamicInstance(instance.value, session?.dynamicCtx!);
   }
-  return value;
+  return instance.value;
 }
 
 export function saveToCache(injector: Injector, key: CacheToken, value: any, session: Session) {
   const instance = session.instance;
-  getCache(injector).set(key, { hasDynamic: Boolean(instance && instance.status & InstanceStatus.HAS_DYNAMIC), value });
+  if (instance) {
+    getCache(injector).set(key, { hasDynamic: Boolean(instance && instance.status & InstanceStatus.HAS_DYNAMIC), instance });
+  }
 }
 
 export function clearCache(injector: Injector): void {

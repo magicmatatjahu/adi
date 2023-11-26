@@ -19,8 +19,8 @@ export const definitionInjectionMetadataMetaKey = Symbol.for('adi:definition-inj
 export const instancesToDestroyMetaKey = Symbol.for('adi:instances-to-destroy');
 export const originalMethodMetaKey = Symbol.for('adi:original-method');
 export const methodPatchedMetaKey = Symbol.for('adi:method-patched');
+export const dynamicContextMetaKey = Symbol.for('adi:dynamic-context');
 export const dynamicInstancesMetaKey = Symbol.for('adi:dynamic-instances');
-export const dynamicInstancesToDestroyMetaKey = Symbol.for('adi:dynamic-instances-to-destroy');
 
 export const OBJECT_REF = {};
 export const ARRAY_REF = {};
