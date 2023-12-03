@@ -3,7 +3,7 @@ installADI()
 
 export * from './decorators';
 export { ProvideIn } from './enums';
-export { Hook, All, Catch, Ctx, Destroyable, Named, New, OnDestroyHook, OnInitHook, Optional, Ref, Scoped, Skip, Tagged, Token } from './hooks';
+export { Hook, All, Annotations, Catch, Ctx, Destroyable, Disposable, Labelled, Named, Namespaced, New, OnDestroyHook, OnInitHook, Optional, Ref, Scoped, Skip, Tagged, Token } from './hooks';
 export { Context, DynamicContext, Injector, Session, injectableMixin, moduleMixin, inject, injectMethod, createCustomResolver, destroy } from './injector';
 export { Scope, DefaultScope, SingletonScope, TransientScope, DynamicScope, createScope } from './scopes';
 export { InjectionToken, ModuleToken, token, argument } from './tokens';

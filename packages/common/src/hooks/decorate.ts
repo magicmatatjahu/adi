@@ -11,7 +11,7 @@ export type DecorateHookOptions<T = any, D = any> =
   | DecorateFunction<T, D>;
 
 interface DecorateClass<T = any> {
-  class: ClassType<T>;
+  useClass: ClassType<T>;
   delegationKey?: string | symbol;
 }
 
@@ -21,7 +21,7 @@ interface DecorateFunction<T = any, D = any> {
 }
 
 function hasDecorateClass(decorator: unknown): decorator is DecorateClass {
-  return 'class' in (decorator as DecorateClass);
+  return 'useClass' in (decorator as DecorateClass);
 }
 
 function hasDecorateFunction(decorator: unknown): decorator is DecorateFunction {
@@ -64,7 +64,7 @@ export function Decorate<NextValue = unknown, T = any>(options: DecorateHookOpti
   } else if (hasDecorateFunction(options)) { // function based decorator
     resolver = createCustomResolver({ kind: 'function', handler: options.decorate, inject: options.inject });
   } else if (hasDecorateClass(options)) {
-    resolver = createCustomResolver({ kind: 'class', class: options.class, asStandalone: true })
+    resolver = createCustomResolver({ kind: 'class', class: options.useClass, asStandalone: true })
     delegationKey = options.delegationKey;
     isClass = true;
   }

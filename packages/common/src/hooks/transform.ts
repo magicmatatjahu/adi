@@ -27,9 +27,7 @@ export function Transform<NextValue, T = NextValue>(transformOrOptions: ((toTran
   
       return wait(
         next(session),
-        value => {
-          return resolver(session, value);
-        }
+        value => resolver(session, value)
       ) as T;
     },
     { name: 'adi:transform' }

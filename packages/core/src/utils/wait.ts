@@ -1,14 +1,21 @@
-const ADI_PROMISE_DEF = Symbol('adi:promise');
-
-async function createNativePromise() {}
+const ADI_PROMISE_DEF = Symbol.for('adi:promise-patch');
 
 export function patchPromise(promise: any): void {
   promise.prototype[ADI_PROMISE_DEF] = ADI_PROMISE_DEF; 
 }
 
+export function unwrapPromise<T>(promise: T): T {
+  if (isPromiseLike(promise)) {
+    try {
+      promise[ADI_PROMISE_DEF] = undefined;
+    } catch(err: unknown) {}
+  }
+  return promise;
+}
+
 patchPromise(Promise)
 // patching native Promise created by async/await
-patchPromise(createNativePromise().constructor)
+patchPromise((async function nativePromise() {})().constructor)
 
 export function isPromiseLike<T>(maybePromise: unknown): maybePromise is Promise<T> {
   return maybePromise! && maybePromise[ADI_PROMISE_DEF] === ADI_PROMISE_DEF;

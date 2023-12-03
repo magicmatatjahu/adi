@@ -24,7 +24,7 @@ describe('useValue', function() {
       {
         provide: 'useValue',
         useValue: 'barfoo',
-        when: when.context(ctx),
+        when: when.inContext(ctx),
       },
     ]);
 

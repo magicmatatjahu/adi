@@ -13,6 +13,10 @@ export type DestroyableType<T> = {
 export function Destroyable<NextValue>() {
   return Hook(
     function destroyableHook(session: Session, next: NextInjectionHook<NextValue>): InjectionHookResult<DestroyableType<NextValue>> {
+      if (session.hasFlag('dry-run')) {
+        return next(session) as any;
+      }
+
       return wait(
         next(session),
         value => {

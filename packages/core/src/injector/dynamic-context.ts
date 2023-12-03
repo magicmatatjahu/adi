@@ -14,15 +14,17 @@ export function applyDynamicContext(instance: ProviderInstance, session: Session
   let parent = session.parent;
   while (parent) {
     const parentInstance = parent.instance!;
-    parentInstance.status |= InstanceStatus.HAS_DYNAMIC
+    parentInstance.status |= InstanceStatus.HAS_DYNAMIC_SCOPE
     const meta = parentInstance.meta;
     
-    const proxies: ProviderInstance[] = meta[dynamicInstancesMetaKey] || (meta[dynamicInstancesMetaKey] = []);
-    proxies.push(instance);
+    const proxies: Set<ProviderInstance> = meta[dynamicInstancesMetaKey] || (meta[dynamicInstancesMetaKey] = new Set());
+    proxies.add(instance);
 
-    if (parent.hasFlag('dynamic-scope')) {
+    if (parent.hasFlag('dynamic-resolution')) {
       parent.data.middleInstances = acc;
       return
+    } else {
+      acc.forEach(i => proxies.add(i));
     }
     acc.push(parentInstance)
 
@@ -32,7 +34,7 @@ export function applyDynamicContext(instance: ProviderInstance, session: Session
 
 export function resolveDynamicInstance<T>(ref: any, ctx: object): T {
   const instance = resolvedInstances.get(ref)
-  const canProcess = instance && instance?.status & InstanceStatus.HAS_DYNAMIC;
+  const canProcess = instance && instance?.status & InstanceStatus.HAS_DYNAMIC_SCOPE;
   if (!canProcess) {
     return ref;
   }
@@ -48,10 +50,15 @@ export function resolveDynamicInstance<T>(ref: any, ctx: object): T {
 export function resolveProxy<T>(ref: any, instance: ProviderInstance, ctx: object, proxies: Map<object, any>, toDestroy: ProviderInstance[]): T {
   const injections: any[] = [];
   
-  const instances: ProviderInstance[] = instance.meta[dynamicInstancesMetaKey];
+  const instances: Set<ProviderInstance> = instance.meta[dynamicInstancesMetaKey];
   instances.forEach(({ definition, session, value: instanceRef }) => {
+    if (session.hasFlag('dynamic-scope') === false) {
+      proxies.set(instanceRef, createProxy(instanceRef, proxies))
+      return
+    }
+
     const forked = session.fork();
-    forked.setFlag('dynamic-scope');
+    forked.setFlag('dynamic-resolution');
     forked.dynamicCtx = ctx;
 
     injections.push(
@@ -67,7 +74,7 @@ export function resolveProxy<T>(ref: any, instance: ProviderInstance, ctx: objec
               middleInstances.forEach(i => proxies.set(i.value, createProxy(i.value, proxies)))
             }
 
-            if (instance.status & InstanceStatus.HAS_DYNAMIC) {
+            if (instance.status & InstanceStatus.HAS_DYNAMIC_SCOPE) {
               return injections.push(
                 wait(
                   resolveProxy<any>(value, instance, ctx, proxies, toDestroy),

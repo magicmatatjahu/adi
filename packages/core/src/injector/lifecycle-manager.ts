@@ -106,7 +106,7 @@ async function destroyInstance(instance: ProviderInstance, ctx: DestroyContext, 
   }
   const { scope: { scope, options }, definition, context } = instance;
 
-  if (instance.status & InstanceStatus.HAS_DYNAMIC && possibleValue) {
+  if (instance.status & InstanceStatus.HAS_DYNAMIC_SCOPE && possibleValue) {
     const dynamicContext = possibleValue[dynamicContextMetaKey];
     const shared = dynamicContexts.get(dynamicContext);
     if (shared) {
@@ -166,7 +166,7 @@ function shouldForceDestroy(instance: ProviderInstance) {
 }
 
 const disposeDestroyCtx: DestroyContext = { event: 'dispose' };
-export function applyDisposableInterfaces(target: object, instance?: ProviderInstance) {
+export function applyDisposableMethods(target: object, instance?: ProviderInstance) {
   if (target[disposePatchedMetaKey]) {
     return;
   }

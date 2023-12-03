@@ -197,7 +197,7 @@ describe('Dynamic scope', function () {
     expect(proxy1.service.transientService1.transientService2.deepService.ref === proxy2.service.transientService1.transientService2.deepService.ref).toEqual(false);
   });
 
-  test.skip('should work with singletons between dynamic services - simple case', async function () {
+  test('should work with singletons between dynamic services - simple case', async function () {
     const services: any[] = [];
 
     @Injectable({
@@ -268,7 +268,7 @@ describe('Dynamic scope', function () {
     expect(proxy1.singletonService.singletonService === proxy2.singletonService.singletonService).toEqual(false);
     expect(proxy1.singletonService.singletonService.ref === proxy2.singletonService.singletonService.ref).toEqual(true);
     expect(proxy1.singletonService.singletonService.deepService === proxy2.singletonService.singletonService.deepService).toEqual(false);
-    expect(proxy1.singletonService.singletonService.deepService.ref === proxy2.singletonService.singletonService.deepService.ref).toEqual(true);
+    expect(proxy1.singletonService.singletonService.deepService.ref === proxy2.singletonService.singletonService.deepService.ref).toEqual(false);
 
     // create additional 5 dynamic context to check if singleton services preserve instances between calls
     await injector.resolve(service, { ctx: {} })

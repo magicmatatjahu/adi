@@ -1,10 +1,14 @@
 export * from './hook';
 
 export * from './all';
+export * from './annotations';
 export * from './catch';
 export * from './context';
 export * from './destroyable';
+export * from './disposable';
+export * from './labelled';
 export * from './named';
+export * from './namespaced';
 export * from './new';
 export * from './on-destroy-hook';
 export * from './on-init-hook';

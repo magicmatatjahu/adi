@@ -11,13 +11,6 @@ export interface RunInContextArgument {
   inject: typeof inject,
 }
 
-export let CURRENT_INJECTION_CONTEXT: InjectionContext | undefined = undefined;
-export function setCurrentInjectionContext(ctx: InjectionContext | undefined): InjectionContext | undefined {
-  const previous = CURRENT_INJECTION_CONTEXT;
-  CURRENT_INJECTION_CONTEXT = ctx;
-  return previous;
-}
-
 export function inject<T>(token: ProviderToken<T>): InjectFunctionResult<InferredProviderTokenType<T>>;
 export function inject<T, A>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>): InjectFunctionResult<A>;
 export function inject<T, A, B>(token: ProviderToken<T>, hook1: InjectionHook<InferredProviderTokenType<T>, A>, hook2: InjectionHook<A, B>): InjectFunctionResult<B>;
@@ -67,10 +60,17 @@ export function inject(...hooks: InjectionHook[]): InjectFunctionResult<unknown>
 
 export function inject<T>(token: ProviderToken<T> | InjectionAnnotations | InjectionHook, annotations?: InjectionAnnotations | InjectionHook, ...hooks: InjectionHook[]): InjectFunctionResult<T> {
   if (CURRENT_INJECTION_CONTEXT === undefined) {
-    throw new Error('inject() must be called from an injection context such as a constructor, a factory function or field initializer.');
+    throw new Error('inject() must be called from an injection context such as a constructor, factory function, field (property or set accessor) initializer or context created by injector.run() function.');
   }
 
   return coreInject(CURRENT_INJECTION_CONTEXT, token as any, annotations as any, hooks)
+}
+
+export let CURRENT_INJECTION_CONTEXT: InjectionContext | undefined = undefined;
+export function setCurrentInjectionContext(ctx: InjectionContext | undefined): InjectionContext | undefined {
+  const previous = CURRENT_INJECTION_CONTEXT;
+  CURRENT_INJECTION_CONTEXT = ctx;
+  return previous;
 }
 
 export function runInInjectionContext<R>(fn: (arg: RunInContextArgument) => R, ctx: InjectionContext): R {
@@ -96,7 +96,7 @@ export function exitFromInjectionContext(instances: ProviderInstance[], previosu
 
 export function injectMethod<T, F extends (...args: any) => any>(instance: T, method: F): F {
   if (CURRENT_INJECTION_CONTEXT === undefined) {
-    throw new Error('injectMethod() must be called inside constructor!');
+    throw new Error('injectMethod() must be called inside constructor');
   }
 
   const { injector, session } = CURRENT_INJECTION_CONTEXT;

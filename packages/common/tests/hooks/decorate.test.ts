@@ -581,7 +581,7 @@ describe('Decorate injection hook', function () {
       constructor(
         @Inject(
           Decorate({
-            class: DecoratorService,
+            useClass: DecoratorService,
             delegationKey: 'customKey',
           })
         ) 

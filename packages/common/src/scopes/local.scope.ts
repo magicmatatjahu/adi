@@ -52,7 +52,7 @@ export class LocalScope extends Scope<LocalScopeOptions> {
 
     let ref: Injector | ProviderInstance | undefined = undefined;
     if (toToken === Injector) {
-      ref = this.retrieveInstanceByInjector(session, properDepth, toScope);
+      ref = this.retrieveInstanceByInjector(session.host, properDepth, toScope);
     } else if (parent) {
       ref = this.retrieveInstanceByToken(parent, properDepth, toToken, toScope);
     }
@@ -111,61 +111,65 @@ export class LocalScope extends Scope<LocalScopeOptions> {
     return options.canBeOverrided as boolean;
   }
 
-  private retrieveInstanceByInjector(session: Session | undefined, goal: number, toScope?: string | symbol, depth: number = 0, injector?: Injector): Injector | undefined {
-    // if depth goal is achieved or parent session doesn't exist
-    if (depth === goal || session === undefined) {
-      return injector;
+  private retrieveInstanceByInjector(injector: Injector | null, goal: number, toScope?: string | symbol, depth: number = 0, properInjector?: Injector): Injector | undefined {
+    // if depth goal is achieved or injector parent is nil injector
+    if (depth === goal || !injector) {
+      return properInjector;
     }
 
-    const newInjector = this.retrieveInjector(session, toScope);
-    newInjector !== undefined && depth++;
-    return this.retrieveInstanceByInjector(session.parent, goal, toScope, depth, newInjector || injector);
+    if (this.isProperInjector(injector, toScope)) {
+      properInjector = injector;
+      depth++;
+    }
+    return this.retrieveInstanceByInjector(injector.parent, goal, toScope, depth, properInjector);
   }
 
-  protected retrieveInstanceByToken(session: Session | undefined, goal: number, toToken: ProviderToken, toScope: string | symbol | undefined, depth: number = 0, instance?: ProviderInstance | undefined): ProviderInstance | undefined {
+  protected retrieveInstanceByToken(session: Session | undefined, goal: number, toToken: ProviderToken, toScope: string | symbol | undefined, depth: number = 0, properInstance?: ProviderInstance | undefined): ProviderInstance | undefined {
     // if depth goal is achieved or parent session doesn't exist
     if (depth === goal || session === undefined) {
-      return instance;
+      return properInstance;
     }
 
-    const newInstance = this.retrieveInstance(session, toToken, toScope);
-    newInstance !== undefined && depth++;
-    return this.retrieveInstanceByToken(session.parent, goal, toToken, toScope, depth, newInstance || instance);
+    if (this.isProperInstance(session, toToken, toScope)) {
+      properInstance = session.instance;
+      depth++;
+    }
+    return this.retrieveInstanceByToken(session.parent, goal, toToken, toScope, depth, properInstance);
   }
 
-  private retrieveInjector(session: Session, toScope?: string | symbol): Injector | undefined {
-    const scopes = session.host.options.scopes;
+  private isProperInjector(injector: Injector, toScope?: string | symbol): boolean {
+    const scopes = injector.options.scopes;
 
     // if scope doesn't exist
     if (toScope === undefined) {
-      return session.host
+      return true
     }
 
     const isInScope = scopes!.includes(toScope);
     if (!isInScope) {
-      return;
+      return false;
     }
 
     // rest of conditions
-    return session.host;
+    return true;
   }
 
-  private retrieveInstance(session: Session, toToken?: ProviderToken, toScope?: string | symbol): ProviderInstance | undefined {
+  private isProperInstance(session: Session, toToken?: ProviderToken, toScope?: string | symbol): boolean {
     const isProviderToken = session.provider?.token === toToken;
     const annotation = session.definition?.annotations.localScope;
 
     // if annotations exists but scope hasn't any options
     if (toScope === undefined && toToken === undefined && annotation !== undefined) {
-      return session.instance;
+      return true;
     }
 
     const isAnnotation = (annotation || []).includes(toScope);
     if (!isProviderToken && !isAnnotation) {
-      return;
+      return false;
     }
 
     // rest of conditions
-    return session.instance;
+    return true;
   }
 }
 

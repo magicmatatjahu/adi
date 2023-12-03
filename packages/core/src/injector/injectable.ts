@@ -1,6 +1,6 @@
 import { createInjectionArgument, overrideInjections } from './metadata';
 import { patchMethods } from './method-injection';
-import { applyDisposableInterfaces } from './lifecycle-manager';
+import { applyDisposableMethods } from './lifecycle-manager';
 import { INJECTABLE_DEF } from '../constants';
 import { InjectableStatus, InjectionKind } from '../enums';
 import { ADI_INJECTABLE_DEF } from '../private';
@@ -51,7 +51,7 @@ export function injectableMixin(token: InjectableDefinition['token'], injections
     patchMethods(token as ClassType, methodNames);
     const prototype = (token as ClassType).prototype;
     if (prototype) {
-      applyDisposableInterfaces(prototype)
+      applyDisposableMethods(prototype)
     }
   }
 

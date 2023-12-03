@@ -145,14 +145,21 @@ export class ProviderDefinition {
 
   protected getContext(scopeDef: { scope: Scope<any>; options?: any; }, session: Session): Context | Promise<Context> {
     const { scope, options } = scopeDef;
-    if (scope.isDynamic(session, options) === true && session.hasFlag('dynamic-scope') === false) {
-      return Context.DYNAMIC;
+    if (scope.isDynamic(session, options) === true) {
+      session.setFlag('dynamic-scope')
+      if (session.hasFlag('dynamic-resolution') === false) {
+        return Context.DYNAMIC;
+      }
     }
     return scope.getContext(session, options)
   }
 }
 
 export class ProviderInstance {
+  static for(value: any): ProviderInstance | undefined {
+    return resolvedInstances.get(value)
+  }
+
   public value: any = undefined;
   public status: InstanceStatus = InstanceStatus.UNKNOWN;
   public parents: Set<ProviderInstance> | undefined = undefined;
@@ -168,7 +175,7 @@ export class ProviderInstance {
       const instance = session.instance = new ProviderInstance(definition, context, scope, session)
       instance.value = {}
       instance.status |= InstanceStatus.RESOLVED;
-      instance.status |= InstanceStatus.DYNAMIC;
+      instance.status |= InstanceStatus.DYNAMIC_SCOPE;
       session.setFlag('side-effect')
       applyDynamicContext(instance, session)
       return instance;

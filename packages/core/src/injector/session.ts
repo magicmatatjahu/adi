@@ -17,6 +17,7 @@ const sessionFlags = {
   'collection': SessionFlag.COLLECTION,
   'dry-run': SessionFlag.DRY_RUN,
   'dynamic-scope': SessionFlag.DYNAMIC_SCOPE,
+  'dynamic-resolution': SessionFlag.DYNAMIC_RESOLUTION,
   'parallel': SessionFlag.PARALLEL,
   'circular': SessionFlag.CIRCULAR,
 }

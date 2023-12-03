@@ -4,6 +4,14 @@ import type { Session } from '../injector/session';
 import type { ModuleImportType } from './module';
 import type { ProviderType } from './provider';
 
+export interface OnInjectStartPayload { 
+  session: Session
+}
+
+export interface OnInjectEndPayload { 
+  session: Session
+}
+
 export interface OnProviderAddPayload { 
   original: ProviderType;
   provider?: ProviderRecord;
@@ -31,6 +39,8 @@ export interface OnModuleAddPayload {
 export interface OnModuleDestroyPayload {}
 
 export interface Events {
+  'inject:start': OnInjectStartPayload,
+  'inject:end': OnInjectEndPayload,
   'provider:add': OnProviderAddPayload,
   'provider:destroy': OnProviderDestroyPayload,
   'instance:create': OnInstanceCreatePayload,

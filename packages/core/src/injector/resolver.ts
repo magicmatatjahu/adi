@@ -208,11 +208,16 @@ export function resolveInstance<T>(session: Session): T | Promise<T> | undefined
 }
 
 function processResult(result: any, session: Session, ctx?: Partial<InjectionContext>, cacheToken?: CacheToken) {
-  // try to cache static instance or with side effects (but not dynamic)
-  if (session.hasFlag('side-effect') === false && cacheToken) {
-    saveToCache(session.injector, cacheToken, result, session);
-  } else {
+  if (session.hasFlag('dynamic')) {
     ctx?.toDestroy?.push(session.instance!);
+  } else {
+    if (session.hasFlag('side-effect') === false && cacheToken !== undefined) {
+      saveToCache(session.injector, cacheToken, result, session);
+    }
+
+    if (session.hasFlag('side-effect')) {
+      ctx?.toDestroy?.push(session.instance!);
+    }
   }
 
   session.setFlag('resolved');

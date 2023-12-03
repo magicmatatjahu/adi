@@ -61,7 +61,7 @@ describe('Fallback injection hook', function () {
         @Inject(
           Fallback({
             token: 'token',
-            hooks: [Value('a.b.c')],
+            hooks: use => use(Value('a.b.c')),
           })
         ) 
         readonly service: TestService
@@ -112,7 +112,7 @@ describe('Fallback injection hook', function () {
     expect(err === undefined).toEqual(false);
   });
 
-  test('should work in definition based hooks', function () {
+  test('should work in provider based hooks', function () {
     class Service {}
 
     const injector = Injector.create([

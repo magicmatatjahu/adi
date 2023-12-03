@@ -29,7 +29,7 @@ export function getFromCache<T>(injector: Injector, key: CacheToken, session?: S
 export function saveToCache(injector: Injector, key: CacheToken, value: any, session: Session) {
   const instance = session.instance;
   if (instance) {
-    getCache(injector).set(key, { hasDynamic: Boolean(instance && instance.status & InstanceStatus.HAS_DYNAMIC), instance });
+    getCache(injector).set(key, { hasDynamic: Boolean(instance && instance.status & InstanceStatus.HAS_DYNAMIC_SCOPE), instance });
   }
 }
 

@@ -4,7 +4,7 @@ import { ADI_HOOK_DEF } from '../private';
 import { resolveProvider } from '../injector/resolver';
 
 import type { Injector, Session, ProviderRecord, ProviderDefinition } from '../injector';
-import type { ProviderToken, InjectionHook, InjectionHookContext, InjectionHookDefinition, NextInjectionHook, InjectionHookResult } from '../types';
+import type { ProviderToken, InjectionHook, InjectionHookContext, InjectionHookDefinition, NextInjectionHook, InjectionHookResult, UseHooks } from '../types';
 
 export function isInjectionHook<T = any, R = any>(hooks: unknown): hooks is InjectionHook<T, R> {
   if (!hooks) return false;
@@ -13,6 +13,10 @@ export function isInjectionHook<T = any, R = any>(hooks: unknown): hooks is Inje
 
 export function getInjectionHookDef(hook: unknown): InjectionHookDefinition | undefined {
   return hook?.[ADI_HOOK_DEF]
+}
+
+export const useHooks: UseHooks<any> = (...hooks: InjectionHook[]): InjectionHook[] => {
+  return hooks;
 }
 
 export function runInjectioHooks(hooks: Array<InjectionHook>, session: Session, ctx: Partial<InjectionHookContext>, lastHook: NextInjectionHook) {

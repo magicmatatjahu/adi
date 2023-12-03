@@ -12,3 +12,4 @@ export * from './self';
 export * from './skip-self';
 export * from './transform';
 export * from './value';
+export * from './when';

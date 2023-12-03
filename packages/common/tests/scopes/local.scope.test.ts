@@ -862,7 +862,7 @@ describe('Local scope', function () {
     expect(destroyOrder).toEqual(['transient', 'transient', 'singleton', 'local']);
   });
 
-  describe('use injector', function() {
+  describe('to the Injector token', function() {
     test('should create another instance per injector', function () {
       @Injectable({
         scope: LocalScope({ to: Injector }),
@@ -918,6 +918,225 @@ describe('Local scope', function () {
       expect(childService2.service).toBeInstanceOf(TestService);
       expect(childService1.service === childService2.service).toEqual(true);
       expect(service1.service === childService1.service).toEqual(false);
+    });
+
+    test('should create another instance per injector using scope option', function () {
+      @Injectable({
+        scope: LocalScope({ to: Injector, scope: 'custom-scope' }),
+      })
+      class TestService {}
+  
+      @Injectable()
+      class Service1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class Service2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class ChildService1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class ChildService2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      const parentInjector = Injector.create([
+        Service1,
+        Service2,
+        TestService,
+      ], { scopes: ['custom-scope'] })
+      const childInjector = Injector.create([
+        ChildService1,
+        ChildService2,
+      ], parentInjector)
+  
+      const service1 = parentInjector.getSync(Service1)
+      const service2 = parentInjector.getSync(Service2)
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service2.service).toBeInstanceOf(TestService);
+      expect(service1.service === service2.service).toEqual(true);
+      const childService1 = childInjector.getSync(ChildService1)
+      const childService2 = childInjector.getSync(ChildService2)
+      expect(childService1.service).toBeInstanceOf(TestService);
+      expect(childService2.service).toBeInstanceOf(TestService);
+      expect(childService1.service === childService2.service).toEqual(true);
+      expect(service1.service === childService1.service).toEqual(true);
+    });
+
+    test('should create another instance per injector using scope and deep options - farthest case', function () {
+      @Injectable({
+        scope: LocalScope({ to: Injector, scope: 'custom-scope', depth: 'farthest' }),
+      })
+      class TestService {}
+  
+      @Injectable()
+      class Service1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class Service2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class ChildService1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class ChildService2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+
+      @Injectable()
+      class BabyService1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class BabyService2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      const parentInjector = Injector.create([
+        Service1,
+        Service2,
+        TestService,
+      ], { scopes: ['custom-scope'] })
+      const childInjector = Injector.create([
+        ChildService1,
+        ChildService2,
+      ], { scopes: ['custom-scope'] }, parentInjector)
+      const babyInjector = Injector.create([
+        BabyService1,
+        BabyService2,
+      ], childInjector)
+  
+      const service1 = parentInjector.getSync(Service1)
+      const service2 = parentInjector.getSync(Service2)
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service2.service).toBeInstanceOf(TestService);
+      expect(service1.service === service2.service).toEqual(true);
+      const childService1 = childInjector.getSync(ChildService1)
+      const childService2 = childInjector.getSync(ChildService2)
+      expect(childService1.service).toBeInstanceOf(TestService);
+      expect(childService2.service).toBeInstanceOf(TestService);
+      const babyService1 = babyInjector.getSync(BabyService1)
+      const babyService2 = babyInjector.getSync(BabyService2)
+      expect(babyService1.service).toBeInstanceOf(TestService);
+      expect(babyService2.service).toBeInstanceOf(TestService);
+      expect(babyService1.service === babyService2.service).toEqual(true);
+      expect(service1.service === childService1.service).toEqual(true);
+      expect(service1.service === babyService1.service).toEqual(true);
+      expect(childService1.service === babyService1.service).toEqual(true);
+    });
+
+    test('should create another instance per injector using scope and deep options - nearest case', function () {
+      @Injectable({
+        scope: LocalScope({ to: Injector, scope: 'custom-scope', depth: 'nearest' }),
+      })
+      class TestService {}
+  
+      @Injectable()
+      class Service1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class Service2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class ChildService1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class ChildService2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+
+      @Injectable()
+      class BabyService1 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      @Injectable()
+      class BabyService2 {
+        constructor(
+          readonly service: TestService,
+        ) {}
+      }
+  
+      const parentInjector = Injector.create([
+        Service1,
+        Service2,
+        TestService,
+      ], { scopes: ['custom-scope'] })
+      const childInjector = Injector.create([
+        ChildService1,
+        ChildService2,
+      ], { scopes: ['custom-scope'] }, parentInjector)
+      const babyInjector = Injector.create([
+        BabyService1,
+        BabyService2,
+      ], childInjector)
+  
+      const service1 = parentInjector.getSync(Service1)
+      const service2 = parentInjector.getSync(Service2)
+      expect(service1.service).toBeInstanceOf(TestService);
+      expect(service2.service).toBeInstanceOf(TestService);
+      expect(service1.service === service2.service).toEqual(true);
+      const childService1 = childInjector.getSync(ChildService1)
+      const childService2 = childInjector.getSync(ChildService2)
+      expect(childService1.service).toBeInstanceOf(TestService);
+      expect(childService2.service).toBeInstanceOf(TestService);
+      const babyService1 = babyInjector.getSync(BabyService1)
+      const babyService2 = babyInjector.getSync(BabyService2)
+      expect(babyService1.service).toBeInstanceOf(TestService);
+      expect(babyService2.service).toBeInstanceOf(TestService);
+      expect(babyService1.service === babyService2.service).toEqual(true);
+      expect(service1.service === childService1.service).toEqual(false);
+      expect(service1.service === babyService1.service).toEqual(false);
+      expect(childService1.service === babyService1.service).toEqual(true);
     });
 
     test('should destroy instance per injector after destroying the module where new instance is used' , async function() {

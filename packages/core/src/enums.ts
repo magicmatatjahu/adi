@@ -18,8 +18,8 @@ export const enum InstanceStatus {
   RESOLVED = 1 << 1,
   DESTROYED = 1 << 2,
   DEFINITION_DESTROYED = 1 << 3,
-  DYNAMIC = 1 << 4,
-  HAS_DYNAMIC = 1 << 5,
+  DYNAMIC_SCOPE = 1 << 4,
+  HAS_DYNAMIC_SCOPE = 1 << 5,
   PARALLEL = 1 << 6,
   CIRCULAR = 1 << 7,
 }
@@ -62,8 +62,9 @@ export const enum SessionFlag {
   COLLECTION = 1 << 4,
   DRY_RUN = 1 << 5,
   DYNAMIC_SCOPE = 1 << 6,
-  PARALLEL = 1 << 7,
-  CIRCULAR = 1 << 8,
+  DYNAMIC_RESOLUTION = 1 << 7,
+  PARALLEL = 1 << 8,
+  CIRCULAR = 1 << 9,
 }
 
 export enum InjectionHookKind {

@@ -1,4 +1,4 @@
-import { Injector, Injectable, TransientScope, Destroyable, DestroyableType } from "@adi/core";
+import { Injector, Injectable, TransientScope, Destroyable } from "@adi/core";
 import { PooledScope } from "../../src/scopes"
 
 import type { OnPool } from '../../src/scopes';

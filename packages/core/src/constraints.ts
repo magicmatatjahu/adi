@@ -9,7 +9,7 @@ export function named(name: InjectionAnnotations['named']): ConstraintDefinition
   }
 }
 
-export function tagged(tags: InjectionAnnotations['tagged'] = [], options?: { mode: 'all' | 'partially' }): ConstraintDefinition {
+export function tagged(tags: InjectionAnnotations['tagged'], options?: { mode: 'all' | 'partially' }): ConstraintDefinition {
   const mode = options?.mode || 'partially';
   function includeTag(tag: string | symbol | object) {
     return tags.includes(tag);
@@ -21,7 +21,7 @@ export function tagged(tags: InjectionAnnotations['tagged'] = [], options?: { mo
   }
 }
 
-export function labelled(labels: InjectionAnnotations['labelled'] = [], options?: { mode: 'all' | 'partially' }): ConstraintDefinition {
+export function labelled(labels: InjectionAnnotations['labelled'], options?: { mode: 'all' | 'partially' }): ConstraintDefinition {
   const mode = options?.mode || 'partially';
   function includeLabel([key, value]: [key: string | symbol, value: any]) {
     return labels[key] === value
@@ -33,7 +33,18 @@ export function labelled(labels: InjectionAnnotations['labelled'] = [], options?
   }
 }
 
-export function context(ctx: Context): ConstraintDefinition {
+export function inNamespace(namespace: InjectionAnnotations['namespace'], options?: { strict?: boolean }): ConstraintDefinition {
+  const strict = options?.strict || false;
+  return (session) => {
+    const sessionNamespace = session.annotations.namespace
+    if (strict) {
+      return sessionNamespace === namespace;
+    }
+    return sessionNamespace !== undefined ? sessionNamespace === namespace : true;
+  }
+}
+
+export function inContext(ctx: Context): ConstraintDefinition {
   return (session) => session.ctx === ctx;
 }
 
@@ -90,7 +101,9 @@ export function whenComponent(session: Session): boolean {
 export const when = {
   named,
   tagged,
-  context,
+  labelled,
+  inNamespace,
+  inContext,
   visible,
   and,
   or,
