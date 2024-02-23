@@ -134,7 +134,7 @@ describe('ClassType provider (injectable provider)', function() {
         readonly service1: HelperService1,
       ) {}
 
-      method(@Inject() svc?: HelperService1) {
+      injectMethod(@Inject() svc?: HelperService1) {
         return svc;
       } 
     }
@@ -150,7 +150,7 @@ describe('ClassType provider (injectable provider)', function() {
     expect(service.service1).toBeInstanceOf(HelperService1);
     expect(service.service2).toBeInstanceOf(HelperService1);
     expect(service._service3).toBeInstanceOf(HelperService2);
-    expect(service.method()).toBeInstanceOf(HelperService1);
+    expect(service.injectMethod()).toBeInstanceOf(HelperService1);
   });
 
   test('should work with method injection - inject all arguments', function() {

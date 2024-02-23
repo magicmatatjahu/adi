@@ -1,8 +1,9 @@
 import type { Injector } from '../injector/injector';
 import type { Session } from '../injector/session';
 import type { InjectionHook } from './hook';
-import type { InjectionArgument, InjectionArguments, InjectionItem } from './injection';
+import type { InjectionArgument, InjectionArguments, InjectionItem, InjectionMetadata } from './injection';
 import type { ConstraintDefinition, ProviderHookAnnotations } from './provider';
+import type { ProviderToken } from './provider-token';
 import type { ClassType } from './types';
 
 export interface InjectionHookRecord {
@@ -43,5 +44,8 @@ export type FactoryDefinitionValue<T = any> = FactoryDefinition<T, T>;
 export type CustomResolver<R = any> = (session: Session, ...args: any[]) => R | Promise<R>;
 
 export type CustomResolverOptions<T = any> = 
-  { kind: 'function', handler: (...args: any[]) => T | Promise<T>, inject?: InjectionItem[] } |
-  { kind: 'class', class: ClassType<T>, asStandalone?: boolean }
+  { kind: 'function', handler: (...args: any[]) => T | Promise<T>, inject?: InjectionItem[], metadata?: Partial<InjectionMetadata> } |
+  { kind: 'class', class: ClassType<T>, asStandalone?: boolean, metadata?: Partial<InjectionMetadata> } |
+  { kind: 'injection-item', item: InjectionItem, metadata?: Partial<InjectionMetadata> } |
+  { kind: 'value', value: any }
+

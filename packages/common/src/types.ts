@@ -1,4 +1,4 @@
-import type { ProviderToken, InjectionHook, ConstraintDefinition, ProviderAnnotations, ScopeType, ClassType, AbstractClassType, ModuleImportType, ProviderType } from '@adi/core';
+import type { ProviderToken, InjectionHook, ConstraintDefinition, ProviderAnnotations, ScopeType, ClassType, AbstractClassType, ModuleImportType, ProviderType, CustomProvider } from '@adi/core';
 import type { ExecutionContext } from './enhancers';
 
 export interface ProvidesOptions<T = any> {
@@ -14,7 +14,9 @@ export interface ProvideDefinition {
   static: Record<string | symbol, ProvidesOptions>;
 }
 
-export interface RegistryProvider {
+export interface RegistryProvider extends CustomProvider {
+  imports?: Array<ModuleImportType>;
+  providers?: Array<ProviderType>;
   useRegistry: ClassType | AbstractClassType;
 }
 
@@ -61,9 +63,8 @@ declare module '@adi/core' {
     useRegistry?: never;
   }
 
-  export interface CustomProvider extends RegistryProvider {
-    imports?: Array<ModuleImportType>;
-    providers?: Array<ProviderType>;
+  export interface ProviderTypesRegistry<T> {
+    registry: RegistryProvider;
   }
 
   export interface InjectableOptions {

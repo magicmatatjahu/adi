@@ -8,7 +8,7 @@ import { InjectionKind, InjectionHookKind, InjectorStatus } from '../enums';
 import { runInjectioHooks, runInjectioHooksWithProviders } from '../hooks/private';
 import { treeInjectorMetaKey } from '../private';
 import { NotFoundProviderError } from "../errors/not-found-provider.error";
-import { getAllKeys, wait, waitAll, noopCatch, isPromiseLike } from '../utils';
+import { getAllKeys, wait, waitAll, noopThen, noopCatch, isPromiseLike } from '../utils';
 import { injectableDefinitions } from './injectable';
 import { getFromCache, saveToCache } from './cache';
 
@@ -311,26 +311,13 @@ export function resolveValue<T>(_: Injector, __: Session, data: FactoryDefinitio
 
 export function createCustomResolver<T>(options: CustomResolverOptions<T>): CustomResolver<T> {
   switch (options.kind) {
-    case 'class': {
-      const { class: clazz, asStandalone } = options;
-      if (asStandalone) {
-        const definition = injectableDefinitions.ensure(clazz);
-        const inject = definition.injections;
-        return (session: Session) => resolveClass(session.injector, session, { class: clazz, inject });
-      }
-
-      const metadata = createInjectionMetadata({ kind: InjectionKind.CUSTOM, target: clazz });
-      const argument = createInjectionArgument(clazz, undefined, undefined, metadata)
-      return (session: Session) => injectArgument(session.injector, argument, session);
-    }
-    case 'function': 
-    default: {
+    case 'function': {
       const { handler, inject } = options;
       if (!inject) {
         return (_: Session, ...args: any[]) => handler(...args);
       }
 
-      const metadata = createInjectionMetadata({ kind: InjectionKind.FUNCTION, function: handler })
+      const metadata = createInjectionMetadata({ kind: InjectionKind.FUNCTION, function: handler, ...options.metadata || {} })
       const converted = convertInjections(inject, metadata);
       return (session: Session, ...args: any[]) => {
         const injector = session.injector;
@@ -342,6 +329,36 @@ export function createCustomResolver<T>(options: CustomResolverOptions<T>): Cust
           () => setCurrentInjectionContext(previosuContext),
         );
       }
+    }
+    case 'injection-item': {
+      const { item, metadata = {} } = options;
+      const argument = convertInjection(item, metadata)
+      return (session: Session) => injectArgument(session.injector, argument, session);
+    }
+    case 'value': {
+      return (_: Session) => options.value
+    }
+    case 'class': {
+      const { class: clazz, asStandalone } = options;
+      const metadata = createInjectionMetadata({ kind: InjectionKind.CUSTOM, target: clazz, ...options.metadata || {} });
+
+      if (asStandalone) {
+        const definition = injectableDefinitions.ensure(clazz);
+        const inject = definition.injections;
+
+        return (session: Session) => {
+          const injector = session.injector;
+          const previosuContext = setCurrentInjectionContext({ injector, session, metadata });
+          return wait(
+            resolveClass(session.injector, session, { class: clazz, inject }),
+            noopThen,
+            () => setCurrentInjectionContext(previosuContext),
+          );
+        }
+      }
+
+      const argument = createInjectionArgument(clazz, undefined, undefined, metadata)
+      return (session: Session) => injectArgument(session.injector, argument, session);
     }
   }
 }

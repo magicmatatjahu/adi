@@ -2,22 +2,9 @@ import type { InjectionToken } from '../tokens/injection.token'
 import type { Session } from '../injector/session'
 import type { ProviderToken } from './provider-token'
 import type { Injections, InjectionItem } from './injection';
-import type { InjectorScope } from './injector';
 import type { InjectionHook } from './hook';
 import type { ScopeType } from './scope';
 import type { ClassType } from './types'
-
-export type ProviderType<T = any> = 
-  | ClassTypeProvider<T>
-  | InjectionToken<T>
-  | TokenProvider<T>
-  | ClassProvider<T>
-  | FactoryProvider<T>
-  | ClassicProvider<T>
-  | ValueProvider<T>
-  | ExistingProvider<T>
-  | HookProvider<T>
-  | CustomProvider<T>;
 
 export type ObjectProvider<T = any> = 
   | ClassProvider<T>
@@ -25,7 +12,6 @@ export type ObjectProvider<T = any> =
   | ClassicProvider<T>
   | ValueProvider<T>
   | ExistingProvider<T>
-  | CustomProvider<T>;
 
 export type OverwriteProvider<T = any> = 
   | Omit<ClassProvider<T>, 'provide'> 
@@ -35,19 +21,19 @@ export type OverwriteProvider<T = any> =
   | Omit<ExistingProvider<T>, 'provide'>
   | Omit<CustomProvider<T>, 'provide'>;
 
-export interface ProviderRegistry {
-  sugar: ClassTypeProvider 
-  injectionToken: InjectionToken;
-  class: ClassProvider
-  factory: FactoryProvider
-  classic: ClassicProvider
-  alias: ExistingProvider
-  value: ValueProvider
-  token: TokenProvider 
-  hook: HookProvider
+export interface ProviderTypesRegistry<T> {
+  sugar: ClassTypeProvider<T>;
+  injectionToken: InjectionToken<T>;
+  token: TokenProvider <T>;
+  class: ClassProvider<T>;
+  factory: FactoryProvider<T>;
+  classic: ClassicProvider<T>;
+  value: ValueProvider<T>;
+  alias: ExistingProvider<T>;
+  hook: HookProvider<T>;
 }
 
-export type ProviderKinds = ProviderRegistry[keyof ProviderRegistry]
+export type ProviderType<T = any> = ProviderTypesRegistry<T>[keyof ProviderTypesRegistry<T>]
 
 export interface ClassTypeProvider<T = any> extends ClassType<T> {}
 

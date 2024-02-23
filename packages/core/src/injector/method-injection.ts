@@ -33,12 +33,13 @@ export function patchMethods(target: ClassType, methodNames: Array<string | symb
 }
 
 export function patchMethod(target: ClassType, methodName: string | symbol) {
-  const originalMethod = target.prototype[methodName]
+  const proto = target.prototype;
+  const originalMethod = proto[methodName]
   if (originalMethod[methodPatchedMetaKey]) {
     return originalMethod;
   }
 
-  const descriptor = Object.getOwnPropertyDescriptor(target.prototype, methodName)
+  const descriptor = Object.getOwnPropertyDescriptor(proto, methodName)
   const metadata: InjectionMetadata = createInjectionMetadata({
     kind: InjectionKind.METHOD,
     target,
@@ -46,12 +47,9 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
     descriptor,
   });
 
-  function adiPatchedMethod(this: object, ...args: any[]) {
-    const ctx = ctxRegistry.get(this);
-    if (!ctx) {
-      return originalMethod.apply(this, args);
-    }
-
+  // TODO: save cached injections
+  function methodInjection(this: object, ...args: any[]) {
+    const ctx = ctxRegistry.get(this) as RegistryItem;
     const { injector, session, injections } = ctx
     const inject = injections[methodName];
     const toDestroy: ProviderInstance[] = [];
@@ -78,7 +76,8 @@ export function patchMethod(target: ClassType, methodName: string | symbol) {
     );
   }
 
-  adiPatchedMethod[originalMethodMetaKey] = originalMethod;
-  adiPatchedMethod[methodPatchedMetaKey] = true;
-  return target.prototype.method = adiPatchedMethod;
+  Object.defineProperty(methodInjection, 'name', { value: methodName });
+  methodInjection[originalMethodMetaKey] = originalMethod;
+  methodInjection[methodPatchedMetaKey] = true;
+  return proto[methodName] = methodInjection;
 }

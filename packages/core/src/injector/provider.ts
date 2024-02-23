@@ -67,7 +67,7 @@ export class ProviderRecord {
     if (filter) {
       return filterProviderDefinitions(this.defs, session, filter);
     }
-    return __filterDefinition(this.defs, session);
+    return filterDefinition(this.defs, session);
   }
 
   destroy(): Promise<void> {
@@ -284,10 +284,10 @@ export function filterDefinitions(provider: ProviderRecord, session: Session, fi
   if (filter) {
     return filterProviderDefinitions(provider.defs, session, filter);
   }
-  return __filterDefinition(provider.defs, session);
+  return filterDefinition(provider.defs, session);
 }
 
-function __filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
+function filterDefinition(definitions: Array<ProviderDefinition>, session: Session): ProviderDefinition | undefined {
   let defaultDefinition: ProviderDefinition | undefined;
 
   for (let i = definitions.length - 1; i > -1; i--) {

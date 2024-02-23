@@ -92,6 +92,7 @@ function applyPipes(enhancers: EnhancersDefinitionMethod['pipes'], next: NextEnh
         if (!single) {
           return;
         }
+        
         return wait(
           resolveEnhancers<PipeTransform>(single.enhancers, session),
           pipes => runPipes((instances[index] = pipes), ctx, single.metadata, single.extractor, args, index),
